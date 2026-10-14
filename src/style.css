@@ -230,3 +230,13 @@ body.photo #topbar,body.photo #tabbar,body.photo .qa,body.photo .aq-info{display
 .rbar i{position:absolute;top:0;bottom:0;border-radius:5px}.rbar i.tol{background:rgba(255,198,92,.8)}.rbar i.ide{background:rgba(76,214,148,.95)}
 .rbar b.mk{position:absolute;top:-4px;width:4px;height:17px;border-radius:2px;background:#fff;box-shadow:0 0 6px #000;transform:translateX(-2px)}
 .diag{padding:8px 0;border-top:1px solid var(--panel-b)}.diag:first-of-type{border-top:0}
+
+/* ====== Aşama 5: ansiklopedi / bilgi merkezi ====== */
+.sptile{display:flex;align-items:center;gap:12px;cursor:pointer;transition:transform .2s var(--ease)}.sptile:active{transform:scale(.98)}
+.term{border:0;background:none;color:var(--accent);text-decoration:underline dotted;cursor:pointer;font:inherit;padding:0}
+.sp-portrait{height:min(36vh,300px)}.sp-portrait .cc-tools{flex-wrap:wrap;justify-content:flex-end;max-width:70%}
+.sp-label{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.sp-label b{color:#fff;text-shadow:0 1px 4px #000;font-family:var(--font-h);font-size:20px}
+.mate{display:flex;flex-direction:column;align-items:center;gap:0;padding:6px 8px;border-radius:12px;border:2px solid;min-width:64px}
+.mate.ok{border-color:var(--ok);background:rgba(76,214,148,.12)}.mate.bad{border-color:var(--bad);background:rgba(255,107,107,.12)}
+.gcard{cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
+details.card summary{list-style:none}

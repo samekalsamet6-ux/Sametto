@@ -135,7 +135,7 @@ const UI = {
             done ? h('button.btn.primary.sm', { onclick: () => { Game.claimTask(t); UI.render_hub(el); } }, 'Topla') : h('button.btn.sm', { onclick: () => UI.go(t.go) }, 'Git'));
         }) : UI.emptyState('🎉', 'Hepsi tamam!', 'Yeni hedefler sonraki aşamalarda açılacak.')),
       h('div.launch-grid', null,
-        ...[['dex', 'book', 'Ansiklopedi'], ['lab', 'flask', 'Laboratuvar'], ['design', 'brush', 'Tasarım'], ['profile', 'user', 'Profil'], ['settings', 'gear', 'Ayarlar']].map(([g, i, n]) => h('button', { onclick: () => UI.go(g) }, icon(i), n)),
+        ...[['dex', 'book', 'Ansiklopedi'], ['lab', 'flask', 'Laboratuvar'], ['design', 'brush', 'Tasarım'], ['profile', 'user', 'Profil'], ['help', 'book', 'Bilgi Merkezi'], ['settings', 'gear', 'Ayarlar']].map(([g, i, n]) => h('button', { onclick: () => UI.go(g) }, icon(i), n)),
         h('button', { onclick: () => UI.openFishList() }, icon('list'), 'Balıklarım')),
     ));
     this.hubCanvas = canvas; this.hubMeta = $('#hub-meta', el); this.startThumbs();

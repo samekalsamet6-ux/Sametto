@@ -14,6 +14,7 @@ const Game = {
     { id: 'photo', name: 'Fotoğrafçı', desc: 'Fotoğraf modunda bir kare çek', goal: 1, coins: 30, xp: 10, go: 'aq' },
     { id: 'water', name: 'Su bakımı', desc: 'Su parametreleri panelinden su değişimi yap', goal: 1, coins: 40, xp: 15, go: 'aq' },
     { id: 'prune', name: 'Bahçıvan', desc: 'Bir bitkiyi buda', goal: 1, coins: 40, xp: 15, go: 'aq' },
+    { id: 'lesson', name: 'Öğrenci', desc: 'Bilgi Merkezi\'nde bir Genetik Okulu dersini tamamla', goal: 1, coins: 50, xp: 20, go: 'help' },
     { id: 'test', name: 'Gizli genleri ortaya çıkar', desc: 'Bir balığın genotipini test et', goal: 1, coins: 60, xp: 25, go: 'aq' },
   ],
   _samples: new Map(), _sampleN: 0, last: 0, tAcc: 0, topAcc: 0, hiddenAt: 0, sessionWarned: false,
@@ -77,6 +78,7 @@ const Game = {
     if (!('qFish' in this.S)) Object.defineProperty(this.S, 'qFish', { value: [], writable: true, enumerable: false, configurable: true });
     const S = this.S; if (!S.scape) S.scape = Scape.fromTemplate('start'); this.tank.setScape(S.scape); this.tank.lampMode = S.settings.lamp; this.tank.light = this.tank.lampTarget(S.clockMin); this.tank.setAspect(this.tank.W / this.tank.H);
     if (!this.tank.bg) this.tank.buildBG();
+    this.scanSeen();
     this.tank.onEat = () => { if (R.chance(0.45)) AudioSys.SFX.eat(); };
     UI.refreshTop && $('#app') && UI.refreshTop();
   },
@@ -194,7 +196,11 @@ const Game = {
     UI.toast(r.started ? `${f.name} gebe kaldı! Doğum ~${Math.round((r.due - this.S.clockMin) / 1440)} gün sonra` : `${f.name} sperm depoladı (zaten gebe)`, 'heart', 4200);
     this.save(); return r;
   },
-  markScapeChanged() { clearTimeout(this._svT); this._svT = setTimeout(() => this.save(), 2500); },
+  scanSeen() {
+    const S = this.S, sc = this.tank.scape; S.seen = S.seen || {}; S.seen.plant = S.seen.plant || {}; S.seen.hard = S.seen.hard || {};
+    for (const it of sc.items) (it.k === 'plant' ? S.seen.plant : S.seen.hard)[it.d] = 1; S.seen.hard[sc.sub.type] = 1;
+  },
+  markScapeChanged() { this.scanSeen(); clearTimeout(this._svT); this._svT = setTimeout(() => this.save(), 2500); },
   skipDays(n) { this.S.clockMin += n * 1440; this.tank.creatures.forEach((c) => (c.now = this.S.clockMin)); this.tickBreeding(false); UI.refreshTop(); },
   unrevealed() { return this.tank.creatures.filter((c) => c.unrevealed); },
   /** Soyağacı kaydından (genom saklı) portre çizilebilen hafif canlı. */

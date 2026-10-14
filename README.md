@@ -20,6 +20,8 @@ src/js/04b-breeding.js üreme: çiftleştirme, gebelik, doğum, önizleme
 src/js/09a-viewport.js kamera + girdi
 src/js/12-scape-data.js zemin/taş/kök/bitki/ekipman/şablon tabloları
 src/js/12b-scape-art.js taş/kök/dekor sprite + bitki çizicileri
+src/js/15-info-data.js tür kartı verileri, sözlük, rehberler, dersler
+src/js/15b-dex-ui.js  ansiklopedi + bilgi merkezi
 src/js/14-chem.js      su kimyası + biyoloji simülasyonu
 src/js/14b-water-ui.js su paneli, budama, kuru başlangıç
 src/js/13-scape.js     aquascape modeli, geri alma

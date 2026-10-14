@@ -241,6 +241,16 @@ body.photo #topbar,body.photo #tabbar,body.photo .qa,body.photo .aq-info{display
 .rbar b.mk{position:absolute;top:-4px;width:4px;height:17px;border-radius:2px;background:#fff;box-shadow:0 0 6px #000;transform:translateX(-2px)}
 .diag{padding:8px 0;border-top:1px solid var(--panel-b)}.diag:first-of-type{border-top:0}
 
+/* ====== Aşama 5: ansiklopedi / bilgi merkezi ====== */
+.sptile{display:flex;align-items:center;gap:12px;cursor:pointer;transition:transform .2s var(--ease)}.sptile:active{transform:scale(.98)}
+.term{border:0;background:none;color:var(--accent);text-decoration:underline dotted;cursor:pointer;font:inherit;padding:0}
+.sp-portrait{height:min(36vh,300px)}.sp-portrait .cc-tools{flex-wrap:wrap;justify-content:flex-end;max-width:70%}
+.sp-label{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.sp-label b{color:#fff;text-shadow:0 1px 4px #000;font-family:var(--font-h);font-size:20px}
+.mate{display:flex;flex-direction:column;align-items:center;gap:0;padding:6px 8px;border-radius:12px;border:2px solid;min-width:64px}
+.mate.ok{border-color:var(--ok);background:rgba(76,214,148,.12)}.mate.bad{border-color:var(--bad);background:rgba(255,107,107,.12)}
+.gcard{cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
+details.card summary{list-style:none}
+
 </style>
 </head>
 <body>
@@ -313,6 +323,7 @@ body.photo #topbar,body.photo #tabbar,body.photo .qa,body.photo .aq-info{display
     <section class="screen" id="s-lab"></section>
     <section class="screen" id="s-dex"></section>
     <section class="screen" id="s-profile"></section>
+    <section class="screen" id="s-help"></section>
     <section class="screen" id="s-settings"></section>
   </main>
   <nav id="tabbar" aria-label="Ana gezinti">
@@ -2083,7 +2094,7 @@ const UI = {
             done ? h('button.btn.primary.sm', { onclick: () => { Game.claimTask(t); UI.render_hub(el); } }, 'Topla') : h('button.btn.sm', { onclick: () => UI.go(t.go) }, 'Git'));
         }) : UI.emptyState('🎉', 'Hepsi tamam!', 'Yeni hedefler sonraki aşamalarda açılacak.')),
       h('div.launch-grid', null,
-        ...[['dex', 'book', 'Ansiklopedi'], ['lab', 'flask', 'Laboratuvar'], ['design', 'brush', 'Tasarım'], ['profile', 'user', 'Profil'], ['settings', 'gear', 'Ayarlar']].map(([g, i, n]) => h('button', { onclick: () => UI.go(g) }, icon(i), n)),
+        ...[['dex', 'book', 'Ansiklopedi'], ['lab', 'flask', 'Laboratuvar'], ['design', 'brush', 'Tasarım'], ['profile', 'user', 'Profil'], ['help', 'book', 'Bilgi Merkezi'], ['settings', 'gear', 'Ayarlar']].map(([g, i, n]) => h('button', { onclick: () => UI.go(g) }, icon(i), n)),
         h('button', { onclick: () => UI.openFishList() }, icon('list'), 'Balıklarım')),
     ));
     this.hubCanvas = canvas; this.hubMeta = $('#hub-meta', el); this.startThumbs();
@@ -2469,6 +2480,7 @@ const Game = {
     { id: 'photo', name: 'Fotoğrafçı', desc: 'Fotoğraf modunda bir kare çek', goal: 1, coins: 30, xp: 10, go: 'aq' },
     { id: 'water', name: 'Su bakımı', desc: 'Su parametreleri panelinden su değişimi yap', goal: 1, coins: 40, xp: 15, go: 'aq' },
     { id: 'prune', name: 'Bahçıvan', desc: 'Bir bitkiyi buda', goal: 1, coins: 40, xp: 15, go: 'aq' },
+    { id: 'lesson', name: 'Öğrenci', desc: 'Bilgi Merkezi\'nde bir Genetik Okulu dersini tamamla', goal: 1, coins: 50, xp: 20, go: 'help' },
     { id: 'test', name: 'Gizli genleri ortaya çıkar', desc: 'Bir balığın genotipini test et', goal: 1, coins: 60, xp: 25, go: 'aq' },
   ],
   _samples: new Map(), _sampleN: 0, last: 0, tAcc: 0, topAcc: 0, hiddenAt: 0, sessionWarned: false,
@@ -2532,6 +2544,7 @@ const Game = {
     if (!('qFish' in this.S)) Object.defineProperty(this.S, 'qFish', { value: [], writable: true, enumerable: false, configurable: true });
     const S = this.S; if (!S.scape) S.scape = Scape.fromTemplate('start'); this.tank.setScape(S.scape); this.tank.lampMode = S.settings.lamp; this.tank.light = this.tank.lampTarget(S.clockMin); this.tank.setAspect(this.tank.W / this.tank.H);
     if (!this.tank.bg) this.tank.buildBG();
+    this.scanSeen();
     this.tank.onEat = () => { if (R.chance(0.45)) AudioSys.SFX.eat(); };
     UI.refreshTop && $('#app') && UI.refreshTop();
   },
@@ -2649,7 +2662,11 @@ const Game = {
     UI.toast(r.started ? `${f.name} gebe kaldı! Doğum ~${Math.round((r.due - this.S.clockMin) / 1440)} gün sonra` : `${f.name} sperm depoladı (zaten gebe)`, 'heart', 4200);
     this.save(); return r;
   },
-  markScapeChanged() { clearTimeout(this._svT); this._svT = setTimeout(() => this.save(), 2500); },
+  scanSeen() {
+    const S = this.S, sc = this.tank.scape; S.seen = S.seen || {}; S.seen.plant = S.seen.plant || {}; S.seen.hard = S.seen.hard || {};
+    for (const it of sc.items) (it.k === 'plant' ? S.seen.plant : S.seen.hard)[it.d] = 1; S.seen.hard[sc.sub.type] = 1;
+  },
+  markScapeChanged() { this.scanSeen(); clearTimeout(this._svT); this._svT = setTimeout(() => this.save(), 2500); },
   skipDays(n) { this.S.clockMin += n * 1440; this.tank.creatures.forEach((c) => (c.now = this.S.clockMin)); this.tickBreeding(false); UI.refreshTop(); },
   unrevealed() { return this.tank.creatures.filter((c) => c.unrevealed); },
   /** Soyağacı kaydından (genom saklı) portre çizilebilen hafif canlı. */
@@ -2940,7 +2957,17 @@ const Tests = {
     return this._log('Kimya (seiryu KH↑, aquasoil KH/pH↓, aşırı yük NH₃/NO₂↑, CO₂→pH↓, HC Cuba dikine uzar)', ok1 && ok2 && ok3 && ok4 && ok5, { kh: [base.kh, rocks.kh, soil.kh].map((x) => +x.toFixed(2)), ph: [base.ph, soil.ph, co2.ph].map((x) => +x.toFixed(2)), asırı: [+over.nh3.toFixed(2), +over.no2.toFixed(2)], cuba: cub && [+(cub.vert || 1).toFixed(2), +(cub.sp || 1).toFixed(2)] });
   },
 
-  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding(), this.chemistry()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
+  /** Bilgi içeriği tutarlılığı: her tür/bitki/taş için kart verisi tam mı? */
+  content() {
+    const bad = []; for (const s of SPECIES) { const i = SPECIES_INFO[s.id]; if (!i || !SP_ENV[s.id] || !i.mates || !i.breed || !i.food) bad.push('tür:' + s.id); else { for (const p of i.plants) if (!PLANTS[p]) bad.push('bitki:' + p); for (const m of [...i.mates.ok, ...i.mates.bad]) if (!SPECIES_INFO[m]) bad.push('arkadaş:' + m); if (!TEMPLATES[i.tpl]) bad.push('şablon:' + i.tpl); } }
+    for (const [k, p] of Object.entries(PLANTS)) if (!p.info || !p.sci) bad.push('bitki bilgi:' + k);
+    const terms = new Set(); const scan = (s) => (String(s).match(/\[\[(.+?)\]\]/g) || []).forEach((m) => terms.add(m.slice(2, -2)));
+    Object.values(SPECIES_INFO).forEach((i) => i.genetics.forEach(scan)); LESSONS.forEach((l) => l.pages.forEach((p) => scan(p.join(' ')))); GUIDES.forEach((g) => g.pages.forEach((p) => scan(p.join(' ')))); Object.values(GLOSSARY).forEach(scan);
+    for (const t of terms) if (!UI.findTerm(t)) bad.push('sözlük:' + t);
+    return this._log('Bilgi içeriği tutarlı (tür, bitki, şablon, [[terim]] bağlantıları)', bad.length === 0, bad);
+  },
+
+  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding(), this.chemistry(), this.content()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
 };
 
 /* ───── 12-scape-data.js ───── */
@@ -4025,6 +4052,425 @@ Chem.dryStart = function (on) {
     });
   }
 };
+
+/* ───── 15-info-data.js ───── */
+'use strict';
+/* =====================================================================
+   15 · BİLGİ İÇERİĞİ — tür kartı verileri, sözlük, rehberler, Genetik Okulu dersleri
+   Metinlerde [[Terim]] yazımı tıklanabilir sözlük bağlantısı üretir.
+   ===================================================================== */
+
+Object.assign(SP_ENV, {
+  shrimp:    { temp: [[21, 25], [18, 28]], ph: [[6.6, 7.6], [6.0, 8.0]], gh: [[6, 8], [4, 12]], kh: [[2, 6], [1, 8]], tds: [[150, 250], [100, 350]], nh3: [[0, 0.02], [0, 0.1]], no2: [[0, 0.05], [0, 0.2]], no3: [[0, 20], [0, 40]], o2: [[6, 20], [5, 20]], co2: [[0, 12], [0, 25]], salt: [[0, 0.5], [0, 1]] },
+  molly:     { temp: [[24, 28], [20, 30]], ph: [[7.5, 8.5], [7.0, 9.0]], gh: [[10, 25], [6, 30]], kh: [[8, 18], [5, 22]], tds: [[250, 500], [150, 800]], nh3: [[0, 0.1], [0, 0.5]], no2: [[0, 0.1], [0, 0.6]], no3: [[0, 30], [0, 80]], o2: [[6, 20], [4, 20]], co2: [[0, 18], [0, 35]], salt: [[0, 6], [0, 15]] },
+  endler:    { temp: [[24, 28], [20, 30]], ph: [[7.0, 8.0], [6.5, 8.5]], gh: [[8, 18], [5, 25]], kh: [[4, 15], [2, 20]], tds: [[150, 400], [80, 700]], nh3: [[0, 0.1], [0, 0.5]], no2: [[0, 0.1], [0, 0.6]], no3: [[0, 30], [0, 80]], o2: [[6, 20], [4, 20]], co2: [[0, 18], [0, 35]], salt: [[0, 2], [0, 6]] },
+  platy:     { temp: [[20, 26], [17, 27]], ph: [[7.0, 8.0], [6.6, 8.4]], gh: [[10, 20], [6, 28]], kh: [[6, 15], [3, 20]], tds: [[200, 450], [100, 700]], nh3: [[0, 0.1], [0, 0.5]], no2: [[0, 0.1], [0, 0.6]], no3: [[0, 40], [0, 90]], o2: [[5, 20], [4, 20]], co2: [[0, 18], [0, 35]], salt: [[0, 3], [0, 8]] },
+  swordtail: { temp: [[22, 27], [20, 28]], ph: [[7.0, 8.0], [6.6, 8.4]], gh: [[10, 20], [6, 28]], kh: [[6, 15], [3, 20]], tds: [[200, 450], [100, 700]], nh3: [[0, 0.1], [0, 0.5]], no2: [[0, 0.1], [0, 0.6]], no3: [[0, 40], [0, 90]], o2: [[5, 20], [4, 20]], co2: [[0, 18], [0, 35]], salt: [[0, 3], [0, 8]] },
+  snail:     { temp: [[20, 26], [18, 28]], ph: [[7.0, 8.0], [6.8, 8.4]], gh: [[10, 20], [8, 25]], kh: [[6, 12], [4, 15]], tds: [[200, 400], [120, 600]], nh3: [[0, 0.1], [0, 0.4]], no2: [[0, 0.1], [0, 0.4]], no3: [[0, 40], [0, 80]], o2: [[5, 20], [4, 20]], co2: [[0, 15], [0, 30]], salt: [[0, 1], [0, 3]] },
+  betta:     { temp: [[24, 28], [22, 30]], ph: [[6.5, 7.5], [6.0, 8.0]], gh: [[3, 12], [2, 18]], kh: [[2, 8], [1, 12]], tds: [[80, 250], [50, 400]], nh3: [[0, 0.05], [0, 0.3]], no2: [[0, 0.05], [0, 0.3]], no3: [[0, 25], [0, 60]], o2: [[5, 20], [3, 20]], co2: [[0, 12], [0, 25]], salt: [[0, 1], [0, 3]] },
+});
+
+/* ---- Tür kartı verileri ---- */
+const SPECIES_INFO = {
+  guppy: {
+    emoji: '🐟', hab: ['#3fa6a0', '#1d6b6b', '#0a3a42'], habName: 'Güney Amerika dereleri', origin: 'Güney Amerika (Venezuela, Trinidad, Guyana)', sizeM: '3–4 cm', sizeF: '5–6 cm', life: '2–3 yıl', diff: 1, temper: 2, layer: 'Üst–orta',
+    desc: 'Lepistes, dünyanın en sevilen akvaryum balığıdır: renkli, dayanıklı ve çok üretken. Erkekler gösterişli kuyruk ve desenlerle, dişiler sade ama iridir. Genetik deneyleri için mükemmel bir modeldir.',
+    flow: 'Düşük–orta', light: 'Orta', salt: 'Hafif tuz toleransı', minL: 20, group: '6+ balık', ratio: '1 erkek : 2–3 dişi',
+    plants: ['guppygrass', 'hornwort', 'javamoss', 'vallis', 'salvinia', 'watersprite'], decor: 'Yüzen bitkiler ve sık bitki öbekleri yavrulara saklanma sağlar.', substrate: 'İnert kum veya çakıl; sert su için mercan kırığı katkısı iyi gelir.',
+    mates: { ok: ['guppy', 'molly', 'platy', 'snail'], bad: ['betta', 'shrimp', 'swordtail'], note: 'Lepistes ve Endler aynı tankta melezlenir. Balıklar minik karidesleri ve kendi yavrularını yer.' },
+    food: { types: 'Pul yem, mikro granül, canlı/dondurulmuş artemia ve sivrisinek larvası, spirulina.', freq: 'Günde 1–2 kez, 2 dakikada bitecek kadar.', color: 'Karoten ve astaksantin içeren yemler kırmızı/turuncu renkleri parlatır.', fry: 'Toz yem, yeni çıkmış artemia (nauplii).' },
+    breed: { type: 'Canlı doğuran', time: '21–31 gün (sıcak su kısaltır)', count: '5–100+ (dişi büyüdükçe artar)', care: 'Dişi sperm depolar: tek çiftleşme birkaç batına yeter. Yetişkinler yavru yer; yüzen bitki ve ayrı doğum tankı yavru kaybını azaltır.' },
+    genetics: ['Renk ve desen genlerinin çoğu [[cinsiyet kromozomlarına bağlıdır]] (X ve Y). Çoğu dişide taşınır ama yalnızca erkekte görünür.', 'Gövde renkleri (Albino, Blond, Golden, Blue, Pink) [[otozomal]] [[çekinik]]dir.', 'Metal (Mg) geni [[baskın]]dır; iki kopya sağlığa zarar verir.', 'Boy ve kuyruk uzunluğu [[poligenik]] özelliklerdir: ebeveyn ortalaması + rastgele sapma.'],
+    trivia: ['Lepistes, Y\'ye bağlı kalıtımın ilk gösterildiği canlıdır (Winge, 1920\'ler).', 'Doğadaki erkekler turuncu lekeleriyle dişileri etkiler; avcılar ise parlak erkekleri daha çok fark eder.', 'Sivrisinek larvası yedikleri için "milyon balık" ve sivrisinek balığı olarak da bilinir.', 'Dişi, aldığı spermi aylarca saklayabilir.'],
+    health: ['Çok uzun yüzgeçli ırklar (veil, lace) yüzgeç çürümesine ve yüzme güçlüğüne yatkındır.', 'Çift kopya Metal geni doğurganlığı ve ömrü azaltır — sorumlu üretici bunlardan kaçınır.', 'Sık görülen hastalıklar: beyaz benek (ani soğuma), yüzgeç çürümesi (kirli su).'], tpl: 'start',
+  },
+  shrimp: {
+    emoji: '🦐', hab: ['#5a9a62', '#2f6a42', '#12361f'], habName: 'Tayvan yosunlu dereleri', origin: 'Tayvan (Neocaridina davidi, seçici üretim formları)', sizeM: '2–2.5 cm', sizeF: '3–3.5 cm', life: '1–2 yıl', diff: 3, temper: 1, layer: 'Zemin',
+    desc: 'Neocaridina karidesleri minik, renkli ve yosun temizleyicidir. Tüm renkler tek türün seçici üretim formlarıdır; yabani form kahverengi/şeffaftır. Su kalitesine ve ani değişimlere çok duyarlıdırlar.',
+    flow: 'Düşük', light: 'Düşük–orta', salt: 'Tuz toleransı yok', minL: 10, group: '10+ karides', ratio: 'Önemli değil (dişi daha büyük)',
+    plants: ['javamoss', 'anubias', 'wendtii', 'staurogyne', 'hornwort'], decor: 'Yosun, kök, mağara ve bitki yoğunluğu: yavru ve deri değiştirenler için saklanma.', substrate: 'Aquasoil (koyu zemin rengi canlılığı artırır).',
+    mates: { ok: ['shrimp', 'snail'], bad: ['guppy', 'molly', 'platy', 'swordtail', 'betta'], note: 'Balıklar yavru karidesleri yer. Bakır içeren ilaçlar karidesler için ölümcüldür.' },
+    food: { types: 'Biyofilm, yosun, haşlanmış sebze (ıspanak, salatalık), karides yemi, badem yaprağı.', freq: 'Gün aşırı, azar azar.', color: 'Koyu zemin ve doğru su rengi artırır; aşırı protein yeşil/kahverengiye kaydırmaz ama iç organları büyütür.', fry: 'Biyofilm ve mikro yem.' },
+    breed: { type: 'Yumurtalı (dişi karnının altında taşır)', time: '~3–4 hafta', count: '10–30 yavru', care: 'Yavrular larvasız, minik karides olarak doğar. Dişi yumurtayı "eyer" denen bölgede tutar; deri değiştirdikten sonra çiftleşir.' },
+    genetics: ['Kırmızı hat: Cherry → Sakura → Fire Red → Painted Fire Red; Rili ve Blue Jelly kolları.', 'Siyah hat: Black/Chocolate, Blue Dream, Bloody Mary, Carbon Rili.', '[[Rili]], renkten bağımsız bir desen genidir (gövdenin ortasında şeffaf bölge).', 'Farklı hatlar karışırsa birkaç nesilde yabani kahverengiye dönülür; mavi çekiniktir ve kolay seyrelir.'],
+    trivia: ['Deri değiştirirken karidesin kabuğu geride kalır; bu normaldir, sağlık belirtisidir.', 'Karidesler tankın "temizlik ekibi": yosun, ölü bitki ve yem artığı yerler.', 'Orange Sakura × Blue Jelly çaprazlamasında F1 %100 Red Rili çıkar.'],
+    health: ['Bakır (çoğu ilaçta, bazı yem katkılarında) ölümcüldür.', 'Ani sıcaklık/TDS/pH değişimi şok ve toplu ölüm yapar.', 'Zorlu deri değişimi (eksik GH) "ölüm halkası" olarak bilinir.'], tpl: 'shrimp',
+  },
+  molly: {
+    emoji: '🐠', hab: ['#49a89a', '#237b78', '#0a3d44'], habName: 'Orta Amerika acı sular', origin: 'Orta ve Güney Amerika (acı ve tatlı sular)', sizeM: '6–10 cm', sizeF: '7–12 cm', life: '3–5 yıl', diff: 2, temper: 3, layer: 'Orta',
+    desc: 'Moliler sert ve hafif tuzlu suyu sever. Siyah (melanizm) formundan Dalmaçyalıya, Sailfin yelkenine kadar geniş bir çeşitlilik sunar. Yosun yemeyi sever.',
+    flow: 'Orta', light: 'Orta–yüksek', salt: 'Hafif–orta tuz sevebilir', minL: 60, group: '4–6 balık', ratio: '1 erkek : 3 dişi',
+    plants: ['vallis', 'hygro', 'hornwort', 'javafern'], decor: 'Geniş yüzme alanı ve bitki öbekleri.', substrate: 'Mercan kırığı ya da kum (sertlik için).',
+    mates: { ok: ['molly', 'guppy', 'platy', 'swordtail', 'snail'], bad: ['betta', 'shrimp'], note: 'Moli türleri kendi aralarında melezlenir. Erkekler dişileri çok kovalar; oranı dişi lehine tut.' },
+    food: { types: 'Spirulina, yosunlu yemler, pul yem, sebze.', freq: 'Günde 1–2 kez.', color: 'Bitkisel ağırlıklı beslenme siyahı derinleştirir.', fry: 'Toz yem, artemia.' },
+    breed: { type: 'Canlı doğuran', time: '~30–40 gün', count: '20–60', care: 'Yavrulara saklanma alanı ver; yetişkinler yer.' },
+    genetics: ['Siyah (melanizm) [[yarı baskın]]dır ve ifadesi değişkendir: Dalmaçyalı/Mermer/Calico tek spektrumdur.', 'Balon formu [[çekinik]]; omurga deformasyonuna bağlı olduğundan sağlık ve doğurganlık cezası vardır.', 'Sailfin (yelken) poligeniktir.'],
+    trivia: ['Siyah moliler "melanizm" yüzünden genetik olarak ilginç bir ifade çeşitliliği gösterir.', 'Acı suya geçişte bile birkaç gün içinde uyum sağlayabilirler.'],
+    health: ['Balon moli, kısa omurga nedeniyle yüzme/sindirim sorunları yaşar — dürüst bir not.', 'Yumuşak ve asidik suda zayıflar (kabuk/sistem stresi).'], tpl: 'start',
+  },
+  endler: {
+    emoji: '🐠', hab: ['#4aa0b8', '#216a8a', '#0a3250'], habName: 'Venezuela göletleri', origin: 'Venezuela (Laguna de Patos)', sizeM: '2.5 cm', sizeF: '3.5 cm', life: '2–3 yıl', diff: 2, temper: 2, layer: 'Üst–orta',
+    desc: 'Endler, lepistesin minik ve hareketli akrabasıdır: Tiger, Cobra ve Black Bar formlarıyla bilinir. Lepistesle aynı tankta melezlenir ve saf hat kaybolur.',
+    flow: 'Düşük–orta', light: 'Orta', salt: 'Hafif', minL: 20, group: '8+ balık', ratio: '1 erkek : 2 dişi',
+    plants: ['guppygrass', 'javamoss', 'salvinia', 'watersprite'], decor: 'Yüzen bitkiler ve yosun.', substrate: 'Kum veya çakıl.',
+    mates: { ok: ['endler', 'platy', 'snail'], bad: ['guppy', 'betta', 'shrimp'], note: 'Lepistesle melezlenme "Saf Endler" sertifikasını bozar.' },
+    food: { types: 'Mikro pul yem, artemia, daphnia.', freq: 'Günde 1–2 kez.', color: 'Karotenli yemler turuncuyu canlandırır.', fry: 'Toz yem.' },
+    breed: { type: 'Canlı doğuran', time: '~23–28 gün', count: '5–25', care: 'Lepistes gibi; yavru saklanması için bitki ekle.' },
+    genetics: ['Desenler Y\'ye bağlıdır; Tiger, Cobra ve Black Bar [[aleller]]dir.', 'Lepistesle melezi verimlidir ama "saflık" katsayısı düşer.'],
+    trivia: ['Endler\'in adı 1937\'de Venezuela\'da bulan John Endler\'dir.', 'Erkekleri çok renkli ve hareketlidir.'],
+    health: ['Küçük boyları nedeniyle iri balıklarla birlikte tutulmamalı.'], tpl: 'start',
+  },
+  platy: {
+    emoji: '🐠', hab: ['#52a8a0', '#2a7a72', '#0f3f48'], habName: 'Meksika nehirleri', origin: 'Meksika ve Orta Amerika', sizeM: '4 cm', sizeF: '5–6 cm', life: '3–4 yıl', diff: 1, temper: 2, layer: 'Orta',
+    desc: 'Plati çok dayanıklıdır; Mickey Mouse, Comet, Two-spot, Moon, Salt & Pepper, Coral, Blue Mirror ve daha fazlası. Yeni başlayanlar için idealdir.',
+    flow: 'Orta', light: 'Orta', salt: 'Hafif', minL: 40, group: '5–6 balık', ratio: '1 erkek : 2 dişi',
+    plants: ['hornwort', 'hygro', 'vallis', 'javafern'], decor: 'Bitki öbekleri.', substrate: 'Kum/çakıl.',
+    mates: { ok: ['platy', 'swordtail', 'guppy', 'molly', 'snail'], bad: ['betta', 'shrimp'], note: 'Kılıçkuyrukla melezlenir.' },
+    food: { types: 'Pul yem, sebze, canlı yem.', freq: 'Günde 1–2 kez.', color: 'Çeşitli beslenme.', fry: 'Toz yem.' },
+    breed: { type: 'Canlı doğuran', time: '~28 gün', count: '20–50', care: 'Yavrular iri doğar; saklanma ver.' },
+    genetics: ['Taban: yabani/albino/blond ([[çekinik]]).', 'Desen genleri çoğunlukla [[kodominant]]dır.'],
+    trivia: ['Platiler soğuk suya (17 °C) bile dayanır.'], health: ['Aşırı yemlenirse şişer.'], tpl: 'start',
+  },
+  swordtail: {
+    emoji: '🐠', hab: ['#4fa89a', '#277a70', '#0c3f46'], habName: 'Meksika/Honduras nehirleri', origin: 'Meksika, Guatemala, Honduras', sizeM: '10–12 cm (kılıç dahil)', sizeF: '12–14 cm', life: '3–5 yıl', diff: 2, temper: 4, layer: 'Orta–üst',
+    desc: 'Erkeğin alt kuyruk ışınları uzayarak kılıca dönüşür. Red, Pineapple, Wagtail, Tuxedo ve Lyretail formları vardır. Erkekler itici olabilir.',
+    flow: 'Orta', light: 'Orta', salt: 'Hafif', minL: 80, group: '4–6 balık', ratio: '1 erkek : 3 dişi',
+    plants: ['vallis', 'hygro', 'hornwort'], decor: 'Geniş yüzme alanı.', substrate: 'Kum/çakıl.',
+    mates: { ok: ['swordtail', 'platy', 'molly', 'snail'], bad: ['betta', 'shrimp', 'guppy'], note: 'Plati ile melezlenir; erkekler birbirine saldırgan olabilir.' },
+    food: { types: 'Pul yem, sebze, canlı yem.', freq: 'Günde 1–2 kez.', color: 'Karoten.', fry: 'Toz yem.' },
+    breed: { type: 'Canlı doğuran', time: '~28–30 gün', count: '20–80', care: 'Yavru tanka ayır.' },
+    genetics: ['Kılıç geni erkekte ifade olur.', 'Nadiren dişiden erkeğe dönüşüm görülür.'],
+    trivia: ['Bazı dişiler yaşlandıkça erkeğe dönüşür ve kılıç çıkarır.'], health: ['Atlamaya meraklıdır — tankı kapalı tut.'], tpl: 'start',
+  },
+  snail: {
+    emoji: '🐌', hab: ['#5fa070', '#2f6d48', '#103a28'], habName: 'Amazon sulak alanları', origin: 'Güney Amerika (Pomacea diffusa)', sizeM: '4–5 cm', sizeF: '4–5 cm', life: '1–2 yıl', diff: 1, temper: 1, layer: 'Zemin–orta',
+    desc: 'Gizemli salyangoz yem artıklarını ve bitki kalıntılarını temizler. Altın, mavi, mor, fildişi, siyah ve çikolata renkleri vardır. Yumurtalarını su üstüne bırakır.',
+    flow: 'Düşük', light: 'Düşük–orta', salt: 'Toleransı düşük', minL: 20, group: '2–4', ratio: 'Önemli değil',
+    plants: ['anubias', 'javafern', 'wendtii'], decor: 'Kökler ve taşlar.', substrate: 'Kum/çakıl.',
+    mates: { ok: ['snail', 'guppy', 'molly', 'platy', 'endler', 'betta', 'shrimp'], bad: [], note: 'Çoğu balıkla barışçıl; bakır ilaç öldürür.' },
+    food: { types: 'Sebze, balık yemi artığı, kalsiyumlu yem.', freq: 'Gün aşırı.', color: '—', fry: 'Mikro yem.' },
+    breed: { type: 'Yumurtalı (su üstü)', time: '~2–3 hafta', count: '20–100 yumurta', care: 'Kümeyi kuru tut; yavrular suya düşer.' },
+    genetics: ['Kabuk ve gövde rengi ayrı genlerle kontrol edilir.'],
+    trivia: ['Su üstüne bıraktığı pembe yumurta kümesi görsel bir olaydır.'], health: ['Kabuk sağlığı için sert su (kalsiyum) şart.', 'Bakır içeren ilaçlar ölümcüldür.'], tpl: 'start',
+  },
+  betta: {
+    emoji: '🐡', hab: ['#6aa064', '#3d6f3e', '#1a3a22'], habName: 'Tayland pirinç tarlaları', origin: 'Güneydoğu Asya (Tayland, Kamboçya)', sizeM: '6–7 cm', sizeF: '5–6 cm', life: '3–4 yıl', diff: 3, temper: 8, layer: 'Üst',
+    desc: 'Beta, labirent organıyla yüzeyden nefes alır. Erkekler birbirine saldırır ve yalnız tutulmalıdır. Halfmoon, Plakat, Crowntail, Dumbo ve Giant gibi yüzgeç formlarıyla bilinir.',
+    flow: 'Çok düşük', light: 'Düşük–orta', salt: 'Gerek yok', minL: 20, group: '1 erkek (dişiler küçük gruplarda)', ratio: 'Erkekler yalnız',
+    plants: ['wendtii', 'salvinia', 'limnobium', 'vallis', 'javafern'], decor: 'Yüzen bitkiler (yuva için), badem yaprağı, mağara.', substrate: 'Kum.',
+    mates: { ok: ['snail'], bad: ['guppy', 'endler', 'molly', 'platy', 'swordtail', 'betta'], note: 'Beta erkekleri aynı tankta tutulamaz; renkli, uzun yüzgeçli balıklara saldırabilir.' },
+    food: { types: 'Beta pelleti, canlı/dondurulmuş kan kurdu ve artemia.', freq: 'Günde 1–2 kez, az.', color: 'Karoten.', fry: 'İnfüzorya, artemia nauplii.' },
+    breed: { type: 'Yumurtlayan (köpük yuva)', time: 'Yumurta 24–48 sa, larva 3–4 gün', count: '100–400 yumurta', care: 'Erkek köpük yuva yapar, yumurtaları ve yavruları korur; larvalar ilk günlerde çok hassastır.' },
+    genetics: ['Yüzgeç tipleri (Halfmoon, Plakat, Crowntail, Dumbo, Giant) büyük etkili ayrı genlerdir.', '[[Marble]] geni yaşam boyu renk değişimine yol açar.'],
+    trivia: ['"Dövüşen balık" adı erkeklerin teritoryal davranışından gelir; doğada yarış değil sınır tartışmasıdır.', 'Köpük yuva, havayı soluyan erkeğin tükürük kabarcıklarından yapılır.'],
+    health: ['Çok büyük/uzun yüzgeçler yüzmeyi zorlaştırır ve yüzgeç çürümesine yatkındır.', 'Soğuk su hastalık yapar; 24 °C altına düşürme.'], tpl: 'betta',
+  },
+};
+
+/* ---- Sözlük ---- */
+const GLOSSARY = {
+  'GH': 'Genel sertlik: sudaki kalsiyum ve magnezyum miktarı (°dH). Karides, salyangoz ve moliler için önemlidir.',
+  'KH': 'Karbonat sertliği: suyun pH tamponu (°dH). Düşük KH\'de pH kolay oynar; seiryu taşı ve mercan kırığı KH\'yi yükseltir.',
+  'TDS': 'Çözünmüş toplam madde (ppm). Karideslerde ani değişim öldürücüdür.',
+  'pH': 'Asitlik–bazlık ölçeği (7 nötr). Akvaryumda pH, KH ve CO₂ ile birlikte değişir.',
+  'azot döngüsü': 'Amonyak (NH₃) → nitrit (NO₂) → nitrat (NO₃) dönüşümü; faydalı bakteriler yapar. Yeni tankta tamamlanması haftalar sürer.',
+  'amonyak': 'Balık atığı ve çürüyen yemden doğan çok zehirli madde.',
+  'nitrit': 'Azot döngüsünün ara ürünü; zehirlidir.',
+  'nitrat': 'Azot döngüsünün sonu; bitkiler tüketir, su değişimi azaltır.',
+  'epifit': 'Toprağa değil, taş veya köke tutunarak yaşayan bitki (anubias, java eğreltisi, bucephalandra).',
+  'halı bitki': 'Zemine yayılıp yeşil bir halı oluşturan alçak bitkiler (Monte Carlo, HC Cuba, cüce saç otu).',
+  'pearling': 'Işık ve CO₂ yüksekken bitki yapraklarında oluşan oksijen kabarcığı gösterisi.',
+  'Iwagumi': 'Sadece taş ve (genellikle tek tür) halı bitkiyle yapılan, sade Japon aquascape stili.',
+  'Oyaishi': 'Iwagumi\'de ana (en büyük) taş; üçler kuralı noktasına yakın konur.',
+  'Fukuishi': 'Iwagumi\'de ana taşa eşlik eden yardımcı taş.',
+  'Soeishi': 'Iwagumi\'de ana taşı tamamlayan küçük eşlikçi taş.',
+  'Suteishi': 'Iwagumi\'de kompozisyonu tamamlayan "atılmış" taş.',
+  'Dutch': 'Hollanda stili: zeminin %80+\'ı bitkiyle kaplı, renk kontrastlı bitki "sokakları".',
+  'biyotop': 'Belirli bir doğal habitatı (türler, bitkiler, su değerleri) taklit eden tank.',
+  'Rili': 'Karideslerde renkten bağımsız desen geni: gövdenin ortası şeffaf.',
+  'Moscow': 'Lepistesin Y\'ye bağlı geni: gövde koyu, kuyruk düz renk olur.',
+  'Tuxedo': 'Gövdenin arka yarısının "smokin" gibi koyulaştığı lepistes deseni.',
+  'Snakeskin': 'Pullara benzeyen halka biçimli yılan derisi deseni.',
+  'Marble': 'Beta\'da yaşam boyu renk değiştiren desen geni.',
+  'baskın': 'Bir alelin (gen versiyonu) tek kopyasıyla bile görünür olması.',
+  'çekinik': 'Bir alelin görünmesi için iki kopyasının da çekinik olması gerekir.',
+  'yarı baskın': 'Heterozigotta ara bir görünüm veren kalıtım.',
+  'kodominant': 'İki alelin de aynı anda ifade olması.',
+  'alel': 'Bir genin farklı versiyonlarından her biri.',
+  'aleller': 'Bir genin farklı versiyonları.',
+  'lokus': 'Genin kromozom üzerindeki yeri.',
+  'genotip': 'Bir bireyin sahip olduğu gen kombinasyonu (görünmeyebilir).',
+  'fenotip': 'Genotipin dışarıdan görünen sonucu.',
+  'otozomal': 'Eşey (cinsiyet) kromozomları dışındaki kromozomlarda yer alan.',
+  'cinsiyet kromozomlarına bağlıdır': 'X veya Y kromozomu üzerinde taşınan; kalıtım cinsiyete göre farklıdır.',
+  'Y\'ye bağlı': 'Sadece Y kromozomunda: babadan oğula geçer.',
+  'poligenik': 'Boy gibi, birçok genin birlikte etkilediği ölçülebilir özellik.',
+  'çaprazlama (crossing over)': 'Kromozom parçalarının eşleşirken yer değiştirmesi (X–Y arasında düşüktür, ~%3).',
+  'mutasyon': 'Gen dizisindeki rastlantısal değişiklik; çok nadir yeni özellikler doğurabilir.',
+  'akrabalı üreme': 'Yakın akrabaların çiftleştirilmesi; küçük boy, düşük doğurganlık ve kusur riski artırır.',
+  'akrabalık katsayısı': 'Bir bireyin iki alelinin aynı atadan gelme olasılığı (F). Kardeş çiftleşmesinde 0.25.',
+  'sabit hat': 'Birkaç nesil boyunca aynı özelliği %90+ veren, saflaşmış hat.',
+  'Punnett karesi': 'Ebeveyn gametlerinden yavru genotip olasılıklarını gösteren tablo.',
+  'gonopodyum': 'Canlı doğuran erkek balıkta anal yüzgeçten dönüşen üreme organı.',
+  'melanizm': 'Aşırı koyu pigment (siyah) üretimi.',
+  'culling': 'Ayıklama: istenmeyen özellikli bireyleri üretimden çıkarma.',
+  'blackwater': 'Tanen (kök, badem yaprağı) ile çay rengine dönen, asidik, doğal su görünümü.',
+  'CO₂': 'Bitkiler için karbon kaynağı; fazlası balıklara zarar verir ve pH\'ı düşürür.',
+  'biyofilm': 'Yüzeylerde biriken mikroorganizma tabakası; karideslerin besini.',
+  'Aquascape': 'Akvaryumu bitki, taş ve kökle estetik biçimde tasarlama sanatı.',
+  'F2': 'İkinci filial nesil: F1 bireylerinin birbiriyle çiftleşmesinden doğanlar.',
+};
+
+/* ---- Başlangıç ve akvaryum rehberleri ---- */
+const GUIDES = [
+  { id: 'start', title: 'Başlangıç rehberi', ill: '🚀', pages: [
+    ['Hoş geldin', 'Bu oyunda üç şey yaparsın: balık yetiştirirsin (genetik), tankını tasarlarsın (aquascape) ve suyu dengede tutarsın (kimya). Üçü birbirini etkiler: güzel bir tasarım hem balıkları mutlu eder hem yarışmalarda puan getirir.'],
+    ['Balığa dokun', 'Akvaryumda bir balığa dokun: kartında görünen özellikleri, sağlığı ve (test edersen) gizli genlerini görürsün. Uzun basarsan adı ve ırkı çıkar.'],
+    ['Besle ve izle', 'Yem düğmesine bas. Yenmeyen yem suyu kirletir — azar azar ver. Su düğmesi parametreleri, tanıyı ve su değişimini açar.'],
+    ['Çiftleştir', 'Laboratuvar\'da olgun bir erkek ve dişi seç. Punnett önizlemesi olasılıkları gösterir. Dişi gebe kalır; zaman geçince yavrular doğar ve rengi ilk kez açılır.'],
+    ['Tasarla', 'Tasarım Stüdyosu\'nda zemini şekillendir, taş/kök yerleştir, bitki dik. Taş ve zemin su kimyasını değiştirir: seiryu taşı KH\'yi yükseltir, aquasoil pH\'ı düşürür.'],
+  ] },
+  { id: 'cycle', title: 'Azot döngüsü', ill: '♻️', pages: [
+    ['1 · Amonyak', 'Balıklar atık bırakır; yem çürür. Bu [[amonyak]] üretir ve çok zehirlidir.'],
+    ['2 · Nitrit', 'Nitrosomonas bakterileri amonyağı [[nitrit]]e çevirir. Nitrit de zehirlidir.'],
+    ['3 · Nitrat', 'Nitrobacter bakterileri nitriti [[nitrat]]a çevirir. Nitrat çok daha az zararlıdır; bitkiler tüketir, su değişimi azaltır.'],
+    ['Yeni tank', 'Bakteri kolonisi haftalar içinde büyür (lav taşı ve sünger filtre ek yüzey sağlar). Kolonisi olgunlaşmamış tanka çok balık koyma — "yeni tank sendromu".'],
+  ] },
+  { id: 'params', title: 'Su değerleri', ill: '💧', pages: [
+    ['pH, KH ve CO₂', '[[pH]] KH ve CO₂ ile bağlantılıdır: [[KH]] tampon görevi görür, [[CO₂]] artarsa pH düşer. Değerleri yavaş değiştir; ani değişim balığı şoka sokar.'],
+    ['GH ve TDS', '[[GH]] sertliktir; moliler sert, betalar yumuşak su sever. [[TDS]] karideslerde kritiktir.'],
+    ['Sıcaklık ve oksijen', 'Sıcak suda oksijen azalır. Hava taşı ve akıntı oksijeni artırır.'],
+  ] },
+  { id: 'algae', title: 'Yosun çözümleri', ill: '🌿', pages: [
+    ['Neden yosun?', 'Yosun; ışık, CO₂ ve besinin dengesiz olduğu söyler. Her yosunun nedeni farklıdır.'],
+    ['Yeşil nokta (cam)', 'Çok ışık veya fazla nitrat. Işık süresini kısal, camı temizle.'],
+    ['Saç yosunu', 'Amonyak dalgalanması veya yüksek ışık + yetersiz CO₂. Su değiştir, yemi azalt.'],
+    ['Siyah sakal', 'Zayıf akıntı + yüksek ışık veya dengesiz CO₂.'],
+    ['Yeşil su', 'Yüksek amonyak ve ışık. 2–3 günlük karartma + su değişimi + yüzen bitki.'],
+    ['Siyanobakteri', 'Çok düşük nitrat, ölü akıntı noktaları. Akıntıyı artır, nitratı dengele.'],
+    ['Temizlikçiler', 'Karides ve salyangozlar yosun yer. Ama kök neden çözülmezse yosun geri döner.'],
+  ] },
+];
+
+/* ---- Genetik Okulu ----
+   sayfa: ['t', başlık, metin] | ['p', başlık, aA, aB, aciklama] (etkileşimli Punnett)
+          | ['q', soru, [seçenekler], doğruIndeks, açıklama] */
+const LESSONS = [
+  { id: 'dom', title: 'Baskın ve çekinik', ill: '🧬', reward: { coins: 60, xp: 40 }, pages: [
+    ['t', 'Gen versiyonları', 'Her genin iki kopyası vardır (anneden biri, babadan biri). Farklı versiyonlara [[alel]] denir. Lepistes gövde rengi geninde "Yabani" [[baskın]]dır, "Albino" [[çekinik]]tir.'],
+    ['t', 'Taşıyıcı', 'Yabani/Albino taşıyan bir balık yabani görünür (baskın alel görünür) ama çekinik aleli taşır ve yavrularına aktarabilir. Görünüm ([[fenotip]]) ile gen yapısı ([[genotip]]) farklı olabilir.'],
+    ['p', 'Punnett karesini oyna', ['W', 'a'], ['W', 'a'], 'İki taşıyıcıyı çiftleştirdin: yavruların ¼\'ü saf yabani, ½\'si taşıyıcı, ¼\'ü albino. Görünüşte 3 yabani : 1 albino oranı çıkar.'],
+    ['q', 'İki taşıyıcı (Yabani/Albino) çiftleşiyor. Albino yavru olasılığı nedir?', ['%0', '%25', '%50', '%75'], 1, 'Albino için iki çekinik kopya şart: ½ × ½ = %25.'],
+    ['q', 'Albino × Albino çaprazlamasında yavrular nasıl olur?', ['Hepsi albino', 'Hepsi yabani', '3:1', 'Yarısı albino'], 0, 'Çekinik alel iki ebeveynde de iki kopya olduğundan tüm yavrular albino olur.'],
+  ] },
+  { id: 'sex', title: 'Cinsiyete bağlı kalıtım', ill: '♂♀', reward: { coins: 80, xp: 50 }, pages: [
+    ['t', 'X ve Y', 'Dişi XX, erkek XY\'dir. Lepistesin kuyruk rengi, Tuxedo, Moscow gibi birçok geni [[cinsiyet kromozomlarına bağlıdır]]. Erkeğin Y\'sindeki gen, tüm oğullarına gider; kızlara geçmez ([[Y\'ye bağlı]]).'],
+    ['t', 'Gizli taşıyıcılık', 'Dişide bu genler X\'te taşınabilir ama görünmez. Bu yüzden bir dişi, kuyruk rengi geni taşıyarak "gizli" bir hat sürdürebilir.'],
+    ['t', 'Çaprazlama', 'X ile Y arasında nadiren (~%3) parça değişimi olur ([[çaprazlama (crossing over)]]). Bu, nadiren kızların da erkek genlerini almasını sağlar.'],
+    ['q', 'Kırmızı kuyruk geni babanın Y\'sinde. Oğulların kaçta kaçı kırmızı kuyruklu olur?', ['Hiçbiri', '½', 'Hepsi', '¼'], 2, 'Y\'ye bağlı gen, babadan tüm oğullara aktarılır (çaprazlama nadirdir).'],
+    ['q', 'Y\'ye bağlı gen babadan hangi yavrulara geçer?', ['Yalnızca kızlara', 'Yalnızca oğullara', 'Hepsine', 'Hiçbirine'], 1, 'Kızlar babadan X alır; Y yalnızca oğullara gider.'],
+  ] },
+  { id: 'punnett', title: 'Punnett karesi okumak', ill: '▦', reward: { coins: 70, xp: 45 }, pages: [
+    ['t', 'Nasıl okunur?', '[[Punnett karesi]]nde bir ebeveynin aleller üstte, diğerininki solda yazılır. Her hücre, iki alelin birleşmesinden doğan olası yavruyu gösterir. Dört hücre eşit olasılıklıdır.'],
+    ['p', 'Dene: Taşıyıcı × Albino', ['W', 'a'], ['a', 'a'], 'Taşıyıcı × albino: yavruların yarısı taşıyıcı (yabani görünür), yarısı albino.'],
+    ['q', 'Yabani/Albino × Albino çaprazlamasında albino yavru olasılığı?', ['%25', '%50', '%75', '%100'], 1, 'Dört hücrenin ikisi albino/albino: %50.'],
+  ] },
+  { id: 'inb', title: 'Akrabalı yetiştirme', ill: '👪', reward: { coins: 60, xp: 40 }, pages: [
+    ['t', 'Neden riskli?', 'Yakın akrabaların çiftleştirilmesi ([[akrabalı üreme]]) aynı çekinik zararlı alelin iki kopyaya düşme şansını artırır. Sonuç: küçük boy, düşük doğurganlık, omurga kusuru.'],
+    ['t', 'Katsayı', '[[akrabalık katsayısı]] (F), bir bireyin iki alelinin aynı atadan gelme olasılığıdır. Kardeş × kardeş: 0.25 (%25).'],
+    ['q', 'Kardeş × kardeş çiftleşmesinden doğan yavrunun F değeri?', ['%0', '%6,25', '%12,5', '%25'], 3, 'Kardeş çiftleşmesi F = 0.25 verir.'],
+    ['q', 'Akrabalı üreme neden kullanılır, ne zaman bırakılır?', ['Hat sabitlemek için kısa süre; kusur çıkınca yeni kan eklenir', 'Hiç kullanılmaz', 'Hep kullanılır', 'Sadece dişilerde'], 0, 'Üreticiler hat sabitlemek için akrabalıyı kısa kullanır, sonra sağlık için yeni bireyler ekler.'],
+  ] },
+  { id: 'poly', title: 'Poligenik özellikler', ill: '📏', reward: { coins: 60, xp: 40 }, pages: [
+    ['t', 'Birçok gen, bir özellik', 'Boy, kuyruk uzunluğu gibi özellikleri tek bir gen değil birçok gen belirler ([[poligenik]]). Bu yüzden değerler sürekli bir aralıkta dağılır.'],
+    ['t', 'Oyundaki modeli', 'Yavrunun değeri ≈ ebeveynlerin ortalaması + küçük bir rastgele sapma. İki iri ebeveyn genelde iri yavru verir; seçilim zamanla ortalamayı kaydırır.'],
+    ['q', 'İki iri ebeveynin yavrusu genelde nasıl olur?', ['İri', 'Çok küçük', 'Rastgele', 'Hep orta'], 0, 'Ortalama + sapma: iri ebeveynler iri yavru verme eğilimindedir.'],
+  ] },
+];
+
+/* ───── 15b-dex-ui.js ───── */
+'use strict';
+/* =====================================================================
+   15b · ANSİKLOPEDİ & BİLGİ MERKEZİ
+   Tür Kartı (canlı portre + 7 sekme), Bitki Kartı, Taş/Zemin Kartı,
+   Balıkdex/Bitkidex/Taşdex, Genetik Okulu, rehberler, sözlük, SSS
+   ===================================================================== */
+Object.assign(UI, {
+  /* ---------- sözlük bağlantılı metin: [[terim]] ---------- */
+  rich(str) {
+    const el = h('span'); const re = /\[\[(.+?)\]\]/g; let last = 0, m;
+    while ((m = re.exec(str))) { if (m.index > last) el.append(str.slice(last, m.index)); const term = m[1]; el.append(h('button.term', { onclick: (e) => { e.stopPropagation(); UI.openTerm(term); } }, term)); last = m.index + m[0].length; }
+    if (last < str.length) el.append(str.slice(last)); return el;
+  },
+  findTerm(t) { const k = Object.keys(GLOSSARY).find((x) => x.toLowerCase() === t.toLowerCase()); return k || null; },
+  openTerm(t) { const k = this.findTerm(t); const rec = UI.sheet(h('div.stack', null, UI.sheetHead(k || t, { close: () => rec.close() }), h('p', null, k ? UI.rich(GLOSSARY[k].replace(/\b(GH|KH|TDS)\b/g, '$1')) : 'Bu terim sözlükte yok.'))); },
+
+  /* ---------- yardımcılar ---------- */
+  stars(n) { return '⭐'.repeat(n) + '☆'.repeat(5 - n); },
+  paramBar(ideal, tol, ax, val) {
+    const [lo, hi] = ax, pc = (x) => clamp((x - lo) / (hi - lo), 0, 1) * 100, tl = pc(tol[0]), th = pc(tol[1]), il = pc(ideal[0]), ih = pc(ideal[1]);
+    return h('div.rbar', null, h('i.tol', { style: { left: tl + '%', width: Math.max(0, th - tl) + '%' } }), h('i.ide', { style: { left: il + '%', width: Math.max(0, ih - il) + '%' } }), val != null ? h('b.mk', { style: { left: pc(val) + '%' } }) : null);
+  },
+  speciesCreature(sp, variant, sex, ageDays) {
+    const key = [sp, variant, sex, ageDays].join('|'); this._spc = this._spc || new Map(); let c = this._spc.get(key);
+    if (!c) { const b = sp === 'guppy' ? BREEDS[variant % BREEDS.length] : null; if (!b) return null; c = new Creature({ id: -3000000 - this._spc.size, genome: Genetics.make(b.spec, sex, new RNG(9)), bornT: -ageDays * 1440, seed: 777 + variant }); c.now = 0; this._spc.set(key, c); }
+    return c;
+  },
+  tabs(names, cur, fn) { return h('div.chips', null, names.map(([k, l]) => h('button.sp-chip' + (cur === k ? '.on' : ''), { onclick: () => fn(k) }, l))); },
+
+  /* ---------- Ansiklopedi ana ekranı ---------- */
+  dexTab: 'fish',
+  render_dex(el) {
+    const S = Game.S, seen = S.seen || {};
+    const fishFound = BREEDS.filter((b) => S.discovered[b.id]).length, plantFound = Object.keys(PLANTS).filter((k) => (seen.plant || {})[k]).length;
+    const hardAll = [...Object.keys(HARDSCAPE), ...Object.keys(DECOR), ...Object.keys(SUBSTRATES)], hardFound = hardAll.filter((k) => ((seen.hard || {})[k])).length;
+    const total = BREEDS.length + Object.keys(PLANTS).length + hardAll.length, found = fishFound + plantFound + hardFound, pc = Math.round(100 * found / total);
+    const ring = (p, label) => h('div.ring', { style: { '--p': p, width: '56px', height: '56px' } }, h('span', { style: { width: '44px', height: '44px', fontSize: '13px' } }, label));
+    let body;
+    if (this.dexTab === 'fish') {
+      body = h('div.stack', null, ...SPECIES.map((s) => { const i = SPECIES_INFO[s.id], open = s.status === 'open', p = open ? Math.round(100 * fishFound / BREEDS.length) : 0;
+        return h('div.card.sptile', { role: 'button', tabindex: 0, onclick: () => UI.openSpecies(s.id) }, h('div', { style: { fontSize: '38px' } }, i.emoji), h('div.sp', null, h('b', null, s.name), h('div.small.muted', null, s.sci), h('div.tiny.muted', null, open ? `${fishFound}/${BREEDS.length} varyasyon` : `Aşama ${s.stage}'de oynanabilir · bilgi kartı açık`)), open ? ring(p, p + '%') : icon('lock')); }));
+    } else if (this.dexTab === 'plant') {
+      body = h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(104px,1fr))' } }, ...Object.entries(PLANTS).map(([id, pl]) => { const d = !!(seen.plant || {})[id], cv = Editor.thumb('plant', id); if (!d) { cv.style.filter = 'brightness(0) opacity(.35)'; }
+        return h('div.cat', { role: 'button', tabindex: 0, onclick: () => UI.openPlant(id) }, cv, h('b', null, d ? pl.name : '???'), h('span.tiny.muted', null, d ? ['', 'Kolay', 'Kolay', 'Orta', 'Zor', 'Uzman'][pl.diff] : 'Keşfedilmedi')); }));
+    } else {
+      const mk = (k, id, def) => { const d = !!(seen.hard || {})[id]; const cv = k === 'sub' ? UI.subThumb(id) : Editor.thumb(k, id); if (!d) cv.style.filter = 'brightness(0) opacity(.35)'; return h('div.cat', { role: 'button', tabindex: 0, onclick: () => UI.openHard(k, id) }, cv, h('b', null, d ? def.name : '???'), h('span.tiny.muted', null, d ? '' : 'Keşfedilmedi')); };
+      body = h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(104px,1fr))' } }, ...Object.entries(HARDSCAPE).map(([id, d]) => mk(d.kind, id, d)), ...Object.entries(SUBSTRATES).map(([id, d]) => mk('sub', id, d)), ...Object.entries(DECOR).map(([id, d]) => mk('decor', id, d)));
+    }
+    el.replaceChildren(h('div.wrap', null,
+      h('div.row', { style: { margin: '6px 0 10px' } }, h('div.ring', { style: { '--p': pc } }, h('span', null, pc + '%')), h('div', null, h('h2', null, 'Ansiklopedi'), h('div.muted.small', null, `${found}/${total} keşif · Balık ${fishFound}/${BREEDS.length} · Bitki ${plantFound}/${Object.keys(PLANTS).length} · Taş&zemin ${hardFound}/${hardAll.length}`))),
+      UI.tabs([['fish', 'Balıkdex'], ['plant', 'Bitkidex'], ['hard', 'Taşdex']], this.dexTab, (k) => { this.dexTab = k; UI.render_dex(el); }), body));
+  },
+  subThumb(id) { const cv = document.createElement('canvas'); cv.width = cv.height = 96; const c = cv.getContext('2d'), [h_, s, l] = SUBSTRATES[id].colors.natural; c.fillStyle = hsl(h_, s, l); c.beginPath(); c.moveTo(6, 70); c.quadraticCurveTo(48, 40, 90, 66); c.lineTo(90, 90); c.lineTo(6, 90); c.fill(); const r = new RNG(3); for (let i = 0; i < 60; i++) { c.fillStyle = r.pick(['rgba(255,255,255,.25)', 'rgba(0,0,0,.25)']); c.beginPath(); c.arc(r.float(10, 88), r.float(62, 88), r.float(0.8, 2.4), 0, TAU); c.fill(); } return cv; },
+
+  /* ---------- Tür Kartı ---------- */
+  openSpecies(id) {
+    const sp = SPECIES.find((s) => s.id === id), info = SPECIES_INFO[id], S = Game.S; let tab = 'gen', vi = Math.max(0, BREEDS.findIndex((b) => S.discovered[b.id])), sex = 'M', age = 120, zoomed = false, pt = null;
+    const portrait = h('div.cc-portrait.sp-portrait'), cv = h('canvas'); portrait.append(cv);
+    const label = h('div.sp-label'), controls = h('div.cc-tools'), body = h('div.sp-body');
+    const open = sp.status === 'open';
+    const setPortrait = () => {
+      pt && pt.stop(); pt = null; const b = open ? BREEDS[vi % BREEDS.length] : null, disc = b ? !!S.discovered[b.id] : false;
+      if (open) {
+        const cr = UI.speciesCreature(id, vi, sex, age); portrait.style.setProperty('--c', b ? RARITY[b.rarity].color : '#4aa');
+        if (disc) { pt = new Portrait(cr, cv); pt.setZoom(zoomed ? 1.8 : 1); pt.start(); }
+        else { const c = cv.getContext('2d'); cv.width = 600; cv.height = 340; const g = c.createLinearGradient(0, 0, 0, 340); g.addColorStop(0, info.hab[0]); g.addColorStop(1, info.hab[2]); c.fillStyle = g; c.fillRect(0, 0, 600, 340); const sp2 = FishArt.sprite(cr), tmp = document.createElement('canvas'); tmp.width = 600; tmp.height = 340; const tc = tmp.getContext('2d'); tc.drawImage(sp2.tex, 100, 60, 400, 190); tc.globalCompositeOperation = 'source-atop'; tc.fillStyle = 'rgba(0,10,16,.92)'; tc.fillRect(0, 0, 600, 340); c.drawImage(tmp, 0, 0); cv.style.width = '100%'; cv.style.height = '100%'; }
+        label.replaceChildren(h('b', null, disc ? b.name : '??? · Keşfedilmedi'), b ? UI.rarityPill(b.rarity) : null, h('span.tiny', { style: { color: '#fff', textShadow: '0 1px 3px #000' } }, disc ? '' : 'İpucu: ' + b.hint));
+      } else {
+        const c = cv.getContext('2d'); cv.width = 600; cv.height = 340; const g = c.createLinearGradient(0, 0, 0, 340); g.addColorStop(0, info.hab[0]); g.addColorStop(0.6, info.hab[1]); g.addColorStop(1, info.hab[2]); c.fillStyle = g; c.fillRect(0, 0, 600, 340); c.font = '120px serif'; c.textAlign = 'center'; c.fillText(info.emoji, 300, 210); cv.style.width = '100%'; cv.style.height = '100%';
+        label.replaceChildren(h('b', null, sp.name), h('span.tiny', { style: { color: '#fff', textShadow: '0 1px 3px #000' } }, `Canlı portre: Aşama ${sp.stage}`));
+      }
+      controls.replaceChildren(...[open ? h('button.icon-btn', { 'aria-label': 'Önceki varyasyon', onclick: () => { vi = (vi + BREEDS.length - 1) % BREEDS.length; setPortrait(); if (tab === 'gen2') draw(); } }, '◀') : null, open ? h('button.icon-btn', { 'aria-label': 'Sonraki varyasyon', onclick: () => { vi = (vi + 1) % BREEDS.length; setPortrait(); } }, '▶') : null,
+        open ? h('button.icon-btn', { 'aria-label': 'Cinsiyet', onclick: () => { sex = sex === 'M' ? 'F' : 'M'; setPortrait(); } }, sex === 'M' ? '♂' : '♀') : null,
+        open ? h('button.icon-btn', { 'aria-label': 'Yaş', title: 'Yavru / genç / yetişkin', onclick: () => { age = age === 120 ? 5 : age === 5 ? 25 : 120; setPortrait(); } }, age === 120 ? 'Yet.' : age === 5 ? 'Yav.' : 'Genç') : null,
+        open ? h('button.icon-btn', { 'aria-label': 'Yakınlaştır', onclick: () => { zoomed = !zoomed; pt && pt.setZoom(zoomed ? 1.8 : 1); } }, icon('zoom')) : null, h('button.icon-btn', { 'aria-label': 'Kapat', onclick: () => rec.close() }, icon('close'))].filter(Boolean));
+    };
+    portrait.style.background = `linear-gradient(${info.hab[0]},${info.hab[2]})`; portrait.append(controls, h('div.cc-rar', null, label));
+    const tabNames = [['gen', 'Genel'], ['env', 'Yaşam Şartları'], ['tank', 'Akvaryum Ortamı'], ['food', 'Beslenme'], ['breed', 'Üreme'], ['gen2', 'Genetik'], ['fun', 'İlginç & Sağlık']];
+    const kv = (rows) => h('div.kv', null, ...rows.flatMap(([a, b]) => [h('span', null, a), h('span', null, b)]));
+    const draw = () => {
+      const tabEl = UI.tabs(tabNames, tab, (k) => { tab = k; draw(); }); let c;
+      if (tab === 'gen') c = h('div.stack', null, kv([['Türkçe ad', sp.name], ['Bilimsel ad', h('i', null, sp.sci)], ['Köken', info.origin], ['Boy (erkek/dişi)', `${info.sizeM} / ${info.sizeF}`], ['Ömür', info.life], ['Zorluk', UI.stars(info.diff)], ['Mizaç (1–10)', `${info.temper}/10`], ['Yaşadığı katman', info.layer]]), h('p', null, UI.rich(info.desc)));
+      else if (tab === 'env') {
+        const E = SP_ENV[id], w = Chem.w, rows = [['temp', 'Sıcaklık', '°C', [14, 36]], ['ph', 'pH', '', [5.5, 9.5]], ['gh', 'GH', '°dH', [0, 30]], ['kh', 'KH', '°dH', [0, 22]], ['tds', 'TDS', 'ppm', [0, 800]]];
+        c = h('div.stack', null, h('div.small.muted', null, 'Yeşil: ideal · sarı: tolere edilen · kırmızı: tehlike · beyaz işaret: tankındaki mevcut değer'),
+          ...rows.map(([k, n, u, ax]) => h('div', null, h('div.row', null, h('b.sp', null, n), h('span.small.muted', null, `${E[k][0][0]}–${E[k][0][1]} ${u}`)), UI.paramBar(E[k][0], E[k][1], ax, w[k]))),
+          kv([['Tuz toleransı', info.salt], ['Akıntı', info.flow], ['Işık', info.light]]), h('div.tiny.muted', null, 'Amonyak ve nitrit her tür için ~0 olmalıdır; ayrıntılar Su panelinde.'));
+      } else if (tab === 'tank') {
+        const badge = (sid, ok) => { const s = SPECIES.find((x) => x.id === sid), i2 = SPECIES_INFO[sid]; return h('div.mate' + (ok ? '.ok' : '.bad'), null, h('span', { style: { fontSize: '22px' } }, i2.emoji), h('span.tiny', null, s.name), h('span.tiny', null, ok ? '✔' : '✖')); };
+        c = h('div.stack', null, kv([['Min. tank hacmi', info.minL + ' L'], ['Grup büyüklüğü', info.group], ['Cinsiyet oranı', info.ratio], ['Zemin', info.substrate]]), h('div.small', null, info.decor),
+          h('b.small', null, 'Sevdiği bitkiler'), h('div.row.wrap-r', null, ...info.plants.map((pid) => h('button.cat', { style: { width: '84px', minHeight: '88px' }, onclick: () => UI.openPlant(pid) }, Editor.thumb('plant', pid), h('b', { style: { fontSize: '11px' } }, PLANTS[pid].name)))),
+          h('b.small', null, 'Tank arkadaşları'), h('div.row.wrap-r', null, ...info.mates.ok.map((s) => badge(s, true)), ...info.mates.bad.map((s) => badge(s, false))), h('div.small.muted', null, info.mates.note),
+          h('button.btn.primary', { onclick: () => { rec.close(); UI.go('design'); setTimeout(() => Editor.applyTemplate({ key: info.tpl }), 700); } }, icon('brush'), 'Bu tür için örnek tank'));
+      } else if (tab === 'food') c = kv([['Yem türleri', info.food.types], ['Sıklık', info.food.freq], ['Renk artırıcı', info.food.color], ['Yavru yemi', info.food.fry]]);
+      else if (tab === 'breed') c = h('div.stack', null, kv([['Üreme tipi', info.breed.type], ['Gebelik / kuluçka', info.breed.time], ['Yavru sayısı', info.breed.count]]), h('p', null, info.breed.care));
+      else if (tab === 'gen2') {
+        c = h('div.stack', null, ...info.genetics.map((g) => h('p', { style: { margin: 0 } }, '• ', UI.rich(g))));
+        if (open) { const found = BREEDS.filter((b) => S.discovered[b.id]).length; c.append(h('b', null, `Varyasyonlar (${found}/${BREEDS.length})`), h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(92px,1fr))' } }, ...BREEDS.map((b, i) => { const d = !!S.discovered[b.id], cr = Game.sampleCreature(b.spec); return h('div.dex-tile' + (d ? '' : '.undisc'), { style: { '--c': RARITY[b.rarity].color, padding: '6px' }, onclick: () => { vi = i; setPortrait(); portrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } }, UI.thumbCv(cr, 90), h('div.tiny', null, d ? b.name : '???'), h('div.rarbar')); })),
+          h('b', null, 'Örnek Punnett: iki taşıyıcı'), h('div.pgrid', null, h('span'), h('b', null, 'Yabani'), h('b', null, 'Albino'), h('b', null, 'Yabani'), h('span.pc', null, 'YY'), h('span.pc', null, 'YA'), h('b', null, 'Albino'), h('span.pc', null, 'YA'), h('span.pc', null, 'AA')), h('div.small.muted', null, '¼ albino · ¾ yabani görünüm (3:1).')); }
+      } else c = h('div.stack', null, h('b', null, 'İlginç bilgiler'), ...info.trivia.map((t) => h('p', { style: { margin: 0 } }, '💡 ', t)), h('b', null, 'Sağlık ve dürüst notlar'), ...info.health.map((t) => h('p', { style: { margin: 0 } }, '🩺 ', t)));
+      body.replaceChildren(tabEl, c);
+    };
+    const rec = UI.sheet(h('div', null, portrait, body), { full: true, onClose: () => pt && pt.stop() });
+    setPortrait(); draw(); requestAnimationFrame(() => pt && pt.resize());
+  },
+
+  /* ---------- Bitki Kartı ---------- */
+  openPlant(id) {
+    const d = PLANTS[id], sc = Game.tank.scape, e = sc.equip, P = e.light.p / 100, need = [0, 0.3, 0.55, 0.8][d.light]; (Game.S.seen = Game.S.seen || {}).plant = Game.S.seen.plant || {};
+    const cv = h('canvas'), box = h('div.cc-portrait', { style: { height: '220px', '--c': 'hsl(' + d.col[0] + ',50%,45%)' } }, cv);
+    const ok = (b, t) => h('span.pill', { style: { color: b ? 'var(--ok)' : 'var(--warn)' } }, (b ? '✔ ' : '⚠ ') + t);
+    const rec = UI.sheet(h('div.stack', null, UI.sheetHead(d.name, { close: () => rec.close() }), box,
+      h('div.row.wrap-r', null, h('span.pill', null, PLANT_LAYERS[d.layer] || 'Epifit'), h('span.pill', null, '☀'.repeat(d.light) + ' ışık'), h('span.pill', null, ['CO₂ gereksiz', 'CO₂ faydalı', 'CO₂ şart'][d.co2]), h('span.pill', null, UI.stars(d.diff).slice(0, 5)), d.red ? h('span.pill', { style: { color: '#ff7a8a' } }, 'Kırmızılaşır') : null),
+      h('div.kv', null, h('span', null, 'Bilimsel ad'), h('span', null, h('i', null, d.sci)), h('span', null, 'Tür'), h('span', null, { ribbon: 'Şerit yapraklı', rosette: 'Rozet', stem: 'Gövdeli', carpet: 'Halı', epi: 'Epifit', moss: 'Yosun', float: 'Yüzen' }[d.type]), h('span', null, 'Büyüme'), h('span', null, d.grow < 0.6 ? 'Yavaş' : d.grow < 1.1 ? 'Orta' : 'Hızlı'), h('span', null, 'Boy'), h('span', null, `~${Math.round(d.h / 10)} cm`), h('span', null, 'Fiyat'), h('span', null, `${d.cost} 💰 · Seviye ${d.lvl}`)),
+      h('p', null, UI.rich(d.info + (d.type === 'carpet' ? ' [[halı bitki]] CO₂ yoksa yayılmak yerine dikine uzayabilir.' : d.type === 'epi' ? ' [[epifit]]: rizomunu gömme, taşa/köke bağla.' : ''))),
+      h('b', null, 'Tankın için uygun mu?'), h('div.row.wrap-r', null, ok(P >= need, P >= need ? 'Işık yeterli' : 'Işık yetersiz'), d.co2 === 2 ? ok(e.co2 !== 'none', e.co2 !== 'none' ? 'CO₂ var' : 'CO₂ yok — şart') : d.co2 === 1 ? ok(e.co2 !== 'none', e.co2 !== 'none' ? 'CO₂ var' : 'CO₂ ile daha iyi') : ok(true, 'CO₂ gerekmez'), ok(sc.sub.type === 'aquasoil' || d.type === 'epi' || d.type === 'float' || d.type === 'moss', sc.sub.type === 'aquasoil' || d.type === 'epi' || d.type === 'float' || d.type === 'moss' ? 'Zemin uygun' : 'Besinli zemin iyi olur')),
+      h('div.small.muted', null, d.type === 'stem' ? 'İpucu: Uzayınca budayıp kesilen uçları sat ya da yeniden dik.' : d.type === 'float' ? 'İpucu: Fazlasını hasat edip sat; alttaki bitkilere ışığı keser.' : d.type === 'carpet' ? 'İpucu: Yayıldıkça budayıp sat; sık halı için ışık ve CO₂ dengesi önemli.' : 'İpucu: Yavaş büyür; sabırlı ol.'),
+      h('button.btn.primary', { onclick: () => { rec.close(); UI.go('design'); setTimeout(() => { Editor.mode = 'plant'; Editor.pick('plant', id, d); }, 700); } }, icon('brush'), 'Stüdyoda yerleştir')), { full: true, onClose: () => (stop = true) });
+    let stop = false; const dpr = Math.min(2, devicePixelRatio || 1), t0 = performance.now();
+    const loop = (now) => { if (stop || !cv.isConnected) return; const w = cv.clientWidth, hh = cv.clientHeight; if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = hh * dpr; } const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); const g = c.createLinearGradient(0, 0, 0, hh); g.addColorStop(0, '#2fb9c8'); g.addColorStop(1, '#0b4a68'); c.fillStyle = g; c.fillRect(0, 0, w, hh);
+      const sc2 = Math.min((hh - 30) / (d.type === 'float' ? 60 : d.h), (w - 40) / (d.w * 1.2)); c.save(); c.translate(w / 2, hh - 16); c.scale(sc2, sc2); if (d.type === 'float') c.translate(0, -hh * 0.2 / sc2); Art.drawPlant(c, { g: 1, s: 1, seed: 5, stems: 3, tint: d.red ? 0.6 : 0, sp: 1 }, d, 0, 0, { t: (now - t0) / 1000, flow: 0.5, ground: () => 0 }); c.restore(); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  },
+
+  /* ---------- Taş / kök / zemin / dekor kartı ---------- */
+  openHard(k, id) {
+    const def = k === 'sub' ? SUBSTRATES[id] : k === 'decor' ? DECOR[id] : HARDSCAPE[id], f = def.eff || {}, fx = [];
+    if (f.kh) fx.push('KH ' + (f.kh > 0 ? '↑' : '↓')); if (f.gh) fx.push('GH ↑'); if (f.ph) fx.push('pH ' + (f.ph > 0 ? '↑' : '↓')); if (f.tannin) fx.push('Tanen ↑ (çay rengi)'); if (f.bio) fx.push('Bakteri yüzeyi ↑'); if (f.nh3) fx.push('İlk haftalarda amonyak salar');
+    const cv = k === 'sub' ? UI.subThumb(id) : Editor.thumb(k, id); cv.style.width = '120px'; cv.style.height = '120px';
+    const rec = UI.sheet(h('div.stack', null, UI.sheetHead(def.name, { close: () => rec.close() }), h('div', { style: { textAlign: 'center' } }, cv),
+      h('div.row.wrap-r', null, h('span.pill', null, k === 'sub' ? 'Zemin' : k === 'wood' ? 'Kök' : k === 'rock' ? 'Taş' : k === 'leaf' ? 'Yaprak/kozalak' : 'Dekor'), h('span.pill', null, `${def.cost || 0} 💰 · Seviye ${def.lvl}`)),
+      h('p', null, def.info || def.desc || 'Süs amaçlı dekor.'), h('b', null, 'Su kimyasına etkisi'), h('div.row.wrap-r', null, ...(fx.length ? fx.map((x) => h('span.pill', null, x)) : [h('span.pill', null, 'Kimyaya etkisiz')])),
+      k !== 'sub' ? h('div.small.muted', null, def.eff && (def.eff.kh || def.eff.tannin) ? 'Etki aylar içinde yavaşça gerçekleşir; boyut büyüdükçe artar.' : '') : null));
+  },
+
+  /* ---------- Bilgi Merkezi ---------- */
+  helpTab: 'guides',
+  render_help(el) {
+    const S = Game.S, done = S.lessons || {};
+    let body;
+    if (this.helpTab === 'guides') body = h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))' } }, ...GUIDES.map((g) => h('div.card.gcard', { role: 'button', tabindex: 0, onclick: () => UI.openGuide(g) }, h('div', { style: { fontSize: '34px' } }, g.ill), h('b', null, g.title), h('div.tiny.muted', null, g.pages.length + ' sayfa'))));
+    else if (this.helpTab === 'school') body = h('div.stack', null, h('div.small.muted', null, 'Etkileşimli mini dersler. Tamamlayınca ödül kazanırsın (bir kez).'), ...LESSONS.map((l) => h('div.card.row', { role: 'button', tabindex: 0, style: { cursor: 'pointer' }, onclick: () => UI.openLesson(l) }, h('div', { style: { fontSize: '30px' } }, l.ill), h('div.sp', null, h('b', null, l.title), h('div.tiny.muted', null, `${l.pages.length} adım · ${l.reward.coins} 💰 + ${l.reward.xp} XP`)), done[l.id] ? h('span.pill', { style: { color: 'var(--ok)' } }, '✔ Tamam') : icon('book'))));
+    else if (this.helpTab === 'gloss') { const inp = h('input', { type: 'text', placeholder: 'Terim ara…' }), list = h('div.stack'); const fill = () => { const q = inp.value.trim().toLowerCase(); list.replaceChildren(...Object.keys(GLOSSARY).filter((k) => !q || k.toLowerCase().includes(q) || GLOSSARY[k].toLowerCase().includes(q)).sort((a, b) => a.localeCompare(b, 'tr')).map((k) => h('div.card', { style: { padding: '10px 12px' } }, h('b', null, k), h('div.small', null, UI.rich(GLOSSARY[k]))))); }; inp.addEventListener('input', fill); fill(); body = h('div.stack', null, inp, list); }
+    else body = h('div.stack', null, ...FAQ.map(([q, a]) => h('details.card', null, h('summary', { style: { fontWeight: 800, cursor: 'pointer' } }, q), h('p', { style: { margin: '8px 0 0' } }, UI.rich(a)))));
+    el.replaceChildren(h('div.wrap', null, h('h2', { style: { margin: '6px 2px 8px' } }, 'Bilgi Merkezi'), UI.tabs([['guides', 'Rehberler'], ['school', 'Genetik Okulu'], ['gloss', 'Sözlük'], ['faq', 'SSS']], this.helpTab, (k) => { this.helpTab = k; UI.render_help(el); }), body));
+  },
+  openGuide(g) {
+    let i = 0; const box = h('div.stack'), rec = UI.sheet(h('div', null, UI.sheetHead(g.title, { close: () => rec.close() }), box));
+    const draw = () => { const [t, b] = g.pages[i]; box.replaceChildren(h('div.small.muted', null, `${i + 1} / ${g.pages.length}`), h('h3', null, t), h('p', { style: { fontSize: '16px' } }, UI.rich(b)), h('div.row', null, h('button.btn.sp', { disabled: i === 0 ? true : null, onclick: () => { i--; draw(); } }, 'Geri'), i < g.pages.length - 1 ? h('button.btn.primary.sp', { onclick: () => { i++; draw(); } }, 'İleri') : h('button.btn.primary.sp', { onclick: () => rec.close() }, 'Bitti'))); }; draw();
+  },
+  openLesson(l) {
+    let i = 0, answered = false; const box = h('div.stack'), rec = UI.sheet(h('div', null, UI.sheetHead(l.title, { close: () => rec.close() }), box));
+    const finish = () => { const S = Game.S; S.lessons = S.lessons || {}; const first = !S.lessons[l.id]; S.lessons[l.id] = 1; if (first) { Game.addCoins(l.reward.coins); Game.addXp(l.reward.xp); AudioSys.SFX.discover(2); UI.toast(`Ders tamam! +${l.reward.coins} 💰 +${l.reward.xp} XP`, 'star', 4000); Game.task('lesson'); } rec.close(); if (UI.cur === 'help') UI.render_help($('#s-help')); };
+    const draw = () => {
+      const p = l.pages[i]; answered = false; const nav = (ok) => h('div.row', null, h('button.btn.sp', { disabled: i === 0 ? true : null, onclick: () => { i--; draw(); } }, 'Geri'), h('button.btn.primary.sp', { id: 'lnext', disabled: ok ? null : true, onclick: () => { if (i < l.pages.length - 1) { i++; draw(); } else finish(); } }, i < l.pages.length - 1 ? 'İleri' : 'Tamamla'));
+      const head = h('div.small.muted', null, `Adım ${i + 1} / ${l.pages.length}`);
+      if (p[0] === 't') box.replaceChildren(head, h('h3', null, p[1]), h('p', { style: { fontSize: '16px' } }, UI.rich(p[2])), nav(true));
+      else if (p[0] === 'p') {
+        const A = p[2].slice(), B = p[3].slice(), alleles = [...new Set([...p[2], ...p[3]])], name = (a) => (a === 'W' ? 'Yabani' : a === 'a' ? 'albino' : a);
+        const grid = h('div'), sum = h('div.small'), mk = (arr, idx) => h('button.sp-chip.on', { onclick: () => { arr[idx] = alleles[(alleles.indexOf(arr[idx]) + 1) % alleles.length]; upd(); } }, name(arr[idx]));
+        const upd = () => { const cells = [[A[0], B[0]], [A[0], B[1]], [A[1], B[0]], [A[1], B[1]]], ph = (c) => (c.includes('W') ? 'Yabani' : 'Albino'), nW = cells.filter((c) => c.includes('W')).length;
+          grid.replaceChildren(h('div.row.wrap-r', null, h('span.small', null, 'Baba:'), mk(A, 0), mk(A, 1), h('span.small', { style: { marginLeft: '12px' } }, 'Anne:'), mk(B, 0), mk(B, 1)), h('div.pgrid', { style: { margin: '10px 0' } }, h('span'), h('b', null, name(B[0])), h('b', null, name(B[1])), h('b', null, name(A[0])), h('span.pc', { style: { color: ph(cells[0]) === 'Albino' ? '#ffd36b' : '' } }, name(cells[0][0]) + '·' + name(cells[0][1])), h('span.pc', { style: { color: ph(cells[1]) === 'Albino' ? '#ffd36b' : '' } }, name(cells[1][0]) + '·' + name(cells[1][1])), h('b', null, name(A[1])), h('span.pc', { style: { color: ph(cells[2]) === 'Albino' ? '#ffd36b' : '' } }, name(cells[2][0]) + '·' + name(cells[2][1])), h('span.pc', { style: { color: ph(cells[3]) === 'Albino' ? '#ffd36b' : '' } }, name(cells[3][0]) + '·' + name(cells[3][1]))));
+          sum.textContent = `Yabani görünümlü: %${nW * 25} · Albino: %${(4 - nW) * 25}`; };
+        upd(); box.replaceChildren(head, h('h3', null, p[1]), h('div.small.muted', null, 'Alel düğmelerine dokunarak ebeveyn genotiplerini değiştir.'), grid, sum, h('div.small.muted', null, UI.rich(p[4])), nav(true));
+      } else {
+        const opts = h('div.stack'), fb = h('div.small', { style: { minHeight: '40px' } });
+        p[2].forEach((o, k) => opts.append(h('button.btn', { style: { justifyContent: 'flex-start' }, onclick: (e) => { if (answered) return; if (k === p[3]) { answered = true; e.currentTarget.style.background = 'var(--ok)'; e.currentTarget.style.color = '#03281a'; fb.textContent = '✅ ' + p[4]; $('#lnext').disabled = false; AudioSys.SFX.coin(); } else { e.currentTarget.style.background = 'rgba(255,107,107,.35)'; fb.textContent = '❌ Tekrar dene.'; } } }, o)));
+        box.replaceChildren(head, h('h3', null, 'Soru'), h('p', { style: { fontSize: '16px' } }, p[1]), opts, fb, nav(false));
+      }
+    }; draw();
+  },
+});
+
+const FAQ = [
+  ['Balıklarım neden hastalandı?', 'Çoğunlukla su kalitesi: amonyak/nitrit yüksek, ani sıcaklık düşüşü veya aşırı kalabalık. Su panelindeki Tanı bölümü nedenini ve çözümünü söyler. Hasta balığı karantinaya alıp uygun ilacı uygula; bakır karides ve salyangozlar için ölümcüldür.'],
+  ['Yavrularım neden azaldı?', 'Yetişkin lepistesler yavruları yer. Yüzen ve sık bitkiler (guppy otu, salvinia) yavrulara saklanma sağlar. Tank dolduğunda fazla yavrular dükkâna verilir.'],
+  ['Genotipi nasıl öğrenirim?', 'Balığın kartında "Test et" düğmesi gizli genleri açar. Yavru oranlarından da çıkarım yapabilirsin: Punnett önizlemesi, test edilmiş ebeveynler için olasılıkları gösterir.'],
+  ['pH neden değişiyor?', '[[pH]], [[KH]] ve [[CO₂]] birbirine bağlıdır. Seiryu taşı KH\'yi, aquasoil pH\'ı değiştirir; CO₂ artınca pH düşer.'],
+  ['Yosun çıktı, ne yapmalıyım?', 'Su panelinde hangi yosun olduğu ve nedeni yazar. Genellikle ışık süresini kısmak, su değiştirmek ve bitki sayısını artırmak yeter.'],
+  ['Çevrimdışıyken ne olur?', 'Tankın en fazla 8 oyun günü ilerler. Ölüm olmaz; dönünce "Sen yokken" özeti görürsün.'],
+  ['Kaydım nerede?', 'Tarayıcının yerel depolamasında (3 yuva). Ayarlar > Kayıt bölümünden JSON olarak dışa aktarabilirsin.'],
+];
 
 </script>
 </body>

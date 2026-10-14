@@ -108,5 +108,15 @@ const Tests = {
     return this._log('Kimya (seiryu KH↑, aquasoil KH/pH↓, aşırı yük NH₃/NO₂↑, CO₂→pH↓, HC Cuba dikine uzar)', ok1 && ok2 && ok3 && ok4 && ok5, { kh: [base.kh, rocks.kh, soil.kh].map((x) => +x.toFixed(2)), ph: [base.ph, soil.ph, co2.ph].map((x) => +x.toFixed(2)), asırı: [+over.nh3.toFixed(2), +over.no2.toFixed(2)], cuba: cub && [+(cub.vert || 1).toFixed(2), +(cub.sp || 1).toFixed(2)] });
   },
 
-  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding(), this.chemistry()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
+  /** Bilgi içeriği tutarlılığı: her tür/bitki/taş için kart verisi tam mı? */
+  content() {
+    const bad = []; for (const s of SPECIES) { const i = SPECIES_INFO[s.id]; if (!i || !SP_ENV[s.id] || !i.mates || !i.breed || !i.food) bad.push('tür:' + s.id); else { for (const p of i.plants) if (!PLANTS[p]) bad.push('bitki:' + p); for (const m of [...i.mates.ok, ...i.mates.bad]) if (!SPECIES_INFO[m]) bad.push('arkadaş:' + m); if (!TEMPLATES[i.tpl]) bad.push('şablon:' + i.tpl); } }
+    for (const [k, p] of Object.entries(PLANTS)) if (!p.info || !p.sci) bad.push('bitki bilgi:' + k);
+    const terms = new Set(); const scan = (s) => (String(s).match(/\[\[(.+?)\]\]/g) || []).forEach((m) => terms.add(m.slice(2, -2)));
+    Object.values(SPECIES_INFO).forEach((i) => i.genetics.forEach(scan)); LESSONS.forEach((l) => l.pages.forEach((p) => scan(p.join(' ')))); GUIDES.forEach((g) => g.pages.forEach((p) => scan(p.join(' ')))); Object.values(GLOSSARY).forEach(scan);
+    for (const t of terms) if (!UI.findTerm(t)) bad.push('sözlük:' + t);
+    return this._log('Bilgi içeriği tutarlı (tür, bitki, şablon, [[terim]] bağlantıları)', bad.length === 0, bad);
+  },
+
+  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding(), this.chemistry(), this.content()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
 };
