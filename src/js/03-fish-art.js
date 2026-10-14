@@ -295,6 +295,14 @@ const FishArt = {
     ctx.translate(pp.x, pp.y + sp.H * 0.5); ctx.rotate(Math.PI - 0.55 + flap);
     ctx.beginPath(); ctx.ellipse(fr * 0.8, 0, fr, fr * 0.42, 0, 0, TAU); ctx.fillStyle = 'rgba(235,245,250,.38)'; ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 0.8; ctx.stroke();
+    // hastalık belirtileri
+    if (cr.dis) {
+      ctx.setTransform(Fa, Fb, Fc, Fd, Fe, Ff); const sev = cr.dis.sev, id = cr.dis.id, r = new RNG(cr.seed + 5);
+      if (id === 'ich') { ctx.fillStyle = 'rgba(255,255,255,.92)'; for (let i = 0, n = 5 + Math.round(sev * 22); i < n; i++) { const q = P[Math.round(S * r.float(0.1, 0.62))]; ctx.beginPath(); ctx.arc(q.x, q.y + r.float(-0.7, 0.7) * sp.H, r.float(3.5, 6), 0, TAU); ctx.fill(); } }
+      else if (id === 'velvet') { ctx.fillStyle = 'rgba(245,215,120,.65)'; for (let i = 0, n = 30 + Math.round(sev * 70); i < n; i++) { const q = P[Math.round(S * r.float(0.08, 0.65))]; ctx.beginPath(); ctx.arc(q.x, q.y + r.float(-0.8, 0.8) * sp.H, r.float(1.6, 2.8), 0, TAU); ctx.fill(); } }
+      else if (id === 'fungus') { ctx.fillStyle = 'rgba(245,245,240,.72)'; for (let i = 0, n = 3 + Math.round(sev * 6); i < n; i++) { const q = P[Math.round(S * r.float(0.08, 0.55))]; ctx.beginPath(); ctx.arc(q.x, q.y + r.float(-0.6, 0.6) * sp.H, r.float(8, 15), 0, TAU); ctx.fill(); } }
+      else { ctx.strokeStyle = 'rgba(190,35,35,.65)'; ctx.lineWidth = 2.4; for (let i = Math.round(S * 0.72); i <= S; i++) { const q = P[i]; ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(q.x - r.float(4, 10), q.y + r.float(-1, 1) * sp.H * (1.4 + sev)); ctx.stroke(); } }
+    }
     // gebelik lekesi: gebelik ilerledikçe koyulaşır
     if (cr.preg) {
       const pr = clamp((cr.now - cr.preg.start) / (cr.preg.due - cr.preg.start), 0, 1);

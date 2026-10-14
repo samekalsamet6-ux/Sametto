@@ -223,3 +223,10 @@ body.photo #topbar,body.photo #tabbar,body.photo .qa,body.photo .aq-info{display
 .photo-bottom .seg{background:var(--panel);backdrop-filter:blur(10px)}
 .shutter{width:68px;height:68px;border-radius:50%;border:4px solid #fff;background:rgba(255,255,255,.25);cursor:pointer;transition:transform .15s var(--ease)}.shutter:active{transform:scale(.88);background:#fff}
 .flash{position:fixed;inset:0;background:#fff;z-index:90;animation:fadeOut .4s both;pointer-events:none}
+
+/* ====== Aşama 4: su paneli ====== */
+.prow{padding:10px 0;border-top:1px solid var(--panel-b);cursor:pointer}.prow svg{flex:none}
+.rbar{position:relative;height:9px;border-radius:5px;background:rgba(255,107,107,.45);margin:8px 0 2px;overflow:visible}
+.rbar i{position:absolute;top:0;bottom:0;border-radius:5px}.rbar i.tol{background:rgba(255,198,92,.8)}.rbar i.ide{background:rgba(76,214,148,.95)}
+.rbar b.mk{position:absolute;top:-4px;width:4px;height:17px;border-radius:2px;background:#fff;box-shadow:0 0 6px #000;transform:translateX(-2px)}
+.diag{padding:8px 0;border-top:1px solid var(--panel-b)}.diag:first-of-type{border-top:0}

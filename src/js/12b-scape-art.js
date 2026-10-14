@@ -101,14 +101,14 @@ const Art = {
   /* ---------------- Bitki çizimi ---------------- */
   /** env: {flow (0..1.5), ground(worldX)->y, t, light, fry} ; it.g büyüme, it.s ölçek, it.tint kırmızılaşma, it.vert uzama */
   drawPlant(c, it, def, x, y, env) {
-    const t = env.t, g = it.g ?? 1, hs = lerp(0.3, 1, clamp(g, 0, 1)) * (it.s || 1) * (it.vert || 1), seed = it.seed || 1, fl = 0.35 + 0.65 * env.flow;
+    const t = env.t, g = it.g ?? 1, hs = lerp(0.3, 1, clamp(g, 0, 1)) * (it.s || 1) * (it.vert || 1) * (def.type === 'stem' || def.type === 'ribbon' ? (it.ht || 1) : 1), seed = it.seed || 1, fl = 0.35 + 0.65 * env.flow;
     let [ph, ps, pl] = def.col; const tint = it.tint || 0; if (def.red && tint > 0) { ph = hueLerp(ph, def.col[0] < 60 ? 350 : 5, tint * 0.9); ps = lerp(ps, 62, tint); pl = lerp(pl, 40, tint * 0.4); }
     if (it.melt > 0) { ph += 25 * it.melt; ps *= 1 - 0.5 * it.melt; pl += 8 * it.melt; }
     const col = (dl = 0, a = 1) => hsl(ph, ps, pl + dl, a), hz = (n) => hash1(n * 12.9898 + seed * 0.37);
     c.lineCap = 'round'; c.lineJoin = 'round';
     const sway = (k, ph2) => (Math.sin(t * 0.8 + seed + ph2) * 0.07 + Math.sin(t * 1.35 + ph2 * 2) * 0.02) * k * fl;
     if (def.type === 'ribbon') {
-      const n = 5 + Math.round(9 * Math.min(1, it.s || 1)), spread = def.w * (it.s || 1);
+      const n = 5 + Math.round(9 * Math.min(1, it.s || 1)), spread = def.w * (it.s || 1) * (it.ht > 1.4 ? 1.2 : 1);
       for (let i = 0; i < n; i++) {
         const bx = x + (i - n / 2) * (spread / n), hh = def.h * hs * (0.62 + 0.38 * hz(i)), sw = sway(hh, i * 0.7) + hh * 0.04 * env.flow;
         const tx = bx + sw * 1.8, ty = y - hh, cx = bx + sw * 0.5 + Math.sin(i) * 6, cy = y - hh * 0.55;
@@ -142,7 +142,7 @@ const Art = {
         }
       }
     } else if (def.type === 'carpet') {
-      const half = def.w * (it.s || 1) * 0.5 * (0.45 + 0.55 * clamp(g, 0, 1)), step = def.sub === 'tiny' ? 2.6 : def.sub === 'grass' ? 3.4 : 4.4;
+      const half = def.w * (it.s || 1) * (it.sp || 1) * 0.5 * (0.45 + 0.55 * clamp(g, 0, 1)), step = def.sub === 'tiny' ? 2.6 : def.sub === 'grass' ? 3.4 : 4.4;
       for (let dx = -half; dx <= half; dx += step) {
         const wx = x + dx, gy = env.ground ? env.ground(wx) : y, edge = 1 - Math.pow(Math.abs(dx) / half, 3), hh = def.h * 0.42 * hs * (0.65 + 0.35 * hz(dx * 0.7 + 3)) * (0.4 + 0.6 * edge);
         if (def.sub === 'grass') { c.strokeStyle = col(hz(dx) * 8, 0.95); c.lineWidth = 1.6; for (let b = 0; b < 3; b++) { const lean = (b - 1) * 3 + sway(hh, dx * 0.1) * 2; c.beginPath(); c.moveTo(wx + b - 1, gy); c.quadraticCurveTo(wx + lean * 0.4, gy - hh * 0.6, wx + lean, gy - hh); c.stroke(); } }
@@ -159,10 +159,10 @@ const Art = {
         c.restore();
       }
     } else if (def.type === 'moss') {
-      const rx = def.w * (it.s || 1) * 0.5 * (0.5 + 0.5 * clamp(g, 0, 1)), ry = def.h * hs * 0.8;
+      const rx = def.w * (it.s || 1) * (it.sp || 1) * 0.5 * (0.5 + 0.5 * clamp(g, 0, 1)), ry = def.h * hs * 0.8;
       for (let i = 0; i < 26; i++) { const a = hz(i) * TAU, r = Math.sqrt(hz(i + 40)); c.fillStyle = col(-6 + hz(i + 9) * 14, 0.5); c.beginPath(); c.arc(x + Math.cos(a) * rx * r + sway(6, i), y - 4 - Math.abs(Math.sin(a)) * ry * r, 5 + hz(i + 77) * 6, 0, TAU); c.fill(); }
     } else if (def.type === 'float') {
-      const n = 3 + Math.round(5 * clamp(g, 0, 1) * (it.s || 1)), sy = 27 + Math.sin(t * 1.1 + seed) * 1.2;
+      const n = 3 + Math.round(5 * clamp(g, 0, 1) * (it.s || 1) * (it.sp || 1)), sy = 27 + Math.sin(t * 1.1 + seed) * 1.2;
       for (let i = 0; i < n; i++) {
         const lx = x + (i - n / 2) * 15 + Math.sin(t * 0.3 + i + seed) * 4, ly = sy + Math.sin(t * 1.3 + i) * 0.8, r = 8 + 5 * hz(i);
         c.strokeStyle = 'rgba(210,190,150,.5)'; c.lineWidth = 1; for (let q = 0; q < 2; q++) { c.beginPath(); c.moveTo(lx + q * 3, ly + 2); c.quadraticCurveTo(lx + q * 6 + sway(20, i), ly + 22, lx + q * 4 + sway(34, i + q), ly + 28 + 22 * hs); c.stroke(); }

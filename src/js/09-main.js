@@ -12,6 +12,8 @@ const Game = {
     { id: 'zoom', name: 'Yakından bak', desc: 'Tankı iki parmakla (veya tekerlekle) yakınlaştır', goal: 1, coins: 30, xp: 10, go: 'aq' },
     { id: 'scape', name: 'Tasarımcı ol', desc: 'Tasarım Stüdyosu\'nda bir öğe yerleştir', goal: 1, coins: 40, xp: 15, go: 'design' },
     { id: 'photo', name: 'Fotoğrafçı', desc: 'Fotoğraf modunda bir kare çek', goal: 1, coins: 30, xp: 10, go: 'aq' },
+    { id: 'water', name: 'Su bakımı', desc: 'Su parametreleri panelinden su değişimi yap', goal: 1, coins: 40, xp: 15, go: 'aq' },
+    { id: 'prune', name: 'Bahçıvan', desc: 'Bir bitkiyi buda', goal: 1, coins: 40, xp: 15, go: 'aq' },
     { id: 'test', name: 'Gizli genleri ortaya çıkar', desc: 'Bir balığın genotipini test et', goal: 1, coins: 60, xp: 25, go: 'aq' },
   ],
   _samples: new Map(), _sampleN: 0, last: 0, tAcc: 0, topAcc: 0, hiddenAt: 0, sessionWarned: false,
@@ -68,10 +70,11 @@ const Game = {
   loadState(d) {
     this.S = d; const t = this.tank; t.creatures.length = 0; t.food.length = 0;
     Pedigree.rec = d.pedigree || {}; Pedigree._memo.clear(); _nextId = Math.max(d.nextId || 1, 1);
-    for (const cd of d.creatures) { try { const c = new Creature(cd); c.sw.x = clamp(cd.x ?? c.sw.x, 40, t.W - 40); c.sw.y = clamp(cd.y ?? c.sw.y, 60, t.H - 90); c.now = d.clockMin; t.addCreature(c); } catch (e) { console.warn('Canlı yüklenemedi', e); } }
+    Object.defineProperty(d, 'qFish', { value: [], writable: true, enumerable: false, configurable: true }); for (const cd of d.creatures) { try { const c = new Creature(cd); c.sw.x = clamp(cd.x ?? c.sw.x, 40, t.W - 40); c.sw.y = clamp(cd.y ?? c.sw.y, 60, t.H - 90); c.now = d.clockMin; if (c.quarantined) d.qFish.push(c); else t.addCreature(c); } catch (e) { console.warn('Canlı yüklenemedi', e); } }
     this.checkDiscoveries(true); this.afterLoad();
   },
   afterLoad() {
+    if (!('qFish' in this.S)) Object.defineProperty(this.S, 'qFish', { value: [], writable: true, enumerable: false, configurable: true });
     const S = this.S; if (!S.scape) S.scape = Scape.fromTemplate('start'); this.tank.setScape(S.scape); this.tank.lampMode = S.settings.lamp; this.tank.light = this.tank.lampTarget(S.clockMin); this.tank.setAspect(this.tank.W / this.tank.H);
     if (!this.tank.bg) this.tank.buildBG();
     this.tank.onEat = () => { if (R.chance(0.45)) AudioSys.SFX.eat(); };
@@ -83,12 +86,12 @@ const Game = {
     const minutes = Math.min(secs * 1, 8 * 1440), before = this.tank.creatures.map((c) => c.stage(S.clockMin));
     S.clockMin += minutes; const grown = this.tank.creatures.filter((c, i) => c.stage(S.clockMin) !== before[i]).length;
     this.tank.creatures.forEach((c) => (c.now = S.clockMin));
-    const births = this.tickBreeding(true);
+    Chem.catchUp(minutes); const births = this.tickBreeding(true);
     return { minutes, days: minutes / 1440, grown, births };
   },
 
   pack() {
-    const S = this.S; S.creatures = this.tank.creatures.map((c) => c.toJSON()); S.pedigree = Pedigree.rec; S.nextId = _nextId; S.lastSeen = Date.now();
+    const S = this.S; S.creatures = [...this.tank.creatures, ...(S.qFish || [])].map((c) => c.toJSON()); S.pedigree = Pedigree.rec; S.nextId = _nextId; S.lastSeen = Date.now();
     S.settings.lamp = this.tank.lampMode; return S;
   },
   save(force) {
@@ -135,7 +138,7 @@ const Game = {
 
   /* ---------------- Eylemler ---------------- */
   feed() {
-    if (this.tank.feed()) { this.S.stats.fed++; this.task('feed'); this.addXp(3); AudioSys.SFX.feed(); } else UI.toast('Önceki yemler henüz bitmedi', 'feed', 1800);
+    if (this.tank.scape.dry) return UI.toast('Tank kuru başlangıçta', 'bell'); if (this.tank.feed()) { Chem.onFeed(); this.S.stats.fed++; this.task('feed'); this.addXp(3); AudioSys.SFX.feed(); } else UI.toast('Önceki yemler henüz bitmedi', 'feed', 1800);
   },
   cycleLamp() { const o = ['auto', 'on', 'off'], t = this.tank; t.lampMode = o[(o.indexOf(t.lampMode) + 1) % 3]; this.S.settings.lamp = t.lampMode; UI.toast({ auto: 'Işık: otomatik (07:00–21:00)', on: 'Işık: sürekli açık', off: 'Işık: kapalı' }[t.lampMode], t.lampMode === 'off' ? 'moon' : 'sun', 1800); },
   cycleSpeed() { const o = [1, 2, 4, 8], st = this.S.settings; st.speed = o[(o.indexOf(st.speed) + 1) % o.length]; UI.toast(`Oyun hızı ${st.speed}×`, 'speed', 1500); },
@@ -174,6 +177,16 @@ const Game = {
     }
     if (births.length) { UI.refreshTop(); if (UI.cur === 'aq') UI.refreshAq(); if (UI.cur === 'lab') UI.render_lab($('#s-lab')); }
     return out.length;
+  },
+  reapPlants() {
+    const sc = this.tank.scape, dead = sc.items.filter((i) => i.dead); if (!dead.length) return;
+    sc.items = sc.items.filter((i) => !i.dead && !(i.att && dead.some((d) => d.id === i.att.id))); this.tank.touch();
+    this.notify('warn', `${dead.length} bitki öldü (ışık/CO₂/besin yetersiz).`); UI.toast(`${dead.length} bitki soldu 🥀`, 'leaf', 3500);
+  },
+  /** Tüm balıklar ölürse büyükbabanın yedek balıkları. */
+  rescueFish() {
+    for (const sex of ['M', 'F']) { const c = new Creature({ genome: Genetics.randomFounder(sex), bornT: this.S.clockMin - 80 * 1440 }); c.now = this.S.clockMin; Breeding.reg(c); this.tank.addCreature(c); }
+    this.notify('birth', 'Büyükbabanın yedek balıkları tanka bırakıldı.'); UI.toast('Büyükbabanın yedek iki balığı tanka bırakıldı 🐟', 'fish', 5000);
   },
   mate(m, f) {
     const pr = Breeding.problems(m, f, this.S.clockMin); if (pr.length) { UI.toast(pr[0], 'bell'); return null; }
@@ -228,7 +241,9 @@ const Game = {
     if (document.hidden) { this.last = now; return; }
     const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now; if (!this.S) return;
     const S = this.S; S.clockMin += dt * S.settings.speed; S.stats.playSec += dt;
-    this.tank.update(dt, S.clockMin);
+    this.tank.update(dt, S.clockMin); Chem.advance(dt * S.settings.speed);
+    if (S.blackoutUntil && S.clockMin >= S.blackoutUntil) { S.blackoutUntil = 0; this.tank.lampMode = 'auto'; S.settings.lamp = 'auto'; UI.toast('Karartma bitti: ışık otomatiğe döndü', 'sun'); }
+    this.reapPlants();
     this.topAcc += dt;
     if (this.topAcc > 1) {
       this.topAcc = 0; this.tickBreeding(); UI.cur === 'aq' && UI.refreshAq();
@@ -246,7 +261,7 @@ const Game = {
   worldToScreen(x, y) { return this.vp.toScreen(x, y); }, screenToWorld(x, y) { return this.vp.toWorld(x, y); },
   setZoom(z, sx, sy) { this.vp.setZoom(z, sx, sy); },
   resizeCanvas() { this.vp.resize(); if (this.dvp) this.dvp.resize(); },
-  renderMain() { this.vp.render({ reduce: this.S.settings.reduce, showFav: true, low: this.low }); },
+  renderMain() { this.vp.render({ reduce: this.S.settings.reduce, showFav: true, low: this.low, dry: !!this.tank.scape.dry }); },
   renderThumb(cv) {
     const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1), w = Math.round(r.width || 320), hh = Math.round(r.height || 180), t = this.tank;
     if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = hh * dpr; }
@@ -270,6 +285,11 @@ const Game = {
     });
   },
   tap(sx, sy) {
+    if (this.pruneMode) {
+      const w0 = this.vp.toWorld(sx, sy), it = Scape.hit(this.tank.scape, this.tank.W, w0.x, w0.y);
+      if (it && it.k === 'plant') { const n = Chem.prune(it); if (n) UI.pruneResult(it, n); else UI.toast(`${PLANTS[it.d].name} henüz budanacak kadar uzamadı`, 'leaf', 2000); }
+      return;
+    }
     const w = this.vp.toWorld(sx, sy), c = this.tank.hit(w.x, w.y, 26 / w.S); this.S.stats.taps++;
     if (c) { const s = this.vp.toScreen(c.sw.x, c.sw.y), r = this.vp.cv.getBoundingClientRect(), sz = c.bodyLen() * s.S * 1.4;
       UI.openCreature(c, { left: r.left + s.x - sz / 2, top: r.top + s.y - sz / 4, width: sz, height: sz / 2 }); }

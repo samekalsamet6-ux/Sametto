@@ -117,11 +117,16 @@ class Tank {
     for (const f of this.food) {
       f.life -= dt; if (!f.eaten) { f.y += f.vy * dt * (f.y < 40 ? 0.5 : 1); f.x += Math.sin(this.t * 1.7 + f.ph) * 6 * dt; f.vy = Math.min(f.vy, 28); const gy = this.ground(f.x) - 6; if (f.y > gy) { f.y = gy; f.vy = 0; } }
     }
+    for (const f of this.food) if (!f.eaten && f.life <= 0 && typeof Chem !== 'undefined') Chem.waste(1);     // yenmeyen yem suyu kirletir
     this.food = this.food.filter((f) => !f.eaten && f.life > 0);
     // kabarcıklar: hava taşı + CO₂
     const e = this.scape.equip; this.bubbleT -= dt;
     if (e.air && this.bubbleT <= 0) { this.bubbleT = R.float(0.18, 0.6); const bx = this.W * 0.115 + R.float(-3, 3); this.bubbles.push({ x: bx, y: this.ground(bx) - 4, r: R.float(1.6, 4), vy: R.float(40, 70), ph: R.float(0, TAU) }); }
     this.co2T -= dt; if (e.co2 !== 'none' && this.co2T <= 0) { this.co2T = (e.co2 === 'tank' ? 0.12 : 0.5) * R.float(0.7, 1.3); const bx = this.W * 0.2 + R.float(-2, 2); this.bubbles.push({ x: bx, y: this.ground(bx) - 30, r: R.float(0.9, 1.6), vy: R.float(28, 44), ph: R.float(0, TAU), co2: 1 }); }
+    // CO₂ + ışık → bitkilerde oksijen kabarcığı (pearling)
+    if (e.co2 !== 'none' && typeof Chem !== 'undefined' && Chem.w.co2 > 14 && this.light > 0.5 && R.next() < dt * 2.5) {
+      const ps = this.scape.items.filter((i) => i.k === 'plant' && (PLANTS[i.d].type === 'stem' || PLANTS[i.d].type === 'carpet')); if (ps.length) { const it = R.pick(ps), p = Scape.pos(this.scape, this.W, it), d = PLANTS[it.d]; this.bubbles.push({ x: p.x + R.float(-14, 14), y: p.y - (d.type === 'carpet' ? 10 : d.h * R.float(0.3, 0.9) * (it.g ?? 1)), r: R.float(0.8, 1.5), vy: R.float(30, 50), ph: R.float(0, TAU), co2: 1 }); }
+    }
     for (const b of this.bubbles) { b.y -= b.vy * dt; b.x += Math.sin(this.t * 3 + b.ph) * 9 * dt; b.r += dt * (b.co2 ? 0.1 : 0.5); }
     for (let i = this.bubbles.length - 1; i >= 0; i--) if (this.bubbles[i].y < 30) { if (R.chance(0.25)) this.ripples.push({ x: this.bubbles[i].x, y: 28, r: 2, life: 0.9, max: 18 }); this.bubbles.splice(i, 1); }
     for (const r of this.ripples) { r.life -= dt; r.r += (r.max / 1.2) * dt; }
@@ -151,6 +156,21 @@ class Tank {
     } else {
       const prox = 0.5 + 0.5 * Math.max(0, 1 - Math.abs(p.x - this.outX * this.W) / (this.W * 0.55));
       Art.drawPlant(ctx, it, def, p.x + off, p.y, { t, flow: this.flowPow * prox * 0.9, ground: (wx) => this.ground(wx - off) });
+    }
+  }
+
+  /** Yosunlar: camda yeşil nokta, yapraklarda saç, taşlarda siyah sakal, zeminde siyanobakteri. */
+  drawAlgae(ctx, t) {
+    const a = this.algae, sc = this.scape, W = this.W, H = this.H;
+    if (a.green > 0.04) { const r = new RNG(11), n = Math.floor(a.green * 110); ctx.fillStyle = 'rgba(80,175,55,.5)'; for (let i = 0; i < n; i++) { ctx.beginPath(); ctx.arc(r.float(0, W), r.float(50, H - 40), r.float(1, 3.4), 0, TAU); ctx.fill(); } }
+    if (a.cyano > 0.05) { const r = new RNG(31), n = Math.floor(a.cyano * 30); for (let i = 0; i < n; i++) { const x = r.float(0, W), gy = this.ground(x), wd = r.float(18, 52); ctx.fillStyle = `rgba(30,150,125,${0.35 + 0.25 * Math.sin(t * 0.6 + i)})`; ctx.beginPath(); ctx.ellipse(x, gy - 1, wd, r.float(3, 7), 0, 0, TAU); ctx.fill(); } }
+    if (a.hair > 0.05 || a.bba > 0.05) {
+      for (const it of sc.items) {
+        if (it.k === 'leaf') continue; const def = Scape.defOf(it), p = Scape.pos(sc, W, it), r = new RNG(it.seed), hw = def.w * (it.s || 1), hh = (it.k === 'plant' ? def.h * lerp(0.3, 1, it.g ?? 1) : def.h) * (it.s || 1);
+        if (it.k === 'plant' && PLANTS[it.d].type === 'float') continue;
+        for (let i = 0, n = Math.floor(a.hair * 10); i < n; i++) { const x = p.x + (r.next() - 0.5) * hw * 0.8, y = p.y - hh * r.float(0.15, 0.9), L = 10 + r.next() * 14; ctx.strokeStyle = 'rgba(100,170,70,.75)'; ctx.lineWidth = 1.1; ctx.beginPath(); ctx.moveTo(x, y); ctx.bezierCurveTo(x + Math.sin(t * 1.2 + i) * 4, y - L * 0.3, x - Math.sin(t + i) * 5, y - L * 0.7, x + Math.sin(t * 0.8 + i * 2) * 5, y - L); ctx.stroke(); }
+        if (it.k !== 'plant') for (let i = 0, n = Math.floor(a.bba * 9); i < n; i++) { const x = p.x + (r.next() - 0.5) * hw * 0.8, y = p.y - hh * r.float(0.1, 0.8); ctx.strokeStyle = 'rgba(40,46,52,.9)'; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + r.float(-5, 5), y - r.float(4, 9)); ctx.stroke(); }
+      }
     }
   }
 
@@ -216,6 +236,7 @@ class Tank {
       }
     }
     for (const it of bucket(2)) this.drawItem(ctx, it, t, off(2));
+    if (!v.dry && this.algae) this.drawAlgae(ctx, t);
     // yem
     for (const f of this.food) { ctx.fillStyle = `rgba(230,190,110,${clamp(f.life / 6, 0.2, 1)})`; ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r * 1.5, f.r, f.ph, 0, TAU); ctx.fill(); }
     // kabarcıklar

@@ -24,6 +24,7 @@ class Creature {
     this.stress = 0;
     this.preg = d.preg || null;                   // {start, due} gebelik (dakika)
     this.sperm = d.sperm || [];                   // depolanan sperm: [{sire, name, g, left}]
+    this.vit = d.vit ?? 1; this.dis = d.dis || null; this.envStress = 0; this.quarantined = !!d.q;
     this.lastBirth = d.lastBirth ?? -1e9; this.defect = !!d.defect; this.unrevealed = !!d.unrevealed;
     this.pheno = Genetics.phenotype(this.genome);
     this.sprite = null; this.sw = new Swimmer(this);
@@ -51,7 +52,7 @@ class Creature {
     return Math.max(5, Math.round(r * size * stageMul * clamp(this.health(), 0.5, 1.15) * (this.fav ? 1 : 1)));
   }
   toJSON() {
-    return { id: this.id, name: this.name, genome: this.genome, bornT: this.bornT, seed: this.seed, fav: this.fav, tested: this.tested, sire: this.sire, dam: this.dam, pers: this.pers, preg: this.preg, sperm: this.sperm, lastBirth: this.lastBirth, defect: this.defect, unrevealed: this.unrevealed, x: Math.round(this.sw.x), y: Math.round(this.sw.y) };
+    return { id: this.id, name: this.name, genome: this.genome, bornT: this.bornT, seed: this.seed, fav: this.fav, tested: this.tested, sire: this.sire, dam: this.dam, pers: this.pers, preg: this.preg, sperm: this.sperm, lastBirth: this.lastBirth, defect: this.defect, unrevealed: this.unrevealed, vit: this.vit, dis: this.dis, q: this.quarantined || undefined, x: Math.round(this.sw.x), y: Math.round(this.sw.y) };
   }
 }
 
@@ -92,7 +93,7 @@ class Swimmer {
 
     /* ---------- 1) Durum seçimi ---------- */
     let st = this.state;
-    const wantRest = env.night > 0.62 && !env.calm;
+    const wantRest = (env.night > 0.62 || (c.dis && c.dis.sev > 0.55)) && !env.calm;
     const food = env.food && env.food.length ? env.food : null;
     if (this.startleT > 0) st = 'startle';
     else if (food && !env.calm && (env.foodAge > (1 - p.bold) * 2.2) && this.eaten < 3) st = 'feed';
@@ -151,6 +152,7 @@ class Swimmer {
     }
 
     if (env.calm) spdMul *= 0.4;
+    spdMul *= lerp(0.55, 1, c.vit ?? 1);
 
     /* ---------- 3) Sürü kuralları (ayrılma / yapışma / hizalanma) ---------- */
     let sx = 0, sy = 0, cx = 0, cy = 0, ax = 0, ay = 0, nCoh = 0;

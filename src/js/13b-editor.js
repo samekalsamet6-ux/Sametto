@@ -32,7 +32,7 @@ const Editor = {
   render() {
     if (!this.dvp) return; const S = this.dvp;
     if (this.stroke && this.tank.rev === this.dirty) { /* fırça */ }
-    S.render({ reduce: Game.S.settings.reduce, low: Game.low, design: true, dry: this.dry, fishAlpha: 0.28, after: (ctx) => this.overlay(ctx) });
+    S.render({ reduce: Game.S.settings.reduce, low: Game.low, design: true, dry: this.dry || !!this.sc.dry, fishAlpha: 0.28, after: (ctx) => this.overlay(ctx) });
   },
 
   /* ---------- anlık görüntü / geri al ---------- */
@@ -114,7 +114,7 @@ const Editor = {
       ex.att = { id: host.id, ox: clamp((dx * c - dy * s) / hp.s * hp.fl, -hd.w * 0.4, hd.w * 0.4), oy: clamp((dx * s + dy * c) / hp.s, -hd.h * 0.95, -hd.h * 0.15) }; ex.gnd = false; fx = host.fx;
     }
     this.commit(); this.pay(def.cost || 0);
-    const it = Scape.newItem(this.sc, p.k, p.d, fx, Object.assign(ex, p.k === 'plant' ? { g: 0.45 } : {}));
+    const it = Scape.newItem(this.sc, p.k, p.d, fx, Object.assign(ex, p.k === 'plant' ? { g: 0.45, t: this.S.clockMin } : {}));
     if (p.k !== 'plant' && p.k !== 'leaf') { const g = this.tank.ground(fx * W); if (w.y < g - 20 && Scape.isHard(it)) { it.gnd = false; it.y = clamp(w.y, SURFACE + 90, g); } }
     this.sc.items.push(it); this.sel = it.id; this.changed(); AudioSys.SFX.tick(); Game.task('scape'); this.refresh();
   },
@@ -243,6 +243,7 @@ const Editor = {
     const bgs = h('div.chips', null, ...Object.entries(BACKDROPS).map(([k, n]) => h('button.sp-chip' + (this.sc.bg === k ? '.on' : ''), { onclick: () => { this.commit(); this.sc.bg = k; this.tank.buildBG(); this.changed(); this.refresh(); } }, n)));
     const tpls = [...Object.keys(TEMPLATES).map((k) => ({ key: k, name: TEMPLATES[k].name, desc: TEMPLATES[k].desc })), ...this.S.templates.map((t, i) => ({ scape: t.scape, name: t.name, desc: 'Kendi tasarımın', own: i }))];
     body.append(h('div.small.muted', null, `Hacim: ${this.sc.liters} L · kapasite ≈ ${tankCap()} balık`), sizes, h('div.small.muted', null, 'Arka plan'), bgs,
+      h('div.set-row', null, h('label', null, h('div', null, 'Kuru başlangıç (Dry Start)'), h('div.tiny.muted', null, 'Susuz, nemli ortamda halı bitkileri kökleşir; yosun riski düşük.')), h('button.switch' + (this.sc.dry ? '.on' : ''), { role: 'switch', onclick: () => Chem.dryStart(!this.sc.dry) })),
       h('div.row', { style: { margin: '8px 0 2px' } }, h('b.sp', null, 'Şablonlar'), h('button.btn.sm', { onclick: () => this.saveTemplate() }, icon('save'), 'Tasarımı kaydet')),
       h('div.tpl-row', null, ...tpls.map((t) => h('div.tpl', null, h('b', null, t.name), h('div.tiny.muted', null, t.desc), h('button.btn.sm.primary', { onclick: () => this.applyTemplate(t) }, 'Uygula'), t.own !== undefined ? h('button.btn.sm.ghost', { onclick: () => { this.S.templates.splice(t.own, 1); this.refresh(); } }, 'Sil') : null))));
   },

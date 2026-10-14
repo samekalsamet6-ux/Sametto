@@ -234,6 +234,13 @@ body.photo #topbar,body.photo #tabbar,body.photo .qa,body.photo .aq-info{display
 .shutter{width:68px;height:68px;border-radius:50%;border:4px solid #fff;background:rgba(255,255,255,.25);cursor:pointer;transition:transform .15s var(--ease)}.shutter:active{transform:scale(.88);background:#fff}
 .flash{position:fixed;inset:0;background:#fff;z-index:90;animation:fadeOut .4s both;pointer-events:none}
 
+/* ====== Aşama 4: su paneli ====== */
+.prow{padding:10px 0;border-top:1px solid var(--panel-b);cursor:pointer}.prow svg{flex:none}
+.rbar{position:relative;height:9px;border-radius:5px;background:rgba(255,107,107,.45);margin:8px 0 2px;overflow:visible}
+.rbar i{position:absolute;top:0;bottom:0;border-radius:5px}.rbar i.tol{background:rgba(255,198,92,.8)}.rbar i.ide{background:rgba(76,214,148,.95)}
+.rbar b.mk{position:absolute;top:-4px;width:4px;height:17px;border-radius:2px;background:#fff;box-shadow:0 0 6px #000;transform:translateX(-2px)}
+.diag{padding:8px 0;border-top:1px solid var(--panel-b)}.diag:first-of-type{border-top:0}
+
 </style>
 </head>
 <body>
@@ -1010,6 +1017,14 @@ const FishArt = {
     ctx.translate(pp.x, pp.y + sp.H * 0.5); ctx.rotate(Math.PI - 0.55 + flap);
     ctx.beginPath(); ctx.ellipse(fr * 0.8, 0, fr, fr * 0.42, 0, 0, TAU); ctx.fillStyle = 'rgba(235,245,250,.38)'; ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 0.8; ctx.stroke();
+    // hastalık belirtileri
+    if (cr.dis) {
+      ctx.setTransform(Fa, Fb, Fc, Fd, Fe, Ff); const sev = cr.dis.sev, id = cr.dis.id, r = new RNG(cr.seed + 5);
+      if (id === 'ich') { ctx.fillStyle = 'rgba(255,255,255,.92)'; for (let i = 0, n = 5 + Math.round(sev * 22); i < n; i++) { const q = P[Math.round(S * r.float(0.1, 0.62))]; ctx.beginPath(); ctx.arc(q.x, q.y + r.float(-0.7, 0.7) * sp.H, r.float(3.5, 6), 0, TAU); ctx.fill(); } }
+      else if (id === 'velvet') { ctx.fillStyle = 'rgba(245,215,120,.65)'; for (let i = 0, n = 30 + Math.round(sev * 70); i < n; i++) { const q = P[Math.round(S * r.float(0.08, 0.65))]; ctx.beginPath(); ctx.arc(q.x, q.y + r.float(-0.8, 0.8) * sp.H, r.float(1.6, 2.8), 0, TAU); ctx.fill(); } }
+      else if (id === 'fungus') { ctx.fillStyle = 'rgba(245,245,240,.72)'; for (let i = 0, n = 3 + Math.round(sev * 6); i < n; i++) { const q = P[Math.round(S * r.float(0.08, 0.55))]; ctx.beginPath(); ctx.arc(q.x, q.y + r.float(-0.6, 0.6) * sp.H, r.float(8, 15), 0, TAU); ctx.fill(); } }
+      else { ctx.strokeStyle = 'rgba(190,35,35,.65)'; ctx.lineWidth = 2.4; for (let i = Math.round(S * 0.72); i <= S; i++) { const q = P[i]; ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(q.x - r.float(4, 10), q.y + r.float(-1, 1) * sp.H * (1.4 + sev)); ctx.stroke(); } }
+    }
     // gebelik lekesi: gebelik ilerledikçe koyulaşır
     if (cr.preg) {
       const pr = clamp((cr.now - cr.preg.start) / (cr.preg.due - cr.preg.start), 0, 1);
@@ -1048,6 +1063,7 @@ class Creature {
     this.stress = 0;
     this.preg = d.preg || null;                   // {start, due} gebelik (dakika)
     this.sperm = d.sperm || [];                   // depolanan sperm: [{sire, name, g, left}]
+    this.vit = d.vit ?? 1; this.dis = d.dis || null; this.envStress = 0; this.quarantined = !!d.q;
     this.lastBirth = d.lastBirth ?? -1e9; this.defect = !!d.defect; this.unrevealed = !!d.unrevealed;
     this.pheno = Genetics.phenotype(this.genome);
     this.sprite = null; this.sw = new Swimmer(this);
@@ -1075,7 +1091,7 @@ class Creature {
     return Math.max(5, Math.round(r * size * stageMul * clamp(this.health(), 0.5, 1.15) * (this.fav ? 1 : 1)));
   }
   toJSON() {
-    return { id: this.id, name: this.name, genome: this.genome, bornT: this.bornT, seed: this.seed, fav: this.fav, tested: this.tested, sire: this.sire, dam: this.dam, pers: this.pers, preg: this.preg, sperm: this.sperm, lastBirth: this.lastBirth, defect: this.defect, unrevealed: this.unrevealed, x: Math.round(this.sw.x), y: Math.round(this.sw.y) };
+    return { id: this.id, name: this.name, genome: this.genome, bornT: this.bornT, seed: this.seed, fav: this.fav, tested: this.tested, sire: this.sire, dam: this.dam, pers: this.pers, preg: this.preg, sperm: this.sperm, lastBirth: this.lastBirth, defect: this.defect, unrevealed: this.unrevealed, vit: this.vit, dis: this.dis, q: this.quarantined || undefined, x: Math.round(this.sw.x), y: Math.round(this.sw.y) };
   }
 }
 
@@ -1116,7 +1132,7 @@ class Swimmer {
 
     /* ---------- 1) Durum seçimi ---------- */
     let st = this.state;
-    const wantRest = env.night > 0.62 && !env.calm;
+    const wantRest = (env.night > 0.62 || (c.dis && c.dis.sev > 0.55)) && !env.calm;
     const food = env.food && env.food.length ? env.food : null;
     if (this.startleT > 0) st = 'startle';
     else if (food && !env.calm && (env.foodAge > (1 - p.bold) * 2.2) && this.eaten < 3) st = 'feed';
@@ -1175,6 +1191,7 @@ class Swimmer {
     }
 
     if (env.calm) spdMul *= 0.4;
+    spdMul *= lerp(0.55, 1, c.vit ?? 1);
 
     /* ---------- 3) Sürü kuralları (ayrılma / yapışma / hizalanma) ---------- */
     let sx = 0, sy = 0, cx = 0, cy = 0, ax = 0, ay = 0, nCoh = 0;
@@ -1501,11 +1518,16 @@ class Tank {
     for (const f of this.food) {
       f.life -= dt; if (!f.eaten) { f.y += f.vy * dt * (f.y < 40 ? 0.5 : 1); f.x += Math.sin(this.t * 1.7 + f.ph) * 6 * dt; f.vy = Math.min(f.vy, 28); const gy = this.ground(f.x) - 6; if (f.y > gy) { f.y = gy; f.vy = 0; } }
     }
+    for (const f of this.food) if (!f.eaten && f.life <= 0 && typeof Chem !== 'undefined') Chem.waste(1);     // yenmeyen yem suyu kirletir
     this.food = this.food.filter((f) => !f.eaten && f.life > 0);
     // kabarcıklar: hava taşı + CO₂
     const e = this.scape.equip; this.bubbleT -= dt;
     if (e.air && this.bubbleT <= 0) { this.bubbleT = R.float(0.18, 0.6); const bx = this.W * 0.115 + R.float(-3, 3); this.bubbles.push({ x: bx, y: this.ground(bx) - 4, r: R.float(1.6, 4), vy: R.float(40, 70), ph: R.float(0, TAU) }); }
     this.co2T -= dt; if (e.co2 !== 'none' && this.co2T <= 0) { this.co2T = (e.co2 === 'tank' ? 0.12 : 0.5) * R.float(0.7, 1.3); const bx = this.W * 0.2 + R.float(-2, 2); this.bubbles.push({ x: bx, y: this.ground(bx) - 30, r: R.float(0.9, 1.6), vy: R.float(28, 44), ph: R.float(0, TAU), co2: 1 }); }
+    // CO₂ + ışık → bitkilerde oksijen kabarcığı (pearling)
+    if (e.co2 !== 'none' && typeof Chem !== 'undefined' && Chem.w.co2 > 14 && this.light > 0.5 && R.next() < dt * 2.5) {
+      const ps = this.scape.items.filter((i) => i.k === 'plant' && (PLANTS[i.d].type === 'stem' || PLANTS[i.d].type === 'carpet')); if (ps.length) { const it = R.pick(ps), p = Scape.pos(this.scape, this.W, it), d = PLANTS[it.d]; this.bubbles.push({ x: p.x + R.float(-14, 14), y: p.y - (d.type === 'carpet' ? 10 : d.h * R.float(0.3, 0.9) * (it.g ?? 1)), r: R.float(0.8, 1.5), vy: R.float(30, 50), ph: R.float(0, TAU), co2: 1 }); }
+    }
     for (const b of this.bubbles) { b.y -= b.vy * dt; b.x += Math.sin(this.t * 3 + b.ph) * 9 * dt; b.r += dt * (b.co2 ? 0.1 : 0.5); }
     for (let i = this.bubbles.length - 1; i >= 0; i--) if (this.bubbles[i].y < 30) { if (R.chance(0.25)) this.ripples.push({ x: this.bubbles[i].x, y: 28, r: 2, life: 0.9, max: 18 }); this.bubbles.splice(i, 1); }
     for (const r of this.ripples) { r.life -= dt; r.r += (r.max / 1.2) * dt; }
@@ -1535,6 +1557,21 @@ class Tank {
     } else {
       const prox = 0.5 + 0.5 * Math.max(0, 1 - Math.abs(p.x - this.outX * this.W) / (this.W * 0.55));
       Art.drawPlant(ctx, it, def, p.x + off, p.y, { t, flow: this.flowPow * prox * 0.9, ground: (wx) => this.ground(wx - off) });
+    }
+  }
+
+  /** Yosunlar: camda yeşil nokta, yapraklarda saç, taşlarda siyah sakal, zeminde siyanobakteri. */
+  drawAlgae(ctx, t) {
+    const a = this.algae, sc = this.scape, W = this.W, H = this.H;
+    if (a.green > 0.04) { const r = new RNG(11), n = Math.floor(a.green * 110); ctx.fillStyle = 'rgba(80,175,55,.5)'; for (let i = 0; i < n; i++) { ctx.beginPath(); ctx.arc(r.float(0, W), r.float(50, H - 40), r.float(1, 3.4), 0, TAU); ctx.fill(); } }
+    if (a.cyano > 0.05) { const r = new RNG(31), n = Math.floor(a.cyano * 30); for (let i = 0; i < n; i++) { const x = r.float(0, W), gy = this.ground(x), wd = r.float(18, 52); ctx.fillStyle = `rgba(30,150,125,${0.35 + 0.25 * Math.sin(t * 0.6 + i)})`; ctx.beginPath(); ctx.ellipse(x, gy - 1, wd, r.float(3, 7), 0, 0, TAU); ctx.fill(); } }
+    if (a.hair > 0.05 || a.bba > 0.05) {
+      for (const it of sc.items) {
+        if (it.k === 'leaf') continue; const def = Scape.defOf(it), p = Scape.pos(sc, W, it), r = new RNG(it.seed), hw = def.w * (it.s || 1), hh = (it.k === 'plant' ? def.h * lerp(0.3, 1, it.g ?? 1) : def.h) * (it.s || 1);
+        if (it.k === 'plant' && PLANTS[it.d].type === 'float') continue;
+        for (let i = 0, n = Math.floor(a.hair * 10); i < n; i++) { const x = p.x + (r.next() - 0.5) * hw * 0.8, y = p.y - hh * r.float(0.15, 0.9), L = 10 + r.next() * 14; ctx.strokeStyle = 'rgba(100,170,70,.75)'; ctx.lineWidth = 1.1; ctx.beginPath(); ctx.moveTo(x, y); ctx.bezierCurveTo(x + Math.sin(t * 1.2 + i) * 4, y - L * 0.3, x - Math.sin(t + i) * 5, y - L * 0.7, x + Math.sin(t * 0.8 + i * 2) * 5, y - L); ctx.stroke(); }
+        if (it.k !== 'plant') for (let i = 0, n = Math.floor(a.bba * 9); i < n; i++) { const x = p.x + (r.next() - 0.5) * hw * 0.8, y = p.y - hh * r.float(0.1, 0.8); ctx.strokeStyle = 'rgba(40,46,52,.9)'; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + r.float(-5, 5), y - r.float(4, 9)); ctx.stroke(); }
+      }
     }
   }
 
@@ -1600,6 +1637,7 @@ class Tank {
       }
     }
     for (const it of bucket(2)) this.drawItem(ctx, it, t, off(2));
+    if (!v.dry && this.algae) this.drawAlgae(ctx, t);
     // yem
     for (const f of this.food) { ctx.fillStyle = `rgba(230,190,110,${clamp(f.life / 6, 0.2, 1)})`; ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r * 1.5, f.r, f.ph, 0, TAU); ctx.fill(); }
     // kabarcıklar
@@ -2060,13 +2098,16 @@ const UI = {
     const lampOn = t.lightTarget > 0.5;
     info.replaceChildren(
       h('div.chip', null, icon(lampOn ? 'sun' : 'moon'), `Gün ${dayOf(S.clockMin)} · ${clockStr(S.clockMin)}`),
+      h('button.chip', { style: { cursor: 'pointer' }, onclick: () => UI.openWater() }, h('span.dot', { style: { background: UI.waterDot(), boxShadow: `0 0 8px ${UI.waterDot()}`, width: '9px', height: '9px' } }), 'Su'),
       h('div.chip', null, icon('fish'), `${t.creatures.length}/${tankCap()}`),
+      Game.pruneMode ? h('button.chip', { style: { border: '1px solid var(--accent)', cursor: 'pointer' }, onclick: () => { Game.pruneMode = false; UI.refreshAq(); } }, '✂ Budama modu · Bitti') : null,
       Game.unrevealed().length ? h('button.chip', { style: { border: '1px solid var(--accent)', cursor: 'pointer' }, onclick: () => UI.openReveal() }, '🍼 ' + Game.unrevealed().length + ' yeni yavru') : null,
       h('div.chip', { style: { marginLeft: 'auto' } }, icon('speed'), S.settings.speed + '×'));
     const mk = (ic, label, fn, on) => h('button.qbtn' + (on ? '.on' : ''), { onclick: fn, 'aria-label': label }, icon(ic), label);
     qa.replaceChildren(
       mk('feed', 'Yem', () => Game.feed()),
       mk(lampOn ? 'sun' : 'moon', S.settings.lamp === 'auto' ? 'Işık: oto' : S.settings.lamp === 'on' ? 'Işık: açık' : 'Işık: kapalı', () => { Game.cycleLamp(); UI.refreshAq(); }),
+      mk('water', 'Su', () => UI.openWater()),
       mk('speed', 'Hız', () => { Game.cycleSpeed(); UI.refreshAq(); }),
       mk('list', 'Balıklar', () => UI.openFishList()),
       mk('camera', 'Fotoğraf', () => Photo.open()));
@@ -2158,6 +2199,7 @@ const UI = {
       h('div.card', null, h('h3', null, '⏱ Oyun'),
         h('div.set-row', null, h('label', null, 'Oyun hızı'), seg([[1, '1×'], [2, '2×'], [4, '4×'], [8, '8×']], st.speed, (v) => { st.speed = v; Game.save(); })),
         h('div.set-row', null, h('label', null, 'Tank ışığı'), seg([['auto', 'Oto'], ['on', 'Açık'], ['off', 'Kapalı']], st.lamp, (v) => { st.lamp = v; Game.tank.lampMode = v; Game.save(); })),
+        h('div.set-row', null, h('label', null, 'Musluk suyu'), seg(Object.entries(TAP_PROFILES).map(([k, p]) => [k, p.name.split(' ')[0]]), st.tap || 'mid', (v) => { st.tap = v; Game.save(); })),
         h('div.set-row', null, h('label', null, 'Oturum süresi hatırlatıcısı (60 dk)'), sw(st.sessionReminder, (v) => { st.sessionReminder = v; Game.save(); }))),
       h('div.card', null, h('h3', null, '💾 Kayıt'), ...slots,
         h('div.row.wrap-r', { style: { marginTop: '10px' } },
@@ -2208,7 +2250,7 @@ const UI = {
     const body = h('div');
     let zoomed = false, pt = null, iv = 0;
     const build = () => {
-      const p = c.pheno, F = c.inbreeding(), hp = clamp(c.health(), 0, 1.2) / 1.2 * 100;
+      const p = c.pheno, F = c.inbreeding(), hp = clamp(c.health(), 0, 1.2) / 1.2 * 100 * (c.vit ?? 1);
       const parents = Pedigree.rec[c.id], pn = (id) => (Pedigree.rec[id] && Pedigree.rec[id].name) || '—';
       const kids = Object.values(Pedigree.rec).filter((x) => x.s === c.id || x.d === c.id).length;
       const pats = [p.tux && 'Tuxedo', p.sb && 'Snakeskin gövde', p.st && 'Snakeskin kuyruk', p.grass && 'Grass', p.mosaic && 'Mozaik', p.moscow && 'Moscow', p.metal && (p.metalDouble ? 'Metal ×2 ⚠' : 'Metal'), p.purple && 'Mor gövde'].filter(Boolean);
@@ -2217,7 +2259,8 @@ const UI = {
       body.replaceChildren(...[
         h('div.row', null, nameIn, h('span.pill', null, c.sex === 'M' ? '♂ Erkek' : '♀ Dişi')),
         h('div.row.wrap-r', { style: { margin: '6px 0' } }, h('span.pill', null, c.breed().name), h('span.pill', null, `${Math.floor(c.ageDays())} gün · ${c.stage()}`), h('span.pill', null, '💰 ' + fmt(c.value()))),
-        h('div.meters', null, meter('Sağlık', hp, hp < 45 ? '.bad' : hp < 70 ? '.warn' : ''), meter('Stres', c.stress * 100, c.stress > 0.6 ? '.bad' : c.stress > 0.3 ? '.warn' : ''), meter('Akrabalık', F * 100, F > 0.12 ? '.bad' : F > 0.05 ? '.warn' : '')),
+        h('div.meters', null, meter('Sağlık', hp, hp < 45 ? '.bad' : hp < 70 ? '.warn' : ''), meter('Stres', Math.max(c.stress, c.envStress || 0) * 100, Math.max(c.stress, c.envStress || 0) > 0.6 ? '.bad' : Math.max(c.stress, c.envStress || 0) > 0.3 ? '.warn' : ''), meter('Akrabalık', F * 100, F > 0.12 ? '.bad' : F > 0.05 ? '.warn' : '')),
+        c.dis ? h('div.locked', { style: { color: 'var(--bad)', marginBottom: '8px' } }, h('div.sp', null, `🤒 ${DISEASES[c.dis.id].name} · şiddet %${Math.round(c.dis.sev * 100)}`, h('div.tiny.muted', null, DISEASES[c.dis.id].why)), h('button.btn.sm', { onclick: () => { UI.closeTop(); setTimeout(() => UI.openWater(), 350); } }, 'Tedavi')) : null,
         p.metalDouble ? h('div.locked', { style: { color: 'var(--warn)', marginBottom: '8px' } }, '⚠ Çift kopya Metal geni sağlığı ve doğurganlığı düşürür.') : null,
         h('h4', { style: { margin: '12px 0 6px' } }, 'Özellikler'),
         h('div.kv', null, h('span', null, 'Gövde rengi'), h('span', null, BODY[p.body].name), h('span', null, 'Kuyruk tipi'), h('span', null, TAILS[p.tail].name),
@@ -2237,6 +2280,7 @@ const UI = {
           h('button.btn' + (c.fav ? '.primary' : ''), { onclick: () => { c.fav = !c.fav; Game.save(); build(); } }, icon('star'), c.fav ? 'Favori' : 'Favorile'),
           h('button.btn.coral', { onclick: () => UI.confirm(`${c.name} satılsın mı?`, `${fmt(c.value())} Altın Pul kazanacaksın.`, () => { if (Game.sell(c)) rec.close(); }) }, icon('sell'), 'Sat · ' + fmt(c.value())),
           h('button.btn', { onclick: () => UI.openTree(c) }, icon('dna'), 'Soyağacı'),
+          h('button.btn', { onclick: () => { Chem.quarantine(c, true); rec.close(); UI.refreshAq(); } }, icon('heart'), 'Karantina'),
           h('button.btn.ghost', { onclick: () => nameIn.focus() }, icon('edit'), 'Adlandır'))].filter(Boolean));
     };
     build();
@@ -2423,6 +2467,8 @@ const Game = {
     { id: 'zoom', name: 'Yakından bak', desc: 'Tankı iki parmakla (veya tekerlekle) yakınlaştır', goal: 1, coins: 30, xp: 10, go: 'aq' },
     { id: 'scape', name: 'Tasarımcı ol', desc: 'Tasarım Stüdyosu\'nda bir öğe yerleştir', goal: 1, coins: 40, xp: 15, go: 'design' },
     { id: 'photo', name: 'Fotoğrafçı', desc: 'Fotoğraf modunda bir kare çek', goal: 1, coins: 30, xp: 10, go: 'aq' },
+    { id: 'water', name: 'Su bakımı', desc: 'Su parametreleri panelinden su değişimi yap', goal: 1, coins: 40, xp: 15, go: 'aq' },
+    { id: 'prune', name: 'Bahçıvan', desc: 'Bir bitkiyi buda', goal: 1, coins: 40, xp: 15, go: 'aq' },
     { id: 'test', name: 'Gizli genleri ortaya çıkar', desc: 'Bir balığın genotipini test et', goal: 1, coins: 60, xp: 25, go: 'aq' },
   ],
   _samples: new Map(), _sampleN: 0, last: 0, tAcc: 0, topAcc: 0, hiddenAt: 0, sessionWarned: false,
@@ -2479,10 +2525,11 @@ const Game = {
   loadState(d) {
     this.S = d; const t = this.tank; t.creatures.length = 0; t.food.length = 0;
     Pedigree.rec = d.pedigree || {}; Pedigree._memo.clear(); _nextId = Math.max(d.nextId || 1, 1);
-    for (const cd of d.creatures) { try { const c = new Creature(cd); c.sw.x = clamp(cd.x ?? c.sw.x, 40, t.W - 40); c.sw.y = clamp(cd.y ?? c.sw.y, 60, t.H - 90); c.now = d.clockMin; t.addCreature(c); } catch (e) { console.warn('Canlı yüklenemedi', e); } }
+    Object.defineProperty(d, 'qFish', { value: [], writable: true, enumerable: false, configurable: true }); for (const cd of d.creatures) { try { const c = new Creature(cd); c.sw.x = clamp(cd.x ?? c.sw.x, 40, t.W - 40); c.sw.y = clamp(cd.y ?? c.sw.y, 60, t.H - 90); c.now = d.clockMin; if (c.quarantined) d.qFish.push(c); else t.addCreature(c); } catch (e) { console.warn('Canlı yüklenemedi', e); } }
     this.checkDiscoveries(true); this.afterLoad();
   },
   afterLoad() {
+    if (!('qFish' in this.S)) Object.defineProperty(this.S, 'qFish', { value: [], writable: true, enumerable: false, configurable: true });
     const S = this.S; if (!S.scape) S.scape = Scape.fromTemplate('start'); this.tank.setScape(S.scape); this.tank.lampMode = S.settings.lamp; this.tank.light = this.tank.lampTarget(S.clockMin); this.tank.setAspect(this.tank.W / this.tank.H);
     if (!this.tank.bg) this.tank.buildBG();
     this.tank.onEat = () => { if (R.chance(0.45)) AudioSys.SFX.eat(); };
@@ -2494,12 +2541,12 @@ const Game = {
     const minutes = Math.min(secs * 1, 8 * 1440), before = this.tank.creatures.map((c) => c.stage(S.clockMin));
     S.clockMin += minutes; const grown = this.tank.creatures.filter((c, i) => c.stage(S.clockMin) !== before[i]).length;
     this.tank.creatures.forEach((c) => (c.now = S.clockMin));
-    const births = this.tickBreeding(true);
+    Chem.catchUp(minutes); const births = this.tickBreeding(true);
     return { minutes, days: minutes / 1440, grown, births };
   },
 
   pack() {
-    const S = this.S; S.creatures = this.tank.creatures.map((c) => c.toJSON()); S.pedigree = Pedigree.rec; S.nextId = _nextId; S.lastSeen = Date.now();
+    const S = this.S; S.creatures = [...this.tank.creatures, ...(S.qFish || [])].map((c) => c.toJSON()); S.pedigree = Pedigree.rec; S.nextId = _nextId; S.lastSeen = Date.now();
     S.settings.lamp = this.tank.lampMode; return S;
   },
   save(force) {
@@ -2546,7 +2593,7 @@ const Game = {
 
   /* ---------------- Eylemler ---------------- */
   feed() {
-    if (this.tank.feed()) { this.S.stats.fed++; this.task('feed'); this.addXp(3); AudioSys.SFX.feed(); } else UI.toast('Önceki yemler henüz bitmedi', 'feed', 1800);
+    if (this.tank.scape.dry) return UI.toast('Tank kuru başlangıçta', 'bell'); if (this.tank.feed()) { Chem.onFeed(); this.S.stats.fed++; this.task('feed'); this.addXp(3); AudioSys.SFX.feed(); } else UI.toast('Önceki yemler henüz bitmedi', 'feed', 1800);
   },
   cycleLamp() { const o = ['auto', 'on', 'off'], t = this.tank; t.lampMode = o[(o.indexOf(t.lampMode) + 1) % 3]; this.S.settings.lamp = t.lampMode; UI.toast({ auto: 'Işık: otomatik (07:00–21:00)', on: 'Işık: sürekli açık', off: 'Işık: kapalı' }[t.lampMode], t.lampMode === 'off' ? 'moon' : 'sun', 1800); },
   cycleSpeed() { const o = [1, 2, 4, 8], st = this.S.settings; st.speed = o[(o.indexOf(st.speed) + 1) % o.length]; UI.toast(`Oyun hızı ${st.speed}×`, 'speed', 1500); },
@@ -2585,6 +2632,16 @@ const Game = {
     }
     if (births.length) { UI.refreshTop(); if (UI.cur === 'aq') UI.refreshAq(); if (UI.cur === 'lab') UI.render_lab($('#s-lab')); }
     return out.length;
+  },
+  reapPlants() {
+    const sc = this.tank.scape, dead = sc.items.filter((i) => i.dead); if (!dead.length) return;
+    sc.items = sc.items.filter((i) => !i.dead && !(i.att && dead.some((d) => d.id === i.att.id))); this.tank.touch();
+    this.notify('warn', `${dead.length} bitki öldü (ışık/CO₂/besin yetersiz).`); UI.toast(`${dead.length} bitki soldu 🥀`, 'leaf', 3500);
+  },
+  /** Tüm balıklar ölürse büyükbabanın yedek balıkları. */
+  rescueFish() {
+    for (const sex of ['M', 'F']) { const c = new Creature({ genome: Genetics.randomFounder(sex), bornT: this.S.clockMin - 80 * 1440 }); c.now = this.S.clockMin; Breeding.reg(c); this.tank.addCreature(c); }
+    this.notify('birth', 'Büyükbabanın yedek balıkları tanka bırakıldı.'); UI.toast('Büyükbabanın yedek iki balığı tanka bırakıldı 🐟', 'fish', 5000);
   },
   mate(m, f) {
     const pr = Breeding.problems(m, f, this.S.clockMin); if (pr.length) { UI.toast(pr[0], 'bell'); return null; }
@@ -2639,7 +2696,9 @@ const Game = {
     if (document.hidden) { this.last = now; return; }
     const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now; if (!this.S) return;
     const S = this.S; S.clockMin += dt * S.settings.speed; S.stats.playSec += dt;
-    this.tank.update(dt, S.clockMin);
+    this.tank.update(dt, S.clockMin); Chem.advance(dt * S.settings.speed);
+    if (S.blackoutUntil && S.clockMin >= S.blackoutUntil) { S.blackoutUntil = 0; this.tank.lampMode = 'auto'; S.settings.lamp = 'auto'; UI.toast('Karartma bitti: ışık otomatiğe döndü', 'sun'); }
+    this.reapPlants();
     this.topAcc += dt;
     if (this.topAcc > 1) {
       this.topAcc = 0; this.tickBreeding(); UI.cur === 'aq' && UI.refreshAq();
@@ -2657,7 +2716,7 @@ const Game = {
   worldToScreen(x, y) { return this.vp.toScreen(x, y); }, screenToWorld(x, y) { return this.vp.toWorld(x, y); },
   setZoom(z, sx, sy) { this.vp.setZoom(z, sx, sy); },
   resizeCanvas() { this.vp.resize(); if (this.dvp) this.dvp.resize(); },
-  renderMain() { this.vp.render({ reduce: this.S.settings.reduce, showFav: true, low: this.low }); },
+  renderMain() { this.vp.render({ reduce: this.S.settings.reduce, showFav: true, low: this.low, dry: !!this.tank.scape.dry }); },
   renderThumb(cv) {
     const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1), w = Math.round(r.width || 320), hh = Math.round(r.height || 180), t = this.tank;
     if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = hh * dpr; }
@@ -2681,6 +2740,11 @@ const Game = {
     });
   },
   tap(sx, sy) {
+    if (this.pruneMode) {
+      const w0 = this.vp.toWorld(sx, sy), it = Scape.hit(this.tank.scape, this.tank.W, w0.x, w0.y);
+      if (it && it.k === 'plant') { const n = Chem.prune(it); if (n) UI.pruneResult(it, n); else UI.toast(`${PLANTS[it.d].name} henüz budanacak kadar uzamadı`, 'leaf', 2000); }
+      return;
+    }
     const w = this.vp.toWorld(sx, sy), c = this.tank.hit(w.x, w.y, 26 / w.S); this.S.stats.taps++;
     if (c) { const s = this.vp.toScreen(c.sw.x, c.sw.y), r = this.vp.cv.getBoundingClientRect(), sz = c.bodyLen() * s.S * 1.4;
       UI.openCreature(c, { left: r.left + s.x - sz / 2, top: r.top + s.y - sz / 4, width: sz, height: sz / 2 }); }
@@ -2844,6 +2908,7 @@ const Tests = {
 
   /** Gebelik/doğum döngüsü: sperm depolama, batın, akrabalık, tank sınırı. */
   breeding() {
+    const rs = R.s; R.s = 4242;
     const fake = { creatures: [], addCreature(c) { this.creatures.push(c); return c; } }, saved = Pedigree.rec; Pedigree.rec = {}; Pedigree._memo.clear();
     const m = new Creature({ id: 9001, genome: Genetics.make({ tc: 'red' }, 'M'), bornT: -100 * 1440 }), f = new Creature({ id: 9002, genome: Genetics.make({}, 'F'), bornT: -100 * 1440 });
     Breeding.reg(m); Breeding.reg(f); fake.creatures.push(m, f); m.now = f.now = 0;
@@ -2855,11 +2920,27 @@ const Tests = {
     const sibs = kids.length >= 2 ? Pedigree.kin(kids[0].id, kids[1].id) : 0.25;
     const okKin = kids.every((k) => k.F === 0) && Math.abs(sibs - 0.25) < 0.3;
     const okSex = kids.every((k) => k.sire === 9001 && (k.sex === 'M' ? k.pheno.tailColor === 'red' : true));
-    Pedigree.rec = saved; Pedigree._memo.clear();
+    Pedigree.rec = saved; Pedigree._memo.clear(); R.s = rs;
     return this._log('Üreme döngüsü', r.started && gd >= 21 && gd <= 31 && early === 0 && b && b.kept.length > 0 && okSperm && okKin && okSex, { gebelikGün: gd.toFixed(1), yavru: kids.length, yenen: b && b.lost, spermKalan: f.sperm[0] && f.sperm[0].left });
   },
 
-  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
+  /** Kimya: taş/zemin etkisi, aşırı yük, CO₂–pH, HC Cuba davranışı. */
+  chemistry() {
+    const S = Game.S, bk = { w: S.water, sc: S.scape, noDeath: Chem.noDeath, acc: Chem.acc }, crs = Game.tank.creatures.slice();
+    const run = (setup, days, extraFish = 0) => {
+      S.water = Chem.fresh(S); const sc = Scape.fromTemplate('start', 1); setup && setup(sc); S.scape = sc; Game.tank.setScape(sc); Chem.noDeath = true; Chem.acc = 0;
+      const extra = []; for (let i = 0; i < extraFish; i++) { const c = new Creature({ id: -9000 - i, genome: Genetics.randomFounder('F'), bornT: -90 * 1440 }); c.now = 0; extra.push(c); Game.tank.creatures.push(c); }
+      for (let d = 0; d < days; d++) Chem.advance(1440, true); const w = S.water, it = sc.items.find((i) => i.d === 'hccuba'); Game.tank.creatures.length = 0; Game.tank.creatures.push(...crs); return { w, it };
+    };
+    const base = run(null, 60).w, rocks = run((sc) => { for (let i = 0; i < 3; i++) sc.items.push(Scape.newItem(sc, 'rock', 'seiryu', 0.5 + i * 0.05, { s: 1.3 })); }, 60).w;
+    const soil = run((sc) => (sc.sub.type = 'aquasoil'), 60).w, over = run(null, 3, 30).w;
+    const co2 = run((sc) => (sc.equip.co2 = 'tank'), 3).w, cub = run((sc) => { sc.items.push(Scape.newItem(sc, 'plant', 'hccuba', 0.5, { g: 1 })); }, 25).it;
+    S.water = bk.w; S.scape = bk.sc; Game.tank.setScape(bk.sc); Chem.noDeath = bk.noDeath; Chem.acc = bk.acc; Game.tank.creatures.length = 0; Game.tank.creatures.push(...crs);
+    const ok1 = rocks.kh > base.kh + 0.6, ok2 = soil.kh < base.kh - 1 && soil.ph < base.ph, ok3 = over.nh3 > 0.25 || over.no2 > 0.25, ok4 = co2.ph < base.ph - 0.4, ok5 = cub && (cub.vert || 1) > 1.15 && (cub.sp || 1) < 1.2;
+    return this._log('Kimya (seiryu KH↑, aquasoil KH/pH↓, aşırı yük NH₃/NO₂↑, CO₂→pH↓, HC Cuba dikine uzar)', ok1 && ok2 && ok3 && ok4 && ok5, { kh: [base.kh, rocks.kh, soil.kh].map((x) => +x.toFixed(2)), ph: [base.ph, soil.ph, co2.ph].map((x) => +x.toFixed(2)), asırı: [+over.nh3.toFixed(2), +over.no2.toFixed(2)], cuba: cub && [+(cub.vert || 1).toFixed(2), +(cub.sp || 1).toFixed(2)] });
+  },
+
+  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding(), this.chemistry()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
 };
 
 /* ───── 12-scape-data.js ───── */
@@ -3058,14 +3139,14 @@ const Art = {
   /* ---------------- Bitki çizimi ---------------- */
   /** env: {flow (0..1.5), ground(worldX)->y, t, light, fry} ; it.g büyüme, it.s ölçek, it.tint kırmızılaşma, it.vert uzama */
   drawPlant(c, it, def, x, y, env) {
-    const t = env.t, g = it.g ?? 1, hs = lerp(0.3, 1, clamp(g, 0, 1)) * (it.s || 1) * (it.vert || 1), seed = it.seed || 1, fl = 0.35 + 0.65 * env.flow;
+    const t = env.t, g = it.g ?? 1, hs = lerp(0.3, 1, clamp(g, 0, 1)) * (it.s || 1) * (it.vert || 1) * (def.type === 'stem' || def.type === 'ribbon' ? (it.ht || 1) : 1), seed = it.seed || 1, fl = 0.35 + 0.65 * env.flow;
     let [ph, ps, pl] = def.col; const tint = it.tint || 0; if (def.red && tint > 0) { ph = hueLerp(ph, def.col[0] < 60 ? 350 : 5, tint * 0.9); ps = lerp(ps, 62, tint); pl = lerp(pl, 40, tint * 0.4); }
     if (it.melt > 0) { ph += 25 * it.melt; ps *= 1 - 0.5 * it.melt; pl += 8 * it.melt; }
     const col = (dl = 0, a = 1) => hsl(ph, ps, pl + dl, a), hz = (n) => hash1(n * 12.9898 + seed * 0.37);
     c.lineCap = 'round'; c.lineJoin = 'round';
     const sway = (k, ph2) => (Math.sin(t * 0.8 + seed + ph2) * 0.07 + Math.sin(t * 1.35 + ph2 * 2) * 0.02) * k * fl;
     if (def.type === 'ribbon') {
-      const n = 5 + Math.round(9 * Math.min(1, it.s || 1)), spread = def.w * (it.s || 1);
+      const n = 5 + Math.round(9 * Math.min(1, it.s || 1)), spread = def.w * (it.s || 1) * (it.ht > 1.4 ? 1.2 : 1);
       for (let i = 0; i < n; i++) {
         const bx = x + (i - n / 2) * (spread / n), hh = def.h * hs * (0.62 + 0.38 * hz(i)), sw = sway(hh, i * 0.7) + hh * 0.04 * env.flow;
         const tx = bx + sw * 1.8, ty = y - hh, cx = bx + sw * 0.5 + Math.sin(i) * 6, cy = y - hh * 0.55;
@@ -3099,7 +3180,7 @@ const Art = {
         }
       }
     } else if (def.type === 'carpet') {
-      const half = def.w * (it.s || 1) * 0.5 * (0.45 + 0.55 * clamp(g, 0, 1)), step = def.sub === 'tiny' ? 2.6 : def.sub === 'grass' ? 3.4 : 4.4;
+      const half = def.w * (it.s || 1) * (it.sp || 1) * 0.5 * (0.45 + 0.55 * clamp(g, 0, 1)), step = def.sub === 'tiny' ? 2.6 : def.sub === 'grass' ? 3.4 : 4.4;
       for (let dx = -half; dx <= half; dx += step) {
         const wx = x + dx, gy = env.ground ? env.ground(wx) : y, edge = 1 - Math.pow(Math.abs(dx) / half, 3), hh = def.h * 0.42 * hs * (0.65 + 0.35 * hz(dx * 0.7 + 3)) * (0.4 + 0.6 * edge);
         if (def.sub === 'grass') { c.strokeStyle = col(hz(dx) * 8, 0.95); c.lineWidth = 1.6; for (let b = 0; b < 3; b++) { const lean = (b - 1) * 3 + sway(hh, dx * 0.1) * 2; c.beginPath(); c.moveTo(wx + b - 1, gy); c.quadraticCurveTo(wx + lean * 0.4, gy - hh * 0.6, wx + lean, gy - hh); c.stroke(); } }
@@ -3116,10 +3197,10 @@ const Art = {
         c.restore();
       }
     } else if (def.type === 'moss') {
-      const rx = def.w * (it.s || 1) * 0.5 * (0.5 + 0.5 * clamp(g, 0, 1)), ry = def.h * hs * 0.8;
+      const rx = def.w * (it.s || 1) * (it.sp || 1) * 0.5 * (0.5 + 0.5 * clamp(g, 0, 1)), ry = def.h * hs * 0.8;
       for (let i = 0; i < 26; i++) { const a = hz(i) * TAU, r = Math.sqrt(hz(i + 40)); c.fillStyle = col(-6 + hz(i + 9) * 14, 0.5); c.beginPath(); c.arc(x + Math.cos(a) * rx * r + sway(6, i), y - 4 - Math.abs(Math.sin(a)) * ry * r, 5 + hz(i + 77) * 6, 0, TAU); c.fill(); }
     } else if (def.type === 'float') {
-      const n = 3 + Math.round(5 * clamp(g, 0, 1) * (it.s || 1)), sy = 27 + Math.sin(t * 1.1 + seed) * 1.2;
+      const n = 3 + Math.round(5 * clamp(g, 0, 1) * (it.s || 1) * (it.sp || 1)), sy = 27 + Math.sin(t * 1.1 + seed) * 1.2;
       for (let i = 0; i < n; i++) {
         const lx = x + (i - n / 2) * 15 + Math.sin(t * 0.3 + i + seed) * 4, ly = sy + Math.sin(t * 1.3 + i) * 0.8, r = 8 + 5 * hz(i);
         c.strokeStyle = 'rgba(210,190,150,.5)'; c.lineWidth = 1; for (let q = 0; q < 2; q++) { c.beginPath(); c.moveTo(lx + q * 3, ly + 2); c.quadraticCurveTo(lx + q * 6 + sway(20, i), ly + 22, lx + q * 4 + sway(34, i + q), ly + 28 + 22 * hs); c.stroke(); }
@@ -3142,7 +3223,7 @@ const Scape = {
     return {
       v: 1, liters: 60, bg: 'blue', nid: 1, rev: 0,
       sub: { type: 'sand', color: 'natural', h: new Array(SUB_COLS).fill(0.05) },
-      equip: { filter: 'internal', heater: true, co2: 'none', air: true, light: { p: 65, from: 7, to: 21 } },
+      equip: { filter: 'internal', heater: true, co2: 'none', air: true, light: { p: 55, from: 8, to: 20 } },
       owned: { filter: { sponge: 1, internal: 1 }, heater: 1, co2: {}, light: 1, air: 1 },
       items: [],
     };
@@ -3267,7 +3348,7 @@ const Editor = {
   render() {
     if (!this.dvp) return; const S = this.dvp;
     if (this.stroke && this.tank.rev === this.dirty) { /* fırça */ }
-    S.render({ reduce: Game.S.settings.reduce, low: Game.low, design: true, dry: this.dry, fishAlpha: 0.28, after: (ctx) => this.overlay(ctx) });
+    S.render({ reduce: Game.S.settings.reduce, low: Game.low, design: true, dry: this.dry || !!this.sc.dry, fishAlpha: 0.28, after: (ctx) => this.overlay(ctx) });
   },
 
   /* ---------- anlık görüntü / geri al ---------- */
@@ -3349,7 +3430,7 @@ const Editor = {
       ex.att = { id: host.id, ox: clamp((dx * c - dy * s) / hp.s * hp.fl, -hd.w * 0.4, hd.w * 0.4), oy: clamp((dx * s + dy * c) / hp.s, -hd.h * 0.95, -hd.h * 0.15) }; ex.gnd = false; fx = host.fx;
     }
     this.commit(); this.pay(def.cost || 0);
-    const it = Scape.newItem(this.sc, p.k, p.d, fx, Object.assign(ex, p.k === 'plant' ? { g: 0.45 } : {}));
+    const it = Scape.newItem(this.sc, p.k, p.d, fx, Object.assign(ex, p.k === 'plant' ? { g: 0.45, t: this.S.clockMin } : {}));
     if (p.k !== 'plant' && p.k !== 'leaf') { const g = this.tank.ground(fx * W); if (w.y < g - 20 && Scape.isHard(it)) { it.gnd = false; it.y = clamp(w.y, SURFACE + 90, g); } }
     this.sc.items.push(it); this.sel = it.id; this.changed(); AudioSys.SFX.tick(); Game.task('scape'); this.refresh();
   },
@@ -3478,6 +3559,7 @@ const Editor = {
     const bgs = h('div.chips', null, ...Object.entries(BACKDROPS).map(([k, n]) => h('button.sp-chip' + (this.sc.bg === k ? '.on' : ''), { onclick: () => { this.commit(); this.sc.bg = k; this.tank.buildBG(); this.changed(); this.refresh(); } }, n)));
     const tpls = [...Object.keys(TEMPLATES).map((k) => ({ key: k, name: TEMPLATES[k].name, desc: TEMPLATES[k].desc })), ...this.S.templates.map((t, i) => ({ scape: t.scape, name: t.name, desc: 'Kendi tasarımın', own: i }))];
     body.append(h('div.small.muted', null, `Hacim: ${this.sc.liters} L · kapasite ≈ ${tankCap()} balık`), sizes, h('div.small.muted', null, 'Arka plan'), bgs,
+      h('div.set-row', null, h('label', null, h('div', null, 'Kuru başlangıç (Dry Start)'), h('div.tiny.muted', null, 'Susuz, nemli ortamda halı bitkileri kökleşir; yosun riski düşük.')), h('button.switch' + (this.sc.dry ? '.on' : ''), { role: 'switch', onclick: () => Chem.dryStart(!this.sc.dry) })),
       h('div.row', { style: { margin: '8px 0 2px' } }, h('b.sp', null, 'Şablonlar'), h('button.btn.sm', { onclick: () => this.saveTemplate() }, icon('save'), 'Tasarımı kaydet')),
       h('div.tpl-row', null, ...tpls.map((t) => h('div.tpl', null, h('b', null, t.name), h('div.tiny.muted', null, t.desc), h('button.btn.sm.primary', { onclick: () => this.applyTemplate(t) }, 'Uygula'), t.own !== undefined ? h('button.btn.sm.ghost', { onclick: () => { this.S.templates.splice(t.own, 1); this.refresh(); } }, 'Sil') : null))));
   },
@@ -3561,6 +3643,387 @@ const Photo = {
     cv.toBlob((b) => { if (!b) return; const a = h('a', { href: URL.createObjectURL(b), download: `akvaryum-${Date.now()}.png` }); document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }, 'image/png');
     AudioSys.SFX.coin(); UI.toast('Fotoğraf Galeri\'ye kaydedildi', 'camera', 2200); Game.task('photo');
   },
+};
+
+/* ───── 14-chem.js ───── */
+'use strict';
+/* =====================================================================
+   14 · KİMYA & BİYOLOJİ — su parametreleri, azot döngüsü, bitki büyümesi,
+        yosun, stres/sağlık, hastalık, ilaç, karantina
+   Değerler birbirine bağlıdır: zemin, taş, kök, bitki, balık yükü, yem,
+   filtre, ışık, CO₂ ve su değişimi hepsi parametreleri etkiler.
+   Oyun dakikası → gün: dd = dakika / 1440.  (60 L'ye göre ölçeklenir.)
+   ===================================================================== */
+
+/* ---- Tür ortam aralıkları: [ideal[min,max], tolere[min,max]] ---- */
+const SP_ENV = {
+  guppy: { temp: [[24, 28], [20, 31]], ph: [[7.0, 7.8], [6.4, 8.5]], gh: [[8, 15], [4, 25]], kh: [[4, 15], [2, 20]], tds: [[150, 400], [80, 700]], nh3: [[0, 0.1], [0, 0.5]], no2: [[0, 0.1], [0, 0.6]], no3: [[0, 30], [0, 80]], o2: [[6, 20], [4, 20]], co2: [[0, 18], [0, 35]], salt: [[0, 2], [0, 6]] },
+};
+/** Parametre listesi: ad, birim, ondalık, grafik ekseni, kötü yön */
+const PARAMS = [
+  { k: 'temp', n: 'Sıcaklık', u: '°C', dp: 1, ax: [14, 36] }, { k: 'ph', n: 'pH', u: '', dp: 2, ax: [5.5, 9] },
+  { k: 'gh', n: 'GH', u: '°dH', dp: 1, ax: [0, 30] }, { k: 'kh', n: 'KH', u: '°dH', dp: 1, ax: [0, 20] }, { k: 'tds', n: 'TDS', u: 'ppm', dp: 0, ax: [0, 800] },
+  { k: 'nh3', n: 'Amonyak', u: 'ppm', dp: 2, ax: [0, 1] }, { k: 'no2', n: 'Nitrit', u: 'ppm', dp: 2, ax: [0, 1] }, { k: 'no3', n: 'Nitrat', u: 'ppm', dp: 0, ax: [0, 100] },
+  { k: 'o2', n: 'Oksijen', u: 'mg/L', dp: 1, ax: [0, 12] }, { k: 'co2', n: 'CO₂', u: 'mg/L', dp: 1, ax: [0, 50] },
+];
+const PWEIGHT = { temp: 1, ph: 1, nh3: 1.3, no2: 1.3, no3: 0.6, o2: 1.2, co2: 1, gh: 0.5, kh: 0.4, tds: 0.4, salt: 0.5 };
+const TAP_PROFILES = { soft: { name: 'Yumuşak su (şehir)', ph: 6.8, gh: 3, kh: 2, tds: 90, temp: 19 }, mid: { name: 'Orta sert', ph: 7.4, gh: 8, kh: 5, tds: 200, temp: 20 }, hard: { name: 'Sert su (kasaba)', ph: 7.9, gh: 16, kh: 9, tds: 380, temp: 20 } };
+
+/* ---- Hastalıklar ---- */
+const DISEASES = {
+  ich:     { name: 'Beyaz benek (Ich)', cures: ['ich', 'copper', 'general'], why: 'Ani sıcaklık düşüşü veya stres sonrası görülür; vücutta beyaz noktalar.' },
+  finrot:  { name: 'Yüzgeç çürümesi', cures: ['antibiotic', 'general'], why: 'Kirli su (amonyak/nitrat yüksek) yüzgeçleri çürütür.' },
+  fungus:  { name: 'Mantar', cures: ['antifungal', 'general'], why: 'Zayıf, stresli balıkta beyaz pamuksu leke.' },
+  velvet:  { name: 'Kadife', cures: ['copper', 'general'], why: 'Gövdede altın tozu görünümü; stres ve kötü su.' },
+};
+/** İlaçlar: id, ad, fiyat, bakır içerir mi (omurgasızlar için ölümcül) */
+const MEDS = {
+  ich: { name: 'Beyaz benek ilacı', cost: 25, copper: false }, antibiotic: { name: 'Antibiyotik', cost: 30, copper: false, hurtBact: true },
+  antifungal: { name: 'Antifungal', cost: 28, copper: false }, copper: { name: 'Bakırlı ilaç', cost: 35, copper: true }, general: { name: 'Genel tedavi', cost: 22, copper: false },
+};
+
+const ALGAE = {
+  green: { name: 'Yeşil nokta (cam)', why: 'Çok ışık (güç × süre) ve/veya fazla nitrat.', fix: 'Işık süresini kısalt, su değiştir; camı temizle.' },
+  hair:  { name: 'Saç yosunu', why: 'Amonyak dalgalanmaları veya yüksek ışık + yetersiz CO₂/bitki.', fix: 'Su değişimi, yemi azalt, CO₂\'yi dengele, hızlı büyüyen bitki ekle.' },
+  bba:   { name: 'Siyah sakal (BBA)', why: 'Zayıf akıntı + yüksek ışık / dengesiz CO₂.', fix: 'Akıntıyı güçlendir, ışığı kıs, CO₂\'yi istikrarlı tut.' },
+  gw:    { name: 'Yeşil su', why: 'Yüksek amonyak + çok ışık; yüzen bitki yok.', fix: 'Karartma (ışığı 2-3 gün kapat), su değişimi, yüzen bitki ekle.' },
+  cyano: { name: 'Siyanobakteri', why: 'Çok düşük nitrat ve ölü akıntı noktaları.', fix: 'Akıntıyı artır, nitratı 5-10 ppm\'de tut, su değiştir.' },
+};
+
+const Chem = {
+  active: true, noDeath: false, acc: 0, cleaners: 0,
+
+  /* ---------- durum ---------- */
+  fresh(S) {
+    const tp = TAP_PROFILES[S.settings.tap || 'mid'];
+    return { temp: 25, ph: 7.4, gh: tp.gh, kh: tp.kh, tds: tp.tds, nh3: 0.02, no2: 0, no3: 8, o2: 7.5, co2: 4, salt: 0, tannin: 0, b1: 0.75, b2: 0.7, soilAge: 0, shock: 0,
+      algae: { green: 0, hair: 0, bba: 0, gw: 0, cyano: 0 }, hist: [], hT: 0, lastP: null, med: null, glassT: 0 };
+  },
+  get w() { return Game.S.water || (Game.S.water = this.fresh(Game.S)); },
+  tap() { return TAP_PROFILES[Game.S.settings.tap || 'mid']; },
+
+  /** Tankta bulunan türlerin ortak ideal/tolerans aralığı. */
+  range(k) {
+    const sp = [...new Set(Game.tank.creatures.map((c) => c.species))].filter((s) => SP_ENV[s]); if (!sp.length) sp.push('guppy');
+    const id = [-1e9, 1e9], tol = [-1e9, 1e9];
+    for (const s of sp) { const r = SP_ENV[s][k]; if (!r) continue; id[0] = Math.max(id[0], r[0][0]); id[1] = Math.min(id[1], r[0][1]); tol[0] = Math.max(tol[0], r[1][0]); tol[1] = Math.min(tol[1], r[1][1]); }
+    if (id[0] > id[1]) { id[0] = tol[0]; id[1] = tol[1]; }
+    return { ideal: id, tol };
+  },
+  /** 0 iyi, 1 dikkat, 2 tehlike */
+  status(k, v) { const r = this.range(k); if (v >= r.ideal[0] && v <= r.ideal[1]) return 0; return v >= r.tol[0] && v <= r.tol[1] ? 1 : 2; },
+  overall() { let m = 0; for (const p of PARAMS) m = Math.max(m, this.status(p.k, this.w[p.k])); return m; },
+
+  /* ---------- girdiler ---------- */
+  load() { return Game.tank.creatures.reduce((a, c) => a + Math.pow(c.bodyLen() / 58, 3) * (c.sex === 'F' ? 1.1 : 0.8), 0); },
+  plants() { return Game.tank.scape.items.filter((i) => i.k === 'plant'); },
+  bio(it) { const d = PLANTS[it.d]; return (it.g ?? 1) * (it.s || 1) * (d.type === 'carpet' ? (it.sp || 1) * 0.7 : d.type === 'float' ? (it.sp || 1) * 0.5 : (it.ht || 1)) * 0.6; },
+  lightHours() { const L = Game.tank.scape.equip.light; return Game.tank.lampMode === 'on' ? 24 : Game.tank.lampMode === 'off' ? 0 : L.to - L.from; },
+
+  /* ---------- ana adım ---------- */
+  /** minutes kadar oyun zamanını ilerlet (15 dk'lık adımlarla). */
+  advance(minutes, quiet) {
+    this.acc += minutes; let n = 0;
+    while (this.acc >= 15 && n++ < 800) { this.acc -= 15; this.step(15 / 1440, quiet); }
+    if (n >= 800) this.acc = 0;
+  },
+
+  step(dd, quiet) {
+    const S = Game.S, w = this.w, t = Game.tank, sc = t.scape, V = Math.max(10, sc.liters), vk = 60 / V, e = sc.equip, now = S.clockMin;
+    if (sc.dry) { this.dryStep(dd); return; }
+    const lampOn = (t.lampMode === 'on') || (t.lampMode === 'auto' && ((now % 1440) / 60 >= e.light.from && (now % 1440) / 60 < e.light.to));
+    const P = e.light.p / 100, flow = t.flowPow, items = sc.items, plants = this.plants();
+    // --- hardscape / zemin etkileri ---
+    let dKH = 0, dGH = 0, dTan = 0, hardBio = 0;
+    for (const it of items) { if (!Scape.isHard(it)) continue; const d = HARDSCAPE[it.d] || {}, f = d.eff; if (!f) continue; const k = (it.s || 1) * (it.k === 'leaf' ? 0.25 : 1); dKH += (f.kh || 0) * k; dGH += (f.gh || 0) * k; dTan += (f.tannin || 0) * k; hardBio += (f.bio || 0) * k; }
+    w.kh += (dKH * vk) * dd * 0.8; w.gh += (dGH * vk) * dd * 0.8; w.tannin += dTan * vk * dd * 0.8;
+    const sub = sc.sub; w.soilAge += dd;
+    if (sub.type === 'aquasoil') { const f = Math.exp(-w.soilAge / 45); w.kh += (1.5 - w.kh) * 0.06 * dd * vk * f; w.gh += 0.05 * dd * f; w.nh3 += 0.35 * f * dd * vk * 0.5; }
+    else if (sub.type === 'coral') { w.kh += (14 - w.kh) * 0.035 * dd * vk; w.gh += (17 - w.gh) * 0.03 * dd * vk; }
+    // --- sıcaklık ---
+    const room = 21 + (lampOn ? 0.6 : 0), target = e.heater ? Math.max(25, room) : room + 0.5 * (e.filter === 'external' ? 0 : 0);
+    w.temp += (target - w.temp) * (1 - Math.exp(-dd / 0.3));
+    // --- yük, yem, azot döngüsü ---
+    const load = this.load(), cap = clamp((EQUIP.filter[e.filter] ? EQUIP.filter[e.filter].bio : 0.3) * 0.75 + hardBio * 0.08 * vk + 0.2, 0.15, 1.2);
+    const hungerDays = (now - (S.lastFeed ?? now)) / 1440;
+    w.nh3 += load * 0.32 * vk * dd * (hungerDays > 3 ? 0.7 : 1);                 // balık atığı
+    const conv = w.nh3 * (1 - Math.exp(-dd * 60 * w.b1 * (w.temp > 31 ? 0.5 : 1)));
+    w.nh3 -= conv; w.no2 += conv * 0.95;
+    const conv2 = w.no2 * (1 - Math.exp(-dd * 46 * w.b2));
+    w.no2 -= conv2; w.no3 += conv2; w.kh = Math.max(0.5, w.kh - conv * 0.05);
+    // bakteri kolonileri: substrat (amonyak/nitrit) varsa büyür, kapasiteyi aşmaz
+    w.b1 += dd * 0.22 * clamp((w.nh3 + 0.03) / 0.25, 0, 1) * (1 - w.b1 / cap); w.b2 += dd * 0.15 * clamp((w.no2 + 0.02) / 0.2, 0, 1) * (1 - w.b2 / cap);
+    w.b1 = clamp(w.b1 - dd * 0.004 * (w.b1 > cap ? 5 : 1), 0.01, 1.25); w.b2 = clamp(w.b2 - dd * 0.004 * (w.b2 > cap ? 5 : 1), 0.01, 1.25);
+    if (w.med && w.med.hurtBact) { w.b1 *= 1 - dd * 0.25; w.b2 *= 1 - dd * 0.25; }
+    // --- ışık, CO₂, bitkiler ---
+    const shade = clamp(plants.filter((p) => PLANTS[p.d].type === 'float').reduce((a, p) => a + this.bio(p) * 0.22, 0), 0, 0.6), pe = P * (1 - shade), on = lampOn ? 1 : 0;
+    const inj = e.co2 === 'tank' ? 22 : e.co2 === 'liquid' ? 4 : 0, bioSum = plants.reduce((a, p) => a + this.bio(p), 0) * vk;
+    const co2T = 3 + load * 0.4 * vk + (on ? inj : inj * 0.15) - on * Math.min(2.5, bioSum * 0.35);
+    w.co2 += (Math.max(1, co2T) - w.co2) * (1 - Math.exp(-dd / 0.15));
+    const sat = 14.2 - 0.24 * w.temp;
+    const o2T = sat * (0.72 + 0.28 * clamp(flow + (e.air ? 0.2 : 0), 0, 1)) + on * Math.min(3, bioSum * 0.8) - (on ? 0 : Math.min(2, bioSum * 0.5)) - load * 0.45 * vk;
+    w.o2 += (clamp(o2T, 1.5, sat * 1.25) - w.o2) * (1 - Math.exp(-dd / 0.1));
+    // pH: KH–CO₂ ilişkisi (+ tanen, aquasoil)
+    const aq = sub.type === 'aquasoil' ? -0.7 * Math.exp(-w.soilAge / 90) : 0;
+    w.ph = 6.35 + Math.log10(Math.max(0.3, w.kh) * 17.9 / Math.max(0.6, w.co2)) - 0.3 * clamp(w.tannin / 6, 0, 1) + aq * 0.5;
+    w.tds = 18 + w.gh * 12 + w.kh * 10 + w.no3 * 1.2 + w.tannin * 6 + w.salt * 100;
+    // bitki büyümesi ve azot tüketimi
+    let uptake = 0; const cb = { light: pe, co2: w.co2, no3: w.no3 };
+    for (const it of plants) uptake += this.growPlant(it, dd, on, pe, w, sub, e, cb, quiet);
+    const upN = uptake * 1.6 * vk * dd; w.no3 = Math.max(0, w.no3 - upN * 0.7); w.nh3 = Math.max(0, w.nh3 - upN * 0.3 * 0.2);
+    // yosun
+    this.algaeStep(dd, on, P, pe, flow, shade, bioSum);
+    // zaman içinde sapmalar (taze musluk suyu değil) ve sınırlar
+    w.tannin = Math.max(0, w.tannin - dd * 0.02 * w.tannin * 0 - dd * 0.015); for (const k of ['nh3', 'no2', 'no3', 'gh']) w[k] = Math.max(0, w[k]);
+    w.kh = clamp(w.kh, 0.5, 20); w.gh = clamp(w.gh, 0.5, 30);
+    t.tint = clamp(w.tannin / 6, 0, 1); t.greenWater = clamp(w.algae.gw, 0, 1); t.algae = w.algae;
+    // ilaç süresi
+    if (w.med) { w.med.days -= dd; if (w.med.days <= 0) { w.med = null; if (!quiet) UI.toast('İlaç etkisi bitti', 'bell'); } }
+    // şok izleme (saatlik), geçmiş kaydı (6 saatte bir)
+    w.hT += dd; if (w.hT >= 1 / 24) { w.hT = 0; this.shockCheck(); }
+    w.hist.hT = (w.hist.hT || 0) + dd; if (w.hist.hT >= 0.25) { w.hist.hT = 0; const s = { t: now }; for (const p of PARAMS) s[p.k] = +w[p.k].toFixed(3); w.hist.push(s); if (w.hist.length > 28) w.hist.shift(); }
+    this.fishStep(dd, quiet);
+  },
+
+  /** Kuru başlangıç: su yok, nemli ortamda bitkiler (halılar) kökleşir; yosun/azot yok. */
+  dryStep(dd) {
+    for (const it of this.plants()) { const d = PLANTS[it.d]; if (d.type === 'float') continue; it.g = Math.min(1, (it.g ?? 1) + dd * d.grow * 0.12 * 0.6); if (d.type === 'carpet') it.sp = Math.min(1.8, (it.sp || 1) + dd * 0.025); it.hp = 1; }
+    Game.S.scape.dryDays = (Game.S.scape.dryDays || 0) + dd;
+  },
+
+  /** Tek bitkinin büyümesi. Döndürdüğü: azot tüketim ağırlığı. */
+  growPlant(it, dd, on, pe, w, sub, e, cb, quiet) {
+    const d = PLANTS[it.d], g = it.g ?? 1; if (it.hp === undefined) it.hp = 1;
+    const need = [0, 0.3, 0.55, 0.8][d.light], lf = on ? clamp(pe / need, 0, 1.15) : 0.15 + 0.1 * (pe / need);
+    const cf = d.co2 === 0 ? 1 : d.co2 === 1 ? 0.62 + 0.38 * clamp(w.co2 / 14, 0, 1) : 0.2 + 0.8 * clamp(w.co2 / 20, 0, 1);
+    const rooted = d.type === 'carpet' || d.type === 'rosette' || d.type === 'ribbon' || d.type === 'stem' && it.d !== 'hornwort';
+    const nf = clamp(0.3 + w.no3 / 8, 0.2, 1) * (rooted ? 0.55 + 0.45 * Math.min(1, SUBSTRATES[sub.type].nut + 0.3) : 1);
+    const tf = 1 - clamp(Math.abs(w.temp - 25) / 10, 0, 0.6), lim = Math.min(lf, cf, nf), fac = lim * tf;
+    const algPen = (w.algae.hair + w.algae.bba + w.algae.green * 0.5) * 0.25;
+    // yeni dikilen bazı bitkiler erir (crypt melt) — panik yok, toparlanır
+    const age = it.t !== undefined ? (Game.S.clockMin - it.t) / 1440 : 99;
+    it.melt = d.melt && age < 6 ? 0.75 * (1 - age / 6) : Math.max(0, (it.melt || 0) - dd * 0.4);
+    if (it.melt > 0.05 && !Game.S.once?.meltTip && !this.noDeath) { Game.S.once = Game.S.once || {}; Game.S.once.meltTip = 1; UI.toast('💡 Yeni dikilen Cryptocoryne yaprak döküyor — buna "erime" denir, birkaç gün sonra toparlanır.', 'leaf', 6500); }
+    // sağlık: ağır eksiklik → solma
+    if (lim < 0.3 || w.nh3 > 1) it.hp = clamp(it.hp - dd * (0.04 + algPen * 0.3), 0, 1); else if (lim > 0.5) it.hp = clamp(it.hp + dd * 0.08, 0, 1);
+    it.melt = clamp(Math.max(it.melt, 1 - it.hp) , 0, 1);
+    if (it.hp <= 0 && !this.noDeath) { it.dead = true; return 0; }
+    const rate = d.grow * fac * 0.45 * (1 - algPen) * (it.hp > 0.4 ? 1 : 0.3);
+    if (g < 1) it.g = Math.min(1, g + dd * rate * 0.7);
+    else if (d.type === 'carpet') { if (cf > 0.55) it.sp = Math.min(2.4, (it.sp || 1) + dd * rate * 0.22); else it.vert = clamp((it.vert || 1) + dd * 0.15 * (1 - cf), 1, 2.2); } // CO₂ yoksa dikine uzar
+    else if (d.type === 'float') it.sp = Math.min(2.6, (it.sp || 1) + dd * rate * 0.45);
+    else if (d.type === 'moss') it.sp = Math.min(2, (it.sp || 1) + dd * rate * 0.12);
+    else if (d.type === 'stem' || d.type === 'ribbon' || d.type === 'rosette') it.ht = Math.min(2.4, (it.ht || 1) + dd * rate * (d.type === 'stem' ? 0.35 : 0.08));
+    // kırmızılaşma
+    if (d.red) { const tg = clamp((pe - 0.45) * 2.2, 0, 1) * Math.min(cf, nf) * (on ? 1 : 0.8); it.tint = lerp(it.tint || 0, tg, clamp(dd * 1.2, 0, 1)); }
+    return rate * (it.g ?? 1) * 0.5 + 0.01;
+  },
+
+  algaeStep(dd, on, P, pe, flow, shade, bioSum) {
+    const w = this.w, a = w.algae, lh = this.lightHours(), strong = P * lh / 10, dark = Game.tank.light < 0.1;
+    const co2Poor = Game.tank.scape.equip.co2 === 'none' && this.plants().some((p) => PLANTS[p.d].co2 === 2);
+    const g = (k, up, dn) => { a[k] = clamp(a[k] + dd * (up - dn), 0, 1); };
+    const dec = 0.012 + (dark ? 0.09 : 0) + Chem.cleaners * 0.02 + clamp(bioSum * 0.01, 0, 0.03);
+    g('green', (strong > 0.8 ? (strong - 0.8) * 0.55 : 0) + (w.no3 > 30 ? 0.04 : 0), dec);
+    g('hair', Math.max(0, w.nh3 - 0.15) * 0.35 + (strong > 0.75 && co2Poor ? 0.05 : 0) + (w.no3 > 40 ? 0.02 : 0), dec);
+    g('bba', (flow < 0.45 && strong > 0.65 ? 0.03 : 0) + (Game.tank.scape.equip.co2 !== 'none' && flow < 0.35 ? 0.04 : 0), dec * 0.6);
+    g('gw', (w.nh3 > 0.25 && strong > 0.5 && shade < 0.15 ? 0.22 : 0), 0.04 + (dark ? 0.35 : 0));
+    g('cyano', (w.no3 < 2 && flow < 0.55 ? 0.05 : 0) + (w.nh3 > 0.5 ? 0.05 : 0), dec * 0.7);
+  },
+
+  shockCheck() {
+    const w = this.w, p = { temp: w.temp, ph: w.ph, tds: w.tds, gh: w.gh }, l = w.lastP; w.shock *= 0.55;
+    if (l) w.shock += clamp(Math.abs(p.temp - l.temp) / 2.5 + Math.abs(p.ph - l.ph) / 0.5 + Math.abs(p.tds - l.tds) / 90 + Math.abs(p.gh - l.gh) / 3, 0, 3) * 0.8;
+    w.shock = clamp(w.shock, 0, 2); w.lastP = p;
+  },
+
+  /* ---------- balık: stres, sağlık, hastalık ---------- */
+  envStress(c) {
+    const env = SP_ENV[c.species] || SP_ENV.guppy, w = this.w; let m = 0, parts = [];
+    for (const k in env) { if (w[k] === undefined) continue; const [id, tol] = env[k], v = w[k]; let dev = 0; if (v < id[0]) dev = (id[0] - v) / Math.max(1e-6, id[0] - tol[0]); else if (v > id[1]) dev = (v - id[1]) / Math.max(1e-6, tol[1] - id[1]); if (dev > 0) { dev = Math.min(2, dev) * (PWEIGHT[k] || 0.5); parts.push(dev); m = Math.max(m, dev); } }
+    return clamp(m * 0.75 + w.shock * 0.35, 0, 1.2);
+  },
+
+  fishStep(dd, quiet) {
+    const w = this.w, S = Game.S, list = Game.tank.creatures, now = S.clockMin;
+    const sick = list.filter((c) => c.dis).reduce((a, c) => a + c.dis.sev, 0), hungerDays = (now - (S.lastFeed ?? now)) / 1440;
+    for (const c of list.slice()) {
+      const es = this.envStress(c); c.envStress = lerp(c.envStress ?? 0, es, clamp(dd * 6, 0, 1)); if (c.vit === undefined) c.vit = 1;
+      let dv = es < 0.3 ? 0.06 : -0.14 * (es - 0.3) / 0.7;
+      if (hungerDays > 4) dv -= 0.03 * Math.min(2, hungerDays - 4);
+      if (c.defect) dv -= 0.004; if (c.genome.sex && c.health() < 0.5) dv -= 0.004;
+      // hastalık
+      if (!c.dis) {
+        const risk = 0.002 + 0.05 * es * es + 0.03 * w.shock + 0.2 * (sick / Math.max(1, list.length)) * (c.envStress > 0.2 ? 1 : 0.4);
+        if (R.next() < risk * dd) { const id = w.shock > 0.6 && w.temp < 23 ? 'ich' : (w.nh3 > 0.2 || w.no3 > 60) ? 'finrot' : R.pick(Object.keys(DISEASES)); c.dis = { id, sev: 0.15 }; if (!quiet) { UI.toast(`${c.name} hasta: ${DISEASES[id].name}`, 'bell', 4500); Game.notify('warn', `${c.name} ${DISEASES[id].name} oldu. İlaç veya karantina gerekebilir.`); AudioSys.SFX.warn(); } }
+      } else {
+        const d = c.dis, cure = w.med && DISEASES[d.id].cures.includes(w.med.id) ? (w.med.id === 'general' ? 0.5 : 1) : 0, q = S.quarantine && S.quarantine.includes(c.id);
+        d.sev += dd * (0.15 + 0.3 * es - cure * 0.7 - (c.envStress < 0.15 && c.vit > 0.8 ? 0.06 : 0) - (q ? 0.05 : 0));
+        dv -= d.sev * 0.1;
+        if (d.sev <= 0) { c.dis = null; if (!quiet) { UI.toast(`${c.name} iyileşti 💚`, 'heart'); } }
+      }
+      c.vit = clamp(c.vit + dv * dd, this.noDeath ? 0.15 : 0, 1);
+      if (c.vit <= 0 && !this.noDeath) { this.die(c); }
+    }
+  },
+  die(c) {
+    Game.tank.removeCreature(c); Game.S.stats.deaths = (Game.S.stats.deaths || 0) + 1;
+    Game.notify('warn', `${c.name} öldü. Su değerlerini kontrol et.`); UI.toast(`${c.name} öldü… su değerlerine bak 💧`, 'bell', 5000); AudioSys.SFX.warn();
+    if (Game.tank.creatures.length === 0) Game.rescueFish();
+  },
+
+  /* ---------- oyuncu eylemleri ---------- */
+  onFeed() { const w = this.w, V = Math.max(10, Game.tank.scape.liters); Game.S.lastFeed = Game.S.clockMin; w.nh3 += 0.05 * (60 / V); },
+  waste(n) { const V = Math.max(10, Game.tank.scape.liters); this.w.nh3 += 0.01 * n * (60 / V); },
+
+  waterChange(pct) {
+    const w = this.w, tp = this.tap(), f = clamp(pct / 100, 0, 0.9), pre = { temp: w.temp, ph: w.ph, tds: w.tds, gh: w.gh };
+    w.nh3 *= 1 - f; w.no2 *= 1 - f; w.no3 *= 1 - f; w.tannin *= 1 - f * 0.9; w.salt *= 1 - f; w.algae.gw *= 1 - f * 0.9;
+    w.gh = lerp(w.gh, tp.gh, f); w.kh = lerp(w.kh, tp.kh, f); w.temp = lerp(w.temp, tp.temp, f); w.co2 = lerp(w.co2, 8, f);
+    w.tds = 18 + w.gh * 12 + w.kh * 10 + w.no3 * 1.2 + w.tannin * 6;
+    w.ph = 6.35 + Math.log10(Math.max(0.3, w.kh) * 17.9 / Math.max(0.6, w.co2));
+    w.shock = clamp(w.shock + (Math.abs(w.temp - pre.temp) / 2.5 + Math.abs(w.gh - pre.gh) / 3 + Math.abs(w.ph - pre.ph) / 0.5) * 0.7, 0, 2);
+    w.b1 *= 1 - f * 0.05; w.hist.hT = 0.25;
+    Game.task('water'); Game.addXp(3); AudioSys.SFX.whoosh(); UI.toast(`%${Math.round(pct)} su değişimi yapıldı`, 'water', 2200);
+    return { dTemp: w.temp - pre.temp };
+  },
+  cleanGlass() { const a = this.w.algae; a.green *= 0.1; a.gw *= 1; AudioSys.SFX.tick(); UI.toast('Cam temizlendi', 'check', 1500); },
+  /** Karartma: ışığı 3 gün kapat (yosun azalır, bitkiler yavaşlar) */
+  blackout() { Game.tank.lampMode = 'off'; Game.S.settings.lamp = 'off'; Game.S.blackoutUntil = Game.S.clockMin + 3 * 1440; UI.toast('Karartma başladı: ışık 3 gün kapalı', 'moon', 3500); },
+  treat(id) {
+    const m = MEDS[id], S = Game.S, w = this.w; if (!m) return;
+    if (S.coins < m.cost) return UI.toast(`Yeterli Altın Pul yok (${m.cost})`, 'coin');
+    const inv = Game.tank.creatures.filter((c) => c.species === 'shrimp' || c.species === 'snail');
+    const go = () => { S.coins -= m.cost; w.med = { id, days: 4, hurtBact: !!m.hurtBact }; UI.refreshTop(); UI.toast(`${m.name} uygulandı (4 gün)`, 'heart'); if (m.copper) for (const c of inv) this.die(c); };
+    if (m.copper && inv.length) UI.confirm('Bakır uyarısı!', `Bakırlı ilaç karides ve salyangozlar için ÖLÜMCÜLDÜR. ${inv.length} omurgasız ölecek. Yine de uygulansın mı?`, go); else go();
+  },
+  quarantine(c, on) {
+    const S = Game.S; S.quarantine = S.quarantine || [];
+    if (on) { if (S.quarantine.length >= 4) return UI.toast('Karantina tankı dolu (4 balık)', 'bell'); S.quarantine.push(c.id); c.quarantined = true; Game.tank.removeCreature(c); S.qFish = S.qFish || []; S.qFish.push(c); UI.toast(`${c.name} karantinaya alındı`, 'heart'); }
+    else { S.quarantine = S.quarantine.filter((i) => i !== c.id); S.qFish = (S.qFish || []).filter((x) => x !== c); c.quarantined = false; Game.tank.addCreature(c); UI.toast(`${c.name} tanka geri döndü`, 'fish'); }
+  },
+
+  /** Budama: kesilen uç sayısını döndürür. */
+  prune(it) {
+    const d = PLANTS[it.d]; let n = 0, over = 0;
+    if (d.type === 'stem' || d.type === 'ribbon') { over = (it.ht || 1) - 1; if (over < 0.2) return 0; n = Math.round(over * 4); it.ht = 1; it.g = Math.min(it.g, 0.75); }
+    else if (d.type === 'carpet') { over = (it.sp || 1) - 1; if (over < 0.25 && (it.vert || 1) < 1.3) return 0; n = Math.round(over * 3) + ((it.vert || 1) > 1.3 ? 1 : 0); it.sp = 1; it.vert = 1; }
+    else if (d.type === 'float') { over = (it.sp || 1) - 1; if (over < 0.3) return 0; n = Math.round(over * 4); it.sp = 1; }
+    else if (d.type === 'moss') { over = (it.sp || 1) - 1; if (over < 0.25) return 0; n = Math.round(over * 3); it.sp = 1; }
+    else return 0;
+    // budama yosun yükünü de düşürür
+    for (const k of ['hair', 'bba']) this.w.algae[k] *= 0.7;
+    return Math.max(1, n);
+  },
+
+  /** Sorun tanısı: [{sev, title, why, fix}] */
+  diagnose() {
+    const w = this.w, out = [], P = (k) => PARAMS.find((p) => p.k === k), add = (sev, title, why, fix) => out.push({ sev, title, why, fix });
+    if (w.nh3 > 0.1) add(w.nh3 > 0.4 ? 2 : 1, `Amonyak yüksek (${w.nh3.toFixed(2)})`, 'Yeni tank, aşırı yem veya fazla balık; bakteri kolonisi yetmiyor.', 'Hemen %30–50 su değişimi yap, yemi azalt, filtre/bakteri kapasitesini artır.');
+    if (w.no2 > 0.1) add(w.no2 > 0.4 ? 2 : 1, `Nitrit yüksek (${w.no2.toFixed(2)})`, 'Azot döngüsü henüz tamamlanmadı (Nitrobacter yetersiz).', 'Su değişimi yap; tankı yavaş yavaş balıkla doldur.');
+    if (w.no3 > 40) add(w.no3 > 80 ? 2 : 1, `Nitrat yüksek (${Math.round(w.no3)})`, 'Atıklar birikti; bitkiler yetmiyor.', 'Su değişimi yap, hızlı büyüyen bitki (hornwort, su sprite) ekle.');
+    if (w.o2 < 5) add(w.o2 < 4 ? 2 : 1, `Oksijen düşük (${w.o2.toFixed(1)})`, 'Sıcak su, zayıf akıntı veya fazla yük.', 'Hava taşı aç, filtre akıntısını artır, sıcaklığı düşür.');
+    if (w.co2 > 22) add(w.co2 > 35 ? 2 : 1, `CO₂ yüksek (${Math.round(w.co2)})`, 'CO₂ enjeksiyonu fazla; balıklar yüzeyde nefes alabilir.', 'Ekipmandan CO₂\'yi kıs veya kapat; hava taşı ekle.');
+    for (const k of ['temp', 'ph', 'gh', 'kh', 'tds']) { const s = this.status(k, w[k]); if (s) { const r = this.range(k); add(s === 2 ? 2 : 1, `${P(k).n} ideal dışı (${w[k].toFixed(P(k).dp)})`, `Tanktaki canlılar için ideal ${r.ideal[0].toFixed(0)}–${r.ideal[1].toFixed(0)}.`, k === 'temp' ? 'Isıtıcıyı kontrol et.' : 'Zemin/taş seçimini gözden geçir, su değişimiyle yavaşça düzelt (ani değişim şok yapar).'); } }
+    if (w.shock > 0.6) add(1, 'Su şoku', 'Parametreler kısa sürede çok değişti.', 'Değişiklikleri küçük adımlarla yap; su değişimini %20-30 ile sınırla.');
+    for (const [k, v] of Object.entries(w.algae)) if (v > 0.25) add(v > 0.6 ? 2 : 1, `${ALGAE[k].name} (%${Math.round(v * 100)})`, ALGAE[k].why, ALGAE[k].fix);
+    const melting = this.plants().filter((p) => (p.hp ?? 1) < 0.5); if (melting.length) add(1, `${melting.length} bitki zayıf`, 'Işık, CO₂ veya besin eksik.', 'Bitkinin kartında ihtiyaçlarına bak; ışığı/CO₂\'yi ayarla.');
+    const sickN = Game.tank.creatures.filter((c) => c.dis); if (sickN.length) add(2, `${sickN.length} hasta balık`, [...new Set(sickN.map((c) => DISEASES[c.dis.id].name))].join(', '), 'Hastalığa uygun ilaç uygula veya balığı karantinaya al.');
+    const hd = (Game.S.clockMin - (Game.S.lastFeed ?? Game.S.clockMin)) / 1440; if (hd > 3) add(hd > 5 ? 2 : 1, `Balıklar ${Math.floor(hd)} gündür aç`, 'Uzun süre yem verilmedi.', 'Yem ver. (Otomatik besleyici araştırması bu işi üstlenir.)');
+    return out.sort((a, b) => b.sev - a.sev);
+  },
+
+  /** Çevrimdışı ilerleme: ölüm yok, yumuşak. */
+  catchUp(minutes) { this.noDeath = true; try { const keep = Game.tank.lampMode; this.advance(minutes, true); } finally { this.noDeath = false; } },
+};
+
+/* ───── 14b-water-ui.js ───── */
+'use strict';
+/* =====================================================================
+   14b · SU PANELİ — parametre çubukları, 7 günlük grafikler, tanı, ilaç,
+         karantina, budama modu, kuru başlangıç
+   ===================================================================== */
+const PARAM_INFO = {
+  temp: 'Sıcaklık metabolizmayı ve oksijeni etkiler. Ani değişim şok yapar; ısıtıcı 25 °C\'de tutar.',
+  ph: 'Asitlik. KH ve CO₂\'ye bağlıdır: CO₂ artarsa pH düşer. Zemin ve kökler pH\'ı aşağı çeker.',
+  gh: 'Genel sertlik (kalsiyum+magnezyum). Moliler ve salyangozlar sert su sever; karidesler orta.',
+  kh: 'Karbonat sertliği — pH tamponu. Seiryu taşı ve mercan kırığı KH\'yi yükseltir, aquasoil düşürür.',
+  tds: 'Çözünmüş toplam madde. Karideslerde ani TDS değişimi öldürücüdür.',
+  nh3: 'Amonyak: balık atığı; çok zehirli. Bakteri kolonisi nitrite çevirir.',
+  no2: 'Nitrit: döngünün ara ürünü; zehirli. Olgun tankta ~0 olmalı.',
+  no3: 'Nitrat: döngünün sonu; bitkiler tüketir, su değişimi azaltır.',
+  o2: 'Çözünmüş oksijen: akıntı, hava taşı ve bitkilerle artar; sıcak suda azalır.',
+  co2: 'Bitkiler için besin; fazlası balıkları boğar. pH–KH–CO₂ üçgeni.',
+};
+
+Object.assign(UI, {
+  waterDot() { return ['var(--ok)', 'var(--warn)', 'var(--bad)'][Chem.overall()]; },
+
+  spark(key, color) {
+    const hist = Chem.w.hist; if (hist.length < 2) return h('div.tiny.muted', null, 'veri toplanıyor');
+    const vals = hist.map((s) => s[key]), mn = Math.min(...vals), mx = Math.max(...vals), rg = Math.max(1e-6, mx - mn), W = 110, H = 26;
+    const pts = vals.map((v, i) => `${(i / (vals.length - 1) * W).toFixed(1)},${(H - 3 - (v - mn) / rg * (H - 6)).toFixed(1)}`).join(' ');
+    const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', `0 0 ${W} ${H}`); s.setAttribute('width', W); s.setAttribute('height', H);
+    s.innerHTML = `<polyline fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" points="${pts}"/>`; return s;
+  },
+
+  rangeBar(p) {
+    const w = Chem.w, v = w[p.k], r = Chem.range(p.k), [lo, hi] = p.ax, pc = (x) => clamp((x - lo) / (hi - lo), 0, 1) * 100;
+    const tl = pc(Math.max(r.tol[0], lo)), th = pc(Math.min(r.tol[1], hi)), il = pc(Math.max(r.ideal[0], lo)), ih = pc(Math.min(r.ideal[1], hi));
+    return h('div.rbar', null, h('i.tol', { style: { left: tl + '%', width: Math.max(0, th - tl) + '%' } }), h('i.ide', { style: { left: il + '%', width: Math.max(0, ih - il) + '%' } }), h('b.mk', { style: { left: pc(v) + '%' } }));
+  },
+
+  openWater() {
+    const w = Chem.w, st = Chem.overall(), S = Game.S, pct = h('input', { type: 'range', min: 10, max: 70, value: 30, step: 5, style: { maxWidth: '50%' } }), pl = h('b', null, '%30');
+    pct.addEventListener('input', () => (pl.textContent = '%' + pct.value));
+    const card = h('div.stack'), tpl = [];
+    const build = () => {
+      const diag = Chem.diagnose(), sick = Game.tank.creatures.filter((c) => c.dis), qf = S.qFish || [];
+      card.replaceChildren(
+        h('div.card', { style: { borderColor: ['var(--ok)', 'var(--warn)', 'var(--bad)'][Chem.overall()] } }, h('div.row', null, h('span.dot', { style: { background: UI.waterDot(), boxShadow: `0 0 10px ${UI.waterDot()}` } }), h('b.sp', null, ['Su dengeli', 'Dikkat: bazı değerler ideal dışı', 'Tehlike: hemen müdahale et'][Chem.overall()]), h('span.small.muted', null, `${Game.tank.scape.liters} L · ${TAP_PROFILES[S.settings.tap || 'mid'].name}`))),
+        ...PARAMS.map((p) => { const v = w[p.k], s = Chem.status(p.k, v), col = ['var(--ok)', 'var(--warn)', 'var(--bad)'][s], info = h('div.tiny.muted.hidden', { style: { marginTop: '4px' } }, PARAM_INFO[p.k]);
+          return h('div.prow', { role: 'button', onclick: () => info.classList.toggle('hidden') }, h('div.row', null, h('span.dot', { style: { background: col, boxShadow: `0 0 8px ${col}` } }), h('b.sp', null, p.n), h('span', { style: { fontFamily: 'var(--font-h)', fontSize: '20px' } }, v.toFixed(p.dp) + ' ', h('span.tiny.muted', null, p.u)), UI.spark(p.k, col)), UI.rangeBar(p), info); }),
+        h('div.card', null, h('h3', null, 'Eylemler'),
+          h('div.set-row', null, h('label', null, h('div', null, 'Su değişimi ', pl), h('div.tiny.muted', null, 'Kötü maddeleri seyreltir; musluk suyu (yeni değer + 20 °C) karışır. Büyük değişim şok yapabilir.')), pct),
+          h('div.row.wrap-r', null, h('button.btn.primary', { onclick: () => { Chem.waterChange(+pct.value); build(); UI.refreshAq(); } }, icon('water'), 'Su değiştir'), h('button.btn', { onclick: () => { Chem.cleanGlass(); build(); } }, 'Camı temizle'),
+            h('button.btn', { onclick: () => { UI.closeTop(); Game.pruneMode = true; UI.refreshAq(); UI.toast('Budama modu: bir bitkiye dokun', 'scissors'); } }, icon('scissors'), 'Budama'), h('button.btn', { onclick: () => { Chem.blackout(); build(); } }, icon('moon'), 'Karartma (3 gün)'))),
+        h('div.card', null, h('h3', null, 'Tanı'), diag.length ? diag.map((d) => h('div.diag', null, h('b', { style: { color: d.sev === 2 ? 'var(--bad)' : 'var(--warn)' } }, (d.sev === 2 ? '⛔ ' : '⚠ ') + d.title), h('div.small.muted', null, 'Neden: ' + d.why), h('div.small', null, '→ ' + d.fix))) : h('div.small.muted', null, '✅ Sorun yok. Su kristal berrak!')),
+        sick.length || w.med ? h('div.card', null, h('h3', null, 'Hastalık & ilaç'), w.med ? h('div.small', { style: { color: 'var(--accent)', marginBottom: '6px' } }, `Aktif ilaç: ${MEDS[w.med.id].name} · ${w.med.days.toFixed(1)} gün kaldı`) : null,
+          ...sick.map((c) => h('div.row', { style: { margin: '6px 0' } }, h('div.sp', null, h('b', null, c.name), h('div.tiny.muted', null, `${DISEASES[c.dis.id].name} · şiddet %${Math.round(c.dis.sev * 100)}`)), h('button.btn.sm', { onclick: () => { Chem.quarantine(c, true); build(); UI.refreshAq(); } }, 'Karantina'))),
+          h('div.small.muted', null, 'İlaç seç (hasta türüne uygun olmalı):'), h('div.row.wrap-r', { style: { marginTop: '6px' } }, ...Object.entries(MEDS).map(([id, m]) => h('button.btn.sm' + (m.copper ? '.coral' : ''), { title: m.copper ? 'Bakır: omurgasızlar için ölümcül' : '', onclick: () => { Chem.treat(id); setTimeout(build, 50); } }, `${m.name} · ${m.cost}💰`)))) : null,
+        qf.length ? h('div.card', null, h('h3', null, 'Karantina / depo (' + qf.length + ')'), ...qf.map((c) => h('div.row', { style: { margin: '6px 0' } }, h('div.sp', null, h('b', null, c.name), h('div.tiny.muted', null, c.dis ? DISEASES[c.dis.id].name : 'Sağlıklı')), h('button.btn.sm', { onclick: () => { Chem.quarantine(c, false); build(); UI.refreshAq(); } }, 'Tanka al')))) : null);
+    };
+    build();
+    const rec = UI.sheet(h('div', null, UI.sheetHead('Su parametreleri', { close: () => rec.close() }), card), { full: true, cls: 'water-sheet' });
+    const iv = setInterval(() => { if (rec.closed) clearInterval(iv); else build(); }, 5000);
+  },
+
+  /* ---------- Budama sonucu ---------- */
+  pruneResult(it, n) {
+    const d = PLANTS[it.d], each = Math.max(2, Math.floor(d.cost * 0.3)), total = n * each;
+    const rec = UI.sheet(h('div.stack', null, UI.sheetHead('✂ Budama', { close: () => rec.close() }), h('div', null, `${d.name}: ${n} kesik uç elde ettin.`),
+      h('div.row', null, h('button.btn.primary.sp', { onclick: () => { Game.addCoins(total); Game.task('prune'); AudioSys.SFX.sell(); UI.toast(`+${total} Altın Pul`, 'coin'); rec.close(); } }, `Sat · +${total} 💰`),
+        h('button.btn.sp', { onclick: () => { const sc = Game.tank.scape; for (let i = 0; i < Math.min(3, n); i++) { const c = Scape.newItem(sc, 'plant', it.d, clamp(it.fx + R.float(-0.1, 0.1), 0.03, 0.97), { g: 0.4, z: it.z, t: Game.S.clockMin }); sc.items.push(c); } Game.tank.touch(); Game.task('prune'); rec.close(); UI.toast('Kesik uçlar yeniden dikildi 🌱', 'leaf'); } }, 'Yeniden dik'))));
+  },
+});
+
+/* Kuru başlangıç (Dry Start Method) */
+Chem.dryStart = function (on) {
+  const S = Game.S, sc = Game.tank.scape, t = Game.tank;
+  if (on) {
+    if (sc.dry) return;
+    UI.confirm('Kuru başlangıç başlasın mı?', 'Su boşaltılır; balıklar geçici olarak depoya alınır. Halı bitkileri nemli ortamda kökleşir (yavaş ama yosunsuz). Su doldurunca azot döngüsü baştan başlar.', () => {
+      for (const c of t.creatures.slice()) { c.quarantined = true; t.removeCreature(c); (S.qFish = S.qFish || []).push(c); }
+      sc.dry = true; sc.dryDays = 0; Game.markScapeChanged(); Editor.refresh(); UI.toast('Kuru başlangıç: bitkiler kökleşiyor', 'leaf', 3500);
+    });
+  } else {
+    UI.confirm('Su doldurulsun mu?', 'Balıklar tanka geri döner. Tank yeni sayılır: amonyak yükselebilir, yavaş ilerle.', () => {
+      sc.dry = false; const w = Chem.fresh(S); w.b1 = 0.03; w.b2 = 0.02; w.soilAge = 0; S.water = w;
+      for (const it of sc.items) if (it.k === 'plant') { const d = PLANTS[it.d]; if (d.type === 'carpet') it.sp = Math.max(it.sp || 1, 1.3); it.melt = 0; it.hp = 1; }
+      for (const c of (S.qFish || []).slice()) if (!c.dis || true) { c.quarantined = false; t.addCreature(c); } S.qFish = [];
+      Game.markScapeChanged(); Editor.refresh(); UI.toast('Su dolduruldu! Azot döngüsü başlıyor — ilk günlerde su değişimi yap.', 'water', 5500); Game.notify('info', 'Tank dolduruldu. Yeni tank: amonyak/nitrit izle.');
+    });
+  }
 };
 
 </script>

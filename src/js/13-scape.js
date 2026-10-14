@@ -10,7 +10,7 @@ const Scape = {
     return {
       v: 1, liters: 60, bg: 'blue', nid: 1, rev: 0,
       sub: { type: 'sand', color: 'natural', h: new Array(SUB_COLS).fill(0.05) },
-      equip: { filter: 'internal', heater: true, co2: 'none', air: true, light: { p: 65, from: 7, to: 21 } },
+      equip: { filter: 'internal', heater: true, co2: 'none', air: true, light: { p: 55, from: 8, to: 20 } },
       owned: { filter: { sponge: 1, internal: 1 }, heater: 1, co2: {}, light: 1, air: 1 },
       items: [],
     };

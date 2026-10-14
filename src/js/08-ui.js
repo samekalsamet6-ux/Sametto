@@ -150,13 +150,16 @@ const UI = {
     const lampOn = t.lightTarget > 0.5;
     info.replaceChildren(
       h('div.chip', null, icon(lampOn ? 'sun' : 'moon'), `Gün ${dayOf(S.clockMin)} · ${clockStr(S.clockMin)}`),
+      h('button.chip', { style: { cursor: 'pointer' }, onclick: () => UI.openWater() }, h('span.dot', { style: { background: UI.waterDot(), boxShadow: `0 0 8px ${UI.waterDot()}`, width: '9px', height: '9px' } }), 'Su'),
       h('div.chip', null, icon('fish'), `${t.creatures.length}/${tankCap()}`),
+      Game.pruneMode ? h('button.chip', { style: { border: '1px solid var(--accent)', cursor: 'pointer' }, onclick: () => { Game.pruneMode = false; UI.refreshAq(); } }, '✂ Budama modu · Bitti') : null,
       Game.unrevealed().length ? h('button.chip', { style: { border: '1px solid var(--accent)', cursor: 'pointer' }, onclick: () => UI.openReveal() }, '🍼 ' + Game.unrevealed().length + ' yeni yavru') : null,
       h('div.chip', { style: { marginLeft: 'auto' } }, icon('speed'), S.settings.speed + '×'));
     const mk = (ic, label, fn, on) => h('button.qbtn' + (on ? '.on' : ''), { onclick: fn, 'aria-label': label }, icon(ic), label);
     qa.replaceChildren(
       mk('feed', 'Yem', () => Game.feed()),
       mk(lampOn ? 'sun' : 'moon', S.settings.lamp === 'auto' ? 'Işık: oto' : S.settings.lamp === 'on' ? 'Işık: açık' : 'Işık: kapalı', () => { Game.cycleLamp(); UI.refreshAq(); }),
+      mk('water', 'Su', () => UI.openWater()),
       mk('speed', 'Hız', () => { Game.cycleSpeed(); UI.refreshAq(); }),
       mk('list', 'Balıklar', () => UI.openFishList()),
       mk('camera', 'Fotoğraf', () => Photo.open()));
@@ -248,6 +251,7 @@ const UI = {
       h('div.card', null, h('h3', null, '⏱ Oyun'),
         h('div.set-row', null, h('label', null, 'Oyun hızı'), seg([[1, '1×'], [2, '2×'], [4, '4×'], [8, '8×']], st.speed, (v) => { st.speed = v; Game.save(); })),
         h('div.set-row', null, h('label', null, 'Tank ışığı'), seg([['auto', 'Oto'], ['on', 'Açık'], ['off', 'Kapalı']], st.lamp, (v) => { st.lamp = v; Game.tank.lampMode = v; Game.save(); })),
+        h('div.set-row', null, h('label', null, 'Musluk suyu'), seg(Object.entries(TAP_PROFILES).map(([k, p]) => [k, p.name.split(' ')[0]]), st.tap || 'mid', (v) => { st.tap = v; Game.save(); })),
         h('div.set-row', null, h('label', null, 'Oturum süresi hatırlatıcısı (60 dk)'), sw(st.sessionReminder, (v) => { st.sessionReminder = v; Game.save(); }))),
       h('div.card', null, h('h3', null, '💾 Kayıt'), ...slots,
         h('div.row.wrap-r', { style: { marginTop: '10px' } },
@@ -298,7 +302,7 @@ const UI = {
     const body = h('div');
     let zoomed = false, pt = null, iv = 0;
     const build = () => {
-      const p = c.pheno, F = c.inbreeding(), hp = clamp(c.health(), 0, 1.2) / 1.2 * 100;
+      const p = c.pheno, F = c.inbreeding(), hp = clamp(c.health(), 0, 1.2) / 1.2 * 100 * (c.vit ?? 1);
       const parents = Pedigree.rec[c.id], pn = (id) => (Pedigree.rec[id] && Pedigree.rec[id].name) || '—';
       const kids = Object.values(Pedigree.rec).filter((x) => x.s === c.id || x.d === c.id).length;
       const pats = [p.tux && 'Tuxedo', p.sb && 'Snakeskin gövde', p.st && 'Snakeskin kuyruk', p.grass && 'Grass', p.mosaic && 'Mozaik', p.moscow && 'Moscow', p.metal && (p.metalDouble ? 'Metal ×2 ⚠' : 'Metal'), p.purple && 'Mor gövde'].filter(Boolean);
@@ -307,7 +311,8 @@ const UI = {
       body.replaceChildren(...[
         h('div.row', null, nameIn, h('span.pill', null, c.sex === 'M' ? '♂ Erkek' : '♀ Dişi')),
         h('div.row.wrap-r', { style: { margin: '6px 0' } }, h('span.pill', null, c.breed().name), h('span.pill', null, `${Math.floor(c.ageDays())} gün · ${c.stage()}`), h('span.pill', null, '💰 ' + fmt(c.value()))),
-        h('div.meters', null, meter('Sağlık', hp, hp < 45 ? '.bad' : hp < 70 ? '.warn' : ''), meter('Stres', c.stress * 100, c.stress > 0.6 ? '.bad' : c.stress > 0.3 ? '.warn' : ''), meter('Akrabalık', F * 100, F > 0.12 ? '.bad' : F > 0.05 ? '.warn' : '')),
+        h('div.meters', null, meter('Sağlık', hp, hp < 45 ? '.bad' : hp < 70 ? '.warn' : ''), meter('Stres', Math.max(c.stress, c.envStress || 0) * 100, Math.max(c.stress, c.envStress || 0) > 0.6 ? '.bad' : Math.max(c.stress, c.envStress || 0) > 0.3 ? '.warn' : ''), meter('Akrabalık', F * 100, F > 0.12 ? '.bad' : F > 0.05 ? '.warn' : '')),
+        c.dis ? h('div.locked', { style: { color: 'var(--bad)', marginBottom: '8px' } }, h('div.sp', null, `🤒 ${DISEASES[c.dis.id].name} · şiddet %${Math.round(c.dis.sev * 100)}`, h('div.tiny.muted', null, DISEASES[c.dis.id].why)), h('button.btn.sm', { onclick: () => { UI.closeTop(); setTimeout(() => UI.openWater(), 350); } }, 'Tedavi')) : null,
         p.metalDouble ? h('div.locked', { style: { color: 'var(--warn)', marginBottom: '8px' } }, '⚠ Çift kopya Metal geni sağlığı ve doğurganlığı düşürür.') : null,
         h('h4', { style: { margin: '12px 0 6px' } }, 'Özellikler'),
         h('div.kv', null, h('span', null, 'Gövde rengi'), h('span', null, BODY[p.body].name), h('span', null, 'Kuyruk tipi'), h('span', null, TAILS[p.tail].name),
@@ -327,6 +332,7 @@ const UI = {
           h('button.btn' + (c.fav ? '.primary' : ''), { onclick: () => { c.fav = !c.fav; Game.save(); build(); } }, icon('star'), c.fav ? 'Favori' : 'Favorile'),
           h('button.btn.coral', { onclick: () => UI.confirm(`${c.name} satılsın mı?`, `${fmt(c.value())} Altın Pul kazanacaksın.`, () => { if (Game.sell(c)) rec.close(); }) }, icon('sell'), 'Sat · ' + fmt(c.value())),
           h('button.btn', { onclick: () => UI.openTree(c) }, icon('dna'), 'Soyağacı'),
+          h('button.btn', { onclick: () => { Chem.quarantine(c, true); rec.close(); UI.refreshAq(); } }, icon('heart'), 'Karantina'),
           h('button.btn.ghost', { onclick: () => nameIn.focus() }, icon('edit'), 'Adlandır'))].filter(Boolean));
     };
     build();
