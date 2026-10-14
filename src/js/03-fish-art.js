@@ -224,8 +224,8 @@ const FishArt = {
   /** Yaratığın dokusunu (gerekirse) yeniden üretir. */
   sprite(cr) {
     const mat = cr.maturity();
-    const key = cr.pheno.sig + '|' + Math.round(mat * 6) + '|' + cr.seed;
-    if (!cr.sprite || cr.sprite.key !== key) { cr.sprite = this.build(cr.pheno, Math.round(mat * 6) / 6, cr.seed); cr.sprite.key = key; cr._thumb = null; }
+    const key = cr.pheno.sig + '|' + Math.round(mat * 6) + '|' + cr.seed + (cr.boosted ? '|b' : '');
+    if (!cr.sprite || cr.sprite.key !== key) { cr.sprite = this.build(cr.boosted ? Object.assign({}, cr.pheno, { intensity: cr.pheno.intensity * 1.14 }) : cr.pheno, Math.round(mat * 6) / 6, cr.seed); cr.sprite.key = key; cr._thumb = null; }
     return cr.sprite;
   },
 

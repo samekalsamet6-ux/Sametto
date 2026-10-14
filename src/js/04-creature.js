@@ -24,7 +24,7 @@ class Creature {
     this.stress = 0;
     this.preg = d.preg || null;                   // {start, due} gebelik (dakika)
     this.sperm = d.sperm || [];                   // depolanan sperm: [{sire, name, g, left}]
-    this.vit = d.vit ?? 1; this.dis = d.dis || null; this.envStress = 0; this.quarantined = !!d.q;
+    this.boostUntil = d.boostUntil || 0; this.vit = d.vit ?? 1; this.dis = d.dis || null; this.envStress = 0; this.quarantined = !!d.q;
     this.lastBirth = d.lastBirth ?? -1e9; this.defect = !!d.defect; this.unrevealed = !!d.unrevealed;
     this.pheno = Genetics.phenotype(this.genome);
     this.sprite = null; this.sw = new Swimmer(this);
@@ -46,13 +46,17 @@ class Creature {
   rarity() { return this.breed().rarity; }
   inbreeding() { return this.F; }
   health() { return Genetics.health(this.genome, this.inbreeding()) * (this.defect ? 0.6 : 1); }
-  value() {
+  /** Pazar çarpanından bağımsız taban değer. */
+  baseValue() {
     const r = RARITY[this.rarity()].value * (this.defect ? 0.4 : 1), size = 0.6 + 0.4 * this.growth();
     const stageMul = this.ageDays() < 10 ? 0.4 : 1;
-    return Math.max(5, Math.round(r * size * stageMul * clamp(this.health(), 0.5, 1.15) * (this.fav ? 1 : 1)));
+    return Math.max(5, Math.round(r * size * stageMul * clamp(this.health(), 0.5, 1.15) * (this.vit ?? 1)));
   }
+  /** Güncel pazar fiyatı. */
+  value() { return Market.price(this); }
+  get boosted() { return (this.boostUntil || 0) > this.now; }
   toJSON() {
-    return { id: this.id, name: this.name, genome: this.genome, bornT: this.bornT, seed: this.seed, fav: this.fav, tested: this.tested, sire: this.sire, dam: this.dam, pers: this.pers, preg: this.preg, sperm: this.sperm, lastBirth: this.lastBirth, defect: this.defect, unrevealed: this.unrevealed, vit: this.vit, dis: this.dis, q: this.quarantined || undefined, x: Math.round(this.sw.x), y: Math.round(this.sw.y) };
+    return { id: this.id, name: this.name, genome: this.genome, bornT: this.bornT, seed: this.seed, fav: this.fav, tested: this.tested, sire: this.sire, dam: this.dam, pers: this.pers, preg: this.preg, sperm: this.sperm, lastBirth: this.lastBirth, defect: this.defect, unrevealed: this.unrevealed, vit: this.vit, dis: this.dis, boostUntil: this.boostUntil, q: this.quarantined || undefined, x: Math.round(this.sw.x), y: Math.round(this.sw.y) };
   }
 }
 

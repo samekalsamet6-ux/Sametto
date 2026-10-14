@@ -45,7 +45,7 @@ const Editor = {
   /* ---------- hesaplar ---------- */
   free(def) { return Game.S.level >= (def.lvl || 1) || Progress.level(Game.S.xp) >= (def.lvl || 1); },
   lvl() { return Progress.level(Game.S.xp); },
-  canBuy(def) { if (this.lvl() < (def.lvl || 1)) { UI.toast(`Seviye ${def.lvl} gerekli`, 'lock'); return false; } if (this.S.coins < (def.cost || 0)) { UI.toast(`Yeterli Altın Pul yok (${def.cost})`, 'coin'); return false; } return true; },
+  canBuy(def) { if ((this.placing && this.placing.k === 'plant' && (this.S.gift || []).includes(this.placing.d))) return true; if (def === EQUIP.co2.tank && !Research.has('co2')) { UI.toast('Önce "Basınçlı CO₂" araştırmasını aç', 'lock'); return false; } if (this.lvl() < (def.lvl || 1)) { UI.toast(`Seviye ${def.lvl} gerekli`, 'lock'); return false; } if (this.S.coins < (def.cost || 0)) { UI.toast(`Yeterli Altın Pul yok (${def.cost})`, 'coin'); return false; } return true; },
   pay(n) { this.S.coins -= n; UI.refreshTop(); },
 
   /* ---------- işaretçi ---------- */
@@ -113,7 +113,7 @@ const Editor = {
       const hp = Scape.pos(this.sc, W, host), c = Math.cos(-hp.r), s = Math.sin(-hp.r), dx = w.x - hp.x, dy = w.y - hp.y, hd = Scape.defOf(host);
       ex.att = { id: host.id, ox: clamp((dx * c - dy * s) / hp.s * hp.fl, -hd.w * 0.4, hd.w * 0.4), oy: clamp((dx * s + dy * c) / hp.s, -hd.h * 0.95, -hd.h * 0.15) }; ex.gnd = false; fx = host.fx;
     }
-    this.commit(); this.pay(def.cost || 0);
+    this.commit(); const gi = (this.S.gift || []).indexOf(p.d); if (gi >= 0 && p.k === 'plant') this.S.gift.splice(gi, 1); else this.pay(def.cost || 0);
     const it = Scape.newItem(this.sc, p.k, p.d, fx, Object.assign(ex, p.k === 'plant' ? { g: 0.45, t: this.S.clockMin } : {}));
     if (p.k !== 'plant' && p.k !== 'leaf') { const g = this.tank.ground(fx * W); if (w.y < g - 20 && Scape.isHard(it)) { it.gnd = false; it.y = clamp(w.y, SURFACE + 90, g); } }
     this.sc.items.push(it); this.sel = it.id; this.changed(); AudioSys.SFX.tick(); Game.task('scape'); this.refresh();
@@ -239,8 +239,8 @@ const Editor = {
   },
 
   tab_tank(body) {
-    const sizes = h('div.chips', null, ...TANK_SIZES.map((s) => h('button.sp-chip' + (this.sc.liters === s.l ? '.on' : '') + (this.lvl() < s.lvl ? '.lock' : ''), { onclick: () => { if (this.sc.liters === s.l) return; if (this.lvl() < s.lvl) return UI.toast(`Seviye ${s.lvl} gerekli`, 'lock'); const cheaper = s.l < this.sc.liters; if (!cheaper && !this.canBuy(s)) return; if (cheaper && Game.tank.creatures.length > s.l) return UI.toast('Tankındaki balıklar bu boya sığmaz', 'fish'); this.commit(); if (!cheaper) this.pay(s.cost); this.sc.liters = s.l; this.changed(); this.refresh(); } }, s.name, this.lvl() < s.lvl ? ` 🔒${s.lvl}` : this.sc.liters === s.l ? '' : s.cost && s.l > this.sc.liters ? ` 💰${s.cost}` : '')));
-    const bgs = h('div.chips', null, ...Object.entries(BACKDROPS).map(([k, n]) => h('button.sp-chip' + (this.sc.bg === k ? '.on' : ''), { onclick: () => { this.commit(); this.sc.bg = k; this.tank.buildBG(); this.changed(); this.refresh(); } }, n)));
+    const sizes = h('div.chips', null, ...TANK_SIZES.map((s) => h('button.sp-chip' + (this.sc.liters === s.l ? '.on' : '') + (this.lvl() < s.lvl ? '.lock' : ''), { onclick: () => { if (this.sc.liters === s.l) return; if (s.l >= 200 && !Research.has('bigtank')) return UI.toast('Önce "Daha büyük tanklar" araştırmasını aç', 'lock'); if (this.lvl() < s.lvl) return UI.toast(`Seviye ${s.lvl} gerekli`, 'lock'); const cheaper = s.l < this.sc.liters; if (!cheaper && !this.canBuy(s)) return; if (cheaper && Game.tank.creatures.length > s.l) return UI.toast('Tankındaki balıklar bu boya sığmaz', 'fish'); this.commit(); if (!cheaper) this.pay(s.cost); this.sc.liters = s.l; this.changed(); this.refresh(); } }, s.name, this.lvl() < s.lvl ? ` 🔒${s.lvl}` : this.sc.liters === s.l ? '' : s.cost && s.l > this.sc.liters ? ` 💰${s.cost}` : '')));
+    const bgs = h('div.chips', null, ...Object.entries(BACKDROPS).filter(([k]) => k !== 'aurora' || (this.S.owns || {}).aurora).map(([k, n]) => h('button.sp-chip' + (this.sc.bg === k ? '.on' : ''), { onclick: () => { this.commit(); this.sc.bg = k; this.tank.buildBG(); this.changed(); this.refresh(); } }, n)));
     const tpls = [...Object.keys(TEMPLATES).map((k) => ({ key: k, name: TEMPLATES[k].name, desc: TEMPLATES[k].desc })), ...this.S.templates.map((t, i) => ({ scape: t.scape, name: t.name, desc: 'Kendi tasarımın', own: i }))];
     body.append(h('div.small.muted', null, `Hacim: ${this.sc.liters} L · kapasite ≈ ${tankCap()} balık`), sizes, h('div.small.muted', null, 'Arka plan'), bgs,
       h('div.set-row', null, h('label', null, h('div', null, 'Kuru başlangıç (Dry Start)'), h('div.tiny.muted', null, 'Susuz, nemli ortamda halı bitkileri kökleşir; yosun riski düşük.')), h('button.switch' + (this.sc.dry ? '.on' : ''), { role: 'switch', onclick: () => Chem.dryStart(!this.sc.dry) })),

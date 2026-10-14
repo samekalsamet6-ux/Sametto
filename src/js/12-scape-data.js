@@ -75,7 +75,7 @@ const EQUIP = {
   air: { cost: 10, lvl: 1 },
 };
 const TANK_SIZES = [{ l: 20, name: 'Nano 20 L', cost: 0, lvl: 1 }, { l: 40, name: '40 L', cost: 80, lvl: 2 }, { l: 60, name: '60 L', cost: 160, lvl: 4 }, { l: 100, name: '100 L', cost: 320, lvl: 8 }, { l: 200, name: '200 L', cost: 700, lvl: 14 }, { l: 300, name: '300 L', cost: 1200, lvl: 22 }];
-const BACKDROPS = { blue: 'Mavi gradyan', black: 'Siyah', frost: 'Buzlu', nature: 'Doğa' };
+const BACKDROPS = { blue: 'Mavi gradyan', black: 'Siyah', frost: 'Buzlu', nature: 'Doğa', aurora: 'Aurora gecesi' };
 
 /* ---- Hazır şablonlar (items: [tür, tanım, x(0..1), ek alanlar]) ---- */
 const TEMPLATES = {

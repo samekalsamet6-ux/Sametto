@@ -56,7 +56,7 @@ const Breeding = {
     if (!sp.length) return { dam: f, kept: [], lost: 0, released: 0, empty: true };
     const n = this.litterSize(f), kept = [], used = new Set(); let lost = 0, released = 0, dead = 0;
     for (const _ of Array(n)) {
-      if (R.next() > FRY_SURVIVAL) { lost++; continue; }
+      if (R.next() > Research.survival()) { lost++; continue; }
       const tot = sp.reduce((a, s) => a + s.left, 0); let r = R.next() * tot, rec = sp[0];
       for (const s of sp) { r -= s.left; if (r <= 0) { rec = s; break; } }
       used.add(rec);

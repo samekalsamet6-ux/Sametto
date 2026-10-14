@@ -52,7 +52,7 @@ class Tank {
 
   drawBackdrop(c) {
     const W = this.W, H = this.H, kind = this.scape.bg;
-    const pal = { blue: ['#2fb9c8', '#17869f', '#0b4a68', '#062c43'], black: ['#10242c', '#0a1a22', '#071218', '#040a0e'], frost: ['#6cc9d0', '#4aa6b4', '#2d7e92', '#175468'], nature: ['#2fb9c8', '#17869f', '#0b4a68', '#062c43'] }[kind] || [];
+    const pal = { blue: ['#2fb9c8', '#17869f', '#0b4a68', '#062c43'], black: ['#10242c', '#0a1a22', '#071218', '#040a0e'], frost: ['#6cc9d0', '#4aa6b4', '#2d7e92', '#175468'], aurora: ['#1b6a8a', '#2a5aa0', '#4a2a7a', '#120a2a'], nature: ['#2fb9c8', '#17869f', '#0b4a68', '#062c43'] }[kind] || [];
     const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, pal[0]); g.addColorStop(0.35, pal[1]); g.addColorStop(0.75, pal[2]); g.addColorStop(1, pal[3]);
     c.fillStyle = g; c.fillRect(0, 0, W, H);
     for (const [fx, fy, r, a] of [[0.25, 0.1, 0.55, 0.22], [0.7, 0.05, 0.6, 0.18], [0.5, 0.5, 0.8, 0.07]]) {

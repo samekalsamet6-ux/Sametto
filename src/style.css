@@ -240,3 +240,7 @@ body.photo #topbar,body.photo #tabbar,body.photo .qa,body.photo .aq-info{display
 .mate.ok{border-color:var(--ok);background:rgba(76,214,148,.12)}.mate.bad{border-color:var(--bad);background:rgba(255,107,107,.12)}
 .gcard{cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
 details.card summary{list-style:none}
+
+/* ====== Aşama 6: ilerleme ====== */
+.qcard.done{opacity:.6}
+@keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}

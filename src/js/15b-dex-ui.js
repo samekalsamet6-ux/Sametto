@@ -38,7 +38,7 @@ Object.assign(UI, {
     let body;
     if (this.dexTab === 'fish') {
       body = h('div.stack', null, ...SPECIES.map((s) => { const i = SPECIES_INFO[s.id], open = s.status === 'open', p = open ? Math.round(100 * fishFound / BREEDS.length) : 0;
-        return h('div.card.sptile', { role: 'button', tabindex: 0, onclick: () => UI.openSpecies(s.id) }, h('div', { style: { fontSize: '38px' } }, i.emoji), h('div.sp', null, h('b', null, s.name), h('div.small.muted', null, s.sci), h('div.tiny.muted', null, open ? `${fishFound}/${BREEDS.length} varyasyon` : `Aşama ${s.stage}'de oynanabilir · bilgi kartı açık`)), open ? ring(p, p + '%') : icon('lock')); }));
+        return h('div.card.sptile', { role: 'button', tabindex: 0, onclick: () => UI.openSpecies(s.id) }, h('div', { style: { fontSize: '38px' } }, i.emoji), h('div.sp', null, h('b', null, s.name), h('div.small.muted', null, s.sci), h('div.tiny.muted', null, open ? `${fishFound}/${BREEDS.length} varyasyon` : `Seviye ${SPECIES_LVL[s.id]}'de açılır · bilgi kartı açık`)), open ? ring(p, p + '%') : icon('lock')); }));
     } else if (this.dexTab === 'plant') {
       body = h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(104px,1fr))' } }, ...Object.entries(PLANTS).map(([id, pl]) => { const d = !!(seen.plant || {})[id], cv = Editor.thumb('plant', id); if (!d) { cv.style.filter = 'brightness(0) opacity(.35)'; }
         return h('div.cat', { role: 'button', tabindex: 0, onclick: () => UI.openPlant(id) }, cv, h('b', null, d ? pl.name : '???'), h('span.tiny.muted', null, d ? ['', 'Kolay', 'Kolay', 'Orta', 'Zor', 'Uzman'][pl.diff] : 'Keşfedilmedi')); }));

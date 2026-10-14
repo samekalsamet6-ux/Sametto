@@ -118,5 +118,18 @@ const Tests = {
     return this._log('Bilgi içeriği tutarlı (tür, bitki, şablon, [[terim]] bağlantıları)', bad.length === 0, bad);
   },
 
-  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding(), this.chemistry(), this.content()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
+  /** Ekonomi: görev/başarım, pazar, mağaza stoğu (tutarlılık), siparişler. */
+  economy() {
+    const S = Game.S, bak = { dq: S.dq, wq: S.wq, market: JSON.stringify(S.market), ach: JSON.stringify(S.ach), coins: S.coins, cnt: JSON.stringify(S.cnt) };
+    S.dq = null; S.wq = null; Quests.refresh(S); const a = JSON.stringify(S.dq.list.map((q) => q.id)); S.dq = null; Quests.refresh(S);
+    const ok1 = S.dq.list.length === 3 && S.wq.list.length === 5 && a === JSON.stringify(S.dq.list.map((q) => q.id));
+    const id = 'tuxedo', m0 = Market.mult(id); Market.sold({ breed: () => ({ id }) }); const ok2 = Market.mult(id) < m0;
+    const d1 = JSON.stringify(Shop.daily().map((o) => o.b.id)), d2 = JSON.stringify(Shop.daily().map((o) => o.b.id)), ok3 = d1 === d2 && Shop.trader().length === 3;
+    const o = Orders.gen(S, new RNG(5)) || Orders.gen(S, new RNG(6)), ok4 = !!o && o.reward > 0 && o.text.length > 3;
+    const ok5 = ACHIEVEMENTS.every((x) => x.tiers.length === 3 && x.tiers[0] < x.tiers[1] && x.tiers[1] < x.tiers[2]) && RESEARCH.every((n) => !n.after || RESEARCH.some((x) => x.id === n.after));
+    S.dq = bak.dq; S.wq = bak.wq; S.market = JSON.parse(bak.market); S.coins = bak.coins;
+    return this._log('Ekonomi (görevler, pazar talebi, mağaza stoğu, sipariş, başarım/araştırma tutarlılığı)', ok1 && ok2 && ok3 && ok4 && ok5, { ok1, ok2, ok3, ok4, ok5 });
+  },
+
+  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding(), this.chemistry(), this.content(), this.economy()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
 };

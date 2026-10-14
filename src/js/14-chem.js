@@ -212,7 +212,7 @@ const Chem = {
         const d = c.dis, cure = w.med && DISEASES[d.id].cures.includes(w.med.id) ? (w.med.id === 'general' ? 0.5 : 1) : 0, q = S.quarantine && S.quarantine.includes(c.id);
         d.sev += dd * (0.15 + 0.3 * es - cure * 0.7 - (c.envStress < 0.15 && c.vit > 0.8 ? 0.06 : 0) - (q ? 0.05 : 0));
         dv -= d.sev * 0.1;
-        if (d.sev <= 0) { c.dis = null; if (!quiet) { UI.toast(`${c.name} iyileşti 💚`, 'heart'); } }
+        if (d.sev <= 0) { c.dis = null; Game.ev('cured'); if (!quiet) { UI.toast(`${c.name} iyileşti 💚`, 'heart'); } }
       }
       c.vit = clamp(c.vit + dv * dd, this.noDeath ? 0.15 : 0, 1);
       if (c.vit <= 0 && !this.noDeath) { this.die(c); }
@@ -225,7 +225,7 @@ const Chem = {
   },
 
   /* ---------- oyuncu eylemleri ---------- */
-  onFeed() { const w = this.w, V = Math.max(10, Game.tank.scape.liters); Game.S.lastFeed = Game.S.clockMin; w.nh3 += 0.05 * (60 / V); },
+  onFeed(mult = 1) { const w = this.w, V = Math.max(10, Game.tank.scape.liters); Game.S.lastFeed = Game.S.clockMin; w.nh3 += 0.05 * mult * (60 / V); },
   waste(n) { const V = Math.max(10, Game.tank.scape.liters); this.w.nh3 += 0.01 * n * (60 / V); },
 
   waterChange(pct) {
@@ -251,7 +251,7 @@ const Chem = {
   },
   quarantine(c, on) {
     const S = Game.S; S.quarantine = S.quarantine || [];
-    if (on) { if (S.quarantine.length >= 4) return UI.toast('Karantina tankı dolu (4 balık)', 'bell'); S.quarantine.push(c.id); c.quarantined = true; Game.tank.removeCreature(c); S.qFish = S.qFish || []; S.qFish.push(c); UI.toast(`${c.name} karantinaya alındı`, 'heart'); }
+    if (on) { if (S.quarantine.length >= Research.quarCap()) return UI.toast(`Karantina tankı dolu (${Research.quarCap()} balık)`, 'bell'); S.quarantine.push(c.id); c.quarantined = true; Game.tank.removeCreature(c); S.qFish = S.qFish || []; S.qFish.push(c); UI.toast(`${c.name} karantinaya alındı`, 'heart'); }
     else { S.quarantine = S.quarantine.filter((i) => i !== c.id); S.qFish = (S.qFish || []).filter((x) => x !== c); c.quarantined = false; Game.tank.addCreature(c); UI.toast(`${c.name} tanka geri döndü`, 'fish'); }
   },
 

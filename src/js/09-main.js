@@ -78,7 +78,7 @@ const Game = {
     if (!('qFish' in this.S)) Object.defineProperty(this.S, 'qFish', { value: [], writable: true, enumerable: false, configurable: true });
     const S = this.S; if (!S.scape) S.scape = Scape.fromTemplate('start'); this.tank.setScape(S.scape); this.tank.lampMode = S.settings.lamp; this.tank.light = this.tank.lampTarget(S.clockMin); this.tank.setAspect(this.tank.W / this.tank.H);
     if (!this.tank.bg) this.tank.buildBG();
-    this.scanSeen();
+    this.scanSeen(); this.S.cnt = this.S.cnt || {}; Quests.refresh(this.S); Orders.refresh(this.S); Market.ensure(this.S);
     this.tank.onEat = () => { if (R.chance(0.45)) AudioSys.SFX.eat(); };
     UI.refreshTop && $('#app') && UI.refreshTop();
   },
@@ -126,32 +126,34 @@ const Game = {
   applyAudio() { const a = this.S.settings.audio; for (const k of ['master', 'music', 'amb', 'sfx', 'style']) AudioSys.set(k, a[k]); AudioSys.set('bgMute', this.S.settings.bgMute); },
 
   /* ---------------- Kaynaklar, XP, görevler ---------------- */
-  addCoins(n) { this.S.coins += n; UI.refreshTop(); },
+  addCoins(n, earned) { this.S.coins += n; if (earned && n > 0) this.S.cnt.earned = (this.S.cnt.earned || 0) + n; UI.refreshTop(); },
+  /** Olay: görev ve başarım sayaçlarını artırır. */
+  ev(name, n = 1) { const S = this.S; if (!S.cnt) S.cnt = {}; S.cnt[name] = (S.cnt[name] || 0) + n; if (S.dq) Quests.bump(S, name, n); Ach.check(); },
   addXp(n, onceKey) {
     const S = this.S; if (onceKey) { S.once = S.once || {}; if (S.once[onceKey]) return; S.once[onceKey] = 1; }
     const before = Progress.level(S.xp); S.xp += n; const after = Progress.level(S.xp);
     if (after > before) { UI.toast(`Seviye ${after}! ${Progress.title(after)}`, 'star', 4200); AudioSys.SFX.discover(1); this.notify('level', `Seviye ${after} oldun.`); }
   },
   notify(type, text) { const S = this.S; S.notifs.push({ t: S.clockMin, type, text, read: false }); if (S.notifs.length > 80) S.notifs.shift(); UI.refreshTop(); },
-  task(id, n = 1) { const S = this.S; if (S.claimed[id]) return; const t = this.TASKS.find((x) => x.id === id); if (!t) return; const was = S.tasks[id] || 0; S.tasks[id] = Math.min(t.goal, was + n); if (was < t.goal && S.tasks[id] >= t.goal) UI.toast(`Hedef tamam: ${t.name} — Merkez'den ödülünü topla`, 'gift', 3800); },
+  task(id, n = 1) { this.ev(id, n); const S = this.S; if (S.claimed[id]) return; const t = this.TASKS.find((x) => x.id === id); if (!t) return; const was = S.tasks[id] || 0; S.tasks[id] = Math.min(t.goal, was + n); if (was < t.goal && S.tasks[id] >= t.goal) UI.toast(`Hedef tamam: ${t.name} — Merkez'den ödülünü topla`, 'gift', 3800); },
   claimTask(t) { const S = this.S; if (S.claimed[t.id] || (S.tasks[t.id] || 0) < t.goal) return; S.claimed[t.id] = 1; this.addCoins(t.coins); this.addXp(t.xp); AudioSys.SFX.coin(); UI.toast(`+${t.coins} Altın Pul · +${t.xp} XP`, 'coin'); this.save(); },
   dailyState() { const d = this.S.daily; return { can: d.last !== todayKey(), idx: d.idx % 7, reward: this.DAILY[d.idx % 7] }; },
   claimDaily() { const d = this.S.daily, s = this.dailyState(); if (!s.can) return; d.last = todayKey(); d.idx = (d.idx + 1) % 7; this.addCoins(s.reward); this.addXp(5); AudioSys.SFX.coin(); UI.toast(`Günün ödülü: +${s.reward} Altın Pul`, 'gift'); this.save(); },
 
   /* ---------------- Eylemler ---------------- */
   feed() {
-    if (this.tank.scape.dry) return UI.toast('Tank kuru başlangıçta', 'bell'); if (this.tank.feed()) { Chem.onFeed(); this.S.stats.fed++; this.task('feed'); this.addXp(3); AudioSys.SFX.feed(); } else UI.toast('Önceki yemler henüz bitmedi', 'feed', 1800);
+    if (this.tank.scape.dry) return UI.toast('Tank kuru başlangıçta', 'bell'); if (this.tank.feed()) { const S = this.S, ft = S.feedType || 'std', inv = S.inv || (S.inv = { premium: 0, carotene: 0 }); let mult = 1; if (ft !== 'std' && inv[ft] > 0) { inv[ft]--; if (ft === 'premium') mult = 0.55; else for (const c of this.tank.creatures) if (c.sex === 'M') c.boostUntil = S.clockMin + 3 * 1440; if (inv[ft] === 0) UI.toast('Özel yem stoğu bitti, standart yeme dönüldü', 'bell'); } else if (ft !== 'std') S.feedType = 'std'; Chem.onFeed(mult); this.S.stats.fed++; this.task('feed'); this.addXp(3); AudioSys.SFX.feed(); } else UI.toast('Önceki yemler henüz bitmedi', 'feed', 1800);
   },
   cycleLamp() { const o = ['auto', 'on', 'off'], t = this.tank; t.lampMode = o[(o.indexOf(t.lampMode) + 1) % 3]; this.S.settings.lamp = t.lampMode; UI.toast({ auto: 'Işık: otomatik (07:00–21:00)', on: 'Işık: sürekli açık', off: 'Işık: kapalı' }[t.lampMode], t.lampMode === 'off' ? 'moon' : 'sun', 1800); },
   cycleSpeed() { const o = [1, 2, 4, 8], st = this.S.settings; st.speed = o[(o.indexOf(st.speed) + 1) % o.length]; UI.toast(`Oyun hızı ${st.speed}×`, 'speed', 1500); },
   sell(c) {
     if (this.tank.creatures.length <= 1) { UI.toast('Son balığını satamazsın', 'fish'); return false; }
-    const v = c.value(); this.tank.removeCreature(c); this.S.stats.sold++; this.S.stats.maxSale = Math.max(this.S.stats.maxSale, v);
-    this.addCoins(v); this.addXp(2); AudioSys.SFX.sell(); UI.toast(`${c.name} satıldı · +${fmt(v)} Altın Pul`, 'coin'); this.save(); UI.refreshAq(); return true;
+    const v = c.value(); Market.sold(c); this.tank.removeCreature(c); this.S.stats.sold++; this.S.stats.maxSale = Math.max(this.S.stats.maxSale, v); this.ev('sold');
+    this.addCoins(v, true); this.addXp(2); AudioSys.SFX.sell(); UI.toast(`${c.name} satıldı · +${fmt(v)} Altın Pul`, 'coin'); this.save(); UI.refreshAq(); return true;
   },
   testCreature(c) {
-    if (c.tested) return true; if (this.S.coins < 40) { UI.toast('Yeterli Altın Pul yok (40 gerekli)', 'coin'); return false; }
-    this.S.coins -= 40; c.tested = true; this.S.stats.tests++; this.task('test'); this.addXp(10); UI.refreshTop(); AudioSys.SFX.discover(0); this.save(); return true;
+    const cost = Research.testCost(); if (c.tested) return true; if (this.S.coins < cost) { UI.toast(`Yeterli Altın Pul yok (${cost} gerekli)`, 'coin'); return false; }
+    this.S.coins -= cost; c.tested = true; this.S.stats.tests++; this.task('test'); this.addXp(10); UI.refreshTop(); AudioSys.SFX.discover(0); this.save(); return true;
   },
 
   /** Rastgele / mutant test balığı (Aşama 2'de yerini gerçek üreme alacak). */
@@ -170,7 +172,7 @@ const Game = {
     const S = this.S, births = Breeding.tick(S.clockMin, this.tank), out = [];
     for (const b of births) {
       if (b.empty) { if (!quiet) UI.toast(`${b.dam.name} doğurdu ama yavru çıkmadı (sperm yoktu)`, 'bell'); continue; }
-      const kept = b.kept.length; S.stats.born += kept; this.addXp(5 + Math.min(40, kept * 2));
+      const kept = b.kept.length; S.stats.born += kept; this.ev('born', kept); this.ev('bornHealthy', b.kept.filter((k) => !k.defect).length); this.addXp(5 + Math.min(40, kept * 2));
       if (b.released) this.addCoins(b.released * 2);
       S.litters.push({ t: S.clockMin, dam: b.dam.name, kept, lost: b.lost, released: b.released }); if (S.litters.length > 40) S.litters.shift();
       this.notify('birth', `${b.dam.name} doğurdu: ${kept} yavru yaşıyor${b.lost ? `, ${b.lost} yavru yenildi` : ''}${b.released ? `, ${b.released} yavru tank dolu olduğu için dükkâna verildi` : ''}.`);
@@ -179,6 +181,16 @@ const Game = {
     }
     if (births.length) { UI.refreshTop(); if (UI.cur === 'aq') UI.refreshAq(); if (UI.cur === 'lab') UI.render_lab($('#s-lab')); }
     return out.length;
+  },
+  /** Günlük/haftalık yenilemeler, pazar, otomatik besleyici. */
+  dayTick() {
+    const S = this.S, day = Math.floor(S.clockMin / 1440), hr = (S.clockMin % 1440) / 60;
+    if (this._dayInit !== day) {
+      const m = Market.ensure(S);
+      for (let d = m.lastDay + 1, n = 0; d <= day && n < 10; d++, n++) { Market.tickDay(S, d); if (Chem.overall() === 0) S.cnt.goodDays = (S.cnt.goodDays || 0) + 1; }
+      m.lastDay = day; this._dayInit = day; Quests.refresh(S); Orders.refresh(S); Ach.check();
+    }
+    if (Research.has('feeder') && S.settings.autoFeed !== false && hr >= 18 && S.lastAutoFeed !== day && !this.tank.scape.dry) { S.lastAutoFeed = day; if (this.tank.feed()) { Chem.onFeed(); this.notify('info', 'Otomatik besleyici yem verdi.'); } }
   },
   reapPlants() {
     const sc = this.tank.scape, dead = sc.items.filter((i) => i.dead); if (!dead.length) return;
@@ -192,7 +204,7 @@ const Game = {
   },
   mate(m, f) {
     const pr = Breeding.problems(m, f, this.S.clockMin); if (pr.length) { UI.toast(pr[0], 'bell'); return null; }
-    const r = Breeding.mate(m, f, this.S.clockMin); this.addXp(4); AudioSys.SFX.coin();
+    const r = Breeding.mate(m, f, this.S.clockMin); this.ev('mate'); this.addXp(4); AudioSys.SFX.coin();
     UI.toast(r.started ? `${f.name} gebe kaldı! Doğum ~${Math.round((r.due - this.S.clockMin) / 1440)} gün sonra` : `${f.name} sperm depoladı (zaten gebe)`, 'heart', 4200);
     this.save(); return r;
   },
@@ -222,7 +234,7 @@ const Game = {
       if (c.unrevealed) continue;   // yavrunun rengi açılana kadar keşif sayılmaz
       const b = c.breed(); if (this.S.discovered[b.id]) continue;
       this.S.discovered[b.id] = { t: this.S.clockMin, by: c.id };
-      if (!silent) { this.celebQ.push([c, b]); this.addXp(30 * (b.rarity + 1)); this.notify('discovery', `Yeni varyasyon keşfedildi: ${b.name}`); }
+      if (!silent) { this.ev('discover'); this.celebQ.push([c, b]); this.addXp(30 * (b.rarity + 1)); this.notify('discovery', `Yeni varyasyon keşfedildi: ${b.name}`); }
     }
     if (!silent) this.afterCelebrate(true);
   },
@@ -250,6 +262,7 @@ const Game = {
     this.tank.update(dt, S.clockMin); Chem.advance(dt * S.settings.speed);
     if (S.blackoutUntil && S.clockMin >= S.blackoutUntil) { S.blackoutUntil = 0; this.tank.lampMode = 'auto'; S.settings.lamp = 'auto'; UI.toast('Karartma bitti: ışık otomatiğe döndü', 'sun'); }
     this.reapPlants();
+    this.dayTick(dt);
     this.topAcc += dt;
     if (this.topAcc > 1) {
       this.topAcc = 0; this.tickBreeding(); UI.cur === 'aq' && UI.refreshAq();
