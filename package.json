@@ -1,0 +1,25 @@
+{
+  "name": "tcl-kumanda",
+  "version": "1.0.0",
+  "description": "TCL TV (Roku TV, Android TV, Google TV) uzaktan kumanda web uygulaması",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/e2e.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samekalsamet6-ux/Sametto.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/samekalsamet6-ux/Sametto/issues"
+  },
+  "homepage": "https://github.com/samekalsamet6-ux/Sametto#readme",
+  "dependencies": {
+    "androidtv-remote": "^1.0.10",
+    "bonjour-service": "^1.4.4"
+  },
+  "private": true
+}
