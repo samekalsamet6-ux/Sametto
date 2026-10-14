@@ -5,7 +5,7 @@
 const themedScape = (st) => ({ spring: 'dutch', summer: 'jungle', autumn: 'nature', winter: 'iwagumi' })[Season.theme().id] === st;
 
 Object.assign(UI, {
-  bar(v, goal, color) { return h('div.mt-bar', null, h('i', { style: { width: Math.round(clamp(v / goal, 0, 1) * 100) + '%', background: color || 'var(--accent)' } })); },
+  mtBar(v, goal, color) { return h('div.mt-bar', null, h('i', { style: { width: Math.round(clamp(v / goal, 0, 1) * 100) + '%', background: color || 'var(--accent)' } })); },
 
   /** Konuşma penceresi: dokununca metin tamamlanır / sonraki sayfa. */
   dialog(npcId, pages, done) {
@@ -20,9 +20,9 @@ Object.assign(UI, {
   render_story(el) {
     const S = Game.S, M = Meta.ensure(S);
     const npcCards = Object.entries(STORY_NPCS).map(([id, np]) => { const pts = M.friend[id], lv = Meta.friendLv(pts), nxt = FRIEND_AT[lv + 1];
-      return h('div.card.row', null, h('div', { style: { fontSize: '34px' } }, np.emo), h('div.sp', null, h('b', null, np.name, ' ', h('span.pill', null, FRIEND_NAMES[lv])), h('div.tiny.muted', null, np.perk + ` (şu an +${Math.round((Meta.mult(np.lv) - 1) * 100 - (np.lv === 'sell' ? Math.min(30, 3 * (M.prestige.n || 0)) : np.lv === 'xp' ? Math.min(50, 5 * (M.prestige.n || 0)) : 0))}%)`), UI.bar(pts, nxt || pts || 1, '#ff9eb5'))); });
+      return h('div.card.row', null, h('div', { style: { fontSize: '34px' } }, np.emo), h('div.sp', null, h('b', null, np.name, ' ', h('span.pill', null, FRIEND_NAMES[lv])), h('div.tiny.muted', null, np.perk + ` (şu an +${Math.round((Meta.mult(np.lv) - 1) * 100 - (np.lv === 'sell' ? Math.min(30, 3 * (M.prestige.n || 0)) : np.lv === 'xp' ? Math.min(50, 5 * (M.prestige.n || 0)) : 0))}%)`), UI.mtBar(pts, nxt || pts || 1, '#ff9eb5'))); });
     const chs = CHAPTERS.map((ch) => { const st = Meta.chapterState(ch), np = STORY_NPCS[ch.npc];
-      const goals = ch.goals.map((g) => { const v = Math.min(g.goal, g.get(S)); return h('div', { style: { margin: '4px 0' } }, h('div.small', null, (v >= g.goal ? '✔ ' : '• ') + g.t + ` (${v}/${g.goal})`), UI.bar(v, g.goal)); });
+      const goals = ch.goals.map((g) => { const v = Math.min(g.goal, g.get(S)); return h('div', { style: { margin: '4px 0' } }, h('div.small', null, (v >= g.goal ? '✔ ' : '• ') + g.t + ` (${v}/${g.goal})`), UI.mtBar(v, g.goal)); });
       const act = st === 'ready' ? h('button.btn.primary', { onclick: () => UI.dialog(ch.npc, ch.outro, () => { if (Meta.claimChapter(ch)) { AudioSys.SFX.discover(2); UI.toast(`Bölüm tamamlandı! +${ch.reward.coins} 💰`, 'star', 4000); UI.render_story(el); } }) }, 'Bölümü bitir')
         : st === 'open' ? h('button.btn.sm', { onclick: () => UI.dialog(ch.npc, ch.intro) }, 'Konuşmayı oku') : null;
       return h('div.card' + (st === 'done' ? '.done' : ''), { style: { opacity: st === 'locked' || st === 'lvl' ? 0.55 : 1 } }, h('div.row', null, h('div', { style: { fontSize: '30px' } }, np.emo), h('div.sp', null, h('b', null, `Bölüm ${ch.id}: ${ch.title}`), h('div.tiny.muted', null, st === 'locked' ? 'Önceki bölümü bitir.' : st === 'lvl' ? `Seviye ${ch.lvl} gerekir.` : st === 'done' ? 'Tamamlandı ✔' : `Ödül: ${ch.reward.coins} 💰 · ${ch.reward.xp} XP`))),
@@ -62,7 +62,7 @@ Object.assign(UI, {
       body = h('div.stack', null, h('div.card', null, h('div.row', null, h('div', { style: { fontSize: '38px' } }, STYLES[sty].emo), h('div.sp', null, h('b', null, `Bu haftanın teması: ${STYLES[sty].name}`), h('div.small.muted', null, `${daysLeft} gün kaldı${themedScape(sty) ? ' · ' + th.emo + ' sezon bonusu +%25' : ''}`)))),
         UI.tabs(Object.entries(STYLES).map(([k, s]) => [k, s.emo + ' ' + s.name]), this.judgeStyle, (k) => { this.judgeStyle = k; UI.render_contest(el); }),
         h('div.card', null, h('b', null, `Jüri ön izleme: ${STYLES[this.judgeStyle].name} — ${J.total}/100`), h('div.small.muted', null, STYLES[this.judgeStyle].desc),
-          ...J.crit.map((c) => h('div', { style: { margin: '5px 0' } }, h('div.row.small', null, h('span.sp', null, c.name), h('b', null, c.v)), UI.bar(c.v, 100))),
+          ...J.crit.map((c) => h('div', { style: { margin: '5px 0' } }, h('div.row.small', null, h('span.sp', null, c.name), h('b', null, c.v)), UI.mtBar(c.v, 100))),
           J.notes.length ? h('div.small', { style: { marginTop: '6px' } }, h('b', null, 'Jüri notları'), ...J.notes.map((n) => h('div', null, '• ' + n))) : h('div.small', { style: { color: 'var(--ok)' } }, 'Jüri notu yok: harika!')),
         hall ? (done ? h('div.card', null, h('b', null, `Bu hafta katıldın: ${done}. oldun`)) : h('button.btn.primary', { disabled: canEnter ? null : true, onclick: () => UI.enterScape(el, sty) }, canEnter ? 'Yarışmaya gir' : 'Haftanın temasını seç')) : locked);
     } else {
@@ -93,7 +93,7 @@ Object.assign(UI, {
       return h('div.card.row', null, h('div', { style: { fontSize: '28px' } }, t.badge), h('div.sp', null, h('b', null, `${t.name} (Yıl ${1 + Math.floor(a.idx / 4)})`), h('div.tiny.muted', null, `${a.pts} puan · ${a.tiers} kademe`)),
         own ? h('span.pill', null, 'Sende') : h('button.btn.sm', { onclick: () => { if ((S.stone || 0) < Season.badgeCost) return UI.toast('Yeterli Yosun Taşı yok', 'bell'); S.stone -= Season.badgeCost; M.badges.push(key); Game.save(); UI.refreshTop(); UI.render_season(el); } }, `${Season.badgeCost} 💎`)); }) : [UI.emptyState('📚', 'Arşiv boş', 'Biten sezonların rozetleri burada her zaman satın alınabilir; hiçbir şey kaçmaz.')];
     el.replaceChildren(h('div.wrap.stack', null,
-      h('div.card.mt-season', { style: { '--c': th.col } }, h('div.row', null, h('div', { style: { fontSize: '44px' } }, th.emo), h('div.sp', null, h('b', null, th.name), h('div.small.muted', null, `Yıl ${Season.year(S)} · ${Season.daysLeft(S)} gün kaldı · tema kategorisi: ${SHOW_CATS.find((c) => c.id === th.cat).name}`))), UI.bar(s.pts, SEASON_TIERS * SEASON_PTS, th.col), h('div.tiny.muted', null, `${s.pts} / ${SEASON_TIERS * SEASON_PTS} puan · ücretsiz sezon yolu, süre bitince arşive geçer.`)),
+      h('div.card.mt-season', { style: { '--c': th.col } }, h('div.row', null, h('div', { style: { fontSize: '44px' } }, th.emo), h('div.sp', null, h('b', null, th.name), h('div.small.muted', null, `Yıl ${Season.year(S)} · ${Season.daysLeft(S)} gün kaldı · tema kategorisi: ${SHOW_CATS.find((c) => c.id === th.cat).name}`))), UI.mtBar(s.pts, SEASON_TIERS * SEASON_PTS, th.col), h('div.tiny.muted', null, `${s.pts} / ${SEASON_TIERS * SEASON_PTS} puan · ücretsiz sezon yolu, süre bitince arşive geçer.`)),
       h('div.small.muted', null, 'Puan kaynakları: yem, su değişimi, çiftleştirme, doğum, satış, sipariş, keşif, ders ve yarışmalar.'), ...tiers,
       h('h3', { style: { margin: '8px 2px 0' } }, 'Arşiv Mağazası'), ...arch,
       M.titles.length ? h('div.small', null, '🎖️ Unvanların: ' + M.titles.join(', ')) : null));
