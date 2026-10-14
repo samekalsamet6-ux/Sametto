@@ -1,38 +1,37 @@
-# TCL Kumanda
+# TCL Kumanda (mobil)
 
-Tüm TCL televizyonlar için (Roku TV, Android TV, Google TV) telefon/bilgisayar tarayıcısından çalışan uzaktan kumanda. Wi-Fi üzerinden (IR/Bluetooth gerekmez) çalışır; PWA olarak ana ekrana eklenebilir.
+TCL televizyonlar için Android ve iOS'ta çalışan Flutter uygulaması. Telefon, TV ile doğrudan Wi-Fi üzerinden konuşur; bilgisayar, sunucu veya bulut gerekmez.
 
-## Araştırma özeti: TCL modelleri hangi protokolü kullanır?
+## Desteklenen TCL TV'ler
 
-TCL'nin herkese açık, tek bir ağ kumanda API'si yoktur; kumanda TV'nin işletim sistemine göre değişir:
+TCL'nin tek bir kumanda API'si yoktur; protokol TV'nin yazılım platformuna bağlıdır:
 
-| TCL yazılım platformu | Protokol | Port | Not |
+| Platform | Protokol | Port | Not |
 |---|---|---|---|
-| **Roku TV** (ABD/Kanada ağırlıklı modeller) | Roku ECP (HTTP REST) | 8060 | TV'de *Ağ erişimi / Control by mobile apps* açık olmalı. Keşif: SSDP `roku:ecp` |
-| **Google TV / Android TV** (Türkiye ve Avrupa'daki çoğu model: C6xx, P7xx, Q-/QM serisi vb.) | Android TV Remote Protocol v2 (TLS + protobuf) | 6467 eşleştirme, 6466 kumanda | İlk seferde TV'de görünen 6 haneli kodla eşleştirme; sertifika saklanır. Keşif: mDNS `_androidtvremote2._tcp` |
-| Fire TV / eski kapalı sistemli modeller | — | — | Şu an desteklenmiyor (Fire TV için ADB gerekir; eski modeller için IR) |
-
-Kaynaklar: Roku [ECP dokümanı](https://developer.roku.com/dev/docs/external-control-api), [androidtvremote2](https://github.com/tronikos/androidtvremote2) ve [androidtv-remote](https://github.com/kud/androidtv-remote) (Android TV Remote v2 referans uygulamaları), TCL'nin [kumanda kodları sayfası](https://support.tcl.com/en_US/remote-support-articles/tcl-tv-remote-codes-by-provider).
-
-Tarayıcılar TLS istemci sertifikalı ham TCP soketi açamadığı için küçük bir **Node.js köprü sunucusu** TV ile konuşur, arayüz ona HTTP ile bağlanır.
-
-## Kurulum
-
-```bash
-npm install
-npm start          # http://localhost:3000
-```
-Telefondan `http://<bilgisayar-IP>:3000` adresini açın (aynı Wi-Fi). Sunucuyu sürekli açık bir cihazda (Raspberry Pi, NAS, PC) çalıştırın.
-
-1. **＋** → otomatik arama ya da TV IP adresi (TV: Ayarlar > Ağ). Platform otomatik algılanır.
-2. Android/Google TV ise ekrandaki 6 haneli kodu girin (tek seferlik).
-3. Roku TV ise TV'de ağ kontrolünün açık olduğundan emin olun.
+| Google TV / Android TV (çoğu TCL modeli) | Android TV Remote v2 (TLS + protobuf) | 6467 eşleştirme, 6466 kumanda | İlk bağlantıda TV'deki 6 karakterlik kodla bir kez eşleşme |
+| Roku TV | Roku ECP (HTTP) | 8060 | TV'de *Harici kontrol > Ağ erişimi* açık olmalı |
+| Fire TV ve eski kapalı sistem modeller | — | — | Desteklenmiyor |
 
 ## Özellikler
-Güç, yön/OK, geri, ana sayfa, menü, ses/kanal (basılı tutma ile tekrar), oynatma tuşları, rakamlar, HDMI girişleri, renkli tuşlar, Netflix/YouTube/Prime/Disney+/Spotify, TV'ye metin gönderme. Birden fazla TV.
+Ağda otomatik TV arama (alt ağ taraması) ve IP ile ekleme, platform otomatik algılama, birden fazla TV, güç / yön / OK / geri / ana sayfa / menü, ses ve kanal (basılı tutunca tekrar), oynat/ileri/geri sar, rakamlar, HDMI girişleri, renkli tuşlar (Google TV), Netflix / YouTube / Prime / Disney+ / Spotify kısayolları, Roku'da TV'ye yazı gönderme.
 
-## Güvenlik
-Uygulamada kimlik doğrulama yoktur; yalnızca güvenilir ev ağında çalıştırın, internete açmayın. `devices.json` eşleştirme sertifikalarını içerir (git'e eklenmez). Yalnızca yerel ağda `HOST=127.0.0.1` ile sadece bu makineye de bağlanabilirsiniz.
+## Çalıştırma
+```bash
+flutter pub get
+flutter run            # bağlı Android/iOS cihaz veya emülatör
+flutter build apk      # Android
+flutter test           # birim ve uçtan uca (sahte TV) testleri
+```
+Not: iOS'ta ilk açılışta "yerel ağ" izni sorulur; Roku/Android TV'yi bulmak için izin verilmelidir. iOS derlemesi macOS + Xcode gerektirir.
 
-## Test
-`npm test` — sahte Roku ECP sunucusuyla uçtan uca test. Android TV tarafı gerçek TV gerektirir; gerçek bir TCL Google TV ile doğrulanmamıştır.
+## Mimari
+- `lib/services/proto.dart`, `atv_messages.dart` — elle yazılmış protobuf kodlaması (referans uygulamanın baytlarıyla test edilir)
+- `lib/services/atv_cert.dart` — cihaz içinde RSA-2048 istemci sertifikası üretimi; `atv_client.dart` — eşleştirme ve kumanda oturumu
+- `lib/services/roku_client.dart`, `discovery.dart`, `keys.dart`, `store.dart` — Roku, ağ tarama, tuş tablosu, saklama (sertifika anahtarı güvenli depoda)
+- `lib/ui/` — ana ekran, TV ekleme, eşleştirme, kumanda
+
+## Sınırlar (dürüst durum)
+- Gerçek bir TCL TV ile ve gerçek telefonda denenmedi; Android SDK/Xcode bu ortamda yoktu, APK/IPA derlenmedi. Protokol; referans uygulamayla bayt bazında ve yerel bir sahte TV'ye (gerçek TLS, sertifika, eşleştirme özeti) karşı testlerle doğrulandı.
+- Google/Android TV'de yazı gönderme yok (TV'nin ekran klavyesini yön tuşlarıyla kullanın).
+- Roku'da renkli tuşlar yok; Menü, Bilgi, Ayarlar ve Rehber aynı "Info" tuşuna gider.
+- Uygulama yalnızca yerel ağda çalışır (evin dışından kumanda yok).
