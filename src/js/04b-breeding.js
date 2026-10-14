@@ -60,7 +60,7 @@ const Breeding = {
       const tot = sp.reduce((a, s) => a + s.left, 0); let r = R.next() * tot, rec = sp[0];
       for (const s of sp) { r -= s.left; if (r <= 0) { rec = s; break; } }
       used.add(rec);
-      if (tank.creatures.length + kept.length >= TANK_CAP) { released++; continue; }
+      if (tank.creatures.length + kept.length >= tankCap()) { released++; continue; }
       const g = Genetics.breed(rec.g, f.genome, R), c = new Creature({ genome: g, bornT: t, sire: rec.sire, dam: f.id, x: f.sw.x, y: f.sw.y, unrevealed: true });
       this.reg(c);
       if (R.next() < Math.min(0.6, 1.8 * c.F)) { c.defect = true; c.sw.bendBase = 0.5 * (c.id % 2 ? 1 : -1); dead++; }

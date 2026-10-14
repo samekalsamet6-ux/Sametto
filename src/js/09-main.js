@@ -3,19 +3,22 @@
    09 · ÇEKİRDEK — oyun durumu, döngü, kamera/girdi, görevler, ekonomi
    ===================================================================== */
 const Game = {
-  S: null, slot: 0, tank: new Tank(), cam: { cx: 500, cy: 350, zoom: 1 }, celebQ: [],
+  S: null, slot: 0, tank: null, cam: { cx: 500, cy: 350, zoom: 1 }, celebQ: [],
   AVATARS: ['🐠', '🐟', '🐡', '🦐', '🐚', '🦀', '🐙', '🪸'],
   DAILY: [50, 60, 70, 80, 90, 100, 200],
   TASKS: [
     { id: 'feed', name: 'Balıkları besle', desc: 'Akvaryumda Yem düğmesine bas', goal: 3, coins: 40, xp: 15, go: 'aq' },
     { id: 'inspect', name: 'Bir balığı tanı', desc: 'Akvaryumda bir balığa dokun ve kartını incele', goal: 1, coins: 30, xp: 10, go: 'aq' },
     { id: 'zoom', name: 'Yakından bak', desc: 'Tankı iki parmakla (veya tekerlekle) yakınlaştır', goal: 1, coins: 30, xp: 10, go: 'aq' },
+    { id: 'scape', name: 'Tasarımcı ol', desc: 'Tasarım Stüdyosu\'nda bir öğe yerleştir', goal: 1, coins: 40, xp: 15, go: 'design' },
+    { id: 'photo', name: 'Fotoğrafçı', desc: 'Fotoğraf modunda bir kare çek', goal: 1, coins: 30, xp: 10, go: 'aq' },
     { id: 'test', name: 'Gizli genleri ortaya çıkar', desc: 'Bir balığın genotipini test et', goal: 1, coins: 60, xp: 25, go: 'aq' },
   ],
   _samples: new Map(), _sampleN: 0, last: 0, tAcc: 0, topAcc: 0, hiddenAt: 0, sessionWarned: false,
 
   /* ---------------- Başlangıç ---------------- */
   boot() {
+    this.tank = new Tank();
     const meta = Save.meta(); this.slot = meta.slot || 0;
     const r = Save.read(this.slot);
     let offline = null;
@@ -57,7 +60,7 @@ const Game = {
   /* ---------------- Durum yükleme / yeni oyun ---------------- */
   freshState() {
     this.S = Save.newState(); Pedigree.rec = {}; Pedigree._memo.clear(); _nextId = 1;
-    const t = this.tank; t.creatures.length = 0; t.food.length = 0; t.setAspect(t.W / t.H);
+    const t = this.tank; t.creatures.length = 0; t.food.length = 0; this.S.scape = Scape.fromTemplate('start'); t.setScape(this.S.scape); t.setAspect(t.W / t.H);
     createStarterFish(t, this.S.clockMin); for (const c of t.creatures) Breeding.reg(c);
     this.checkDiscoveries(true); this.afterLoad(); this.save(true);
   },
@@ -69,8 +72,8 @@ const Game = {
     this.checkDiscoveries(true); this.afterLoad();
   },
   afterLoad() {
-    const S = this.S; this.tank.lampMode = S.settings.lamp; this.tank.light = this.tank.lampTarget(S.clockMin); this.tank.setAspect(this.tank.W / this.tank.H);
-    if (!this.tank.bg) { this.tank.layout(); this.tank.buildBG(); }
+    const S = this.S; if (!S.scape) S.scape = Scape.fromTemplate('start'); this.tank.setScape(S.scape); this.tank.lampMode = S.settings.lamp; this.tank.light = this.tank.lampTarget(S.clockMin); this.tank.setAspect(this.tank.W / this.tank.H);
+    if (!this.tank.bg) this.tank.buildBG();
     this.tank.onEat = () => { if (R.chance(0.45)) AudioSys.SFX.eat(); };
     UI.refreshTop && $('#app') && UI.refreshTop();
   },
@@ -178,6 +181,7 @@ const Game = {
     UI.toast(r.started ? `${f.name} gebe kaldı! Doğum ~${Math.round((r.due - this.S.clockMin) / 1440)} gün sonra` : `${f.name} sperm depoladı (zaten gebe)`, 'heart', 4200);
     this.save(); return r;
   },
+  markScapeChanged() { clearTimeout(this._svT); this._svT = setTimeout(() => this.save(), 2500); },
   skipDays(n) { this.S.clockMin += n * 1440; this.tank.creatures.forEach((c) => (c.now = this.S.clockMin)); this.tickBreeding(false); UI.refreshTop(); },
   unrevealed() { return this.tank.creatures.filter((c) => c.unrevealed); },
   /** Soyağacı kaydından (genom saklı) portre çizilebilen hafif canlı. */
@@ -234,64 +238,29 @@ const Game = {
     // otomatik düşük güç modu: kare süresi uzarsa süs efektlerini azalt
     this.ema = (this.ema || 0.016) * 0.97 + dt * 0.03; this.slowT = clamp((this.slowT || 0) + (this.ema > 0.034 ? dt : -dt * 2), 0, 6);
     if (!this.low && this.slowT > 4) this.low = true; else if (this.low && this.slowT <= 0 && this.ema < 0.022) this.low = false;
-    if (UI.cur === 'aq') this.renderMain();
+    if (UI.cur === 'aq') this.renderMain(); else if (UI.cur === 'design') Editor.render();
   },
 
-  cvs: null, cw: 0, ch: 0, dpr: 1,
-  renderMain() {
-    if (!this.cw) return; const cam = this.cam, t = this.tank;
-    this.clampCam();
-    t.render(this.cvs.getContext('2d'), { cw: this.cw, ch: this.ch, dpr: this.dpr, cx: cam.cx, cy: cam.cy, zoom: cam.zoom, par: this.parX || 0, reduce: this.S.settings.reduce, showFav: true, low: this.low });
-  },
+  /* ---------------- Görünümler (kamera/girdi) ---------------- */
+  get cam() { return this.vp.cam; }, get cw() { return this.vp.cw; }, get ch() { return this.vp.ch; }, get cvs() { return this.vp.cv; },
+  worldToScreen(x, y) { return this.vp.toScreen(x, y); }, screenToWorld(x, y) { return this.vp.toWorld(x, y); },
+  setZoom(z, sx, sy) { this.vp.setZoom(z, sx, sy); },
+  resizeCanvas() { this.vp.resize(); if (this.dvp) this.dvp.resize(); },
+  renderMain() { this.vp.render({ reduce: this.S.settings.reduce, showFav: true, low: this.low }); },
   renderThumb(cv) {
     const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1), w = Math.round(r.width || 320), hh = Math.round(r.height || 180), t = this.tank;
     if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = hh * dpr; }
     t.render(cv.getContext('2d'), { cw: w, ch: hh, dpr, cx: t.W / 2, cy: t.H / 2, zoom: Math.max(1, (hh / t.H) / (w / t.W)), par: 0, reduce: true });
   },
-
-  /* ---------------- Tuval, kamera, girdi ---------------- */
-  clampCam() { const c = this.cam, t = this.tank, hw = t.W / (2 * c.zoom), hh = t.H / (2 * c.zoom); c.cx = clamp(c.cx, hw, t.W - hw); c.cy = clamp(c.cy, hh, t.H - hh); },
-  screenToWorld(sx, sy) { const S = (this.cw / this.tank.W) * this.cam.zoom; return { x: (sx - this.cw / 2) / S + this.cam.cx, y: (sy - this.ch / 2) / S + this.cam.cy, S }; },
-  worldToScreen(wx, wy) { const S = (this.cw / this.tank.W) * this.cam.zoom; return { x: (wx - this.cam.cx) * S + this.cw / 2, y: (wy - this.cam.cy) * S + this.ch / 2, S }; },
-  resizeCanvas() {
-    const cv = this.cvs, r = cv.getBoundingClientRect(); if (r.width < 10 || r.height < 10) return;
-    this.dpr = Math.min(2, devicePixelRatio || 1); this.cw = r.width; this.ch = r.height; cv.width = Math.round(r.width * this.dpr); cv.height = Math.round(r.height * this.dpr);
-    const oldW = this.tank.W; this.tank.setAspect(r.width / r.height);
-    if (this.tank.W !== oldW) { this.cam.cx *= this.tank.W / oldW; }
-    this.cam.zoom = Math.max(1, this.cam.zoom); this.clampCam();
-  },
-  setZoom(z, sx, sy) {
-    const cam = this.cam, w = this.screenToWorld(sx, sy); cam.zoom = clamp(z, 1, 3.2);
-    const S = (this.cw / this.tank.W) * cam.zoom; cam.cx = w.x - (sx - this.cw / 2) / S; cam.cy = w.y - (sy - this.ch / 2) / S; this.clampCam();
-    AudioSys.setZoom(cam.zoom); if (cam.zoom > 1.5) this.task('zoom');
-  },
   bindCanvas() {
-    const cv = this.cvs = $('#tank'), ptrs = new Map(); let moved = false, pinch = null, lp = 0, tipEl = null, t0 = 0, start = null;
-    new ResizeObserver(() => this.resizeCanvas()).observe(cv);
-    const rel = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
-    const showTip = (c) => { if (tipEl) tipEl.remove(); const s = this.worldToScreen(c.sw.x, c.sw.y); tipEl = h('div.tip', { style: { left: s.x + 'px', top: s.y + 'px' } }, `${c.sex === 'M' ? '♂' : '♀'} ${c.name} · ${c.breed().name}`); $('#s-aq').append(tipEl); const el = tipEl; setTimeout(() => el.remove(), 1800); };
-    cv.addEventListener('pointerdown', (e) => {
-      cv.setPointerCapture(e.pointerId); const p = rel(e); ptrs.set(e.pointerId, p); AudioSys.start();
-      if (ptrs.size === 1) { moved = false; start = { ...p }; t0 = performance.now(); clearTimeout(lp); lp = setTimeout(() => { if (!moved && ptrs.size === 1) { const w = this.screenToWorld(start.x, start.y), c = this.tank.hit(w.x, w.y, 30 / w.S); if (c) { moved = true; showTip(c); } } }, 520); }
-      else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: this.cam.zoom }; moved = true; clearTimeout(lp); }
+    let tipEl = null;
+    const showTip = (c) => { if (tipEl) tipEl.remove(); const s = this.vp.toScreen(c.sw.x, c.sw.y); tipEl = h('div.tip', { style: { left: s.x + 'px', top: s.y + 'px' } }, `${c.sex === 'M' ? '♂' : '♀'} ${c.name} · ${c.breed().name}`); $('#s-aq').append(tipEl); const el = tipEl; setTimeout(() => el.remove(), 1800); };
+    this.vp = new Viewport($('#tank'), this.tank, {
+      down: () => { AudioSys.start(); return false; },
+      tap: (p) => this.tap(p.x, p.y),
+      long: (p) => { const w = this.vp.toWorld(p.x, p.y), c = this.tank.hit(w.x, w.y, 30 / w.S); if (c) showTip(c); },
+      zoomed: (z) => { AudioSys.setZoom(z); if (z > 1.5) this.task('zoom'); },
     });
-    cv.addEventListener('pointermove', (e) => {
-      const p = rel(e), prev = ptrs.get(e.pointerId);
-      // hafif paralaks: imleç/parmak konumuna göre
-      this.parX = ((p.x / this.cw) - 0.5) * -14;
-      if (!prev) return; ptrs.set(e.pointerId, p);
-      if (ptrs.size === 2 && pinch) { const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); this.setZoom(pinch.z * d / pinch.d, (a.x + b.x) / 2, (a.y + b.y) / 2); return; }
-      if (ptrs.size === 1) {
-        if (!moved && Math.hypot(p.x - start.x, p.y - start.y) > 8) { moved = true; cv.classList.add('drag'); clearTimeout(lp); }
-        if (moved && this.cam.zoom > 1.001) { const S = (this.cw / this.tank.W) * this.cam.zoom; this.cam.cx -= (p.x - prev.x) / S; this.cam.cy -= (p.y - prev.y) / S; this.clampCam(); }
-      }
-    });
-    const up = (e) => {
-      const had = ptrs.has(e.pointerId); ptrs.delete(e.pointerId); clearTimeout(lp); cv.classList.remove('drag'); if (ptrs.size < 2) pinch = null;
-      if (had && ptrs.size === 0 && !moved && performance.now() - t0 < 600) this.tap(start.x, start.y);
-    };
-    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
-    cv.addEventListener('wheel', (e) => { e.preventDefault(); const p = rel(e); this.setZoom(this.cam.zoom * Math.exp(-e.deltaY * 0.0014), p.x, p.y); }, { passive: false });
     document.addEventListener('keydown', (e) => {
       if (/input|textarea/i.test((e.target.tagName || '')) || e.ctrlKey || e.metaKey) return;
       if (UI.sheets.length || $('#celebrate').classList.contains('show')) return;
@@ -301,12 +270,12 @@ const Game = {
     });
   },
   tap(sx, sy) {
-    const w = this.screenToWorld(sx, sy), c = this.tank.hit(w.x, w.y, 26 / w.S); this.S.stats.taps++;
-    if (c) { const s = this.worldToScreen(c.sw.x, c.sw.y), r = $('#tank').getBoundingClientRect(), sz = c.bodyLen() * s.S * 1.4;
+    const w = this.vp.toWorld(sx, sy), c = this.tank.hit(w.x, w.y, 26 / w.S); this.S.stats.taps++;
+    if (c) { const s = this.vp.toScreen(c.sw.x, c.sw.y), r = this.vp.cv.getBoundingClientRect(), sz = c.bodyLen() * s.S * 1.4;
       UI.openCreature(c, { left: r.left + s.x - sz / 2, top: r.top + s.y - sz / 4, width: sz, height: sz / 2 }); }
     else this.tank.startleAt(w.x, w.y, 150);   // cama dokunuşu: halka + bazı balıklar ürker
   },
-  onScreen(name) { if (name === 'aq') { requestAnimationFrame(() => { this.resizeCanvas(); UI.refreshAq(); }); } },
+  onScreen(name) { this.tank.frozen = name === 'design'; if (name === 'aq' || name === 'design') requestAnimationFrame(() => { this.resizeCanvas(); name === 'aq' && UI.refreshAq(); }); },
 
   /* ---------------- Yaşam döngüsü ---------------- */
   watchLifecycle() {},

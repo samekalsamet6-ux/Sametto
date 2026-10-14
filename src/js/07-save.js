@@ -2,7 +2,7 @@
 /* =====================================================================
    07 · KAYIT — 3 yuva, sürüm/göç, yedek, JSON dışa/içe aktarma
    ===================================================================== */
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 3;
 const SLOTS = 3;
 
 const Save = {
@@ -20,7 +20,7 @@ const Save = {
         theme: 'ocean', font: 1, reduce: false, cb: false, speed: 1, lamp: 'auto', bgMute: true, sessionReminder: false,
         audio: { master: 0.8, music: 0.5, amb: 0.5, sfx: 0.7, style: 'ambient' },
       },
-      onboarded: false, litters: [], nextId: 1, lastSeen: Date.now(), savedAt: 0, createdAt: Date.now(),
+      onboarded: false, litters: [], templates: [], gallery: [], nextId: 1, lastSeen: Date.now(), savedAt: 0, createdAt: Date.now(),
     };
   },
 
@@ -34,6 +34,9 @@ const Save = {
           d.pedigree = d.pedigree || {};
           for (const c of d.creatures || []) { const r = d.pedigree[c.id] || (d.pedigree[c.id] = { s: c.sire || 0, d: c.dam || 0 }); Object.assign(r, { name: r.name || c.name, sex: c.genome.sex, g: c.genome, seed: c.seed, bornT: c.bornT }); }
           d.litters = d.litters || [];
+          break;
+        case 2: // v2 → v3: aquascape (eski sabit dekora benzeyen başlangıç şablonu), şablonlar, galeri
+          d.scape = d.scape || Scape.fromTemplate('start'); d.templates = d.templates || []; d.gallery = d.gallery || [];
           break;
         default: break;
       }

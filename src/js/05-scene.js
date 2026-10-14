@@ -6,11 +6,22 @@
 
 class Tank {
   constructor() {
-    this.creatures = []; this.food = []; this.bubbles = []; this.ripples = []; this.motes = []; this.sparks = [];
-    this.t = 0; this.W = 1000; this.H = 700; this.light = 1; this.lightTarget = 1; this.foodAge = 99; this.bgKey = '';
-    this.lampMode = 'auto'; this.bubbleT = 0; this.minute = 12 * 60; this.plants = []; this.rocks = [];
-    this.onEat = null; this.caus = null;
+    this.creatures = []; this.food = []; this.bubbles = []; this.ripples = []; this.motes = [];
+    this.t = 0; this.W = 1000; this.H = 700; this.light = 1; this.lightTarget = 1; this.foodAge = 99;
+    this.lampMode = 'auto'; this.bubbleT = 0; this.co2T = 0; this.minute = 12 * 60; this._lastMin = null;
+    this.onEat = null; this.caus = null; this.scape = Scape.blank(); this.rev = 0; this._builtRev = -1; this.frozen = false; this.flowPow = 0.5; this.tint = 0; this.algae = null;
     for (let i = 0; i < 46; i++) this.motes.push({ x: R.next(), y: R.next(), r: R.float(0.6, 1.8), v: R.float(2, 7), ph: R.float(0, TAU), z: R.float(0.5, 1.3) });
+  }
+
+  setScape(sc) { this.scape = sc; this.touch(); }
+  /** Aquascape değişti: zemin dokusu yeniden çizilsin. */
+  touch() { this.rev++; this.updateEquipment(); }
+  ground(wx) { return Scape.ground(this.scape, this.W, wx); }
+
+  /** Ekipmandan akıntı gücü ve çıkış konumu. */
+  updateEquipment() {
+    const e = this.scape.equip, f = EQUIP.filter[e.filter];
+    this.flowPow = (f ? f.flow : 0) + (e.air ? 0.1 : 0) + 0.08; this.outX = e.filter === 'external' ? 0.93 : 0.06;
   }
 
   /** Ekran oranına göre dünya genişliği. */
@@ -19,65 +30,14 @@ class Tank {
     if (Math.abs(W - this.W) < 2 && this.bg) return;
     const old = this.W; this.W = W;
     for (const c of this.creatures) { c.sw.x *= W / old; c.sw.tx *= W / old; }
-    this.layout(); this.buildBG();
-  }
-
-  layout() {
-    const r = new RNG(20240612), W = this.W, H = this.H, gy = H - 74;
-    this.rocks = [
-      { x: W * 0.30, y: gy + 6, w: 150, h: 92, ph: 0 }, { x: W * 0.37, y: gy + 10, w: 92, h: 58, ph: 1 },
-      { x: W * 0.74, y: gy + 8, w: 130, h: 70, ph: 2 },
-    ];
-    const P = [];
-    const frac = [0.05, 0.1, 0.16, 0.54, 0.6, 0.9, 0.95];
-    frac.forEach((f, i) => P.push({ type: 'vallis', x: W * f + r.float(-10, 10), y: gy + r.float(2, 10), h: r.float(190, 300) * (i % 2 ? 0.9 : 1), n: 8, layer: 'mid', ph: r.float(0, TAU) }));
-    P.push({ type: 'stem', x: W * 0.83, y: gy + 4, h: 230, n: 3, layer: 'mid', ph: 1.2 }, { type: 'stem', x: W * 0.47, y: gy + 6, h: 170, n: 3, layer: 'mid', ph: 2.4 });
-    P.push({ type: 'anubias', x: this.rocks[0].x + 20, y: this.rocks[0].y - this.rocks[0].h * 0.55, h: 70, n: 6, layer: 'mid', ph: 0.5 });
-    P.push({ type: 'anubias', x: this.rocks[2].x - 10, y: this.rocks[2].y - this.rocks[2].h * 0.5, h: 56, n: 5, layer: 'mid', ph: 3 });
-    // uzak (arka plan) bitkiler — soluk, yavaş paralaks
-    [0.22, 0.42, 0.66, 0.8].forEach((f) => P.push({ type: 'vallis', x: W * f, y: gy - 6, h: r.float(150, 210), n: 6, layer: 'far', ph: r.float(0, TAU) }));
-    // ön plan
-    [0.2, 0.68, 0.98].forEach((f) => P.push({ type: 'vallis', x: W * f, y: gy + 40, h: r.float(110, 150), n: 5, layer: 'front', ph: r.float(0, TAU) }));
-    this.plants = P;
+    this.buildBG(); this.touch();
   }
 
   buildBG() {
-    const W = this.W, H = this.H, sc = Math.min(1.6, 2200 / W);
+    const W = this.W, H = this.H, sc = Math.min(1.6, 2200 / W); this.bgScale = sc;
     const cv = this.bg || (this.bg = document.createElement('canvas'));
     cv.width = Math.round(W * sc); cv.height = Math.round(H * sc);
-    const c = cv.getContext('2d'); c.setTransform(sc, 0, 0, sc, 0, 0);
-    const g = c.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#2fb9c8'); g.addColorStop(0.35, '#17869f'); g.addColorStop(0.75, '#0b4a68'); g.addColorStop(1, '#062c43');
-    c.fillStyle = g; c.fillRect(0, 0, W, H);
-    // yumuşak ışık havuzları
-    for (const [fx, fy, r, a] of [[0.25, 0.1, 0.55, 0.22], [0.7, 0.05, 0.6, 0.18], [0.5, 0.5, 0.8, 0.07]]) {
-      const rg = c.createRadialGradient(W * fx, H * fy, 0, W * fx, H * fy, Math.max(W, H) * r);
-      rg.addColorStop(0, `rgba(190,255,250,${a})`); rg.addColorStop(1, 'rgba(190,255,250,0)'); c.fillStyle = rg; c.fillRect(0, 0, W, H);
-    }
-    // zemin (kum) — dalgalı profil
-    const r = new RNG(77), gy = H - 78;
-    c.beginPath(); c.moveTo(0, H);
-    for (let x = 0; x <= W; x += 10) c.lineTo(x, gy + 8 + Math.sin(x * 0.011) * 7 + Math.sin(x * 0.027 + 1) * 4);
-    c.lineTo(W, H); c.closePath();
-    const gs = c.createLinearGradient(0, gy, 0, H); gs.addColorStop(0, '#cdb88c'); gs.addColorStop(0.5, '#a58f66'); gs.addColorStop(1, '#6a5a3e');
-    c.fillStyle = gs; c.fill();
-    c.save(); c.clip();
-    for (let i = 0; i < W / 3.2; i++) { const x = r.float(0, W), y = r.float(gy, H), rr = r.float(0.8, 3.2); c.fillStyle = r.pick(['rgba(255,240,200,.28)', 'rgba(60,45,25,.3)', 'rgba(255,255,255,.12)', 'rgba(110,90,60,.35)']); c.beginPath(); c.ellipse(x, y, rr * 1.4, rr, 0, 0, TAU); c.fill(); }
-    c.restore();
-    // taşlar
-    for (const k of this.rocks) {
-      const pts = []; const n = 11;
-      for (let i = 0; i < n; i++) { const a = Math.PI + (i / (n - 1)) * Math.PI; pts.push([k.x + Math.cos(a) * k.w * 0.5 * (0.88 + r.next() * 0.2), k.y + Math.sin(a) * k.h * (0.8 + r.next() * 0.25)]); }
-      pts.push([k.x + k.w * 0.5, k.y + 14], [k.x - k.w * 0.5, k.y + 14]);
-      c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath();
-      const rg = c.createLinearGradient(k.x - k.w * 0.4, k.y - k.h, k.x + k.w * 0.4, k.y + 10);
-      rg.addColorStop(0, '#7e8f9c'); rg.addColorStop(0.5, '#4e5e6c'); rg.addColorStop(1, '#2a3541');
-      c.fillStyle = rg; c.fill(); c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = 1.5; c.stroke();
-      c.strokeStyle = 'rgba(255,255,255,.14)'; c.lineWidth = 1; for (let i = 0; i < 4; i++) { c.beginPath(); c.moveTo(k.x - k.w * 0.3 + i * 18, k.y - k.h * 0.6 + i * 6); c.lineTo(k.x - k.w * 0.1 + i * 16, k.y - k.h * 0.2); c.stroke(); }
-    }
-    // arka cam gölgesi
-    const gv = c.createLinearGradient(0, 0, 0, H); gv.addColorStop(0, 'rgba(0,20,30,0)'); gv.addColorStop(1, 'rgba(0,15,25,.35)'); c.fillStyle = gv; c.fillRect(0, 0, W, H);
-    // kostik deseni
+    const c = cv.getContext('2d'); c.setTransform(sc, 0, 0, sc, 0, 0); this.drawBackdrop(c);
     if (!this.caus) {
       const cs = 192, cc = document.createElement('canvas'); cc.width = cc.height = cs; const cx = cc.getContext('2d'), id = cx.createImageData(cs, cs);
       for (let y = 0; y < cs; y++) for (let x = 0; x < cs; x++) {
@@ -90,11 +50,45 @@ class Tank {
     }
   }
 
+  drawBackdrop(c) {
+    const W = this.W, H = this.H, kind = this.scape.bg;
+    const pal = { blue: ['#2fb9c8', '#17869f', '#0b4a68', '#062c43'], black: ['#10242c', '#0a1a22', '#071218', '#040a0e'], frost: ['#6cc9d0', '#4aa6b4', '#2d7e92', '#175468'], nature: ['#2fb9c8', '#17869f', '#0b4a68', '#062c43'] }[kind] || [];
+    const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, pal[0]); g.addColorStop(0.35, pal[1]); g.addColorStop(0.75, pal[2]); g.addColorStop(1, pal[3]);
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    for (const [fx, fy, r, a] of [[0.25, 0.1, 0.55, 0.22], [0.7, 0.05, 0.6, 0.18], [0.5, 0.5, 0.8, 0.07]]) {
+      const rg = c.createRadialGradient(W * fx, H * fy, 0, W * fx, H * fy, Math.max(W, H) * r); rg.addColorStop(0, `rgba(190,255,250,${kind === 'black' ? a * 0.4 : a})`); rg.addColorStop(1, 'rgba(190,255,250,0)'); c.fillStyle = rg; c.fillRect(0, 0, W, H);
+    }
+    if (kind === 'frost') { c.fillStyle = 'rgba(255,255,255,.12)'; c.fillRect(0, 0, W, H); const r = new RNG(5); for (let i = 0; i < 70; i++) { c.fillStyle = `rgba(255,255,255,${r.float(0.02, 0.07)})`; c.beginPath(); c.arc(r.float(0, W), r.float(0, H), r.float(10, 60), 0, TAU); c.fill(); } }
+    if (kind === 'nature') { const r = new RNG(21); for (let i = 0; i < 26; i++) { const x = r.float(0, W), y = H - 90, h = r.float(120, 380); c.strokeStyle = `rgba(10,50,45,${r.float(0.18, 0.4)})`; c.lineWidth = r.float(4, 9); c.lineCap = 'round'; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + r.float(-40, 40), y - h * 0.5, x + r.float(-30, 30), y - h); c.stroke(); } }
+    const gv = c.createLinearGradient(0, 0, 0, H); gv.addColorStop(0, 'rgba(0,20,30,0)'); gv.addColorStop(1, 'rgba(0,15,25,.35)'); c.fillStyle = gv; c.fillRect(0, 0, W, H);
+  }
+
+  /** Zemin: yükseklik haritasından, türüne göre dokulu. */
+  buildSub() {
+    const sc = this.scape, W = this.W, H = this.H, k = this.bgScale || 1, cv = this.subCv || (this.subCv = document.createElement('canvas'));
+    if (cv.width !== Math.round(W * k) || cv.height !== Math.round(H * k)) { cv.width = Math.round(W * k); cv.height = Math.round(H * k); }
+    const c = cv.getContext('2d'); c.setTransform(k, 0, 0, k, 0, 0); c.clearRect(0, 0, W, H);
+    const S = SUBSTRATES[sc.sub.type], [hh, ss, ll] = S.colors[sc.sub.color] || S.colors.natural;
+    c.beginPath(); c.moveTo(0, H); for (let x = 0; x <= W + 8; x += 8) c.lineTo(x, this.ground(Math.min(x, W)));
+    c.lineTo(W, H); c.closePath();
+    const g = c.createLinearGradient(0, GROUND0 - SUB_MAX, 0, H); g.addColorStop(0, hsl(hh, ss, ll + 8)); g.addColorStop(0.5, hsl(hh, ss, ll - 6)); g.addColorStop(1, hsl(hh, ss, ll - 20));
+    c.fillStyle = g; c.fill(); c.save(); c.clip();
+    const r = new RNG(77), n = Math.min(900, W / 2.2), dark = ll < 30;
+    for (let i = 0; i < n; i++) {
+      const x = r.float(0, W), gy = this.ground(x), y = r.float(gy, H), rr = sc.sub.type === 'gravel' ? r.float(2, 5) : sc.sub.type === 'aquasoil' ? r.float(1.5, 3.5) : sc.sub.type === 'coral' ? r.float(1.5, 4.5) : r.float(0.8, 2.8);
+      c.fillStyle = r.pick(dark ? ['rgba(255,255,255,.1)', 'rgba(0,0,0,.4)', 'rgba(90,70,50,.25)'] : ['rgba(255,245,215,.3)', 'rgba(50,40,25,.28)', 'rgba(255,255,255,.14)', 'rgba(100,80,55,.3)']); c.beginPath(); c.ellipse(x, y, rr * 1.35, rr, r.float(0, 3), 0, TAU); c.fill();
+    }
+    c.restore();
+    c.strokeStyle = hsl(hh, ss, ll + 22, 0.55); c.lineWidth = 2; c.beginPath(); for (let x = 0; x <= W + 8; x += 8) { const y = this.ground(Math.min(x, W)); x ? c.lineTo(x, y) : c.moveTo(x, y); } c.stroke();
+    this._builtRev = this.rev;
+  }
+
   /* ---------------- Işık / gün döngüsü ---------------- */
   lampTarget(min) {
     if (this.lampMode === 'on') return 1; if (this.lampMode === 'off') return 0;
-    const m = min % 1440; return m >= 420 && m < 1260 ? 1 : 0;           // 07:00–21:00
+    const L = this.scape.equip.light, m = (min % 1440) / 60; return m >= L.from && m < L.to ? 1 : 0;
   }
+  get lightPower() { return this.scape.equip.light.p / 100; }
 
   addCreature(c) { this.creatures.push(c); return c; }
   removeCreature(c) { const i = this.creatures.indexOf(c); if (i >= 0) this.creatures.splice(i, 1); }
@@ -117,21 +111,25 @@ class Tank {
     this.t += dt; this.minute = minute; this.foodAge += dt;
     this.lightTarget = this.lampTarget(minute);
     this.light = damp(this.light, this.lightTarget, 0.55, dt);
-    const env = { W: this.W, H: this.H, top: 56, bottom: this.H - 76, food: this.food, foodAge: this.foodAge, others: this.creatures, night: 1 - this.light, time: this.t, onEat: this.onEat };
-    for (const c of this.creatures) { c.now = minute; c.sw.update(dt, env); }
+    const env = { W: this.W, H: this.H, top: 56, bottom: Math.min(this.H - 76, this.ground(this.W * 0.5) - 6), food: this.food, foodAge: this.foodAge, others: this.creatures, night: 1 - this.light, time: this.t, onEat: this.onEat };
+    if (!this.frozen) for (const c of this.creatures) { c.now = minute; env.bottom = Math.min(this.H - 70, this.ground(c.sw.x) - 10); c.sw.update(dt, env); }
     // yem
     for (const f of this.food) {
-      f.life -= dt; if (!f.eaten) { f.y += f.vy * dt * (f.y < 40 ? 0.5 : 1); f.x += Math.sin(this.t * 1.7 + f.ph) * 6 * dt; f.vy = Math.min(f.vy, 28); if (f.y > this.H - 82) { f.y = this.H - 82; f.vy = 0; } }
+      f.life -= dt; if (!f.eaten) { f.y += f.vy * dt * (f.y < 40 ? 0.5 : 1); f.x += Math.sin(this.t * 1.7 + f.ph) * 6 * dt; f.vy = Math.min(f.vy, 28); const gy = this.ground(f.x) - 6; if (f.y > gy) { f.y = gy; f.vy = 0; } }
     }
     this.food = this.food.filter((f) => !f.eaten && f.life > 0);
-    // kabarcıklar
-    this.bubbleT -= dt;
-    if (this.bubbleT <= 0) { this.bubbleT = R.float(0.18, 0.6); const bx = this.W * 0.115 + R.float(-3, 3); this.bubbles.push({ x: bx, y: this.H - 84, r: R.float(1.6, 4), vy: R.float(40, 70), ph: R.float(0, TAU) }); }
-    for (const b of this.bubbles) { b.y -= b.vy * dt; b.x += Math.sin(this.t * 3 + b.ph) * 9 * dt; b.r += dt * 0.5; }
+    // kabarcıklar: hava taşı + CO₂
+    const e = this.scape.equip; this.bubbleT -= dt;
+    if (e.air && this.bubbleT <= 0) { this.bubbleT = R.float(0.18, 0.6); const bx = this.W * 0.115 + R.float(-3, 3); this.bubbles.push({ x: bx, y: this.ground(bx) - 4, r: R.float(1.6, 4), vy: R.float(40, 70), ph: R.float(0, TAU) }); }
+    this.co2T -= dt; if (e.co2 !== 'none' && this.co2T <= 0) { this.co2T = (e.co2 === 'tank' ? 0.12 : 0.5) * R.float(0.7, 1.3); const bx = this.W * 0.2 + R.float(-2, 2); this.bubbles.push({ x: bx, y: this.ground(bx) - 30, r: R.float(0.9, 1.6), vy: R.float(28, 44), ph: R.float(0, TAU), co2: 1 }); }
+    for (const b of this.bubbles) { b.y -= b.vy * dt; b.x += Math.sin(this.t * 3 + b.ph) * 9 * dt; b.r += dt * (b.co2 ? 0.1 : 0.5); }
     for (let i = this.bubbles.length - 1; i >= 0; i--) if (this.bubbles[i].y < 30) { if (R.chance(0.25)) this.ripples.push({ x: this.bubbles[i].x, y: 28, r: 2, life: 0.9, max: 18 }); this.bubbles.splice(i, 1); }
     for (const r of this.ripples) { r.life -= dt; r.r += (r.max / 1.2) * dt; }
     this.ripples = this.ripples.filter((r) => r.life > 0);
     for (const m of this.motes) { m.y -= m.v * dt * 0.004; m.x += Math.sin(this.t * 0.2 + m.ph) * 0.0002; if (m.y < 0) m.y = 1; }
+    // bitki büyümesi (Aşama 4'te kimyaya bağlanır): Chem.growPlants varsa o kullanılır
+    if (this._lastMin !== null && minute > this._lastMin && !(typeof Chem !== 'undefined' && Chem.active)) { const dm = minute - this._lastMin; for (const it of this.scape.items) if (it.k === 'plant' && it.g < 1) it.g = Math.min(1, it.g + dm * PLANTS[it.d].grow / (6 * 1440)); }
+    this._lastMin = minute;
   }
 
   /** Dokunma/tıklama: dünya koordinatında en yakın balık. */
@@ -144,112 +142,110 @@ class Tank {
     return best;
   }
 
-  /* ---------------- Çizim ---------------- */
-  drawPlant(ctx, p, t, off) {
-    const x = p.x + off, y = p.y, cur = 0.5 + 0.5 * Math.max(0, 1 - p.x / (this.W * 0.5));   // filtre çıkışı solda: daha çok sallanır
-    ctx.lineCap = 'round';
-    if (p.type === 'vallis') {
-      const far = p.layer === 'far', front = p.layer === 'front';
-      for (let i = 0; i < p.n; i++) {
-        const bx = x + (i - p.n / 2) * 5, hh = p.h * (0.62 + 0.38 * hash1(i * 7.3 + p.x)), ph = p.ph + i * 0.7;
-        const sway = Math.sin(t * 0.75 + ph) * hh * 0.07 * cur + Math.sin(t * 1.3 + ph * 2) * hh * 0.02 + hh * 0.05 * cur;
-        const tx = bx + sway * 1.8, ty = y - hh, cx = bx + sway * 0.5 + Math.sin(i) * 6, cy = y - hh * 0.55;
-        const hue = far ? 160 : 118 + (i % 3) * 8, l = far ? 24 : front ? 40 : 34, s = far ? 38 : 52;
-        ctx.strokeStyle = hsl(hue, s, l, far ? 0.5 : 0.95); ctx.lineWidth = far ? 4 : front ? 7 : 5.5;
-        ctx.beginPath(); ctx.moveTo(bx, y); ctx.quadraticCurveTo(cx, cy, tx, ty); ctx.stroke();
-        if (!far) { ctx.strokeStyle = hsl(hue - 5, s + 6, l + 16, 0.55); ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(bx + 1, y); ctx.quadraticCurveTo(cx + 1, cy, tx, ty + 6); ctx.stroke(); }
-      }
-    } else if (p.type === 'stem') {
-      for (let k = 0; k < p.n; k++) {
-        const bx = x + (k - 1) * 12, ph = p.ph + k, sw = Math.sin(t * 0.8 + ph) * 16 * cur, h = p.h * (0.8 + k * 0.1);
-        const pts = []; for (let i = 0; i <= 9; i++) { const f = i / 9; pts.push([bx + Math.sin(f * 2.2 + ph) * 8 + sw * f * f, y - h * f, f]); }
-        ctx.strokeStyle = 'hsl(110,35%,30%)'; ctx.lineWidth = 2.4; ctx.beginPath(); pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.stroke();
-        for (const [px, py, f] of pts.slice(1)) { const L = 20 * (1 - f * 0.45); for (const sgn of [-1, 1]) { ctx.save(); ctx.translate(px, py); ctx.rotate(sgn * (0.9 - f * 0.25) + Math.sin(t + ph + f) * 0.06); ctx.fillStyle = hsl(104 + f * 18, 55, 34 + f * 12, 0.92); ctx.beginPath(); ctx.ellipse(0, -L * 0.5, 2.8, L * 0.5, 0, 0, TAU); ctx.fill(); ctx.restore(); } }
-      }
-    } else if (p.type === 'anubias') {
-      for (let i = 0; i < p.n; i++) {
-        const a = -Math.PI / 2 + (i - (p.n - 1) / 2) * 0.42 + Math.sin(t * 0.6 + p.ph + i) * 0.04;
-        ctx.save(); ctx.translate(x, y); ctx.rotate(a + Math.PI / 2);
-        const L = p.h * (0.7 + 0.3 * hash1(i * 3.1)), g = ctx.createLinearGradient(0, 0, 0, -L);
-        g.addColorStop(0, 'hsl(120,45%,18%)'); g.addColorStop(1, 'hsl(110,50%,34%)');
-        ctx.strokeStyle = 'hsl(120,40%,20%)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -L * 0.45); ctx.stroke();
-        ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, -L * 0.72, L * 0.2, L * 0.34, 0, 0, TAU); ctx.fill();
-        ctx.strokeStyle = 'rgba(180,255,170,.25)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, -L * 0.4); ctx.lineTo(0, -L * 1.04); ctx.stroke(); ctx.restore();
-      }
+  /* ---------------- Öğe çizimi ---------------- */
+  drawItem(ctx, it, t, off) {
+    const sc = this.scape, def = Scape.defOf(it), p = Scape.pos(sc, this.W, it);
+    if (Scape.isHard(it)) {
+      const s = Art.sprite(it), R_ = Art.RES; ctx.save(); ctx.translate(p.x + off, p.y); ctx.rotate(p.r); ctx.scale(p.s * p.fl, p.s);
+      ctx.drawImage(s.cv, -s.ax / R_, -s.ay / R_, s.cv.width / R_, s.cv.height / R_); ctx.restore();
+    } else {
+      const prox = 0.5 + 0.5 * Math.max(0, 1 - Math.abs(p.x - this.outX * this.W) / (this.W * 0.55));
+      Art.drawPlant(ctx, it, def, p.x + off, p.y, { t, flow: this.flowPow * prox * 0.9, ground: (wx) => this.ground(wx - off) });
     }
   }
 
+  drawEquip(ctx, t) {
+    const e = this.scape.equip, W = this.W, H = this.H, gy = (x) => this.ground(x);
+    ctx.save(); ctx.lineCap = 'round';
+    if (e.filter === 'sponge') { const x = W * 0.07, y = gy(x); ctx.fillStyle = '#7b8a52'; ctx.strokeStyle = '#4c5a31'; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(x - 18, y - 58, 36, 62, 8); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(0,0,0,.25)'; for (let i = 0; i < 14; i++) { ctx.beginPath(); ctx.arc(x - 12 + (i * 7) % 24, y - 52 + ((i * 13) % 50), 1.8, 0, TAU); ctx.fill(); } ctx.strokeStyle = '#223'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(x, y - 58); ctx.lineTo(x, 14); ctx.stroke(); }
+    else if (e.filter === 'internal') { const x = W * 0.045, y = gy(x); ctx.fillStyle = '#1b2428'; ctx.beginPath(); ctx.roundRect(x - 16, y - 110, 32, 112, 6); ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.stroke(); ctx.strokeStyle = '#2b363c'; ctx.lineWidth = 3; for (let i = 0; i < 9; i++) { ctx.beginPath(); ctx.moveTo(x - 10, y - 20 - i * 9); ctx.lineTo(x + 10, y - 20 - i * 9); ctx.stroke(); } ctx.fillStyle = '#1b2428'; ctx.fillRect(x - 5, y - 130, 56, 12); ctx.fillStyle = 'rgba(255,255,255,.2)'; for (let i = 0; i < 5; i++) ctx.fillRect(x + 4 + i * 9, y - 126, 3, 4); }
+    else if (e.filter === 'external') { const x = W - 26; ctx.strokeStyle = 'rgba(190,230,240,.55)'; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(x, 8); ctx.lineTo(x, gy(x) - 30); ctx.stroke(); ctx.strokeStyle = 'rgba(190,230,240,.35)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x - 4, 8); ctx.lineTo(x - 4, gy(x) - 30); ctx.stroke(); ctx.strokeStyle = 'rgba(190,230,240,.5)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(W - 58, 8); ctx.lineTo(W - 58, 36); ctx.quadraticCurveTo(W - 58, 62, W - 100, 62); ctx.stroke(); }
+    if (e.heater) { const x = W - 12; ctx.strokeStyle = 'rgba(210,225,230,.5)'; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(x - 30, 14); ctx.lineTo(x - 12, gy(x) - 80); ctx.stroke(); ctx.strokeStyle = `rgba(255,120,60,${0.4 + 0.2 * Math.sin(t * 2)})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x - 29, gy(x) - 150); ctx.lineTo(x - 12, gy(x) - 80); ctx.stroke(); }
+    if (e.co2 !== 'none') { const x = W * 0.2, y = gy(x); ctx.strokeStyle = 'rgba(160,200,215,.5)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y - 24); ctx.quadraticCurveTo(x - 30, 100, x - 60, 14); ctx.stroke(); ctx.fillStyle = 'rgba(210,225,230,.7)'; ctx.beginPath(); ctx.ellipse(x, y - 24, 14, 6, 0, 0, TAU); ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,.3)'; ctx.lineWidth = 1; ctx.stroke(); }
+    if (e.air) { const x = W * 0.115, y = gy(x); ctx.fillStyle = '#556'; ctx.beginPath(); ctx.ellipse(x, y - 2, 11, 5, 0, 0, TAU); ctx.fill(); }
+    ctx.restore();
+  }
+
   /**
-   * v: {cw, ch, dpr, cx, cy, zoom, par, rays}
-   * Önce oda rengi, sonra sahne katmanları (paralaks) ve ışık.
+   * v: {cw, ch, dpr, cx, cy, zoom, par, low, reduce, design, dry, after(ctx), fishAlpha}
    */
   render(ctx, v) {
-    const S = (v.cw / this.W) * v.zoom, dpr = v.dpr, t = this.t, W = this.W, H = this.H, reduce = v.reduce;
+    if (this._builtRev !== this.rev) this.buildSub();
+    const S = v.S ?? (v.cw / this.W) * v.zoom, dpr = v.dpr, t = this.t, W = this.W, H = this.H, reduce = v.reduce, sc = this.scape;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#06141d'; ctx.fillRect(0, 0, v.cw * dpr, v.ch * dpr);
-    const tx = v.cw / 2 - v.cx * S, ty = v.ch / 2 - v.cy * S;
-    const base = [dpr * S, 0, 0, dpr * S, dpr * tx, dpr * ty];
+    const tx = v.cw / 2 - v.cx * S, ty = (v.cy0 ?? v.ch / 2) - v.cy * S, base = [dpr * S, 0, 0, dpr * S, dpr * tx, dpr * ty];
     ctx.setTransform(base[0], base[1], base[2], base[3], base[4], base[5]);
-    const px = v.cx - W / 2 + (v.par || 0);
-    ctx.drawImage(this.bg, 0, 0, W, H);
-    const L = this.light;
-    // uzak bitkiler
-    for (const p of this.plants) if (p.layer === 'far') this.drawPlant(ctx, p, t, px * 0.35);
+    const px = v.cx - W / 2 + (v.par || 0), L = v.dry ? 0.6 : this.light * (0.35 + 0.65 * this.lightPower) + (1 - this.lightPower) * 0 + (this.light > 0.5 ? 0 : 0);
+    const lightK = this.light;
+    if (v.dry) { const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#dfe9ee'); g.addColorStop(1, '#a9bcc4'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+    else ctx.drawImage(this.bg, 0, 0, W, H);
     // ışık hüzmeleri
-    const rayA = 0.13 * L + 0.05 * (1 - L);
+    const rayA = v.dry ? 0 : (0.13 * lightK + 0.05 * (1 - lightK)) * (0.45 + 0.8 * this.lightPower);
     if (rayA > 0.01) {
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
       for (let i = 0; i < (v.low ? 3 : 7); i++) {
         const bx = W * (0.08 + i * 0.14) + Math.sin(t * 0.15 + i * 2) * 24 + px * 0.15, wTop = 30 + 20 * ((i * 7) % 3), wBot = wTop * 2.6, br = 0.65 + 0.35 * Math.sin(t * 0.45 + i * 1.7);
-        const g = ctx.createLinearGradient(0, 24, 0, H * 0.9);
-        const col = L > 0.5 ? '210,255,250' : '150,180,255';
+        const g = ctx.createLinearGradient(0, 24, 0, H * 0.9), col = lightK > 0.5 ? '210,255,250' : '150,180,255';
         g.addColorStop(0, `rgba(${col},${rayA * br})`); g.addColorStop(1, `rgba(${col},0)`);
         ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(bx - wTop / 2, 24); ctx.lineTo(bx + wTop / 2, 24); ctx.lineTo(bx + wBot / 2 - 90, H * 0.9); ctx.lineTo(bx - wBot / 2 - 90, H * 0.9); ctx.closePath(); ctx.fill();
       }
       ctx.restore();
     }
-    // kostikler (zemine ve taşlara)
-    if (L > 0.05 && !reduce && !v.low) {
-      ctx.save(); ctx.globalAlpha = 0.2 * L; ctx.globalCompositeOperation = 'lighter';
-      ctx.beginPath(); ctx.rect(0, H - 150, W, 150); ctx.clip();        // yalnızca zemin ve taşların üstünde
+    // öğeler: arka → zemin → orta → (kostik) → balıklar → ön
+    const order = Scape.drawOrder(sc, W), bucket = (z) => order.filter((it) => Math.floor(Scape.zOf(sc, it) + 0.001) === z);
+    const off = (z) => (z === 0 ? px * 0.3 : z === 2 ? px * -0.12 : 0);
+    for (const it of bucket(0)) this.drawItem(ctx, it, t, off(0));
+    ctx.drawImage(this.subCv, 0, 0, W, H);
+    for (const it of bucket(1)) this.drawItem(ctx, it, t, off(1));
+    this.drawEquip(ctx, t);
+    if (!v.dry && lightK > 0.05 && !reduce && !v.low) {
+      ctx.save(); ctx.globalAlpha = 0.12 * lightK * (0.4 + 0.8 * this.lightPower); ctx.globalCompositeOperation = 'lighter';
+      ctx.beginPath(); ctx.rect(0, H - 170, W, 170); ctx.clip();
       const cs = 1.7, ox = t * 7, oy = t * 4; ctx.translate(ox, oy); ctx.scale(cs, cs);
-      ctx.fillStyle = ctx.createPattern(this.caus, 'repeat'); ctx.fillRect(-ox / cs, (H - 150 - oy) / cs, W / cs, 150 / cs);
+      ctx.fillStyle = ctx.createPattern(this.caus, 'repeat'); ctx.fillRect(-ox / cs, (H - 170 - oy) / cs, W / cs, 170 / cs);
       ctx.restore();
     }
-    // orta bitkiler
-    for (const p of this.plants) if (p.layer === 'mid') this.drawPlant(ctx, p, t, px * -0.05);
     // balıklar (derinliğe göre)
-    const list = this.creatures.slice().sort((a, b) => a.sw.z - b.sw.z);
-    const vx0 = (-tx) / S - 160, vx1 = (v.cw - tx) / S + 160, vy0 = (-ty) / S - 160, vy1 = (v.ch - ty) / S + 160;
-    for (const c of list) {
-      const s = c.sw; if (s.x < vx0 || s.x > vx1 || s.y < vy0 || s.y > vy1) continue;
-      FishArt.draw(ctx, c, t, 0.9 + 0.2 * s.z, 0.82 + 0.18 * s.z, base);
-      if (c.fav && v.showFav) { ctx.fillStyle = '#ffd36b'; ctx.font = '14px sans-serif'; ctx.fillText('★', s.x - 5, s.y - c.bodyLen() * 0.55); }
+    if (!v.dry) {
+      const list = this.creatures.slice().sort((a, b) => a.sw.z - b.sw.z), fa = v.fishAlpha ?? 1;
+      const vx0 = (-tx) / S - 160, vx1 = (v.cw - tx) / S + 160, vy0 = (-ty) / S - 160, vy1 = (v.ch - ty) / S + 160;
+      for (const c of list) {
+        const s = c.sw; if (s.x < vx0 || s.x > vx1 || s.y < vy0 || s.y > vy1) continue;
+        FishArt.draw(ctx, c, t, 0.9 + 0.2 * s.z, (0.82 + 0.18 * s.z) * fa, base);
+        if (c.fav && v.showFav) { ctx.fillStyle = '#ffd36b'; ctx.font = '14px sans-serif'; ctx.fillText('★', s.x - 5, s.y - c.bodyLen() * 0.55); }
+      }
     }
-    // ön plan bitkileri
-    for (const p of this.plants) if (p.layer === 'front') this.drawPlant(ctx, p, t, px * 0.18);
+    for (const it of bucket(2)) this.drawItem(ctx, it, t, off(2));
     // yem
     for (const f of this.food) { ctx.fillStyle = `rgba(230,190,110,${clamp(f.life / 6, 0.2, 1)})`; ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r * 1.5, f.r, f.ph, 0, TAU); ctx.fill(); }
     // kabarcıklar
-    for (const b of this.bubbles) {
-      ctx.strokeStyle = 'rgba(220,255,255,.55)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.stroke();
-      ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.arc(b.x - b.r * 0.35, b.y - b.r * 0.35, b.r * 0.22, 0, TAU); ctx.fill();
+    if (!v.dry) for (const b of this.bubbles) {
+      ctx.strokeStyle = b.co2 ? 'rgba(235,255,255,.75)' : 'rgba(220,255,255,.55)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fill(); if (!b.co2) { ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.arc(b.x - b.r * 0.35, b.y - b.r * 0.35, b.r * 0.22, 0, TAU); ctx.fill(); }
     }
     // asılı parçacıklar
-    ctx.fillStyle = 'rgba(220,255,250,.35)';
-    for (const m of (v.low ? [] : this.motes)) { ctx.globalAlpha = (0.25 + 0.5 * L) * m.z * 0.6; ctx.beginPath(); ctx.arc(m.x * W + px * 0.3 * m.z, m.y * H, m.r, 0, TAU); ctx.fill(); }
-    ctx.globalAlpha = 1;
+    if (!v.dry) { ctx.fillStyle = 'rgba(220,255,250,.35)'; for (const m of (v.low ? [] : this.motes)) { ctx.globalAlpha = (0.25 + 0.5 * lightK) * m.z * 0.6; ctx.beginPath(); ctx.arc(m.x * W + px * 0.3 * m.z, m.y * H, m.r, 0, TAU); ctx.fill(); } ctx.globalAlpha = 1; }
     // su yüzeyi
-    ctx.save(); ctx.fillStyle = '#081a24'; ctx.beginPath(); ctx.moveTo(-50, -60);
-    ctx.lineTo(W + 50, -60); for (let x = W + 50; x >= -50; x -= 12) ctx.lineTo(x, 24 + Math.sin(x * 0.02 + t * 1.1) * 1.8 + Math.sin(x * 0.047 - t * 1.7) * 1.1);
+    ctx.save(); ctx.fillStyle = v.dry ? '#e9f0f3' : '#081a24'; ctx.beginPath(); ctx.moveTo(-50, -60);
+    ctx.lineTo(W + 50, -60); for (let x = W + 50; x >= -50; x -= 12) ctx.lineTo(x, 24 + (v.dry ? 0 : Math.sin(x * 0.02 + t * 1.1) * 1.8 + Math.sin(x * 0.047 - t * 1.7) * 1.1));
     ctx.closePath(); ctx.fill();
-    const sg = ctx.createLinearGradient(0, 22, 0, 70); sg.addColorStop(0, `rgba(210,255,255,${0.35 * L + 0.1})`); sg.addColorStop(1, 'rgba(210,255,255,0)'); ctx.fillStyle = sg; ctx.fillRect(-50, 22, W + 100, 50);
-    ctx.strokeStyle = 'rgba(230,255,255,.5)'; ctx.lineWidth = 1.4; ctx.beginPath(); for (let x = -50; x <= W + 50; x += 12) { const y = 24 + Math.sin(x * 0.02 + t * 1.1) * 1.8 + Math.sin(x * 0.047 - t * 1.7) * 1.1; x === -50 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); } ctx.stroke();
+    if (!v.dry) {
+      const sg = ctx.createLinearGradient(0, 22, 0, 70); sg.addColorStop(0, `rgba(210,255,255,${0.35 * lightK + 0.1})`); sg.addColorStop(1, 'rgba(210,255,255,0)'); ctx.fillStyle = sg; ctx.fillRect(-50, 22, W + 100, 50);
+      ctx.strokeStyle = 'rgba(230,255,255,.5)'; ctx.lineWidth = 1.4; ctx.beginPath(); for (let x = -50; x <= W + 50; x += 12) { const y = 24 + Math.sin(x * 0.02 + t * 1.1) * 1.8 + Math.sin(x * 0.047 - t * 1.7) * 1.1; x === -50 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); } ctx.stroke();
+    }
     ctx.restore();
-    for (const r of this.ripples) { ctx.strokeStyle = `rgba(230,255,255,${clamp(r.life, 0, 1) * 0.5})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(r.x, r.y, r.r * 1.6, r.r * 0.5, 0, 0, TAU); ctx.stroke(); }
+    // armatür (hava boşluğunda)
+    { const lp = sc.equip.light, lx0 = W * 0.14, lx1 = W * 0.86; ctx.fillStyle = '#1b262c'; ctx.beginPath(); ctx.roundRect(lx0, -14, lx1 - lx0, 16, 5); ctx.fill(); const on = this.light > 0.2; ctx.fillStyle = on ? `rgba(255,248,225,${0.5 + 0.4 * this.lightPower})` : 'rgba(80,90,95,.6)'; ctx.fillRect(lx0 + 10, -2, lx1 - lx0 - 20, 3); if (on && !v.dry) { const g = ctx.createLinearGradient(0, 2, 0, 40); g.addColorStop(0, `rgba(255,245,220,${0.18 * this.lightPower})`); g.addColorStop(1, 'rgba(255,245,220,0)'); ctx.fillStyle = g; ctx.fillRect(lx0, 2, lx1 - lx0, 38); } }
+    if (!v.dry) for (const r of this.ripples) { ctx.strokeStyle = `rgba(230,255,255,${clamp(r.life, 0, 1) * 0.5})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(r.x, r.y, r.r * 1.6, r.r * 0.5, 0, 0, TAU); ctx.stroke(); }
     // gece / gün-doğumu rengi
-    const night = 1 - L;
-    if (night > 0.01) { ctx.fillStyle = `rgba(8,18,60,${0.58 * night})`; ctx.fillRect(0, 0, W, H); }
-    const warm = Math.sin(Math.PI * L); if (warm > 0.02 && L > 0.02 && L < 0.98) { ctx.fillStyle = `rgba(255,140,70,${0.16 * warm})`; ctx.fillRect(0, 0, W, H); }
+    const night = 1 - this.light;
+    if (!v.dry) {
+      if (night > 0.01) { ctx.fillStyle = `rgba(8,18,60,${0.58 * night})`; ctx.fillRect(0, 0, W, H); }
+      const warm = Math.sin(Math.PI * this.light); if (warm > 0.02 && this.light > 0.02 && this.light < 0.98) { ctx.fillStyle = `rgba(255,140,70,${0.16 * warm})`; ctx.fillRect(0, 0, W, H); }
+      if (this.tint > 0.01) { ctx.fillStyle = `rgba(110,70,20,${0.32 * this.tint})`; ctx.fillRect(0, 24, W, H); }          // tanen: çay rengi
+      if (this.greenWater > 0.01) { ctx.fillStyle = `rgba(60,150,40,${0.35 * this.greenWater})`; ctx.fillRect(0, 24, W, H); }
+    }
+    if (v.after) v.after(ctx);
     // cam: ekran uzayında vinyet + yansıma
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const vg = ctx.createRadialGradient(v.cw / 2, v.ch / 2, Math.min(v.cw, v.ch) * 0.35, v.cw / 2, v.ch / 2, Math.max(v.cw, v.ch) * 0.75);

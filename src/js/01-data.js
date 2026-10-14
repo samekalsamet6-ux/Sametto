@@ -139,7 +139,6 @@ const NAMES_M = ['Kaan', 'Mavi', 'Poyraz', 'Efe', 'Atlas', 'Kerem', 'Yağız', '
 
 /* ---- Üreme sabitleri ---- */
 const MATURE_DAYS = 35;          // üreme olgunluğu (gün)
-const TANK_CAP = 60;             // tank kapasitesi (araştırma ağacıyla artacak)
 const GEST_DAYS = [21, 31];      // gebelik süresi aralığı (gün)
 const SPERM_BATCHES = 3;         // tek çiftleşmeyle kaç batın döllenebilir
 const FRY_SURVIVAL = 0.55;       // yetişkinler yavru yer: temel hayatta kalma

@@ -150,7 +150,7 @@ const UI = {
     const lampOn = t.lightTarget > 0.5;
     info.replaceChildren(
       h('div.chip', null, icon(lampOn ? 'sun' : 'moon'), `Gün ${dayOf(S.clockMin)} · ${clockStr(S.clockMin)}`),
-      h('div.chip', null, icon('fish'), `${t.creatures.length}/${TANK_CAP}`),
+      h('div.chip', null, icon('fish'), `${t.creatures.length}/${tankCap()}`),
       Game.unrevealed().length ? h('button.chip', { style: { border: '1px solid var(--accent)', cursor: 'pointer' }, onclick: () => UI.openReveal() }, '🍼 ' + Game.unrevealed().length + ' yeni yavru') : null,
       h('div.chip', { style: { marginLeft: 'auto' } }, icon('speed'), S.settings.speed + '×'));
     const mk = (ic, label, fn, on) => h('button.qbtn' + (on ? '.on' : ''), { onclick: fn, 'aria-label': label }, icon(ic), label);
@@ -158,13 +158,12 @@ const UI = {
       mk('feed', 'Yem', () => Game.feed()),
       mk(lampOn ? 'sun' : 'moon', S.settings.lamp === 'auto' ? 'Işık: oto' : S.settings.lamp === 'on' ? 'Işık: açık' : 'Işık: kapalı', () => { Game.cycleLamp(); UI.refreshAq(); }),
       mk('speed', 'Hız', () => { Game.cycleSpeed(); UI.refreshAq(); }),
-      mk('list', 'Balıklar', () => UI.openFishList()));
+      mk('list', 'Balıklar', () => UI.openFishList()),
+      mk('camera', 'Fotoğraf', () => Photo.open()));
   },
 
   /* ---------- Henüz açılmamış ekranlar (dürüst boş durum) ---------- */
-  render_design(el) {
-    el.replaceChildren(h('div.wrap', null, UI.emptyState('🪨', 'Tasarım Stüdyosu', 'Zemini şekillendir, taş ve kök yerleştir, bitki dik: aquascape stüdyosu Aşama 3\'te açılıyor. Şimdilik tankındaki sahne hazır bir dekorla geliyor.', h('button.btn.primary', { onclick: () => UI.go('aq') }, 'Akvaryuma dön'))));
-  },
+  render_design() { Editor.enter(); },
   render_lab_old(el) {
     const S = Game.S, males = Game.tank.creatures.filter((c) => c.sex === 'M').length, females = Game.tank.creatures.length - males;
     el.replaceChildren(h('div.wrap.stack', null,
@@ -212,7 +211,14 @@ const UI = {
         h('div.pbar', { style: { margin: '12px 0 4px' } }, h('i', { style: { width: (100 * (S.xp - cur) / Math.max(1, nxt - cur)) + '%' } })), h('div.tiny.muted', null, `${fmt(S.xp)} XP · sonraki seviye ${fmt(nxt)} XP`)),
       h('div.section-t', null, icon('star'), h('h3', null, 'İstatistikler')),
       h('div.grid2', null, stat(Game.tank.creatures.length, 'Tankındaki balık'), stat(BREEDS.filter((b) => S.discovered[b.id]).length + '/' + BREEDS.length, 'Keşfedilen varyasyon'), stat(fmt(S.stats.sold), 'Satılan balık'), stat(fmt(S.stats.fed), 'Yem verme'), stat(fmt(S.stats.tests), 'Genotip testi'), stat(Math.floor(S.stats.playSec / 60) + ' dk', 'Oynama süresi'), stat(RARITY[best].name, 'En nadir balığın'), stat(fmt(S.stats.maxSale), 'En değerli satış')),
+      h('div.section-t', null, icon('camera'), h('h3', null, 'Galeri')),
+      S.gallery.length ? h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(130px,1fr))' } }, ...S.gallery.map((g, i) => h('div', { role: 'button', tabindex: 0, style: { cursor: 'pointer' }, onclick: () => UI.openPhoto(i) }, h('img', { src: g.src, alt: g.n, style: { width: '100%', borderRadius: '12px', display: 'block' } })))) : h('div.muted.small', null, 'Akvaryum ekranındaki kamera düğmesiyle fotoğraf çek.'),
       h('div.row', null, h('button.btn.sp', { onclick: () => UI.go('settings') }, icon('gear'), 'Ayarlar'), h('button.btn.sp', { onclick: () => UI.openNotifs() }, icon('bell'), 'Bildirimler'))));
+  },
+
+  openPhoto(i) {
+    const g = Game.S.gallery[i], rec = UI.sheet(h('div.stack', null, UI.sheetHead(g.n, { close: () => rec.close() }), h('img', { src: g.src, style: { width: '100%', borderRadius: '14px' } }),
+      h('div.row', null, h('a.btn.sp', { href: g.src, download: 'akvaryum-foto.jpg' }, 'İndir'), h('button.btn.coral.sp', { onclick: () => { Game.S.gallery.splice(i, 1); Game.save(); rec.close(); UI.render_profile($('#s-profile')); } }, 'Sil'))));
   },
 
   /* ---------- Ayarlar ---------- */

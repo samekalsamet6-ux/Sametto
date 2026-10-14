@@ -27,7 +27,7 @@ Object.assign(UI, {
     }) : h('div.muted.small', { style: { padding: '8px' } }, 'Bu cinsiyetten balığın yok.'));
 
     const blocks = [];
-    blocks.push(h('div.row', { style: { margin: '4px 2px' } }, h('h2.sp', null, 'Üretim Laboratuvarı'), h('span.pill', null, icon('fish'), `${t.creatures.length}/${TANK_CAP}`)));
+    blocks.push(h('div.row', { style: { margin: '4px 2px' } }, h('h2.sp', null, 'Üretim Laboratuvarı'), h('span.pill', null, icon('fish'), `${t.creatures.length}/${tankCap()}`)));
     if (unrev.length) blocks.push(h('div.card.glow', null, h('div.row', null, h('div', { style: { fontSize: '34px' } }, '🍼'), h('div.sp', null, h('b', null, `${unrev.length} yeni yavru seni bekliyor`), h('div.small.muted', null, 'Renklerinin ilk kez ortaya çıkma anı!')), h('button.btn.primary', { onclick: () => UI.openReveal() }, 'Aç'))));
     if (pregs.length || stored.length) blocks.push(h('div.card', null, h('h3', { style: { marginBottom: '6px' } }, 'Gebelikler'),
       pregs.map((f) => { const pr = Breeding.progress(f, now), wait = f.preg.start > now;
