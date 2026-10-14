@@ -248,6 +248,7 @@ const Chem = {
   waste(n) { const V = Math.max(10, Game.tank.scape.liters); this.w.nh3 += 0.01 * n * (60 / V); },
 
   waterChange(pct) {
+    AudioSys.SFX.pour();
     const w = this.w, tp = this.tap(), f = clamp(pct / 100, 0, 0.9), pre = { temp: w.temp, ph: w.ph, tds: w.tds, gh: w.gh };
     w.nh3 *= 1 - f; w.no2 *= 1 - f; w.no3 *= 1 - f; w.tannin *= 1 - f * 0.9; w.salt *= 1 - f; w.algae.gw *= 1 - f * 0.9;
     w.gh = lerp(w.gh, tp.gh, f); w.kh = lerp(w.kh, tp.kh, f); w.temp = lerp(w.temp, tp.temp, f); w.co2 = lerp(w.co2, 8, f);

@@ -241,7 +241,7 @@ const UI = {
     el.replaceChildren(h('div.wrap.stack', null,
       h('h2', { style: { margin: '4px 2px 6px' } }, 'Ayarlar'),
       h('div.card', null, h('h3', null, '🔊 Ses'), slider('Ana ses', 'master'), slider('Müzik', 'music'), slider('Ambiyans', 'amb'), slider('Efektler', 'sfx'),
-        h('div.set-row', null, h('label', null, 'Müzik tarzı'), seg([['ambient', 'Ambient'], ['nature', 'Sadece doğa']], au.style, (v) => { au.style = v; AudioSys.set('style', v); Game.save(); })),
+        h('div.set-row', null, h('label', null, 'Müzik tarzı'), seg([['ambient', 'Ambient'], ['lofi', 'Lo-fi'], ['nature', 'Sadece doğa']], au.style, (v) => { au.style = v; AudioSys.set('style', v); Game.save(); })),
         h('div.set-row', null, h('label', null, 'Uyku zamanlayıcısı'), seg([[0, 'Kapalı'], [15, '15 dk'], [30, '30 dk'], [60, '60 dk']], AudioSys.S.sleepMin, (v) => AudioSys.set('sleepMin', v))),
         h('div.set-row', null, h('label', null, 'Arka plandayken sesi kıs'), sw(st.bgMute, (v) => { st.bgMute = v; AudioSys.set('bgMute', v); Game.save(); }))),
       h('div.card', null, h('h3', null, '🎨 Görünüm'),

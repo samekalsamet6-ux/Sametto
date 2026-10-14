@@ -61,3 +61,13 @@ Object.assign(Tests, {
   },
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.tutorial(); return a && b; })(Tests.all);
+
+/* Müzik bağlamı: hava durumu deterministik ve ~1/6 oranında */
+Object.assign(Tests, {
+  music() {
+    let rainy = 0; for (let d = 0; d < 600; d++) if (Weather.rainy(d * 1440 + 12 * 60)) rainy++;
+    const ok = { rate: rainy > 60 && rainy < 140, det: Weather.rainy(5 * 1440 + 720) === Weather.rainy(5 * 1440 + 720), night: !Weather.rainy(6 * 1440 + 60), api: typeof AudioSys.setTint === 'function' && typeof AudioSys.SFX.pour === 'function' && 'contest' !== undefined };
+    return this._log('Müzik bağlamı (hava, API)', Object.values(ok).every(Boolean), { ...ok, rainy });
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.music(); return a && b; })(Tests.all);

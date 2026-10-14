@@ -12,7 +12,7 @@ Dört sütun: **üretim/genetik**, **aquascape tasarımı**, **öğrenme (ansikl
 - **Bilgi:** tür/bitki/taş kartları, sözlük, rehberler, Genetik Okulu dersleri.
 - **İlerleme:** görevler, 17 başarım (bronz/gümüş/altın), pazar, mağaza, siparişler, araştırma ağacı, profil.
 - **Meta:** 7 bölümlük hikâye ve dostluk seviyeleri, haftalık sergi + aquascape yarışması (5 stil jüri puanı), sezonlar ve arşiv, Sabit Hat + Genetik Defter, prestij "Yeni Şube".
-- **Ses:** Web Audio ile üretken müzik, ambiyans ve efektler; sezona göre ses perdesi değişir.
+- **Ses:** Web Audio ile üretken müzik (Ambient / Lo-fi / Sadece doğa), ambiyans (filtre, hava motoru, yağmur) ve efektler. Müzik sezona (kış çanları, bahar kuşları…), tank içeriğine (çok bitki → zengin armoni, beta → Doğu Asya gamı, biyotop → cırcır katmanı), ekrana (yarışma ruh hali) ve yağmurlu güne göre değişir.
 - **Kayıt:** 3 yuva, sürümlü kayıt (şu an v5) ve göç, otomatik yedek, JSON dışa/içe aktarma.
 
 ## Çalıştırma
@@ -63,6 +63,7 @@ src/js/
   20c-meta-tests.js    Tests.meta() ve Tests.all()
   21-native.js         APK: Android geri tuşu, uygulama yaşam döngüsü
   22-tutorial.js       onboarding: sinematik + 10 adımlık ~5 dk eğitim
+  23-music-link.js     müzik bağlamı: sezon, tank içeriği, hava durumu, yarışma ruh hali
 ```
 
 ## Testler

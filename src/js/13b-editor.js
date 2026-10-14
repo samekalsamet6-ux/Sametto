@@ -116,7 +116,7 @@ const Editor = {
     this.commit(); const gi = (this.S.gift || []).indexOf(p.d); if (gi >= 0 && p.k === 'plant') this.S.gift.splice(gi, 1); else this.pay(def.cost || 0);
     const it = Scape.newItem(this.sc, p.k, p.d, fx, Object.assign(ex, p.k === 'plant' ? { g: 0.45, t: this.S.clockMin } : {}));
     if (p.k !== 'plant' && p.k !== 'leaf') { const g = this.tank.ground(fx * W); if (w.y < g - 20 && Scape.isHard(it)) { it.gnd = false; it.y = clamp(w.y, SURFACE + 90, g); } }
-    this.sc.items.push(it); this.sel = it.id; this.changed(); AudioSys.SFX.tick(); Game.task('scape'); this.refresh();
+    this.sc.items.push(it); this.sel = it.id; this.changed(); it.k === 'plant' ? AudioSys.SFX.plant() : AudioSys.SFX.rock(); Game.task('scape'); this.refresh();
   },
   selItem() { return this.sel ? this.sc.items.find((i) => i.id === this.sel) : null; },
   act(fn) { const it = this.selItem(); if (!it) return; this.commit(); fn(it); this.changed(); this.refresh(); },

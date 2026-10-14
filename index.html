@@ -1805,7 +1805,7 @@ function createStarterFish(tank, now) {
 const AudioSys = (() => {
   let ctx = null, started = false, timer = null, blopTimer = null, nextChordT = 0, chordIdx = 0, sleepAt = 0, sleepFading = false;
   const N = {}; // düğümler
-  const S = { master: 0.8, music: 0.5, amb: 0.5, sfx: 0.7, style: 'ambient', sleepMin: 0, bgMute: true, mood: 'day', tr: 0 };
+  const S = { master: 0.8, music: 0.5, amb: 0.5, sfx: 0.7, style: 'ambient', sleepMin: 0, bgMute: true, mood: 'day', tr: 0, tint: {} };
   const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
   /* Ruh hali tablosu: root (MIDI), akorlar (yarım ton), melodi gamı, bpm, nota olasılığı */
@@ -1813,9 +1813,19 @@ const AudioSys = (() => {
     day:    { root: 60, bpm: 66, p: 0.34, bass: 0.6, chords: [[0, 4, 7, 11, 14], [5, 9, 12, 16, 19], [9, 12, 16, 19, 23], [7, 11, 14, 16, 21]], scale: [0, 2, 4, 7, 9, 12, 14, 16] },
     night:  { root: 57, bpm: 54, p: 0.17, bass: 0.7, chords: [[0, 3, 7, 10, 14], [8, 12, 15, 19], [5, 8, 12, 15, 19], [7, 10, 14, 17]], scale: [0, 3, 5, 7, 10, 12, 15] },
     studio: { root: 60, bpm: 58, p: 0.12, bass: 0.2, chords: [[0, 7, 11, 14], [5, 9, 12, 16], [9, 12, 16, 19]], scale: [0, 2, 4, 7, 9, 12] },
+    contest:{ root: 62, bpm: 76, p: 0.46, bass: 0.6, chords: [[0, 4, 7, 11, 14], [5, 9, 12, 16, 19], [7, 11, 14, 19], [2, 6, 9, 12, 16]], scale: [0, 2, 4, 7, 9, 12, 14, 16, 19] },
     lab:    { root: 62, bpm: 70, p: 0.3, bass: 0.4, chords: [[0, 4, 7, 11, 14], [2, 6, 9, 12], [9, 12, 16, 19]], scale: [0, 2, 4, 6, 7, 9, 11, 14] },
   };
-  const mood = () => { const m = MOODS[S.mood] || MOODS.day; return S.tr ? Object.assign({}, m, { root: m.root + S.tr }) : m; };
+  const YO = [0, 2, 5, 7, 9, 12, 14, 17]; // Doğu Asya pentatoniği (beta tankı)
+  const SEASON_MOD = { spring: { bpm: 2, p: 0.04 }, summer: { bpm: 4, p: 0.05 }, autumn: { bpm: -3, p: -0.03, bass: 0.3 }, winter: { bpm: -5, p: -0.05 } };
+  const mood = () => {
+    const m0 = MOODS[S.mood] || MOODS.day, T = S.tint, sm = SEASON_MOD[T.season];
+    if (!S.tr && !sm && !T.beta) return m0;
+    const m = Object.assign({}, m0, { root: m0.root + S.tr });
+    if (sm && S.mood !== 'studio') { m.bpm += sm.bpm; m.p += sm.p; m.bass = Math.min(1, m.bass + (sm.bass || 0)); }
+    if (T.beta && S.mood !== 'studio') m.scale = YO;
+    return m;
+  };
   const scaleNote = (i, oct = 12) => mood().root + oct + mood().scale[((i % mood().scale.length) + mood().scale.length) % mood().scale.length];
 
   function impulse(c, dur = 4, decay = 2.4) {
@@ -1853,6 +1863,12 @@ const AudioSys = (() => {
     const lfo2 = ctx.createOscillator(), lg2 = g(160); lfo2.frequency.value = 0.045; lfo2.connect(lg2).connect(lp.frequency);
     src.connect(lp).connect(hp).connect(gain).connect(N.amb); src.start(); lfo.start(); lfo2.start();
     N.ambSrc = src; N.ambGain = gain;
+    const layer = (hpF, lpF, rate, amLfo) => { const s2 = ctx.createBufferSource(); s2.buffer = b; s2.loop = true; s2.playbackRate.value = rate; const hp2 = ctx.createBiquadFilter(); hp2.type = 'highpass'; hp2.frequency.value = hpF; const lp2 = ctx.createBiquadFilter(); lp2.type = 'lowpass'; lp2.frequency.value = lpF; const am = g(1), out = g(0);
+      if (amLfo) { am.gain.value = 0.55; const l = ctx.createOscillator(), lg3 = g(0.45); l.frequency.value = amLfo; l.connect(lg3).connect(am.gain); l.start(); } s2.connect(hp2).connect(lp2).connect(am).connect(out).connect(N.amb); s2.start(); return out; };
+    N.rainG = layer(1400, 8500, 1.5, 0.13); N.airG = layer(220, 900, 0.8, 7);
+    const cb = ctx.createBuffer(1, ctx.sampleRate * 4, ctx.sampleRate), cd = cb.getChannelData(0); for (let i = 0; i < cd.length; i++) if (Math.random() < 0.0005) cd[i] = (Math.random() * 2 - 1) * (0.3 + Math.random() * 0.7);
+    const cs = ctx.createBufferSource(); cs.buffer = cb; cs.loop = true; const chp = ctx.createBiquadFilter(); chp.type = 'highpass'; chp.frequency.value = 1800; N.crackG = g(0); cs.connect(chp).connect(N.crackG).connect(N.music); cs.start();
+    N.lofiLp = ctx.createBiquadFilter(); N.lofiLp.type = 'lowpass'; N.lofiLp.frequency.value = 3200; N.lofiLp.connect(N.music);
   }
   function scheduleBlop() {
     clearTimeout(blopTimer);
@@ -1874,9 +1890,9 @@ const AudioSys = (() => {
     for (const det of [-7, 0, 7]) { const o = ctx.createOscillator(); o.type = det === 0 ? 'sine' : 'triangle'; o.frequency.value = freq; o.detune.value = det; o.connect(lp); o.start(t0); o.stop(t0 + dur + r + 0.1); }
     lp.connect(out); out.connect(N.music); const s = g(0.6); out.connect(s).connect(N.revIn);
   }
-  function pluck(freq, t0, vel, bright = 1) {
+  function pluck(freq, t0, vel, bright = 1, ratio = 3.5) {
     const car = ctx.createOscillator(), mod = ctx.createOscillator(), mg = g(0), a = g(0);
-    car.type = 'sine'; mod.type = 'sine'; car.frequency.value = freq; mod.frequency.value = freq * 3.5;
+    car.type = 'sine'; mod.type = 'sine'; car.frequency.value = freq; mod.frequency.value = freq * ratio;
     mg.gain.setValueAtTime(freq * 1.4 * bright, t0); mg.gain.exponentialRampToValueAtTime(freq * 0.02, t0 + 0.35);
     mod.connect(mg).connect(car.frequency);
     a.gain.setValueAtTime(0, t0); a.gain.linearRampToValueAtTime(vel, t0 + 0.006); a.gain.exponentialRampToValueAtTime(vel * 0.25, t0 + 0.5); a.gain.exponentialRampToValueAtTime(0.0004, t0 + 2.4);
@@ -1889,6 +1905,24 @@ const AudioSys = (() => {
     o.connect(a).connect(N.music); o.start(t0); o.stop(t0 + dur + 1.6);
   }
 
+  /* ---------- lo-fi vuruşlar + doğa dokunuşları ---------- */
+  function noiseBurst(t, dur, type, f, vel, dest) {
+    const s2 = ctx.createBufferSource(); s2.buffer = N.ambSrc.buffer; const bf = ctx.createBiquadFilter(), a = g(0); bf.type = type; bf.frequency.value = f; bf.Q.value = 0.7;
+    a.gain.setValueAtTime(0, t); a.gain.linearRampToValueAtTime(vel, t + 0.003); a.gain.exponentialRampToValueAtTime(0.0008, t + dur); s2.connect(bf).connect(a).connect(dest); s2.start(t, Math.random() * 3, dur + 0.05);
+  }
+  function drum(kind, t, v) {
+    if (kind === 'kick') { const o = ctx.createOscillator(), a = g(0); o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.16); a.gain.setValueAtTime(0, t); a.gain.linearRampToValueAtTime(v, t + 0.005); a.gain.exponentialRampToValueAtTime(0.001, t + 0.22); o.connect(a).connect(N.lofiLp); o.start(t); o.stop(t + 0.26); }
+    else if (kind === 'snare') noiseBurst(t, 0.13, 'bandpass', 1900, v * 0.7, N.lofiLp);
+    else noiseBurst(t, 0.04, 'highpass', 7200, v * 0.35, N.lofiLp);
+  }
+  function chirp(t) { // ilkbahar: kuş benzeri yumuşak tizler
+    const n = 2 + Math.floor(Math.random() * 3), f0 = 2300 + Math.random() * 900;
+    for (let i = 0; i < n; i++) { const o = ctx.createOscillator(), a = g(0), tt = t + i * 0.085; o.type = 'sine'; o.frequency.setValueAtTime(f0 + i * 140, tt); o.frequency.exponentialRampToValueAtTime(f0 * 1.35 + i * 140, tt + 0.06); a.gain.setValueAtTime(0, tt); a.gain.linearRampToValueAtTime(0.022, tt + 0.01); a.gain.exponentialRampToValueAtTime(0.0006, tt + 0.08); o.connect(a).connect(N.music); a.connect(N.revIn); o.start(tt); o.stop(tt + 0.1); }
+  }
+  function cricket(t) { // biyotop: uzaktan cırcır
+    for (let i = 0; i < 4; i++) { const o = ctx.createOscillator(), a = g(0), tt = t + i * 0.07; o.type = 'sine'; o.frequency.value = 4300; a.gain.setValueAtTime(0, tt); a.gain.linearRampToValueAtTime(0.012, tt + 0.012); a.gain.linearRampToValueAtTime(0, tt + 0.05); o.connect(a).connect(N.amb); o.start(tt); o.stop(tt + 0.06); }
+  }
+
   function tick() {
     if (!ctx || S.style === 'nature') return;
     const m = mood(), beat = 60 / m.bpm, chordBeats = 8, dur = beat * chordBeats;
@@ -1896,6 +1930,12 @@ const AudioSys = (() => {
       const chord = m.chords[chordIdx % m.chords.length]; chordIdx++;
       const t0 = Math.max(nextChordT, ctx.currentTime + 0.05);
       chord.forEach((semi, i) => pad(mtof(m.root - 12 + semi), t0 + i * 0.07, dur, 0.05 / Math.sqrt(chord.length) * 1.6));
+      const T = S.tint, rich = clamp((T.plants || 0) / 14, 0, 1); // çok bitkili tank: daha zengin armoni
+      if (rich > 0.15) pad(mtof(m.root + chord[chord.length - 1] % 12 + 0), t0 + 0.2, dur, 0.012 + 0.02 * rich);
+      if (rich > 0.55) pad(mtof(m.root + chord[1] + 12), t0 + 0.35, dur, 0.01 + 0.012 * rich);
+      if (T.season === 'spring') for (let k = 0; k < 2; k++) if (Math.random() < 0.55) chirp(t0 + 1 + Math.random() * (dur - 2));
+      if (T.biotope && S.mood !== 'studio') for (let k = 0; k < 3; k++) if (Math.random() < 0.5) cricket(t0 + Math.random() * (dur - 1));
+      if (S.style === 'lofi') for (let b = 0; b < chordBeats; b++) { const sw = (b % 2) * 0.04 * beat, tb = t0 + b * beat + sw; if (b % 4 === 0 || b === 5) drum('kick', tb, 0.22); if (b % 4 === 2) drum('snare', tb, 0.2); drum('hat', tb, 0.18); drum('hat', tb + beat * 0.5, 0.12); }
       if (m.bass > Math.random()) bass(mtof(m.root - 24 + chord[0]), t0, dur * 0.8, 0.16);
       // melodi damlaları: akor sesleri + gam notaları
       for (let b = 0; b < chordBeats * 2; b++) {
@@ -1903,7 +1943,7 @@ const AudioSys = (() => {
         const useChord = Math.random() < 0.45;
         const semi = useChord ? chord[Math.floor(Math.random() * chord.length)] + 12 * (Math.random() < 0.5 ? 1 : 2) : m.scale[Math.floor(Math.random() * m.scale.length)] + 12;
         const t = t0 + b * beat * 0.5 + Math.random() * beat * 0.35;
-        const a = pluck(mtof(m.root + semi), t, 0.05 + Math.random() * 0.045, S.mood === 'night' ? 0.5 : 1);
+        const win = T.season === 'winter', a = pluck(mtof(m.root + semi + (win && Math.random() < 0.3 ? 12 : 0)), t, 0.05 + Math.random() * 0.045, (S.mood === 'night' ? 0.5 : 1) * (T.season === 'autumn' ? 0.6 : win ? 1.5 : 1), win ? 5.19 : 3.5);
         a.connect(N.music); const rs = g(0.9); a.connect(rs).connect(N.revIn); const ds = g(0.45); a.connect(ds).connect(N.dlyIn);
       }
       nextChordT = t0 + dur;
@@ -1929,6 +1969,12 @@ const AudioSys = (() => {
       if (rarity >= 2) pad(mtof(mood().root), t, 2.5, 0.05); if (rarity >= 3) pad(mtof(mood().root + 7), t, 3.2, 0.04);
     },
     sell() { SFX.coin(); },
+    /** Su değişimi: akan su. */
+    pour() { if (!ctx) return; const t = ctx.currentTime; noiseBurst(t, 1.6, 'bandpass', 700, 0.5, N.sfx); noiseBurst(t + 0.2, 1.3, 'highpass', 2400, 0.18, N.sfx); for (let i = 0; i < 4; i++) blop(t + 0.3 + i * 0.28 + Math.random() * 0.1, 0.07); },
+    /** Bitki dikme: kuma gömülme hışırtısı. */
+    plant() { if (!ctx) return; const t = ctx.currentTime; noiseBurst(t, 0.2, 'bandpass', 1200, 0.28, N.sfx); noiseBurst(t + 0.07, 0.16, 'highpass', 3000, 0.1, N.sfx); },
+    /** Taş yerleştirme: boğuk, yumuşak tok. */
+    rock() { if (!ctx) return; const t = ctx.currentTime, o = ctx.createOscillator(), a = g(0); o.frequency.setValueAtTime(95, t); o.frequency.exponentialRampToValueAtTime(52, t + 0.18); a.gain.setValueAtTime(0, t); a.gain.linearRampToValueAtTime(0.32, t + 0.008); a.gain.exponentialRampToValueAtTime(0.001, t + 0.28); o.connect(a).connect(N.sfx); o.start(t); o.stop(t + 0.3); noiseBurst(t, 0.06, 'lowpass', 600, 0.2, N.sfx); },
   };
 
   /* ---------- genel API ---------- */
@@ -1937,6 +1983,7 @@ const AudioSys = (() => {
     N.master.gain.setTargetAtTime(S.master, t, 0.08);
     N.music.gain.setTargetAtTime(S.style === 'nature' ? 0 : S.music * (sleepFading ? 0 : 1), t, sleepFading ? 6 : 0.15);
     N.amb.gain.setTargetAtTime(S.amb, t, 0.15); N.sfx.gain.setTargetAtTime(S.sfx, t, 0.08);
+    N.rainG.gain.setTargetAtTime(S.tint.rain ? 0.32 : 0, t, 2.5); N.airG.gain.setTargetAtTime(S.tint.air ? 0.16 : 0, t, 1.5); N.crackG.gain.setTargetAtTime(S.style === 'lofi' ? 0.05 : 0, t, 0.5);
   }
   return {
     S, SFX,
@@ -1944,10 +1991,12 @@ const AudioSys = (() => {
     start() {
       if (started) { ctx.resume(); return; }
       try { init(); } catch (e) { console.warn('Ses başlatılamadı', e); ctx = null; return; }
-      started = true; ctx.resume(); nextChordT = ctx.currentTime + 0.3; timer = setInterval(() => { try { tick(); sleepCheck(); } catch (e) { /* sessiz */ } }, 250); scheduleBlop(); applyVolumes();
+      started = true; ctx.resume(); nextChordT = ctx.currentTime + 0.3; timer = setInterval(() => { try { tick(); sleepCheck(); } catch (e) { if (!S.errLogged) { S.errLogged = 1; console.warn('Müzik hatası', e); } } }, 250); scheduleBlop(); applyVolumes();
     },
     /** Sezon temasına göre ana ses perdesi kayar (yarım ton). */
     setTune(tr) { S.tr = tr || 0; },
+    /** Bağlam dokunuşları: {season, plants, beta, biotope, rain, air} */
+    setTint(o) { Object.assign(S.tint, o); applyVolumes(); },
     setMood(m) { if (MOODS[m] && S.mood !== m) { S.mood = m; chordIdx = 0; } },
     set(key, v) { S[key] = v; if (key === 'sleepMin') { sleepFading = false; sleepAt = v > 0 ? Date.now() + v * 60000 : 0; } applyVolumes(); },
     /** Yakınlaşınca sesler daha "sualtı" (boğuk) duyulur. */
@@ -2303,7 +2352,7 @@ const UI = {
     el.replaceChildren(h('div.wrap.stack', null,
       h('h2', { style: { margin: '4px 2px 6px' } }, 'Ayarlar'),
       h('div.card', null, h('h3', null, '🔊 Ses'), slider('Ana ses', 'master'), slider('Müzik', 'music'), slider('Ambiyans', 'amb'), slider('Efektler', 'sfx'),
-        h('div.set-row', null, h('label', null, 'Müzik tarzı'), seg([['ambient', 'Ambient'], ['nature', 'Sadece doğa']], au.style, (v) => { au.style = v; AudioSys.set('style', v); Game.save(); })),
+        h('div.set-row', null, h('label', null, 'Müzik tarzı'), seg([['ambient', 'Ambient'], ['lofi', 'Lo-fi'], ['nature', 'Sadece doğa']], au.style, (v) => { au.style = v; AudioSys.set('style', v); Game.save(); })),
         h('div.set-row', null, h('label', null, 'Uyku zamanlayıcısı'), seg([[0, 'Kapalı'], [15, '15 dk'], [30, '30 dk'], [60, '60 dk']], AudioSys.S.sleepMin, (v) => AudioSys.set('sleepMin', v))),
         h('div.set-row', null, h('label', null, 'Arka plandayken sesi kıs'), sw(st.bgMute, (v) => { st.bgMute = v; AudioSys.set('bgMute', v); Game.save(); }))),
       h('div.card', null, h('h3', null, '🎨 Görünüm'),
@@ -3627,7 +3676,7 @@ const Editor = {
     this.commit(); const gi = (this.S.gift || []).indexOf(p.d); if (gi >= 0 && p.k === 'plant') this.S.gift.splice(gi, 1); else this.pay(def.cost || 0);
     const it = Scape.newItem(this.sc, p.k, p.d, fx, Object.assign(ex, p.k === 'plant' ? { g: 0.45, t: this.S.clockMin } : {}));
     if (p.k !== 'plant' && p.k !== 'leaf') { const g = this.tank.ground(fx * W); if (w.y < g - 20 && Scape.isHard(it)) { it.gnd = false; it.y = clamp(w.y, SURFACE + 90, g); } }
-    this.sc.items.push(it); this.sel = it.id; this.changed(); AudioSys.SFX.tick(); Game.task('scape'); this.refresh();
+    this.sc.items.push(it); this.sel = it.id; this.changed(); it.k === 'plant' ? AudioSys.SFX.plant() : AudioSys.SFX.rock(); Game.task('scape'); this.refresh();
   },
   selItem() { return this.sel ? this.sc.items.find((i) => i.id === this.sel) : null; },
   act(fn) { const it = this.selItem(); if (!it) return; this.commit(); fn(it); this.changed(); this.refresh(); },
@@ -4091,6 +4140,7 @@ const Chem = {
   waste(n) { const V = Math.max(10, Game.tank.scape.liters); this.w.nh3 += 0.01 * n * (60 / V); },
 
   waterChange(pct) {
+    AudioSys.SFX.pour();
     const w = this.w, tp = this.tap(), f = clamp(pct / 100, 0, 0.9), pre = { temp: w.temp, ph: w.ph, tds: w.tds, gh: w.gh };
     w.nh3 *= 1 - f; w.no2 *= 1 - f; w.no3 *= 1 - f; w.tannin *= 1 - f * 0.9; w.salt *= 1 - f; w.algae.gw *= 1 - f * 0.9;
     w.gh = lerp(w.gh, tp.gh, f); w.kh = lerp(w.kh, tp.kh, f); w.temp = lerp(w.temp, tp.temp, f); w.co2 = lerp(w.co2, 8, f);
@@ -5918,6 +5968,16 @@ Object.assign(Tests, {
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.tutorial(); return a && b; })(Tests.all);
 
+/* Müzik bağlamı: hava durumu deterministik ve ~1/6 oranında */
+Object.assign(Tests, {
+  music() {
+    let rainy = 0; for (let d = 0; d < 600; d++) if (Weather.rainy(d * 1440 + 12 * 60)) rainy++;
+    const ok = { rate: rainy > 60 && rainy < 140, det: Weather.rainy(5 * 1440 + 720) === Weather.rainy(5 * 1440 + 720), night: !Weather.rainy(6 * 1440 + 60), api: typeof AudioSys.setTint === 'function' && typeof AudioSys.SFX.pour === 'function' && 'contest' !== undefined };
+    return this._log('Müzik bağlamı (hava, API)', Object.values(ok).every(Boolean), { ...ok, rainy });
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.music(); return a && b; })(Tests.all);
+
 /* ───── 21-native.js ───── */
 'use strict';
 /* =====================================================================
@@ -6053,6 +6113,34 @@ UI.render_settings = ((orig) => function (el) {
   if (w) w.append(h('div.card.row', null, h('div.sp', null, h('b', null, 'Eğitim'), h('div.small.muted', null, '5 dakikalık başlangıç turunu yeniden izle.')), h('button.btn.sm', { onclick: () => Tut.restart() }, 'Başlat')));
   return r;
 })(UI.render_settings);
+
+/* ───── 23-music-link.js ───── */
+'use strict';
+/* =====================================================================
+   23 · MÜZİK BAĞLAMI — sezon, tank içeriği, yarışma ruh hali, hava durumu
+   Ses motoru (06) sadece "tint" bilir; oyun durumunu burada okuruz.
+   ===================================================================== */
+const Weather = {
+  /** Günlük deterministik: ~her 6 günde bir yağmurlu gün, 09–19 arası. */
+  rainy(clockMin) { const day = Math.floor(clockMin / 1440), hr = (clockMin % 1440) / 60; let x = (day * 2654435761) >>> 0; x ^= x >>> 13; x = (x * 1274126177) >>> 0; return x % 6 === 0 && hr >= 9 && hr < 19; },
+};
+
+const MusicLink = {
+  last: {}, slow: 0,
+  update() {
+    const S = Game.S; if (!S || !Game.tank || !AudioSys.setTint) return; Season.ensure(S);
+    const sc = S.scape, T = { season: Season.theme(S).id, plants: sc.items.filter((i) => i.k === 'plant' && !i.dead).length, beta: Game.tank.creatures.some((c) => c.species === 'betta'), rain: Weather.rainy(S.clockMin), air: !!(sc.equip && sc.equip.air) && !sc.dry };
+    if (Date.now() - this.slow > 20000) { this.slow = Date.now(); try { const j = Judge.score('biotope'); this.bio = j.crit.find((c) => c.k === 'style').v >= 60; } catch (e) { this.bio = false; } }
+    T.biotope = !!this.bio; const key = JSON.stringify(T); if (key !== this.key) { this.key = key; AudioSys.setTint(T); }
+    if (T.rain !== this.rain) { this.rain = T.rain; Game.tank.rainy = T.rain; if (UI.cur === 'aq') UI.refreshAq(); }
+  },
+};
+setInterval(() => { try { MusicLink.update(); } catch (e) { /* ses bağlamı oyunu durdurmasın */ } }, 4000);
+
+/* Yarışma ekranında "contest" ruh hali */
+UI.go = ((orig) => function (name) { const r = orig.apply(this, arguments); if (name === 'contest') AudioSys.setMood('contest'); return r; })(UI.go);
+/* Akvaryum bilgi şeridinde yağmur rozeti */
+UI.refreshAq = ((orig) => function () { const r = orig.apply(this, arguments); const info = $('#aq-info'); if (info && Game.S && Weather.rainy(Game.S.clockMin)) info.append(h('div.chip', null, '🌧 Yağmurlu')); return r; })(UI.refreshAq);
 
 </script>
 </body>
