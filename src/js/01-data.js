@@ -142,3 +142,6 @@ const MATURE_DAYS = 35;          // üreme olgunluğu (gün)
 const GEST_DAYS = [21, 31];      // gebelik süresi aralığı (gün)
 const SPERM_BATCHES = 3;         // tek çiftleşmeyle kaç batın döllenebilir
 const FRY_SURVIVAL = 0.55;       // yetişkinler yavru yer: temel hayatta kalma
+
+/** Lepistes dışındaki türlerin ırk tabloları (17-species.js doldurur). */
+const SP_BREEDS = {};

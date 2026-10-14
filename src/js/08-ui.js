@@ -8,7 +8,7 @@
 class Portrait {
   constructor(cr, canvas, o = {}) {
     this.cr = cr; this.cv = canvas; this.zoom = o.zoom || 1; this.t = 0; this.bub = []; this.run = false; this.big = !!o.big;
-    this.p = Object.create(cr); this.p.sprite = null; this.p.sw = new Swimmer(this.p); this.p.stress = 0;
+    this.p = Object.create(cr); this.p.sprite = null; this.p.sw = cr.def.kind === 'fish' ? new Swimmer(this.p) : new Crawler(this.p); this.p.stress = 0;
     this.p.sw.heading = 0; this.p.sw.flipTarget = 1; this.p.sw.flip = 1;
     for (let i = 0; i < 14; i++) this.bub.push({ x: R.next(), y: R.next(), r: R.float(1, 3.2), v: R.float(0.04, 0.1) });
     this.resize(); this._f = this._f.bind(this);
@@ -25,7 +25,7 @@ class Portrait {
     if (!this.run) return; const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now; this.t += dt; this.draw(dt); requestAnimationFrame(this._f);
   }
   draw(dt) {
-    const ctx = this.cv.getContext('2d'), cw = this.cw, ch = this.ch, dpr = this.dpr, p = this.p, sp = FishArt.sprite(p);
+    const ctx = this.cv.getContext('2d'), cw = this.cw, ch = this.ch, dpr = this.dpr, p = this.p, fishy = p.def.kind === 'fish', sp = fishy ? FishArt.sprite(p) : { bf: p.species === 'shrimp' ? 0.78 : 0.9 };
     const adultLen = p.bodyLen() / p.growth() / sp.bf;
     const scale = (cw * (this.big ? 0.46 : 0.5) / adultLen) * this.zoom, W = cw / scale, H = ch / scale;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -37,6 +37,7 @@ class Portrait {
     // balık
     p.now = this.cr.now;
     p.sw.update(dt, { calm: true });
+    if (!fishy) { p.sw.x = W / 2; p.sw.y = H * (p.species === 'shrimp' ? 0.64 : 0.72); const bs = [dpr * scale, 0, 0, dpr * scale, 0, 0]; ctx.setTransform(bs[0], 0, 0, bs[3], 0, 0); CrawlerArt.draw(ctx, p, this.t, 1, 1, bs); return; }
     const len = p.bodyLen() / sp.bf;   // yüzen balık, kuyruğu soldaysa merkez sağa kaydırılır
     p.sw.x = W / 2 + 0.22 * len + noise1(this.t * 0.3) * W * 0.025; p.sw.y = H * 0.47 + noise1(this.t * 0.37 + 9) * H * 0.04;
     const base = [dpr * scale, 0, 0, dpr * scale, 0, 0];

@@ -32,37 +32,49 @@ const Pedigree = {
   F(id) { const r = this.rec[id]; return r && r.s && r.d ? this.kin(r.s, r.d) : 0; },
 };
 
-/* ---------------- Genom yardımcıları ---------------- */
+/* ---------------- Tür şemaları: lokuslar, varsayılanlar, mutasyon ----------------
+   Her tür SCHEMA'da tanımlanır (lepistes burada, diğerleri 17-species.js'te).
+   auto: otozomal lokuslar · sc: cinsiyete bağlı lokuslar · quant: nicel özellik aralıkları */
+const SCHEMA = {
+  guppy: {
+    auto: AUTO_LOCI, sc: SC_LOCI, xy: XY_CROSS,
+    defAuto: { body: ['W', 'W'], tail: ['delta', 'delta'], purple: ['pb', 'pb'], metal: ['mg', 'mg'] },
+    defSc: { tc: 'none', tux: 0, sb: 0, st: 0, grass: 0, mosaic: 0, moscow: 0 },
+    quant: { size: [0.75, 1.3], tailLen: [0.6, 1.4], vigor: [0.5, 1.4], intensity: [0.55, 1.3] },
+    mut(locus, al, rng) {
+      if (locus === 'body') { if (rng.chance(0.12)) return rng.pick(['obs', 'aur']); return rng.pick(BODY_RANK.filter((a) => a !== al && a !== 'obs' && a !== 'aur')); }
+      if (locus === 'tail') return rng.pick(TAIL_RANK.filter((a) => a !== al));
+      if (locus === 'purple') return al === 'Pb' ? 'pb' : 'Pb'; if (locus === 'metal') return al === 'Mg' ? 'mg' : 'Mg'; return al;
+    },
+    mutSc(locus, v, rng) { if (locus === 'tc') return rng.pick(Object.keys(TAILCOL).filter((c) => c !== v)); return v ? 0 : 1; },
+  },
+};
+const sch = (sp) => SCHEMA[sp || 'guppy'];
+
 const Genetics = {
-  blankHap(isY) { return { tc: 'none', tux: 0, sb: 0, st: 0, grass: 0, mosaic: 0, moscow: 0, Y: !!isY }; },
+  blankHap(isY, sp) { const S = sch(sp), h = Object.assign({}, S.defSc); h.Y = !!isY; return h; },
 
   /** Tanımdan (spec) genom üretir. Cinsiyete bağlı genler erkekte Y'ye, dişide X'e konur. */
-  make(spec = {}, sex = 'M', rng = R) {
-    const two = (v, d) => (Array.isArray(v) ? v.slice() : [v ?? d, v ?? d]);
-    const g = { sex, auto: {}, sc: [], quant: {} };
-    g.auto.body = two(spec.body, 'W');
-    g.auto.tail = two(spec.tail, 'delta');
-    g.auto.purple = spec.purple ? (spec.purple === 2 ? ['Pb', 'Pb'] : ['Pb', 'pb']) : ['pb', 'pb'];
-    g.auto.metal = spec.metal ? (spec.metal === 2 ? ['Mg', 'Mg'] : ['Mg', 'mg']) : ['mg', 'mg'];
-    const flat = {}; for (const k of SC_LOCI) if (spec[k] !== undefined) flat[k] = spec[k];
-    const x0 = Object.assign(this.blankHap(false), spec.X || {});
-    const x1 = Object.assign(this.blankHap(sex === 'M'), sex === 'M' ? (spec.Y || {}) : (spec.X2 || {}));
+  make(spec = {}, sex = 'M', rng = R, sp) {
+    sp = sp || spec.sp || 'guppy'; const S = sch(sp), two = (v, d) => (Array.isArray(v) ? v.slice() : [v ?? d, v ?? d]);
+    const g = { sex, sp, auto: {}, sc: [], quant: {} };
+    for (const l of S.auto) g.auto[l] = spec[l] === undefined ? S.defAuto[l].slice() : (S.dom && S.dom[l] ? S.dom[l](spec[l]) : two(spec[l]));
+    if (sp === 'guppy') { // lepistes: bayrak biçimli özel kısaltmalar
+      g.auto.purple = spec.purple ? (spec.purple === 2 ? ['Pb', 'Pb'] : ['Pb', 'pb']) : ['pb', 'pb'];
+      g.auto.metal = spec.metal ? (spec.metal === 2 ? ['Mg', 'Mg'] : ['Mg', 'mg']) : ['mg', 'mg'];
+    }
+    const flat = {}; for (const k of S.sc) if (spec[k] !== undefined) flat[k] = spec[k];
+    const x0 = Object.assign(this.blankHap(false, sp), spec.X || {}), x1 = Object.assign(this.blankHap(sex === 'M', sp), sex === 'M' ? (spec.Y || {}) : (spec.X2 || {}));
     if (sex === 'M') Object.assign(x1, flat); else Object.assign(x0, flat);
     g.sc = [x0, x1];
-    for (const q in QUANT) {
-      const [a, b] = QUANT[q].range;
-      g.quant[q] = spec[q] ?? clamp(1 + rng.gauss(0, 0.07), a, b);
-    }
+    for (const q in S.quant) { const [a, b] = S.quant[q]; g.quant[q] = spec[q] ?? clamp((S.qdef && S.qdef[q] !== undefined ? S.qdef[q] : 1) + rng.gauss(0, 0.07), a, b); }
     return g;
   },
 
   /** Rastgele başlangıç genomu — yaygın genler. */
-  randomFounder(sex, rng = R) {
-    const spec = {
-      body: rng.chance(0.12) ? rng.pick(['bld', 'gld', 'alb', 'blu']) : 'W',
-      tail: rng.pick(TAIL_COMMON),
-      X: { tc: rng.chance(0.18) ? rng.pick(['red', 'blue']) : 'none' },
-    };
+  randomFounder(sex, rng = R, sp = 'guppy') {
+    if (sp !== 'guppy') return sch(sp).founder(sex, rng);
+    const spec = { body: rng.chance(0.12) ? rng.pick(['bld', 'gld', 'alb', 'blu']) : 'W', tail: rng.pick(TAIL_COMMON), X: { tc: rng.chance(0.18) ? rng.pick(['red', 'blue']) : 'none' } };
     return this.make(spec, sex, rng);
   },
 
@@ -70,32 +82,28 @@ const Genetics = {
   expressMin(alleles, rank) { return rank[Math.min(rank.indexOf(alleles[0]), rank.indexOf(alleles[1]))]; },
 
   phenotype(g) {
+    if (g.sp && g.sp !== 'guppy') return sch(g.sp).pheno(g);
     const p = {
-      sex: g.sex,
-      body: this.expressMin(g.auto.body, BODY_RANK),
-      purple: g.auto.purple.includes('Pb'),
-      metal: g.auto.metal.includes('Mg'),
-      metalDouble: g.auto.metal[0] === 'Mg' && g.auto.metal[1] === 'Mg',
-      tail: this.expressMin(g.auto.tail, TAIL_RANK),
-      tailColor: 'none', tailColor2: null,
-      tux: 0, sb: 0, st: 0, grass: 0, mosaic: 0, moscow: 0,
-      size: g.quant.size, tailLen: g.quant.tailLen, vigor: g.quant.vigor, intensity: g.quant.intensity,
+      sex: g.sex, sp: 'guppy', body: this.expressMin(g.auto.body, BODY_RANK), purple: g.auto.purple.includes('Pb'), metal: g.auto.metal.includes('Mg'),
+      metalDouble: g.auto.metal[0] === 'Mg' && g.auto.metal[1] === 'Mg', tail: this.expressMin(g.auto.tail, TAIL_RANK), tailColor: 'none', tailColor2: null,
+      tux: 0, sb: 0, st: 0, grass: 0, mosaic: 0, moscow: 0, size: g.quant.size, tailLen: g.quant.tailLen, vigor: g.quant.vigor, intensity: g.quant.intensity,
     };
     if (g.sex === 'M') {
       const [x, y] = g.sc;
-      // Y'deki kuyruk rengi öncelikli; X'tekiyle farklıysa iki renkli (alt/üst) görünür.
       const a = y.tc !== 'none' ? y.tc : x.tc, b = y.tc !== 'none' && x.tc !== 'none' && x.tc !== y.tc ? x.tc : null;
       p.tailColor = a; p.tailColor2 = b;
       for (const k of ['tux', 'sb', 'st', 'grass', 'mosaic', 'moscow']) p[k] = (x[k] || y[k]) ? 1 : 0;
     }
+    p.penalty = p.metalDouble ? 0.65 : 1;
     p.sig = [p.sex, p.body, p.purple | 0, p.metal | 0, p.tail, p.tailColor, p.tailColor2, p.tux, p.sb, p.st, p.grass, p.mosaic, p.moscow].join('|');
     return p;
   },
 
-  breedOf(p) { return BREEDS.find((b) => b.test(p)); },
+  breedOf(p) { const list = p.sp && p.sp !== 'guppy' ? SP_BREEDS[p.sp] : BREEDS; return list.find((b) => b.test(p)); },
 
   /** Taşıyıcılık: dişide/erkekte gizli ama aktarılabilen genler (genetik defter için). */
   carried(g) {
+    if (g.sp && g.sp !== 'guppy') return sch(g.sp).carried ? sch(g.sp).carried(g) : [];
     const out = [];
     if (g.sex === 'F') for (const h of g.sc) {
       if (h.tc !== 'none') out.push('Kuyruk: ' + TAILCOL[h.tc].name);
@@ -106,62 +114,43 @@ const Genetics = {
   },
 
   /* ------------ Kalıtım ------------ */
-  mutateAllele(locus, al, rng) {
-    if (locus === 'body') {
-      const pool = BODY_RANK.filter((a) => a !== al);
-      // efsanevi/mitik mutasyonlar çok nadir
-      if (rng.chance(0.12)) return rng.pick(['obs', 'aur']);
-      return rng.pick(pool.filter((a) => a !== 'obs' && a !== 'aur'));
-    }
-    if (locus === 'tail') return rng.pick(TAIL_RANK.filter((a) => a !== al));
-    if (locus === 'purple') return al === 'Pb' ? 'pb' : 'Pb';
-    if (locus === 'metal') return al === 'Mg' ? 'mg' : 'Mg';
-    return al;
-  },
-  mutateSc(locus, v, rng) {
-    if (locus === 'tc') return rng.pick(Object.keys(TAILCOL).filter((c) => c !== v));
-    return v ? 0 : 1;
-  },
+  mutateAllele(locus, al, rng, sp) { return sch(sp).mut(locus, al, rng); },
+  mutateSc(locus, v, rng, sp) { return sch(sp).mutSc(locus, v, rng); },
 
-  gamete(g, rng = R, opts = {}) {
-    const mut = opts.noMut ? 0 : MUT_RATE * (opts.mutMul || 1);
-    const auto = {};
-    for (const l of AUTO_LOCI) {
-      let al = g.auto[l][rng.next() < 0.5 ? 0 : 1];
-      if (rng.next() < mut) al = this.mutateAllele(l, al, rng);
-      auto[l] = al;
-    }
-    const h0 = Object.assign({}, g.sc[0]), h1 = Object.assign({}, g.sc[1]);
-    const rec = opts.noCross ? 0 : (g.sex === 'M' ? (opts.xyCross ?? XY_CROSS) : XX_CROSS);
-    for (const l of SC_LOCI) if (rng.next() < rec) { const t = h0[l]; h0[l] = h1[l]; h1[l] = t; }
+  /** Gamet: hedef şemadaki (forSp) lokuslar için; ebeveynde olmayan lokus varsayılanla doldurulur (melez). */
+  gamete(g, rng = R, opts = {}, forSp) {
+    const S = sch(forSp || g.sp), own = sch(g.sp), mut = opts.noMut ? 0 : MUT_RATE * (opts.mutMul || 1), auto = {};
+    for (const l of S.auto) { const pair = g.auto[l] || S.defAuto[l]; let al = pair[rng.next() < 0.5 ? 0 : 1]; if (rng.next() < mut) al = S.mut(l, al, rng); auto[l] = al; }
+    const mk = (h) => { const o = Object.assign({}, S.defSc); for (const l of S.sc) if (h[l] !== undefined) o[l] = h[l]; o.Y = h.Y; return o; };
+    const h0 = mk(g.sc[0]), h1 = mk(g.sc[1]);
+    const rec = opts.noCross ? 0 : (g.sex === 'M' ? (opts.xyCross ?? S.xy ?? XY_CROSS) : XX_CROSS);
+    for (const l of S.sc) if (rng.next() < rec) { const t = h0[l]; h0[l] = h1[l]; h1[l] = t; }
     const sc = rng.next() < 0.5 ? h0 : h1;
-    for (const l of SC_LOCI) if (rng.next() < mut) sc[l] = this.mutateSc(l, sc[l], rng);
+    for (const l of S.sc) if (rng.next() < mut) sc[l] = S.mutSc(l, sc[l], rng);
     return { auto, sc };
   },
 
-  /** Bir yavru genomu üretir. Ebeveyn genomları değişmez. */
+  /** Bir yavru genomu üretir (yavru anne türünde olur). Ebeveyn genomları değişmez. */
   breed(sire, dam, rng = R, opts = {}) {
-    const pg = this.gamete(sire, rng, opts), mg = this.gamete(dam, rng, opts);
-    const g = { sex: pg.sc.Y ? 'M' : 'F', auto: {}, sc: [mg.sc, pg.sc], quant: {} };
-    for (const l of AUTO_LOCI) g.auto[l] = [mg.auto[l], pg.auto[l]];
-    for (const q in QUANT) {
-      const [lo, hi] = QUANT[q].range;
-      let v = (sire.quant[q] + dam.quant[q]) / 2 + rng.gauss(0, 0.045);
+    const sp = dam.sp || 'guppy', S = sch(sp), pg = this.gamete(sire, rng, opts, sp), mg = this.gamete(dam, rng, opts, sp);
+    const g = { sex: pg.sc.Y ? 'M' : 'F', sp, auto: {}, sc: [mg.sc, pg.sc], quant: {} };
+    for (const l of S.auto) g.auto[l] = [mg.auto[l], pg.auto[l]];
+    for (const q in S.quant) {
+      const [lo, hi] = S.quant[q], dflt = (S.qdef && S.qdef[q]) ?? 1, sv = sire.quant[q] ?? ((sire.sp || 'guppy') !== sp && S.qOther && S.qOther[q] !== undefined ? S.qOther[q] : dflt), dv = dam.quant[q] ?? dflt;
+      let v = (sv + dv) / 2 + rng.gauss(0, 0.045);
       if (!opts.noMut && rng.chance(0.01)) v += rng.gauss(0, 0.2);     // nadir sıçrama
       g.quant[q] = clamp(v, lo, hi);
     }
+    if (S.post) S.post(g, sire, dam, rng, opts);                       // türe özel (geri dönüş, melez saflığı…)
     return g;
   },
 
-  /** Sağlık çarpanı: dayanıklılık, akrabalı üreme ve çift Metal geni. */
-  health(g, F = 0) {
-    const p = this.phenotype(g);
-    let v = p.vigor * (1 - 1.6 * F) * (p.metalDouble ? 0.65 : 1);
-    return clamp(v, 0.1, 1.4);
-  },
+  /** Sağlık çarpanı: dayanıklılık, akrabalı üreme ve türe özgü ceza (çift Metal, balon vb.). */
+  health(g, F = 0) { const p = this.phenotype(g); return clamp(p.vigor * (1 - 1.6 * F) * (p.penalty ?? 1), 0.1, 1.4); },
 
   /** Genotip metni (test sonrası görünen). */
   describe(g) {
+    if (g.sp && g.sp !== 'guppy') return sch(g.sp).describe(g);
     const rows = [];
     rows.push(['Gövde rengi (otozomal)', g.auto.body.map((a) => BODY[a].name).join(' / ')]);
     rows.push(['Mor gövde (Pb)', g.auto.purple.join(' / ')]);

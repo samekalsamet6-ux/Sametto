@@ -12,8 +12,7 @@ const newId = () => _nextId++;
 class Creature {
   constructor(d) {
     this.id = d.id || newId(); if (this.id >= _nextId) _nextId = this.id + 1;
-    this.species = 'guppy';
-    this.genome = d.genome;
+    this.genome = d.genome; this.species = d.genome.sp || 'guppy'; this.def = SPDEF[this.species];
     this.name = d.name || (d.genome.sex === 'F' ? R.pick(NAMES_F) : R.pick(NAMES_M));
     this.bornT = d.bornT ?? 0;                    // oyun dakikası
     this.seed = d.seed || ((R.next() * 2 ** 31) >>> 0);
@@ -27,28 +26,28 @@ class Creature {
     this.boostUntil = d.boostUntil || 0; this.vit = d.vit ?? 1; this.dis = d.dis || null; this.envStress = 0; this.quarantined = !!d.q;
     this.lastBirth = d.lastBirth ?? -1e9; this.defect = !!d.defect; this.unrevealed = !!d.unrevealed;
     this.pheno = Genetics.phenotype(this.genome);
-    this.sprite = null; this.sw = new Swimmer(this);
+    this.sprite = null; this.sw = this.def.kind === 'fish' ? new Swimmer(this) : new Crawler(this);
     this.now = 0;                                 // son bilinen oyun dakikası (yaş için)
   }
   get sex() { return this.genome.sex; }
   ageDays(now = this.now) { return Math.max(0, (now - this.bornT) / 1440); }
   /** Yavru→yetişkin büyüme (0.34 → 1). */
-  growth(now = this.now) { return 0.34 + 0.66 * smoothstep(0, 42, this.ageDays(now)); }
+  growth(now = this.now) { return 0.34 + 0.66 * smoothstep(0, this.def.adult * 1.2, this.ageDays(now)); }
   /** Erkekte renk olgunluğu: günler içinde yavaşça "açılır". */
   maturity(now = this.now) { return this.sex === 'M' ? smoothstep(14, 70, this.ageDays(now)) : 1; }
-  stage(now = this.now) { const a = this.ageDays(now); return a < 10 ? 'Yavru' : a < 42 ? 'Genç' : 'Yetişkin'; }
+  stage(now = this.now) { const a = this.ageDays(now); return a < 10 ? 'Yavru' : a < this.def.adult * 1.2 ? 'Genç' : 'Yetişkin'; }
   /** Dünya birimi cinsinden gövde uzunluğu. */
   /** Akrabalı yetiştirme katsayısı (soyağacı değişmediği için bir kez hesaplanır). */
   get F() { return this._F ?? (this._F = Pedigree.F(this.id)); }
-  bodyLen() { return 58 * this.pheno.size * this.growth() * (this.sex === 'F' ? 1.2 : 0.86) * (1 - 0.3 * this.F); }
-  adult(now = this.now) { return this.ageDays(now) >= MATURE_DAYS; }
+  bodyLen() { return this.def.len[this.sex === 'F' ? 1 : 0] * this.pheno.size * this.growth() * (1 - 0.3 * this.F); }
+  adult(now = this.now) { return this.ageDays(now) >= this.def.adult; }
   breed() { return Genetics.breedOf(this.pheno); }
   rarity() { return this.breed().rarity; }
   inbreeding() { return this.F; }
   health() { return Genetics.health(this.genome, this.inbreeding()) * (this.defect ? 0.6 : 1); }
   /** Pazar çarpanından bağımsız taban değer. */
   baseValue() {
-    const r = RARITY[this.rarity()].value * (this.defect ? 0.4 : 1), size = 0.6 + 0.4 * this.growth();
+    const r = RARITY[this.rarity()].value * this.def.pm * (this.defect ? 0.4 : 1), size = 0.6 + 0.4 * this.growth();
     const stageMul = this.ageDays() < 10 ? 0.4 : 1;
     return Math.max(5, Math.round(r * size * stageMul * clamp(this.health(), 0.5, 1.15) * (this.vit ?? 1)));
   }

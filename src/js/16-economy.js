@@ -96,8 +96,8 @@ const Market = {
   tickDay(S, day) {
     const m = this.ensure(S), rng = new RNG((day ?? Math.floor(S.clockMin / 1440)) * 7919 + 13);
     if (m.trend && --m.trend.days <= 0) m.trend = null;
-    if (!m.trend && rng.chance(0.25)) { const b = rng.pick(BREEDS.filter((x) => x.rarity <= 2)); m.trend = { id: b.id, up: rng.chance(0.7), days: rng.int(5, 9) }; Game.notify('market', `Pazar: ${b.name} ${m.trend.up ? 'moda oldu ↑' : 'ilgi görmüyor ↓'}`); }
-    for (const b of BREEDS) { let d = m.demand[b.id] ?? 1; d += (1 - d) * 0.08 + rng.float(-0.04, 0.04); if (m.trend && m.trend.id === b.id) d += m.trend.up ? 0.06 : -0.05; d = clamp(d, 0.45, 1.7); m.demand[b.id] = d; const h_ = m.hist[b.id] || (m.hist[b.id] = []); h_.push(+d.toFixed(2)); if (h_.length > 14) h_.shift(); }
+    if (!m.trend && rng.chance(0.25)) { const b = rng.pick(ALL_BREEDS.filter((x) => x.rarity <= 2)); m.trend = { id: b.id, up: rng.chance(0.7), days: rng.int(5, 9) }; Game.notify('market', `Pazar: ${b.name} ${m.trend.up ? 'moda oldu ↑' : 'ilgi görmüyor ↓'}`); }
+    for (const b of ALL_BREEDS) { let d = m.demand[b.id] ?? 1; d += (1 - d) * 0.08 + rng.float(-0.04, 0.04); if (m.trend && m.trend.id === b.id) d += m.trend.up ? 0.06 : -0.05; d = clamp(d, 0.45, 1.7); m.demand[b.id] = d; const h_ = m.hist[b.id] || (m.hist[b.id] = []); h_.push(+d.toFixed(2)); if (h_.length > 14) h_.shift(); }
   },
 };
 
@@ -106,9 +106,10 @@ const Shop = {
   maxRarity() { const l = Progress.level(Game.S.xp); return l < 5 ? 0 : l < 15 ? 1 : 2; },
   day() { return Math.floor(Game.S.clockMin / 1440); },
   /** Günün seçkisi ve haftanın gezgin satıcısı (tohumlu → kayıtsız tutarlı). */
-  daily() { const rng = new RNG(this.day() * 104729 + 7), pool = BREEDS.filter((b) => b.rarity <= this.maxRarity()); return rng.shuffle(pool.slice()).slice(0, 6).map((b) => ({ b, price: this.price(b), qty: 2 })); },
-  trader() { const week = Math.floor(this.day() / 7), rng = new RNG(week * 1299709 + 3), pool = BREEDS.filter((b) => b.rarity >= 2 && b.rarity <= 3); return rng.shuffle(pool.slice()).slice(0, 3).map((b) => ({ b, price: Math.round(this.price(b) * 1.5), qty: 1, rare: true })); },
-  price(b) { return Math.round(RARITY[b.rarity].value * 1.9); },
+  unlocked(sp) { return Progress.level(Game.S.xp) >= SPECIES_LVL[sp]; },
+  daily(sp = 'guppy') { const rng = new RNG(this.day() * 104729 + 7 + hashStr(sp) % 997), pool = breedsOf(sp).filter((b) => b.rarity <= this.maxRarity()); return rng.shuffle(pool.slice()).slice(0, sp === 'guppy' ? 6 : 4).map((b) => ({ b, price: this.price(b), qty: 2 })); },
+  trader() { const week = Math.floor(this.day() / 7), rng = new RNG(week * 1299709 + 3), pool = ALL_BREEDS.filter((b) => b.rarity >= 2 && b.rarity <= 3 && this.unlocked(b.spec.sp || 'guppy')); return rng.shuffle(pool.slice()).slice(0, 3).map((b) => ({ b, price: Math.round(this.price(b) * 1.5), qty: 1, rare: true })); },
+  price(b) { return Math.round(RARITY[b.rarity].value * 1.9 * SPDEF[b.spec.sp || 'guppy'].pm); },
   bought(key) { const S = Game.S; S.shop = S.shop || {}; if (S.shop.day !== this.day()) S.shop = { day: this.day(), n: {} }; return S.shop.n[key] || 0; },
   buy(offer, sex) {
     const S = Game.S, key = offer.b.id + (offer.rare ? '!' : '');
@@ -116,7 +117,7 @@ const Shop = {
     if (Game.tank.creatures.length >= tankCap()) return UI.toast('Tank dolu', 'fish');
     if (S.coins < offer.price) return UI.toast('Yeterli Altın Pul yok', 'coin');
     S.coins -= offer.price; S.shop.n[key] = this.bought(key) + 1;
-    const c = new Creature({ genome: Genetics.make(offer.b.spec, sex, R), bornT: S.clockMin - R.int(55, 110) * 1440, x: Game.tank.W * 0.5, y: 120 }); c.now = S.clockMin; Breeding.reg(c); Game.tank.addCreature(c);
+    const c = new Creature({ genome: Genetics.make(offer.b.spec, sex, R, offer.b.spec.sp || 'guppy'), bornT: S.clockMin - R.int(55, 110) * 1440, x: Game.tank.W * 0.5, y: 120 }); c.now = S.clockMin; Breeding.reg(c); Game.addToTank(c);
     UI.refreshTop(); Game.ev('buy'); Game.checkDiscoveries(false); Game.save(); UI.toast(`${c.name} (${sex === 'M' ? 'erkek' : 'dişi'} ${offer.b.name}) tanka eklendi`, 'fish'); AudioSys.SFX.coin(); return c;
   },
 };
@@ -134,7 +135,7 @@ const Orders = {
   gen(S, rng) {
     const lvl = Progress.level(S.xp), maxR = lvl < 5 ? 1 : lvl < 15 ? 2 : 3, kinds = ['breed', 'rarity', 'tail', 'size'], kind = rng.pick(kinds), [name, emo] = rng.pick(NPCS);
     const o = { id: S.orders.next++, npc: name, emo, kind, until: S.clockMin + rng.int(3, 6) * 1440, sex: rng.chance(0.5) ? 'M' : 'F' };
-    if (kind === 'breed') { const b = rng.pick(BREEDS.filter((x) => x.rarity <= Math.min(maxR, 2) && S.discovered[x.id])); if (!b) return null; const sp = b.spec; o.breed = b.id; if (sp.tc && sp.tc !== 'none' || sp.tux || sp.sb || sp.st || sp.grass || sp.mosaic || sp.moscow) o.sex = 'M'; o.text = `${o.sex === 'M' ? 'Erkek' : 'Dişi'} ${b.name}`; o.base = RARITY[b.rarity].value * 1.9; }
+    if (kind === 'breed') { const b = rng.pick(ALL_BREEDS.filter((x) => x.rarity <= Math.min(maxR, 2) && S.discovered[x.id])); if (!b) return null; const sp = b.spec; o.breed = b.id; if (sp.tc && sp.tc !== 'none' || sp.tux || sp.sb || sp.st || sp.grass || sp.mosaic || sp.moscow) o.sex = 'M'; o.text = `${o.sex === 'M' ? 'Erkek' : 'Dişi'} ${b.name}`; o.base = RARITY[b.rarity].value * 1.9; }
     else if (kind === 'rarity') { o.minR = rng.int(0, Math.min(2, maxR)) + (lvl > 12 ? 1 : 0); o.minR = Math.min(o.minR, 3); o.text = `${RARITY[o.minR].name} veya üstü ${o.sex === 'M' ? 'erkek' : 'dişi'} balık`; o.base = RARITY[o.minR].value * 1.8 + 30; }
     else if (kind === 'tail') { const t = rng.pick(['fan', 'delta', 'round', 'veil', 'spade']); o.tail = t; o.sex = 'M'; o.text = `${TAILS[t].name} kuyruklu erkek`; o.base = 70; }
     else { o.size = 1.1; o.text = `İri (büyük boy) ${o.sex === 'M' ? 'erkek' : 'dişi'} balık`; o.base = 80; }
@@ -144,7 +145,7 @@ const Orders = {
     if (c.sex !== o.sex || !c.adult() || c.dis) return false; const p = c.pheno;
     if (o.kind === 'breed') return c.breed().id === o.breed; if (o.kind === 'rarity') return c.rarity() >= o.minR; if (o.kind === 'tail') return p.tail === o.tail; if (o.kind === 'size') return p.size >= o.size; return false;
   },
-  deliver(o, c) { const S = Game.S; Game.tank.removeCreature(c); S.orders.list = S.orders.list.filter((x) => x !== o); Game.addCoins(o.reward, true); S.rep += o.rep; Game.addXp(10 + o.rep); Game.ev('order'); S.stats.sold++; UI.refreshTop(); AudioSys.SFX.discover(1); UI.toast(`${o.npc} memnun: +${o.reward} 💰, +${o.rep} İtibar`, 'heart', 4200); Game.save(); },
+  deliver(o, c) { const S = Game.S; Game.dropCreature(c); S.orders.list = S.orders.list.filter((x) => x !== o); Game.addCoins(o.reward, true); S.rep += o.rep; Game.addXp(10 + o.rep); Game.ev('order'); S.stats.sold++; UI.refreshTop(); AudioSys.SFX.discover(1); UI.toast(`${o.npc} memnun: +${o.reward} 💰, +${o.rep} İtibar`, 'heart', 4200); Game.save(); },
 };
 
 /* Araştırma yardımcıları */

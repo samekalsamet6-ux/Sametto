@@ -20,6 +20,9 @@ src/js/04b-breeding.js üreme: çiftleştirme, gebelik, doğum, önizleme
 src/js/09a-viewport.js kamera + girdi
 src/js/12-scape-data.js zemin/taş/kök/bitki/ekipman/şablon tabloları
 src/js/12b-scape-art.js taş/kök/dekor sprite + bitki çizicileri
+src/js/17-species.js   7 tür: şema, fenotip, ırk tabloları
+src/js/18-crawlers.js  karides/salyangoz davranışı + çizim
+src/js/19-species-ui.js türe özel Laboratuvar arayüzü
 src/js/16-economy.js   görev/başarım/pazar/mağaza/sipariş/araştırma mantığı
 src/js/16b-economy-ui.js ilerleme ekranları
 src/js/15-info-data.js tür kartı verileri, sözlük, rehberler, dersler

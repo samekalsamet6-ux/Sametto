@@ -22,7 +22,7 @@ Object.assign(UI, {
   },
   speciesCreature(sp, variant, sex, ageDays) {
     const key = [sp, variant, sex, ageDays].join('|'); this._spc = this._spc || new Map(); let c = this._spc.get(key);
-    if (!c) { const b = sp === 'guppy' ? BREEDS[variant % BREEDS.length] : null; if (!b) return null; c = new Creature({ id: -3000000 - this._spc.size, genome: Genetics.make(b.spec, sex, new RNG(9)), bornT: -ageDays * 1440, seed: 777 + variant }); c.now = 0; this._spc.set(key, c); }
+    if (!c) { const list = breedsOf(sp), b = list[variant % list.length]; if (!b) return null; c = new Creature({ id: -3000000 - this._spc.size, genome: Genetics.make(b.spec, sex, new RNG(9), sp), bornT: -ageDays * 1440, seed: 777 + variant }); c.now = 0; this._spc.set(key, c); }
     return c;
   },
   tabs(names, cur, fn) { return h('div.chips', null, names.map(([k, l]) => h('button.sp-chip' + (cur === k ? '.on' : ''), { onclick: () => fn(k) }, l))); },
@@ -31,14 +31,14 @@ Object.assign(UI, {
   dexTab: 'fish',
   render_dex(el) {
     const S = Game.S, seen = S.seen || {};
-    const fishFound = BREEDS.filter((b) => S.discovered[b.id]).length, plantFound = Object.keys(PLANTS).filter((k) => (seen.plant || {})[k]).length;
+    const fishFound = ALL_BREEDS.filter((b) => S.discovered[b.id]).length, plantFound = Object.keys(PLANTS).filter((k) => (seen.plant || {})[k]).length;
     const hardAll = [...Object.keys(HARDSCAPE), ...Object.keys(DECOR), ...Object.keys(SUBSTRATES)], hardFound = hardAll.filter((k) => ((seen.hard || {})[k])).length;
-    const total = BREEDS.length + Object.keys(PLANTS).length + hardAll.length, found = fishFound + plantFound + hardFound, pc = Math.round(100 * found / total);
+    const total = ALL_BREEDS.length + Object.keys(PLANTS).length + hardAll.length, found = fishFound + plantFound + hardFound, pc = Math.round(100 * found / total);
     const ring = (p, label) => h('div.ring', { style: { '--p': p, width: '56px', height: '56px' } }, h('span', { style: { width: '44px', height: '44px', fontSize: '13px' } }, label));
     let body;
     if (this.dexTab === 'fish') {
-      body = h('div.stack', null, ...SPECIES.map((s) => { const i = SPECIES_INFO[s.id], open = s.status === 'open', p = open ? Math.round(100 * fishFound / BREEDS.length) : 0;
-        return h('div.card.sptile', { role: 'button', tabindex: 0, onclick: () => UI.openSpecies(s.id) }, h('div', { style: { fontSize: '38px' } }, i.emoji), h('div.sp', null, h('b', null, s.name), h('div.small.muted', null, s.sci), h('div.tiny.muted', null, open ? `${fishFound}/${BREEDS.length} varyasyon` : `Seviye ${SPECIES_LVL[s.id]}'de açılır · bilgi kartı açık`)), open ? ring(p, p + '%') : icon('lock')); }));
+      body = h('div.stack', null, ...SPECIES.map((s) => { const i = SPECIES_INFO[s.id], open = Shop.unlocked(s.id), L2 = breedsOf(s.id), fnd = L2.filter((b) => S.discovered[b.id]).length, p = Math.round(100 * fnd / L2.length);
+        return h('div.card.sptile', { role: 'button', tabindex: 0, onclick: () => UI.openSpecies(s.id) }, h('div', { style: { fontSize: '38px' } }, i.emoji), h('div.sp', null, h('b', null, s.name), h('div.small.muted', null, s.sci), h('div.tiny.muted', null, open ? `${fnd}/${L2.length} varyasyon` : `Seviye ${SPECIES_LVL[s.id]}'de açılır · bilgi kartı açık`)), open ? ring(p, p + '%') : icon('lock')); }));
     } else if (this.dexTab === 'plant') {
       body = h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(104px,1fr))' } }, ...Object.entries(PLANTS).map(([id, pl]) => { const d = !!(seen.plant || {})[id], cv = Editor.thumb('plant', id); if (!d) { cv.style.filter = 'brightness(0) opacity(.35)'; }
         return h('div.cat', { role: 'button', tabindex: 0, onclick: () => UI.openPlant(id) }, cv, h('b', null, d ? pl.name : '???'), h('span.tiny.muted', null, d ? ['', 'Kolay', 'Kolay', 'Orta', 'Zor', 'Uzman'][pl.diff] : 'Keşfedilmedi')); }));
@@ -47,29 +47,29 @@ Object.assign(UI, {
       body = h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(104px,1fr))' } }, ...Object.entries(HARDSCAPE).map(([id, d]) => mk(d.kind, id, d)), ...Object.entries(SUBSTRATES).map(([id, d]) => mk('sub', id, d)), ...Object.entries(DECOR).map(([id, d]) => mk('decor', id, d)));
     }
     el.replaceChildren(h('div.wrap', null,
-      h('div.row', { style: { margin: '6px 0 10px' } }, h('div.ring', { style: { '--p': pc } }, h('span', null, pc + '%')), h('div', null, h('h2', null, 'Ansiklopedi'), h('div.muted.small', null, `${found}/${total} keşif · Balık ${fishFound}/${BREEDS.length} · Bitki ${plantFound}/${Object.keys(PLANTS).length} · Taş&zemin ${hardFound}/${hardAll.length}`))),
+      h('div.row', { style: { margin: '6px 0 10px' } }, h('div.ring', { style: { '--p': pc } }, h('span', null, pc + '%')), h('div', null, h('h2', null, 'Ansiklopedi'), h('div.muted.small', null, `${found}/${total} keşif · Balık ${fishFound}/${ALL_BREEDS.length} · Bitki ${plantFound}/${Object.keys(PLANTS).length} · Taş&zemin ${hardFound}/${hardAll.length}`))),
       UI.tabs([['fish', 'Balıkdex'], ['plant', 'Bitkidex'], ['hard', 'Taşdex']], this.dexTab, (k) => { this.dexTab = k; UI.render_dex(el); }), body));
   },
   subThumb(id) { const cv = document.createElement('canvas'); cv.width = cv.height = 96; const c = cv.getContext('2d'), [h_, s, l] = SUBSTRATES[id].colors.natural; c.fillStyle = hsl(h_, s, l); c.beginPath(); c.moveTo(6, 70); c.quadraticCurveTo(48, 40, 90, 66); c.lineTo(90, 90); c.lineTo(6, 90); c.fill(); const r = new RNG(3); for (let i = 0; i < 60; i++) { c.fillStyle = r.pick(['rgba(255,255,255,.25)', 'rgba(0,0,0,.25)']); c.beginPath(); c.arc(r.float(10, 88), r.float(62, 88), r.float(0.8, 2.4), 0, TAU); c.fill(); } return cv; },
 
   /* ---------- Tür Kartı ---------- */
   openSpecies(id) {
-    const sp = SPECIES.find((s) => s.id === id), info = SPECIES_INFO[id], S = Game.S; let tab = 'gen', vi = Math.max(0, BREEDS.findIndex((b) => S.discovered[b.id])), sex = 'M', age = 120, zoomed = false, pt = null;
+    const sp = SPECIES.find((s) => s.id === id), info = SPECIES_INFO[id], S = Game.S, list = breedsOf(id); let tab = 'gen', vi = Math.max(0, list.findIndex((b) => S.discovered[b.id])), sex = 'M', age = 120, zoomed = false, pt = null;
     const portrait = h('div.cc-portrait.sp-portrait'), cv = h('canvas'); portrait.append(cv);
     const label = h('div.sp-label'), controls = h('div.cc-tools'), body = h('div.sp-body');
-    const open = sp.status === 'open';
+    const open = true;
     const setPortrait = () => {
-      pt && pt.stop(); pt = null; const b = open ? BREEDS[vi % BREEDS.length] : null, disc = b ? !!S.discovered[b.id] : false;
+      pt && pt.stop(); pt = null; const b = open ? list[vi % list.length] : null, disc = b ? !!S.discovered[b.id] : false;
       if (open) {
         const cr = UI.speciesCreature(id, vi, sex, age); portrait.style.setProperty('--c', b ? RARITY[b.rarity].color : '#4aa');
         if (disc) { pt = new Portrait(cr, cv); pt.setZoom(zoomed ? 1.8 : 1); pt.start(); }
-        else { const c = cv.getContext('2d'); cv.width = 600; cv.height = 340; const g = c.createLinearGradient(0, 0, 0, 340); g.addColorStop(0, info.hab[0]); g.addColorStop(1, info.hab[2]); c.fillStyle = g; c.fillRect(0, 0, 600, 340); const sp2 = FishArt.sprite(cr), tmp = document.createElement('canvas'); tmp.width = 600; tmp.height = 340; const tc = tmp.getContext('2d'); tc.drawImage(sp2.tex, 100, 60, 400, 190); tc.globalCompositeOperation = 'source-atop'; tc.fillStyle = 'rgba(0,10,16,.92)'; tc.fillRect(0, 0, 600, 340); c.drawImage(tmp, 0, 0); cv.style.width = '100%'; cv.style.height = '100%'; }
+        else { const c = cv.getContext('2d'); cv.width = 600; cv.height = 340; const g = c.createLinearGradient(0, 0, 0, 340); g.addColorStop(0, info.hab[0]); g.addColorStop(1, info.hab[2]); c.fillStyle = g; c.fillRect(0, 0, 600, 340); const sp2 = cr.def.kind === 'fish' ? FishArt.sprite(cr) : { tex: UI.thumbCv(cr, 400) }, tmp = document.createElement('canvas'); tmp.width = 600; tmp.height = 340; const tc = tmp.getContext('2d'); tc.drawImage(sp2.tex, 100, 60, 400, 190); tc.globalCompositeOperation = 'source-atop'; tc.fillStyle = 'rgba(0,10,16,.92)'; tc.fillRect(0, 0, 600, 340); c.drawImage(tmp, 0, 0); cv.style.width = '100%'; cv.style.height = '100%'; }
         label.replaceChildren(h('b', null, disc ? b.name : '??? · Keşfedilmedi'), b ? UI.rarityPill(b.rarity) : null, h('span.tiny', { style: { color: '#fff', textShadow: '0 1px 3px #000' } }, disc ? '' : 'İpucu: ' + b.hint));
       } else {
         const c = cv.getContext('2d'); cv.width = 600; cv.height = 340; const g = c.createLinearGradient(0, 0, 0, 340); g.addColorStop(0, info.hab[0]); g.addColorStop(0.6, info.hab[1]); g.addColorStop(1, info.hab[2]); c.fillStyle = g; c.fillRect(0, 0, 600, 340); c.font = '120px serif'; c.textAlign = 'center'; c.fillText(info.emoji, 300, 210); cv.style.width = '100%'; cv.style.height = '100%';
-        label.replaceChildren(h('b', null, sp.name), h('span.tiny', { style: { color: '#fff', textShadow: '0 1px 3px #000' } }, `Canlı portre: Aşama ${sp.stage}`));
+        label.replaceChildren(h('b', null, sp.name));
       }
-      controls.replaceChildren(...[open ? h('button.icon-btn', { 'aria-label': 'Önceki varyasyon', onclick: () => { vi = (vi + BREEDS.length - 1) % BREEDS.length; setPortrait(); if (tab === 'gen2') draw(); } }, '◀') : null, open ? h('button.icon-btn', { 'aria-label': 'Sonraki varyasyon', onclick: () => { vi = (vi + 1) % BREEDS.length; setPortrait(); } }, '▶') : null,
+      controls.replaceChildren(...[open ? h('button.icon-btn', { 'aria-label': 'Önceki varyasyon', onclick: () => { vi = (vi + list.length - 1) % list.length; setPortrait(); if (tab === 'gen2') draw(); } }, '◀') : null, open ? h('button.icon-btn', { 'aria-label': 'Sonraki varyasyon', onclick: () => { vi = (vi + 1) % list.length; setPortrait(); } }, '▶') : null,
         open ? h('button.icon-btn', { 'aria-label': 'Cinsiyet', onclick: () => { sex = sex === 'M' ? 'F' : 'M'; setPortrait(); } }, sex === 'M' ? '♂' : '♀') : null,
         open ? h('button.icon-btn', { 'aria-label': 'Yaş', title: 'Yavru / genç / yetişkin', onclick: () => { age = age === 120 ? 5 : age === 5 ? 25 : 120; setPortrait(); } }, age === 120 ? 'Yet.' : age === 5 ? 'Yav.' : 'Genç') : null,
         open ? h('button.icon-btn', { 'aria-label': 'Yakınlaştır', onclick: () => { zoomed = !zoomed; pt && pt.setZoom(zoomed ? 1.8 : 1); } }, icon('zoom')) : null, h('button.icon-btn', { 'aria-label': 'Kapat', onclick: () => rec.close() }, icon('close'))].filter(Boolean));
@@ -95,7 +95,7 @@ Object.assign(UI, {
       else if (tab === 'breed') c = h('div.stack', null, kv([['Üreme tipi', info.breed.type], ['Gebelik / kuluçka', info.breed.time], ['Yavru sayısı', info.breed.count]]), h('p', null, info.breed.care));
       else if (tab === 'gen2') {
         c = h('div.stack', null, ...info.genetics.map((g) => h('p', { style: { margin: 0 } }, '• ', UI.rich(g))));
-        if (open) { const found = BREEDS.filter((b) => S.discovered[b.id]).length; c.append(h('b', null, `Varyasyonlar (${found}/${BREEDS.length})`), h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(92px,1fr))' } }, ...BREEDS.map((b, i) => { const d = !!S.discovered[b.id], cr = Game.sampleCreature(b.spec); return h('div.dex-tile' + (d ? '' : '.undisc'), { style: { '--c': RARITY[b.rarity].color, padding: '6px' }, onclick: () => { vi = i; setPortrait(); portrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } }, UI.thumbCv(cr, 90), h('div.tiny', null, d ? b.name : '???'), h('div.rarbar')); })),
+        if (open) { const found = list.filter((b) => S.discovered[b.id]).length; c.append(h('b', null, `Varyasyonlar (${found}/${list.length})`), h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(92px,1fr))' } }, ...list.map((b, i) => { const d = !!S.discovered[b.id], cr = Game.sampleCreature(b.spec); return h('div.dex-tile' + (d ? '' : '.undisc'), { style: { '--c': RARITY[b.rarity].color, padding: '6px' }, onclick: () => { vi = i; setPortrait(); portrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } }, UI.thumbCv(cr, 90), h('div.tiny', null, d ? b.name : '???'), h('div.rarbar')); })),
           h('b', null, 'Örnek Punnett: iki taşıyıcı'), h('div.pgrid', null, h('span'), h('b', null, 'Yabani'), h('b', null, 'Albino'), h('b', null, 'Yabani'), h('span.pc', null, 'YY'), h('span.pc', null, 'YA'), h('b', null, 'Albino'), h('span.pc', null, 'YA'), h('span.pc', null, 'AA')), h('div.small.muted', null, '¼ albino · ¾ yabani görünüm (3:1).')); }
       } else c = h('div.stack', null, h('b', null, 'İlginç bilgiler'), ...info.trivia.map((t) => h('p', { style: { margin: 0 } }, '💡 ', t)), h('b', null, 'Sağlık ve dürüst notlar'), ...info.health.map((t) => h('p', { style: { margin: 0 } }, '🩺 ', t)));
       body.replaceChildren(tabEl, c);

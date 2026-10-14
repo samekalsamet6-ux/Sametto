@@ -11,14 +11,20 @@ Object.assign(UI, {
     return h('div', { style: { margin: '5px 0' } }, h('div.row', { style: { fontSize: '13.5px' } }, h('span.sp', null, label), h('b', null, (p * 100 < 1 && p > 0 ? '<1' : Math.round(p * 100)) + '%')),
       h('div.pbar', null, h('i', { style: { width: Math.max(2, p * 100) + '%', background: color || '' } })), extra);
   },
-  thumbCv(cr, w = 90) { const cv = h('canvas', { width: w, height: Math.round(w * FishArt.TH / FishArt.TW) }); cv.getContext('2d').drawImage(FishArt.sprite(cr).tex, 0, 0, cv.width, cv.height); return cv; },
+  thumbCv(cr, w = 90) {
+    const cv = h('canvas', { width: w, height: Math.round(w * FishArt.TH / FishArt.TW) }), c = cv.getContext('2d');
+    if (cr.def.kind === 'fish') { c.drawImage(FishArt.sprite(cr).tex, 0, 0, cv.width, cv.height); return cv; }
+    const tmp = Object.create(cr), L = cr.bodyLen() / cr.growth(), s = (w * (cr.species === 'shrimp' ? 0.5 : 0.62)) / (L * (cr.species === 'shrimp' ? 1.15 : 1.6)); tmp.sw = { x: 0, y: 0, flip: 1, rot: 0, speed: 0, state: 'walk', mode: 'ground', antPh: 0.6, legPh: 0 }; tmp.growth = () => 1; tmp.preg = null; tmp.dis = null;
+    CrawlerArt.draw(c, tmp, 0, 1, 1, [s, 0, 0, s, w * (cr.species === 'shrimp' ? 0.46 : 0.45), cv.height * 0.72]); return cv;
+  },
   silhouette(cr, w = 90) { const cv = this.thumbCv(cr, w), c = cv.getContext('2d'); c.globalCompositeOperation = 'source-in'; c.fillStyle = 'rgba(0,0,0,.9)'; c.fillRect(0, 0, cv.width, cv.height); cv.style.opacity = '.35'; return cv; },
 
   /* ---------- Laboratuvar ---------- */
   render_lab(el) {
     const S = Game.S, t = Game.tank, now = S.clockMin, sel = this.labSel;
-    if (sel.m && !t.creatures.includes(sel.m)) sel.m = null; if (sel.f && !t.creatures.includes(sel.f)) sel.f = null;
-    const males = t.creatures.filter((c) => c.sex === 'M'), females = t.creatures.filter((c) => c.sex === 'F');
+    const pool = t.creatures.concat(S.qFish || []); if (sel.m && !pool.includes(sel.m)) sel.m = null; if (sel.f && !pool.includes(sel.f)) sel.f = null;
+    this.labSp = this.labSp || 'guppy'; const have = SPECIES.filter((s) => pool.some((c) => c.species === s.id)).map((s) => s.id); if (!have.includes(this.labSp)) this.labSp = have[0] || 'guppy';
+    const sp0 = this.labSp, males = pool.filter((c) => c.sex === 'M' && canCross(c.species, sp0)), females = pool.filter((c) => c.sex === 'F' && c.species === sp0);
     const unrev = Game.unrevealed(), pregs = females.filter((f) => f.preg), stored = females.filter((f) => !f.preg && f.sperm.length);
     const pick = (list, key) => h('div.chips', { style: { flexWrap: 'nowrap' } }, list.length ? list.map((c) => {
       const ok = c.adult(now), r = RARITY[c.rarity()];
@@ -28,6 +34,7 @@ Object.assign(UI, {
 
     const blocks = [];
     blocks.push(h('div.row', { style: { margin: '4px 2px' } }, h('h2.sp', null, 'Üretim Laboratuvarı'), h('span.pill', null, icon('fish'), `${t.creatures.length}/${tankCap()}`)));
+    blocks.push(have.length > 1 ? UI.tabs(have.map((id) => [id, SPECIES.find((s) => s.id === id).name]), sp0, (k) => { this.labSp = k; sel.m = null; sel.f = null; UI.render_lab(el); }) : null);
     if (unrev.length) blocks.push(h('div.card.glow', null, h('div.row', null, h('div', { style: { fontSize: '34px' } }, '🍼'), h('div.sp', null, h('b', null, `${unrev.length} yeni yavru seni bekliyor`), h('div.small.muted', null, 'Renklerinin ilk kez ortaya çıkma anı!')), h('button.btn.primary', { onclick: () => UI.openReveal() }, 'Aç'))));
     if (pregs.length || stored.length) blocks.push(h('div.card', null, h('h3', { style: { marginBottom: '6px' } }, 'Gebelikler'),
       pregs.map((f) => { const pr = Breeding.progress(f, now), wait = f.preg.start > now;
@@ -36,6 +43,7 @@ Object.assign(UI, {
 
     blocks.push(h('div.card', null, h('h3', null, '♂ Baba adayı'), pick(males, 'm'), h('h3', { style: { marginTop: '4px' } }, '♀ Anne adayı'), pick(females, 'f')));
 
+    blocks.push(...UI.speciesExtras(sp0, el));
     if (sel.m && sel.f) blocks.push(this.pairCard(sel.m, sel.f, el));
     else blocks.push(h('div.card', null, UI.emptyState('🧬', 'Bir çift seç', 'Olgun bir erkek ve bir dişi seçince olası yavruların Punnett önizlemesi burada belirir. Gizli genleri görmek için balıklarını test et.')));
     el.replaceChildren(h('div.wrap.stack', null, ...blocks));
@@ -59,6 +67,7 @@ Object.assign(UI, {
       const need = [m, f].filter((c) => !c.tested);
       out.push(h('div.locked', null, icon('lock'), h('div.sp', null, 'Ebeveynlerin genotipi bilinmiyor; olasılıklar "?" olarak gizli.'), ...need.map((c) => h('button.btn.sm.primary', { onclick: () => { if (Game.testCreature(c)) UI.render_lab(el); } }, `${c.name} · 40 💰`))));
       out.push(h('div.row.wrap-r', { style: { marginTop: '8px' } }, ...['Gövde ?', 'Kuyruk ?', 'Desen ?', 'Irk ?'].map((x) => h('span.pill', null, x))));
+    } else if (m.species !== 'guppy' || f.species !== 'guppy') { out.push(...UI.genericPreview(m, f, P));
     } else {
       const grid = (title, loc, name) => {
         const g = Breeding.punnett(m.genome.auto[loc], f.genome.auto[loc]);
@@ -76,6 +85,7 @@ Object.assign(UI, {
         return h('div.dex-tile', { style: { '--c': r.color, cursor: 'default' } }, disc ? UI.thumbCv(cr, 120) : UI.silhouette(cr, 120), h('div.nm', null, disc ? b.name : '???'), h('div.tiny.muted', null, `%${p * 100 < 1 ? '<1' : Math.round(p * 100)}${disc ? '' : ' · yeni olabilir'}`), h('div.rarbar'));
       })));
     }
+    if (f.def.breed === 'bubble') { out.push(UI.bettaControls(m, f, el)); return h('div.card', null, ...out); }
     out.push(h('button.btn.primary', { style: { width: '100%', marginTop: '14px' }, disabled: probs.length ? true : null, onclick: () => { if (Game.mate(m, f)) UI.render_lab(el); } }, icon('heart'), probs.length ? probs[0] : 'Çiftleştir'));
     return h('div.card', null, ...out);
   },

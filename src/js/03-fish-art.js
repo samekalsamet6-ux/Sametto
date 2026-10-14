@@ -65,6 +65,11 @@ const FishArt = {
         const P = [[0, -0.1], [0.35, -0.38], [0.7, -0.78], [0.98, -1], [0.93, -0.72], [0.86, -0.4], [0.78, -0.12], [0.76, 0], [0.78, 0.12], [0.86, 0.4], [0.93, 0.72], [0.98, 1], [0.7, 0.78], [0.35, 0.38], [0, 0.1]];
         out.poly = P.map(([u, v]) => [u * L, v * Hh]); break;
       }
+      case 'plakat': out.poly = prof((u) => 0.14 + 0.86 * Math.sqrt(Math.max(0, 1 - Math.pow((u - 0.55) / 0.5, 2))), L * 0.8, Hh * 0.62); break;
+      case 'double': {
+        const P = [[0, -0.1], [0.4, -0.5], [0.8, -0.95], [1, -0.9], [0.95, -0.45], [0.82, -0.05], [0.95, 0.05], [0.95, 0.45], [1, 0.9], [0.8, 0.95], [0.4, 0.5], [0, 0.1]];
+        out.poly = P.map(([u, v]) => [u * L, v * Hh]); break;
+      }
       case 'halfmoon': {
         const R = Math.min(L, Hh * 1.05), pts = [[0, -R * 0.12]];
         for (let i = 0; i <= 20; i++) { const a = -Math.PI / 2 + (i / 20) * Math.PI; pts.push([R * Math.cos(a) * (L / R > 1 ? 1 : 1), R * Math.sin(a)]); }
@@ -99,9 +104,9 @@ const FishArt = {
     const tailFrac = (1 - tt.bf) * clamp(0.78 + 0.22 * p.tailLen, 0.7, 1.15) * (male ? lerp(0.78, 1, mat) : 0.72);
     const bf = 1 - tailFrac;
     const x0 = 8, bodyLen = bf * TW - x0, xb = x0 + bodyLen;
-    const H = bodyLen * (male ? 0.150 : 0.190);
-    const col = this.bodyColor(p, mat);
-    const tcol = TAILCOL[p.tailColor] || TAILCOL.none;
+    const H = bodyLen * (male ? 0.150 : 0.190) * (p.H || 1);
+    const col = p.bodyCol ? { h: p.bodyCol.h, s: p.bodyCol.s * (male ? lerp(0.55, 1, mat) : 0.85) * clamp(p.intensity, 0.65, 1.2), l: p.bodyCol.l } : this.bodyColor(p, mat);
+    const tcol = p.tcol || TAILCOL[p.tailColor] || TAILCOL.none;
     const solid = p.moscow && p.tailColor !== 'none';
     const tex = document.createElement('canvas'); tex.width = TW; tex.height = TH;
     const glow = document.createElement('canvas'); glow.width = TW; glow.height = TH;
@@ -121,7 +126,7 @@ const FishArt = {
     const tailLen = TW - 3 - (xb - 6), tailH = Math.min(TH / 2 - 6, male ? tailLen * lerp(0.62, 0.95, mat) : tailLen * 0.55);
     const T = this.tailPoly(p.tail, tailLen, tailH);
     const tAlpha = solid ? 0.98 : male ? lerp(0.38, 0.9, mat) : 0.34;
-    const tc = male && p.tailColor !== 'none' ? tcol : { h: 205, s: 18, l: 74 };
+    const tc = p.tcol || (male && p.tailColor !== 'none') ? tcol : { h: 205, s: 18, l: 74 };
     const tS = tc.s * (male ? lerp(0.45, 1, mat) : 1);
     c.save(); c.translate(xb - 6, MID);
     const tailPath = () => { if (T.edge === 'smooth') this.smoothPoly(c, T.poly); else { c.beginPath(); T.poly.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath(); } };
@@ -140,6 +145,7 @@ const FishArt = {
     for (let i = 0; i < rays; i++) { const v = -1 + (2 * (i + 0.5)) / rays; c.beginPath(); c.moveTo(2, v * 3); c.lineTo(tailLen * (p.tail === 'halfmoon' ? Math.cos(v * Math.PI / 2) : 1), v * tailH * 1.02); c.stroke(); }
     if (p.tail === 'lace') { c.strokeStyle = hsl(tc.h, tS, tc.l + 12, 0.22); for (let k = 1; k < 9; k++) { c.beginPath(); c.arc(0, 0, tailLen * k / 9, -1.4, 1.4); c.stroke(); } }
     // kuyruk desenleri
+    if (p.extra) for (const e of p.extra) this.extra(c, e, { x0, bodyLen, xb, H, MID, tailLen, tailH, p }, new RNG(seed * 11 + (e.dyn ? (p.mphase || 0) * 997 : 0)), 'tail');
     if (male && p.st) this.rings(c, 0, -tailH, tailLen, tailH, 6.5, rng, hsl(tc.h, tS, Math.max(8, tc.l - 30), 0.5 * mat + 0.1), 1.2);
     if (male && p.grass) this.dots(c, 120, 0, -tailH, tailLen, tailH, 0.8, 1.7, hsl(tc.h, tS, 14, 0.55 * mat + 0.1), rng);
     if (male && p.mosaic) this.blotches(c, 18, 0, -tailH, tailLen, tailH, 5, 13, [hsl(tc.h, tS, tc.l - 10, 0.55), 'rgba(20,20,20,.45)', hsl(30, 80 * mat, 55, 0.5)], rng);
@@ -150,8 +156,8 @@ const FishArt = {
 
     /* --- sırt ve anal yüzgeç (gövdenin arkasında) --- */
     const dAlpha = male ? lerp(0.35, 0.85, mat) : 0.35;
-    const dCol = male && p.tailColor !== 'none' ? tcol : { h: 205, s: 15, l: 70 };
-    const dsc = male ? 1.9 : 0.95;
+    const dCol = p.tcol || (male && p.tailColor !== 'none') ? tcol : { h: 205, s: 15, l: 70 };
+    const dsc = (male ? 1.9 : 0.95) * (p.dorsal || 1);
     const dx0 = x0 + bodyLen * 0.34, dx1 = x0 + bodyLen * 0.68, dxa = x0 + bodyLen * 0.62;
     c.beginPath(); c.moveTo(dx0, topY(0.34) + 4);
     c.bezierCurveTo(dx0 + 14, MID - H * dsc, dxa - 6, MID - H * (dsc + 0.5), dxa + 14, MID - H * (dsc * 0.9));
@@ -162,7 +168,8 @@ const FishArt = {
     // anal yüzgeç / gonopodyum
     const ax = x0 + bodyLen * 0.58;
     c.beginPath();
-    if (male) { c.moveTo(ax, botY(0.58) - 3); c.lineTo(ax + 22, botY(0.58) + H * 0.8); c.lineTo(ax + 25, botY(0.58) + H * 0.8); c.lineTo(ax + 7, botY(0.58) - 3); }
+    if (p.bigAnal) { c.moveTo(ax - 30, botY(0.5) - 2); c.bezierCurveTo(ax - 20, botY(0.5) + H * 2.2, ax + 20, botY(0.6) + H * 2.6, ax + 50, botY(0.7) + H * 0.6); c.lineTo(ax + 40, botY(0.7) - 3); }
+    else if (male) { c.moveTo(ax, botY(0.58) - 3); c.lineTo(ax + 22, botY(0.58) + H * 0.8); c.lineTo(ax + 25, botY(0.58) + H * 0.8); c.lineTo(ax + 7, botY(0.58) - 3); }
     else { c.moveTo(ax, botY(0.58) - 3); c.quadraticCurveTo(ax + 8, botY(0.58) + H * 0.9, ax + 28, botY(0.58) + H * 0.55); c.lineTo(ax + 26, botY(0.65) - 3); }
     c.closePath(); c.fillStyle = hsl(dCol.h, dCol.s * 0.7, dCol.l, 0.5); c.fill();
 
@@ -192,6 +199,7 @@ const FishArt = {
       gm.addColorStop(0, 'rgba(255,255,255,.38)'); gm.addColorStop(0.35, 'rgba(255,255,255,.02)'); gm.addColorStop(0.75, 'rgba(255,255,255,.14)'); gm.addColorStop(1, 'rgba(255,255,255,.04)');
       c.fillStyle = gm; c.fillRect(x0, MID - H * 1.2, bodyLen, H * 2.6);
     }
+    if (p.extra) for (const e of p.extra) this.extra(c, e, { x0, bodyLen, xb, H, MID, tailLen, tailH, p }, new RNG(seed * 7 + (e.dyn ? (p.mphase || 0) * 997 : 0)), 'body');
     // üst parlama + yan çizgi
     c.fillStyle = 'rgba(255,255,255,.17)'; c.beginPath(); c.ellipse(x0 + bodyLen * 0.42, MID - H * 0.52, bodyLen * 0.3, H * 0.2, 0, 0, TAU); c.fill();
     c.strokeStyle = 'rgba(0,0,0,.08)'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(x0 + bodyLen * 0.2, MID + 1); c.lineTo(xb, MID + 1); c.stroke();
@@ -199,7 +207,7 @@ const FishArt = {
     bodyPath(c); c.strokeStyle = hsl(col.h, col.s, Math.max(5, col.l - 28), 0.5); c.lineWidth = 1.5; c.stroke();
 
     /* --- göz --- */
-    const alb = BODY[p.body].eye === 'red';
+    const alb = BODY[p.body].eye === 'red' || p.eyeRed;
     const ex = x0 + bodyLen * 0.1, ey = MID - H * 0.14, er = H * 0.19 + 1.5;
     c.beginPath(); c.arc(ex, ey, er + 1.2, 0, TAU); c.fillStyle = alb ? 'hsl(350,60%,70%)' : 'rgba(20,22,26,.9)'; c.fill();
     c.beginPath(); c.arc(ex, ey, er * 0.78, 0, TAU); c.fillStyle = alb ? 'hsl(352,85%,48%)' : 'hsl(42,80%,52%)'; c.fill();
@@ -218,14 +226,42 @@ const FishArt = {
     // dikey kırpma: her dikey şeritte dolu piksellerin yarı yüksekliği (çizim alanını küçültür)
     const B = 88, ext = new Float32Array(B).fill(8), id = c.getImageData(0, 0, TW, TH).data;
     for (let x = 0; x < TW; x++) { const bk = Math.min(B - 1, Math.floor((x / TW) * B)); for (let y = 0; y < TH; y++) { if (id[(y * TW + x) * 4 + 3] > 6) { const e = Math.abs(y - MID) + 4; if (e > ext[bk]) ext[bk] = e; } } }
-    return { tex, glow: hasGlow ? glow : null, bf, bodyLen, H, MID, ext, tailSoft: tt.soft, tailStart: 1 - tailFrac };
+    return { tex, glow: hasGlow ? glow : null, pec: p.pec || 1, bf, bodyLen, H, MID, ext, tailSoft: tt.soft, tailStart: 1 - tailFrac };
+  },
+
+  /** Tür desenleri: region 'body' (gövde kırpmasında, mutlak koordinat) veya 'tail' (kuyruk kökü orijin). */
+  extra(c, e, g, rng, region) {
+    const { x0, bodyLen, xb, H, MID, tailLen, tailH } = g;
+    if (region === 'body') switch (e.t) {
+      case 'tiger': for (let i = 0; i < 7; i++) { c.fillStyle = i % 2 ? 'rgba(20,15,10,.6)' : 'rgba(255,140,30,.55)'; c.beginPath(); c.ellipse(x0 + bodyLen * (0.22 + i * 0.1), MID + rng.float(-3, 3), 9, H * 1.1, rng.float(-0.2, 0.2), 0, TAU); c.fill(); } break;
+      case 'cobra': c.strokeStyle = 'rgba(15,12,10,.7)'; c.lineWidth = 5; for (let i = 0; i < 5; i++) { const x = x0 + bodyLen * (0.25 + i * 0.13); c.beginPath(); c.moveTo(x, MID - H); c.bezierCurveTo(x + 10, MID - H * 0.4, x - 10, MID + H * 0.3, x + 4, MID + H); c.stroke(); } break;
+      case 'bars': c.fillStyle = 'rgba(15,12,12,.7)'; for (let i = 0; i < e.n; i++) c.fillRect(x0 + bodyLen * (0.3 + i * 0.14), MID - H * 1.2, 7, H * 2.6); break;
+      case 'spots': c.fillStyle = e.col; for (let i = 0; i < e.n; i++) { c.beginPath(); c.arc(rng.float(x0 + bodyLen * 0.2, xb - 6), MID + rng.float(-0.8, 0.8) * H, e.rand ? rng.float(2, e.r + 2) : e.r * rng.float(0.6, 1), 0, TAU); c.fill(); } break;
+      case 'marble': this.blotches(c, e.n, x0 + bodyLen * 0.15, MID - H, xb, MID + H, 4, 12, [e.col, 'rgba(230,235,240,.35)'], rng); break;
+      case 'koi': this.blotches(c, 7, x0 + bodyLen * 0.1, MID - H, xb, MID + H, 8, 20, ['rgba(250,250,245,.9)', 'rgba(235,90,40,.9)', 'rgba(20,18,20,.85)'], rng); break;
+      case 'dragon': this.rings(c, x0 + bodyLen * 0.15, MID - H, xb, MID + H, 5.5, rng, 'rgba(40,30,10,.55)', 1.2); break;
+      case 'saltpepper': this.dots(c, e.dense ? 160 : 90, x0 + bodyLen * 0.2, MID - H, xb, MID + H, 0.9, 2.1, 'rgba(15,12,14,.7)', rng); this.dots(c, 40, x0 + bodyLen * 0.2, MID - H, xb, MID + H, 0.8, 1.6, 'rgba(255,255,255,.5)', rng); break;
+      case 'stripe': c.strokeStyle = e.col || 'rgba(120,20,20,.6)'; c.lineWidth = 4; c.beginPath(); c.moveTo(x0 + bodyLen * 0.2, MID + 2); c.lineTo(xb, MID + 2); c.stroke(); break;
+      case 'mickey': c.fillStyle = '#0c0c10'; c.beginPath(); c.arc(xb - 20, MID, 8.5, 0, TAU); c.arc(xb - 10, MID - 9, 5, 0, TAU); c.arc(xb - 10, MID + 9, 5, 0, TAU); c.fill(); break;
+      case 'comet': c.strokeStyle = '#0c0c10'; c.lineWidth = 4.5; c.beginPath(); c.moveTo(x0 + bodyLen * 0.55, MID - H * 0.55); c.lineTo(xb, MID - H * 0.15); c.stroke(); break;
+      case 'moon': c.strokeStyle = '#0c0c10'; c.lineWidth = 5; c.beginPath(); c.arc(xb - 4, MID, H * 0.65, Math.PI * 0.62, Math.PI * 1.38); c.stroke(); break;
+      case 'twospot': c.fillStyle = '#0c0c10'; for (const s of [-1, 1]) { c.beginPath(); c.arc(xb - 14, MID + s * H * 0.45, 5.5, 0, TAU); c.fill(); } break;
+    } else switch (e.t) {
+      case 'butterfly': c.fillStyle = 'rgba(245,245,250,.6)'; c.fillRect(tailLen * 0.58, -tailH * 1.2, tailLen, tailH * 2.4); break;
+      case 'koi': this.blotches(c, 5, 0, -tailH, tailLen, tailH, 8, 18, ['rgba(250,250,245,.8)', 'rgba(235,90,40,.85)', 'rgba(20,18,20,.7)'], rng); break;
+      case 'saltpepper': this.dots(c, 90, 0, -tailH, tailLen, tailH, 0.9, 1.9, 'rgba(15,12,14,.6)', rng); break;
+      case 'marble': this.blotches(c, e.n, 0, -tailH, tailLen, tailH, 5, 14, [e.col, 'rgba(255,255,255,.3)'], rng); break;
+      case 'comet': c.strokeStyle = 'rgba(12,12,16,.7)'; c.lineWidth = 4; c.beginPath(); c.moveTo(0, -tailH * 0.1); c.lineTo(tailLen, -tailH * 0.55); c.stroke(); break;
+      case 'tiger': this.blotches(c, 4, 0, -tailH * 0.6, tailLen, tailH * 0.6, 4, 8, ['rgba(255,140,30,.6)', 'rgba(20,15,10,.5)'], rng); break;
+      case 'spots': c.fillStyle = e.col; for (let i = 0; i < 5; i++) { c.beginPath(); c.arc(rng.float(tailLen * 0.2, tailLen * 0.9), rng.float(-tailH * 0.5, tailH * 0.5), e.r * 0.7, 0, TAU); c.fill(); } break;
+    }
   },
 
   /** Yaratığın dokusunu (gerekirse) yeniden üretir. */
   sprite(cr) {
     const mat = cr.maturity();
-    const key = cr.pheno.sig + '|' + Math.round(mat * 6) + '|' + cr.seed + (cr.boosted ? '|b' : '');
-    if (!cr.sprite || cr.sprite.key !== key) { cr.sprite = this.build(cr.boosted ? Object.assign({}, cr.pheno, { intensity: cr.pheno.intensity * 1.14 }) : cr.pheno, Math.round(mat * 6) / 6, cr.seed); cr.sprite.key = key; cr._thumb = null; }
+    const mph = cr.pheno.marble ? Math.floor(cr.ageDays() / 5) % 6 : 0, key = cr.pheno.sig + '|' + Math.round(mat * 6) + '|' + cr.seed + (cr.boosted ? '|b' : '') + '|' + mph;
+    if (!cr.sprite || cr.sprite.key !== key) { cr.sprite = this.build(Object.assign({}, cr.pheno, { mphase: mph }, cr.boosted ? { intensity: cr.pheno.intensity * 1.14 } : {}), Math.round(mat * 6) / 6, cr.seed); cr.sprite.key = key; cr._thumb = null; }
     return cr.sprite;
   },
 
@@ -291,7 +327,7 @@ const FishArt = {
     }
     // göğüs yüzgeci (ayrı animasyon)
     ctx.setTransform(Fa, Fb, Fc, Fd, Fe, Ff);
-    const pp = P[Math.round(S * 0.2)], flap = Math.sin(sw.pf) * 0.5, fr = sp.bodyLen * 0.09;
+    const pp = P[Math.round(S * 0.2)], flap = Math.sin(sw.pf) * 0.5, fr = sp.bodyLen * 0.09 * sp.pec;
     ctx.translate(pp.x, pp.y + sp.H * 0.5); ctx.rotate(Math.PI - 0.55 + flap);
     ctx.beginPath(); ctx.ellipse(fr * 0.8, 0, fr, fr * 0.42, 0, 0, TAU); ctx.fillStyle = 'rgba(235,245,250,.38)'; ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 0.8; ctx.stroke();

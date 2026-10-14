@@ -134,7 +134,7 @@ const Chem = {
     // şok izleme (saatlik), geçmiş kaydı (6 saatte bir)
     w.hT += dd; if (w.hT >= 1 / 24) { w.hT = 0; this.shockCheck(); }
     w.hist.hT = (w.hist.hT || 0) + dd; if (w.hist.hT >= 0.25) { w.hist.hT = 0; const s = { t: now }; for (const p of PARAMS) s[p.k] = +w[p.k].toFixed(3); w.hist.push(s); if (w.hist.length > 28) w.hist.shift(); }
-    this.fishStep(dd, quiet);
+    this.fishStep(dd, quiet); this.speciesStep(dd, quiet);
   },
 
   /** Kuru başlangıç: su yok, nemli ortamda bitkiler (halılar) kökleşir; yosun/azot yok. */
@@ -217,6 +217,25 @@ const Chem = {
       c.vit = clamp(c.vit + dv * dd, this.noDeath ? 0.15 : 0, 1);
       if (c.vit <= 0 && !this.noDeath) { this.die(c); }
     }
+  },
+  /** Türe özgü kurallar: temizlikçiler, karides yenmesi/deri değişimi, beta çatışması, kılıçkuyruk dönüşümü. */
+  speciesStep(dd, quiet) {
+    const t = Game.tank, list = t.creatures, w = this.w, fish = list.filter((c) => c.def.kind === 'fish'), pred = fish.filter((c) => c.adult()).length;
+    this.cleaners = list.reduce((a, c) => a + (c.species === 'snail' ? 0.35 : c.species === 'shrimp' ? 0.12 : 0), 0);
+    const cover = clamp(this.plants().length / 12, 0, 1) * 0.5;
+    for (const c of list.slice()) {
+      if (c.species === 'shrimp') {
+        if (pred > 0 && !this.noDeath && R.next() < dd * pred * 0.012 * (c.ageDays() < 10 ? 3 : 1) * (1 - cover)) { t.removeCreature(c); Game.notify('warn', `${c.name} (karides) balıklara yem oldu. Saklanma için bitki/yosun artır veya balıklardan ayır.`); if (!quiet) UI.toast(`${c.name} yenildi 🦐`, 'bell'); continue; }
+        c.moltT = (c.moltT ?? R.float(0, 10)) + dd;
+        if (c.moltT > 12) { c.moltT = R.float(0, 2); (t.molts = t.molts || []).push({ x: c.sw.x, y: c.sw.y, t: t.t }); if (w.gh < 4 && !this.noDeath && R.next() < 0.4) { this.die(c); continue; } }
+      }
+      if (c.species === 'swordtail' && c.sex === 'F' && c.ageDays() > 200 && !this.noDeath && R.next() < dd * 0.0006) {
+        c.genome.sex = 'M'; c.genome.sc[1].Y = true; c.pheno = Genetics.phenotype(c.genome); c.sprite = null; Game.notify('info', `${c.name} dişiden erkeğe dönüştü! (nadir olay)`); if (!quiet) UI.toast(`${c.name} erkeğe dönüştü — nadir bir olay!`, 'dna', 5000);
+      }
+    }
+    const bm = list.filter((c) => c.species === 'betta' && c.sex === 'M' && c.adult());
+    for (const c of bm.slice(1)) Game.toJar(c);
+    if (bm.length && t.scape.liters < 40) for (const c of fish) if ((c.species === 'guppy' || c.species === 'endler') && c.adult()) c.stress = Math.max(c.stress, 0.25);
   },
   die(c) {
     Game.tank.removeCreature(c); Game.S.stats.deaths = (Game.S.stats.deaths || 0) + 1;

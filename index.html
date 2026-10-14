@@ -562,6 +562,9 @@ const GEST_DAYS = [21, 31];      // gebelik süresi aralığı (gün)
 const SPERM_BATCHES = 3;         // tek çiftleşmeyle kaç batın döllenebilir
 const FRY_SURVIVAL = 0.55;       // yetişkinler yavru yer: temel hayatta kalma
 
+/** Lepistes dışındaki türlerin ırk tabloları (17-species.js doldurur). */
+const SP_BREEDS = {};
+
 /* ───── 02-genetics.js ───── */
 'use strict';
 /* =====================================================================
@@ -597,37 +600,49 @@ const Pedigree = {
   F(id) { const r = this.rec[id]; return r && r.s && r.d ? this.kin(r.s, r.d) : 0; },
 };
 
-/* ---------------- Genom yardımcıları ---------------- */
+/* ---------------- Tür şemaları: lokuslar, varsayılanlar, mutasyon ----------------
+   Her tür SCHEMA'da tanımlanır (lepistes burada, diğerleri 17-species.js'te).
+   auto: otozomal lokuslar · sc: cinsiyete bağlı lokuslar · quant: nicel özellik aralıkları */
+const SCHEMA = {
+  guppy: {
+    auto: AUTO_LOCI, sc: SC_LOCI, xy: XY_CROSS,
+    defAuto: { body: ['W', 'W'], tail: ['delta', 'delta'], purple: ['pb', 'pb'], metal: ['mg', 'mg'] },
+    defSc: { tc: 'none', tux: 0, sb: 0, st: 0, grass: 0, mosaic: 0, moscow: 0 },
+    quant: { size: [0.75, 1.3], tailLen: [0.6, 1.4], vigor: [0.5, 1.4], intensity: [0.55, 1.3] },
+    mut(locus, al, rng) {
+      if (locus === 'body') { if (rng.chance(0.12)) return rng.pick(['obs', 'aur']); return rng.pick(BODY_RANK.filter((a) => a !== al && a !== 'obs' && a !== 'aur')); }
+      if (locus === 'tail') return rng.pick(TAIL_RANK.filter((a) => a !== al));
+      if (locus === 'purple') return al === 'Pb' ? 'pb' : 'Pb'; if (locus === 'metal') return al === 'Mg' ? 'mg' : 'Mg'; return al;
+    },
+    mutSc(locus, v, rng) { if (locus === 'tc') return rng.pick(Object.keys(TAILCOL).filter((c) => c !== v)); return v ? 0 : 1; },
+  },
+};
+const sch = (sp) => SCHEMA[sp || 'guppy'];
+
 const Genetics = {
-  blankHap(isY) { return { tc: 'none', tux: 0, sb: 0, st: 0, grass: 0, mosaic: 0, moscow: 0, Y: !!isY }; },
+  blankHap(isY, sp) { const S = sch(sp), h = Object.assign({}, S.defSc); h.Y = !!isY; return h; },
 
   /** Tanımdan (spec) genom üretir. Cinsiyete bağlı genler erkekte Y'ye, dişide X'e konur. */
-  make(spec = {}, sex = 'M', rng = R) {
-    const two = (v, d) => (Array.isArray(v) ? v.slice() : [v ?? d, v ?? d]);
-    const g = { sex, auto: {}, sc: [], quant: {} };
-    g.auto.body = two(spec.body, 'W');
-    g.auto.tail = two(spec.tail, 'delta');
-    g.auto.purple = spec.purple ? (spec.purple === 2 ? ['Pb', 'Pb'] : ['Pb', 'pb']) : ['pb', 'pb'];
-    g.auto.metal = spec.metal ? (spec.metal === 2 ? ['Mg', 'Mg'] : ['Mg', 'mg']) : ['mg', 'mg'];
-    const flat = {}; for (const k of SC_LOCI) if (spec[k] !== undefined) flat[k] = spec[k];
-    const x0 = Object.assign(this.blankHap(false), spec.X || {});
-    const x1 = Object.assign(this.blankHap(sex === 'M'), sex === 'M' ? (spec.Y || {}) : (spec.X2 || {}));
+  make(spec = {}, sex = 'M', rng = R, sp) {
+    sp = sp || spec.sp || 'guppy'; const S = sch(sp), two = (v, d) => (Array.isArray(v) ? v.slice() : [v ?? d, v ?? d]);
+    const g = { sex, sp, auto: {}, sc: [], quant: {} };
+    for (const l of S.auto) g.auto[l] = spec[l] === undefined ? S.defAuto[l].slice() : (S.dom && S.dom[l] ? S.dom[l](spec[l]) : two(spec[l]));
+    if (sp === 'guppy') { // lepistes: bayrak biçimli özel kısaltmalar
+      g.auto.purple = spec.purple ? (spec.purple === 2 ? ['Pb', 'Pb'] : ['Pb', 'pb']) : ['pb', 'pb'];
+      g.auto.metal = spec.metal ? (spec.metal === 2 ? ['Mg', 'Mg'] : ['Mg', 'mg']) : ['mg', 'mg'];
+    }
+    const flat = {}; for (const k of S.sc) if (spec[k] !== undefined) flat[k] = spec[k];
+    const x0 = Object.assign(this.blankHap(false, sp), spec.X || {}), x1 = Object.assign(this.blankHap(sex === 'M', sp), sex === 'M' ? (spec.Y || {}) : (spec.X2 || {}));
     if (sex === 'M') Object.assign(x1, flat); else Object.assign(x0, flat);
     g.sc = [x0, x1];
-    for (const q in QUANT) {
-      const [a, b] = QUANT[q].range;
-      g.quant[q] = spec[q] ?? clamp(1 + rng.gauss(0, 0.07), a, b);
-    }
+    for (const q in S.quant) { const [a, b] = S.quant[q]; g.quant[q] = spec[q] ?? clamp((S.qdef && S.qdef[q] !== undefined ? S.qdef[q] : 1) + rng.gauss(0, 0.07), a, b); }
     return g;
   },
 
   /** Rastgele başlangıç genomu — yaygın genler. */
-  randomFounder(sex, rng = R) {
-    const spec = {
-      body: rng.chance(0.12) ? rng.pick(['bld', 'gld', 'alb', 'blu']) : 'W',
-      tail: rng.pick(TAIL_COMMON),
-      X: { tc: rng.chance(0.18) ? rng.pick(['red', 'blue']) : 'none' },
-    };
+  randomFounder(sex, rng = R, sp = 'guppy') {
+    if (sp !== 'guppy') return sch(sp).founder(sex, rng);
+    const spec = { body: rng.chance(0.12) ? rng.pick(['bld', 'gld', 'alb', 'blu']) : 'W', tail: rng.pick(TAIL_COMMON), X: { tc: rng.chance(0.18) ? rng.pick(['red', 'blue']) : 'none' } };
     return this.make(spec, sex, rng);
   },
 
@@ -635,32 +650,28 @@ const Genetics = {
   expressMin(alleles, rank) { return rank[Math.min(rank.indexOf(alleles[0]), rank.indexOf(alleles[1]))]; },
 
   phenotype(g) {
+    if (g.sp && g.sp !== 'guppy') return sch(g.sp).pheno(g);
     const p = {
-      sex: g.sex,
-      body: this.expressMin(g.auto.body, BODY_RANK),
-      purple: g.auto.purple.includes('Pb'),
-      metal: g.auto.metal.includes('Mg'),
-      metalDouble: g.auto.metal[0] === 'Mg' && g.auto.metal[1] === 'Mg',
-      tail: this.expressMin(g.auto.tail, TAIL_RANK),
-      tailColor: 'none', tailColor2: null,
-      tux: 0, sb: 0, st: 0, grass: 0, mosaic: 0, moscow: 0,
-      size: g.quant.size, tailLen: g.quant.tailLen, vigor: g.quant.vigor, intensity: g.quant.intensity,
+      sex: g.sex, sp: 'guppy', body: this.expressMin(g.auto.body, BODY_RANK), purple: g.auto.purple.includes('Pb'), metal: g.auto.metal.includes('Mg'),
+      metalDouble: g.auto.metal[0] === 'Mg' && g.auto.metal[1] === 'Mg', tail: this.expressMin(g.auto.tail, TAIL_RANK), tailColor: 'none', tailColor2: null,
+      tux: 0, sb: 0, st: 0, grass: 0, mosaic: 0, moscow: 0, size: g.quant.size, tailLen: g.quant.tailLen, vigor: g.quant.vigor, intensity: g.quant.intensity,
     };
     if (g.sex === 'M') {
       const [x, y] = g.sc;
-      // Y'deki kuyruk rengi öncelikli; X'tekiyle farklıysa iki renkli (alt/üst) görünür.
       const a = y.tc !== 'none' ? y.tc : x.tc, b = y.tc !== 'none' && x.tc !== 'none' && x.tc !== y.tc ? x.tc : null;
       p.tailColor = a; p.tailColor2 = b;
       for (const k of ['tux', 'sb', 'st', 'grass', 'mosaic', 'moscow']) p[k] = (x[k] || y[k]) ? 1 : 0;
     }
+    p.penalty = p.metalDouble ? 0.65 : 1;
     p.sig = [p.sex, p.body, p.purple | 0, p.metal | 0, p.tail, p.tailColor, p.tailColor2, p.tux, p.sb, p.st, p.grass, p.mosaic, p.moscow].join('|');
     return p;
   },
 
-  breedOf(p) { return BREEDS.find((b) => b.test(p)); },
+  breedOf(p) { const list = p.sp && p.sp !== 'guppy' ? SP_BREEDS[p.sp] : BREEDS; return list.find((b) => b.test(p)); },
 
   /** Taşıyıcılık: dişide/erkekte gizli ama aktarılabilen genler (genetik defter için). */
   carried(g) {
+    if (g.sp && g.sp !== 'guppy') return sch(g.sp).carried ? sch(g.sp).carried(g) : [];
     const out = [];
     if (g.sex === 'F') for (const h of g.sc) {
       if (h.tc !== 'none') out.push('Kuyruk: ' + TAILCOL[h.tc].name);
@@ -671,62 +682,43 @@ const Genetics = {
   },
 
   /* ------------ Kalıtım ------------ */
-  mutateAllele(locus, al, rng) {
-    if (locus === 'body') {
-      const pool = BODY_RANK.filter((a) => a !== al);
-      // efsanevi/mitik mutasyonlar çok nadir
-      if (rng.chance(0.12)) return rng.pick(['obs', 'aur']);
-      return rng.pick(pool.filter((a) => a !== 'obs' && a !== 'aur'));
-    }
-    if (locus === 'tail') return rng.pick(TAIL_RANK.filter((a) => a !== al));
-    if (locus === 'purple') return al === 'Pb' ? 'pb' : 'Pb';
-    if (locus === 'metal') return al === 'Mg' ? 'mg' : 'Mg';
-    return al;
-  },
-  mutateSc(locus, v, rng) {
-    if (locus === 'tc') return rng.pick(Object.keys(TAILCOL).filter((c) => c !== v));
-    return v ? 0 : 1;
-  },
+  mutateAllele(locus, al, rng, sp) { return sch(sp).mut(locus, al, rng); },
+  mutateSc(locus, v, rng, sp) { return sch(sp).mutSc(locus, v, rng); },
 
-  gamete(g, rng = R, opts = {}) {
-    const mut = opts.noMut ? 0 : MUT_RATE * (opts.mutMul || 1);
-    const auto = {};
-    for (const l of AUTO_LOCI) {
-      let al = g.auto[l][rng.next() < 0.5 ? 0 : 1];
-      if (rng.next() < mut) al = this.mutateAllele(l, al, rng);
-      auto[l] = al;
-    }
-    const h0 = Object.assign({}, g.sc[0]), h1 = Object.assign({}, g.sc[1]);
-    const rec = opts.noCross ? 0 : (g.sex === 'M' ? (opts.xyCross ?? XY_CROSS) : XX_CROSS);
-    for (const l of SC_LOCI) if (rng.next() < rec) { const t = h0[l]; h0[l] = h1[l]; h1[l] = t; }
+  /** Gamet: hedef şemadaki (forSp) lokuslar için; ebeveynde olmayan lokus varsayılanla doldurulur (melez). */
+  gamete(g, rng = R, opts = {}, forSp) {
+    const S = sch(forSp || g.sp), own = sch(g.sp), mut = opts.noMut ? 0 : MUT_RATE * (opts.mutMul || 1), auto = {};
+    for (const l of S.auto) { const pair = g.auto[l] || S.defAuto[l]; let al = pair[rng.next() < 0.5 ? 0 : 1]; if (rng.next() < mut) al = S.mut(l, al, rng); auto[l] = al; }
+    const mk = (h) => { const o = Object.assign({}, S.defSc); for (const l of S.sc) if (h[l] !== undefined) o[l] = h[l]; o.Y = h.Y; return o; };
+    const h0 = mk(g.sc[0]), h1 = mk(g.sc[1]);
+    const rec = opts.noCross ? 0 : (g.sex === 'M' ? (opts.xyCross ?? S.xy ?? XY_CROSS) : XX_CROSS);
+    for (const l of S.sc) if (rng.next() < rec) { const t = h0[l]; h0[l] = h1[l]; h1[l] = t; }
     const sc = rng.next() < 0.5 ? h0 : h1;
-    for (const l of SC_LOCI) if (rng.next() < mut) sc[l] = this.mutateSc(l, sc[l], rng);
+    for (const l of S.sc) if (rng.next() < mut) sc[l] = S.mutSc(l, sc[l], rng);
     return { auto, sc };
   },
 
-  /** Bir yavru genomu üretir. Ebeveyn genomları değişmez. */
+  /** Bir yavru genomu üretir (yavru anne türünde olur). Ebeveyn genomları değişmez. */
   breed(sire, dam, rng = R, opts = {}) {
-    const pg = this.gamete(sire, rng, opts), mg = this.gamete(dam, rng, opts);
-    const g = { sex: pg.sc.Y ? 'M' : 'F', auto: {}, sc: [mg.sc, pg.sc], quant: {} };
-    for (const l of AUTO_LOCI) g.auto[l] = [mg.auto[l], pg.auto[l]];
-    for (const q in QUANT) {
-      const [lo, hi] = QUANT[q].range;
-      let v = (sire.quant[q] + dam.quant[q]) / 2 + rng.gauss(0, 0.045);
+    const sp = dam.sp || 'guppy', S = sch(sp), pg = this.gamete(sire, rng, opts, sp), mg = this.gamete(dam, rng, opts, sp);
+    const g = { sex: pg.sc.Y ? 'M' : 'F', sp, auto: {}, sc: [mg.sc, pg.sc], quant: {} };
+    for (const l of S.auto) g.auto[l] = [mg.auto[l], pg.auto[l]];
+    for (const q in S.quant) {
+      const [lo, hi] = S.quant[q], dflt = (S.qdef && S.qdef[q]) ?? 1, sv = sire.quant[q] ?? ((sire.sp || 'guppy') !== sp && S.qOther && S.qOther[q] !== undefined ? S.qOther[q] : dflt), dv = dam.quant[q] ?? dflt;
+      let v = (sv + dv) / 2 + rng.gauss(0, 0.045);
       if (!opts.noMut && rng.chance(0.01)) v += rng.gauss(0, 0.2);     // nadir sıçrama
       g.quant[q] = clamp(v, lo, hi);
     }
+    if (S.post) S.post(g, sire, dam, rng, opts);                       // türe özel (geri dönüş, melez saflığı…)
     return g;
   },
 
-  /** Sağlık çarpanı: dayanıklılık, akrabalı üreme ve çift Metal geni. */
-  health(g, F = 0) {
-    const p = this.phenotype(g);
-    let v = p.vigor * (1 - 1.6 * F) * (p.metalDouble ? 0.65 : 1);
-    return clamp(v, 0.1, 1.4);
-  },
+  /** Sağlık çarpanı: dayanıklılık, akrabalı üreme ve türe özgü ceza (çift Metal, balon vb.). */
+  health(g, F = 0) { const p = this.phenotype(g); return clamp(p.vigor * (1 - 1.6 * F) * (p.penalty ?? 1), 0.1, 1.4); },
 
   /** Genotip metni (test sonrası görünen). */
   describe(g) {
+    if (g.sp && g.sp !== 'guppy') return sch(g.sp).describe(g);
     const rows = [];
     rows.push(['Gövde rengi (otozomal)', g.auto.body.map((a) => BODY[a].name).join(' / ')]);
     rows.push(['Mor gövde (Pb)', g.auto.purple.join(' / ')]);
@@ -807,6 +799,11 @@ const FishArt = {
         const P = [[0, -0.1], [0.35, -0.38], [0.7, -0.78], [0.98, -1], [0.93, -0.72], [0.86, -0.4], [0.78, -0.12], [0.76, 0], [0.78, 0.12], [0.86, 0.4], [0.93, 0.72], [0.98, 1], [0.7, 0.78], [0.35, 0.38], [0, 0.1]];
         out.poly = P.map(([u, v]) => [u * L, v * Hh]); break;
       }
+      case 'plakat': out.poly = prof((u) => 0.14 + 0.86 * Math.sqrt(Math.max(0, 1 - Math.pow((u - 0.55) / 0.5, 2))), L * 0.8, Hh * 0.62); break;
+      case 'double': {
+        const P = [[0, -0.1], [0.4, -0.5], [0.8, -0.95], [1, -0.9], [0.95, -0.45], [0.82, -0.05], [0.95, 0.05], [0.95, 0.45], [1, 0.9], [0.8, 0.95], [0.4, 0.5], [0, 0.1]];
+        out.poly = P.map(([u, v]) => [u * L, v * Hh]); break;
+      }
       case 'halfmoon': {
         const R = Math.min(L, Hh * 1.05), pts = [[0, -R * 0.12]];
         for (let i = 0; i <= 20; i++) { const a = -Math.PI / 2 + (i / 20) * Math.PI; pts.push([R * Math.cos(a) * (L / R > 1 ? 1 : 1), R * Math.sin(a)]); }
@@ -841,9 +838,9 @@ const FishArt = {
     const tailFrac = (1 - tt.bf) * clamp(0.78 + 0.22 * p.tailLen, 0.7, 1.15) * (male ? lerp(0.78, 1, mat) : 0.72);
     const bf = 1 - tailFrac;
     const x0 = 8, bodyLen = bf * TW - x0, xb = x0 + bodyLen;
-    const H = bodyLen * (male ? 0.150 : 0.190);
-    const col = this.bodyColor(p, mat);
-    const tcol = TAILCOL[p.tailColor] || TAILCOL.none;
+    const H = bodyLen * (male ? 0.150 : 0.190) * (p.H || 1);
+    const col = p.bodyCol ? { h: p.bodyCol.h, s: p.bodyCol.s * (male ? lerp(0.55, 1, mat) : 0.85) * clamp(p.intensity, 0.65, 1.2), l: p.bodyCol.l } : this.bodyColor(p, mat);
+    const tcol = p.tcol || TAILCOL[p.tailColor] || TAILCOL.none;
     const solid = p.moscow && p.tailColor !== 'none';
     const tex = document.createElement('canvas'); tex.width = TW; tex.height = TH;
     const glow = document.createElement('canvas'); glow.width = TW; glow.height = TH;
@@ -863,7 +860,7 @@ const FishArt = {
     const tailLen = TW - 3 - (xb - 6), tailH = Math.min(TH / 2 - 6, male ? tailLen * lerp(0.62, 0.95, mat) : tailLen * 0.55);
     const T = this.tailPoly(p.tail, tailLen, tailH);
     const tAlpha = solid ? 0.98 : male ? lerp(0.38, 0.9, mat) : 0.34;
-    const tc = male && p.tailColor !== 'none' ? tcol : { h: 205, s: 18, l: 74 };
+    const tc = p.tcol || (male && p.tailColor !== 'none') ? tcol : { h: 205, s: 18, l: 74 };
     const tS = tc.s * (male ? lerp(0.45, 1, mat) : 1);
     c.save(); c.translate(xb - 6, MID);
     const tailPath = () => { if (T.edge === 'smooth') this.smoothPoly(c, T.poly); else { c.beginPath(); T.poly.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath(); } };
@@ -882,6 +879,7 @@ const FishArt = {
     for (let i = 0; i < rays; i++) { const v = -1 + (2 * (i + 0.5)) / rays; c.beginPath(); c.moveTo(2, v * 3); c.lineTo(tailLen * (p.tail === 'halfmoon' ? Math.cos(v * Math.PI / 2) : 1), v * tailH * 1.02); c.stroke(); }
     if (p.tail === 'lace') { c.strokeStyle = hsl(tc.h, tS, tc.l + 12, 0.22); for (let k = 1; k < 9; k++) { c.beginPath(); c.arc(0, 0, tailLen * k / 9, -1.4, 1.4); c.stroke(); } }
     // kuyruk desenleri
+    if (p.extra) for (const e of p.extra) this.extra(c, e, { x0, bodyLen, xb, H, MID, tailLen, tailH, p }, new RNG(seed * 11 + (e.dyn ? (p.mphase || 0) * 997 : 0)), 'tail');
     if (male && p.st) this.rings(c, 0, -tailH, tailLen, tailH, 6.5, rng, hsl(tc.h, tS, Math.max(8, tc.l - 30), 0.5 * mat + 0.1), 1.2);
     if (male && p.grass) this.dots(c, 120, 0, -tailH, tailLen, tailH, 0.8, 1.7, hsl(tc.h, tS, 14, 0.55 * mat + 0.1), rng);
     if (male && p.mosaic) this.blotches(c, 18, 0, -tailH, tailLen, tailH, 5, 13, [hsl(tc.h, tS, tc.l - 10, 0.55), 'rgba(20,20,20,.45)', hsl(30, 80 * mat, 55, 0.5)], rng);
@@ -892,8 +890,8 @@ const FishArt = {
 
     /* --- sırt ve anal yüzgeç (gövdenin arkasında) --- */
     const dAlpha = male ? lerp(0.35, 0.85, mat) : 0.35;
-    const dCol = male && p.tailColor !== 'none' ? tcol : { h: 205, s: 15, l: 70 };
-    const dsc = male ? 1.9 : 0.95;
+    const dCol = p.tcol || (male && p.tailColor !== 'none') ? tcol : { h: 205, s: 15, l: 70 };
+    const dsc = (male ? 1.9 : 0.95) * (p.dorsal || 1);
     const dx0 = x0 + bodyLen * 0.34, dx1 = x0 + bodyLen * 0.68, dxa = x0 + bodyLen * 0.62;
     c.beginPath(); c.moveTo(dx0, topY(0.34) + 4);
     c.bezierCurveTo(dx0 + 14, MID - H * dsc, dxa - 6, MID - H * (dsc + 0.5), dxa + 14, MID - H * (dsc * 0.9));
@@ -904,7 +902,8 @@ const FishArt = {
     // anal yüzgeç / gonopodyum
     const ax = x0 + bodyLen * 0.58;
     c.beginPath();
-    if (male) { c.moveTo(ax, botY(0.58) - 3); c.lineTo(ax + 22, botY(0.58) + H * 0.8); c.lineTo(ax + 25, botY(0.58) + H * 0.8); c.lineTo(ax + 7, botY(0.58) - 3); }
+    if (p.bigAnal) { c.moveTo(ax - 30, botY(0.5) - 2); c.bezierCurveTo(ax - 20, botY(0.5) + H * 2.2, ax + 20, botY(0.6) + H * 2.6, ax + 50, botY(0.7) + H * 0.6); c.lineTo(ax + 40, botY(0.7) - 3); }
+    else if (male) { c.moveTo(ax, botY(0.58) - 3); c.lineTo(ax + 22, botY(0.58) + H * 0.8); c.lineTo(ax + 25, botY(0.58) + H * 0.8); c.lineTo(ax + 7, botY(0.58) - 3); }
     else { c.moveTo(ax, botY(0.58) - 3); c.quadraticCurveTo(ax + 8, botY(0.58) + H * 0.9, ax + 28, botY(0.58) + H * 0.55); c.lineTo(ax + 26, botY(0.65) - 3); }
     c.closePath(); c.fillStyle = hsl(dCol.h, dCol.s * 0.7, dCol.l, 0.5); c.fill();
 
@@ -934,6 +933,7 @@ const FishArt = {
       gm.addColorStop(0, 'rgba(255,255,255,.38)'); gm.addColorStop(0.35, 'rgba(255,255,255,.02)'); gm.addColorStop(0.75, 'rgba(255,255,255,.14)'); gm.addColorStop(1, 'rgba(255,255,255,.04)');
       c.fillStyle = gm; c.fillRect(x0, MID - H * 1.2, bodyLen, H * 2.6);
     }
+    if (p.extra) for (const e of p.extra) this.extra(c, e, { x0, bodyLen, xb, H, MID, tailLen, tailH, p }, new RNG(seed * 7 + (e.dyn ? (p.mphase || 0) * 997 : 0)), 'body');
     // üst parlama + yan çizgi
     c.fillStyle = 'rgba(255,255,255,.17)'; c.beginPath(); c.ellipse(x0 + bodyLen * 0.42, MID - H * 0.52, bodyLen * 0.3, H * 0.2, 0, 0, TAU); c.fill();
     c.strokeStyle = 'rgba(0,0,0,.08)'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(x0 + bodyLen * 0.2, MID + 1); c.lineTo(xb, MID + 1); c.stroke();
@@ -941,7 +941,7 @@ const FishArt = {
     bodyPath(c); c.strokeStyle = hsl(col.h, col.s, Math.max(5, col.l - 28), 0.5); c.lineWidth = 1.5; c.stroke();
 
     /* --- göz --- */
-    const alb = BODY[p.body].eye === 'red';
+    const alb = BODY[p.body].eye === 'red' || p.eyeRed;
     const ex = x0 + bodyLen * 0.1, ey = MID - H * 0.14, er = H * 0.19 + 1.5;
     c.beginPath(); c.arc(ex, ey, er + 1.2, 0, TAU); c.fillStyle = alb ? 'hsl(350,60%,70%)' : 'rgba(20,22,26,.9)'; c.fill();
     c.beginPath(); c.arc(ex, ey, er * 0.78, 0, TAU); c.fillStyle = alb ? 'hsl(352,85%,48%)' : 'hsl(42,80%,52%)'; c.fill();
@@ -960,14 +960,42 @@ const FishArt = {
     // dikey kırpma: her dikey şeritte dolu piksellerin yarı yüksekliği (çizim alanını küçültür)
     const B = 88, ext = new Float32Array(B).fill(8), id = c.getImageData(0, 0, TW, TH).data;
     for (let x = 0; x < TW; x++) { const bk = Math.min(B - 1, Math.floor((x / TW) * B)); for (let y = 0; y < TH; y++) { if (id[(y * TW + x) * 4 + 3] > 6) { const e = Math.abs(y - MID) + 4; if (e > ext[bk]) ext[bk] = e; } } }
-    return { tex, glow: hasGlow ? glow : null, bf, bodyLen, H, MID, ext, tailSoft: tt.soft, tailStart: 1 - tailFrac };
+    return { tex, glow: hasGlow ? glow : null, pec: p.pec || 1, bf, bodyLen, H, MID, ext, tailSoft: tt.soft, tailStart: 1 - tailFrac };
+  },
+
+  /** Tür desenleri: region 'body' (gövde kırpmasında, mutlak koordinat) veya 'tail' (kuyruk kökü orijin). */
+  extra(c, e, g, rng, region) {
+    const { x0, bodyLen, xb, H, MID, tailLen, tailH } = g;
+    if (region === 'body') switch (e.t) {
+      case 'tiger': for (let i = 0; i < 7; i++) { c.fillStyle = i % 2 ? 'rgba(20,15,10,.6)' : 'rgba(255,140,30,.55)'; c.beginPath(); c.ellipse(x0 + bodyLen * (0.22 + i * 0.1), MID + rng.float(-3, 3), 9, H * 1.1, rng.float(-0.2, 0.2), 0, TAU); c.fill(); } break;
+      case 'cobra': c.strokeStyle = 'rgba(15,12,10,.7)'; c.lineWidth = 5; for (let i = 0; i < 5; i++) { const x = x0 + bodyLen * (0.25 + i * 0.13); c.beginPath(); c.moveTo(x, MID - H); c.bezierCurveTo(x + 10, MID - H * 0.4, x - 10, MID + H * 0.3, x + 4, MID + H); c.stroke(); } break;
+      case 'bars': c.fillStyle = 'rgba(15,12,12,.7)'; for (let i = 0; i < e.n; i++) c.fillRect(x0 + bodyLen * (0.3 + i * 0.14), MID - H * 1.2, 7, H * 2.6); break;
+      case 'spots': c.fillStyle = e.col; for (let i = 0; i < e.n; i++) { c.beginPath(); c.arc(rng.float(x0 + bodyLen * 0.2, xb - 6), MID + rng.float(-0.8, 0.8) * H, e.rand ? rng.float(2, e.r + 2) : e.r * rng.float(0.6, 1), 0, TAU); c.fill(); } break;
+      case 'marble': this.blotches(c, e.n, x0 + bodyLen * 0.15, MID - H, xb, MID + H, 4, 12, [e.col, 'rgba(230,235,240,.35)'], rng); break;
+      case 'koi': this.blotches(c, 7, x0 + bodyLen * 0.1, MID - H, xb, MID + H, 8, 20, ['rgba(250,250,245,.9)', 'rgba(235,90,40,.9)', 'rgba(20,18,20,.85)'], rng); break;
+      case 'dragon': this.rings(c, x0 + bodyLen * 0.15, MID - H, xb, MID + H, 5.5, rng, 'rgba(40,30,10,.55)', 1.2); break;
+      case 'saltpepper': this.dots(c, e.dense ? 160 : 90, x0 + bodyLen * 0.2, MID - H, xb, MID + H, 0.9, 2.1, 'rgba(15,12,14,.7)', rng); this.dots(c, 40, x0 + bodyLen * 0.2, MID - H, xb, MID + H, 0.8, 1.6, 'rgba(255,255,255,.5)', rng); break;
+      case 'stripe': c.strokeStyle = e.col || 'rgba(120,20,20,.6)'; c.lineWidth = 4; c.beginPath(); c.moveTo(x0 + bodyLen * 0.2, MID + 2); c.lineTo(xb, MID + 2); c.stroke(); break;
+      case 'mickey': c.fillStyle = '#0c0c10'; c.beginPath(); c.arc(xb - 20, MID, 8.5, 0, TAU); c.arc(xb - 10, MID - 9, 5, 0, TAU); c.arc(xb - 10, MID + 9, 5, 0, TAU); c.fill(); break;
+      case 'comet': c.strokeStyle = '#0c0c10'; c.lineWidth = 4.5; c.beginPath(); c.moveTo(x0 + bodyLen * 0.55, MID - H * 0.55); c.lineTo(xb, MID - H * 0.15); c.stroke(); break;
+      case 'moon': c.strokeStyle = '#0c0c10'; c.lineWidth = 5; c.beginPath(); c.arc(xb - 4, MID, H * 0.65, Math.PI * 0.62, Math.PI * 1.38); c.stroke(); break;
+      case 'twospot': c.fillStyle = '#0c0c10'; for (const s of [-1, 1]) { c.beginPath(); c.arc(xb - 14, MID + s * H * 0.45, 5.5, 0, TAU); c.fill(); } break;
+    } else switch (e.t) {
+      case 'butterfly': c.fillStyle = 'rgba(245,245,250,.6)'; c.fillRect(tailLen * 0.58, -tailH * 1.2, tailLen, tailH * 2.4); break;
+      case 'koi': this.blotches(c, 5, 0, -tailH, tailLen, tailH, 8, 18, ['rgba(250,250,245,.8)', 'rgba(235,90,40,.85)', 'rgba(20,18,20,.7)'], rng); break;
+      case 'saltpepper': this.dots(c, 90, 0, -tailH, tailLen, tailH, 0.9, 1.9, 'rgba(15,12,14,.6)', rng); break;
+      case 'marble': this.blotches(c, e.n, 0, -tailH, tailLen, tailH, 5, 14, [e.col, 'rgba(255,255,255,.3)'], rng); break;
+      case 'comet': c.strokeStyle = 'rgba(12,12,16,.7)'; c.lineWidth = 4; c.beginPath(); c.moveTo(0, -tailH * 0.1); c.lineTo(tailLen, -tailH * 0.55); c.stroke(); break;
+      case 'tiger': this.blotches(c, 4, 0, -tailH * 0.6, tailLen, tailH * 0.6, 4, 8, ['rgba(255,140,30,.6)', 'rgba(20,15,10,.5)'], rng); break;
+      case 'spots': c.fillStyle = e.col; for (let i = 0; i < 5; i++) { c.beginPath(); c.arc(rng.float(tailLen * 0.2, tailLen * 0.9), rng.float(-tailH * 0.5, tailH * 0.5), e.r * 0.7, 0, TAU); c.fill(); } break;
+    }
   },
 
   /** Yaratığın dokusunu (gerekirse) yeniden üretir. */
   sprite(cr) {
     const mat = cr.maturity();
-    const key = cr.pheno.sig + '|' + Math.round(mat * 6) + '|' + cr.seed + (cr.boosted ? '|b' : '');
-    if (!cr.sprite || cr.sprite.key !== key) { cr.sprite = this.build(cr.boosted ? Object.assign({}, cr.pheno, { intensity: cr.pheno.intensity * 1.14 }) : cr.pheno, Math.round(mat * 6) / 6, cr.seed); cr.sprite.key = key; cr._thumb = null; }
+    const mph = cr.pheno.marble ? Math.floor(cr.ageDays() / 5) % 6 : 0, key = cr.pheno.sig + '|' + Math.round(mat * 6) + '|' + cr.seed + (cr.boosted ? '|b' : '') + '|' + mph;
+    if (!cr.sprite || cr.sprite.key !== key) { cr.sprite = this.build(Object.assign({}, cr.pheno, { mphase: mph }, cr.boosted ? { intensity: cr.pheno.intensity * 1.14 } : {}), Math.round(mat * 6) / 6, cr.seed); cr.sprite.key = key; cr._thumb = null; }
     return cr.sprite;
   },
 
@@ -1033,7 +1061,7 @@ const FishArt = {
     }
     // göğüs yüzgeci (ayrı animasyon)
     ctx.setTransform(Fa, Fb, Fc, Fd, Fe, Ff);
-    const pp = P[Math.round(S * 0.2)], flap = Math.sin(sw.pf) * 0.5, fr = sp.bodyLen * 0.09;
+    const pp = P[Math.round(S * 0.2)], flap = Math.sin(sw.pf) * 0.5, fr = sp.bodyLen * 0.09 * sp.pec;
     ctx.translate(pp.x, pp.y + sp.H * 0.5); ctx.rotate(Math.PI - 0.55 + flap);
     ctx.beginPath(); ctx.ellipse(fr * 0.8, 0, fr, fr * 0.42, 0, 0, TAU); ctx.fillStyle = 'rgba(235,245,250,.38)'; ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 0.8; ctx.stroke();
@@ -1071,8 +1099,7 @@ const newId = () => _nextId++;
 class Creature {
   constructor(d) {
     this.id = d.id || newId(); if (this.id >= _nextId) _nextId = this.id + 1;
-    this.species = 'guppy';
-    this.genome = d.genome;
+    this.genome = d.genome; this.species = d.genome.sp || 'guppy'; this.def = SPDEF[this.species];
     this.name = d.name || (d.genome.sex === 'F' ? R.pick(NAMES_F) : R.pick(NAMES_M));
     this.bornT = d.bornT ?? 0;                    // oyun dakikası
     this.seed = d.seed || ((R.next() * 2 ** 31) >>> 0);
@@ -1086,28 +1113,28 @@ class Creature {
     this.boostUntil = d.boostUntil || 0; this.vit = d.vit ?? 1; this.dis = d.dis || null; this.envStress = 0; this.quarantined = !!d.q;
     this.lastBirth = d.lastBirth ?? -1e9; this.defect = !!d.defect; this.unrevealed = !!d.unrevealed;
     this.pheno = Genetics.phenotype(this.genome);
-    this.sprite = null; this.sw = new Swimmer(this);
+    this.sprite = null; this.sw = this.def.kind === 'fish' ? new Swimmer(this) : new Crawler(this);
     this.now = 0;                                 // son bilinen oyun dakikası (yaş için)
   }
   get sex() { return this.genome.sex; }
   ageDays(now = this.now) { return Math.max(0, (now - this.bornT) / 1440); }
   /** Yavru→yetişkin büyüme (0.34 → 1). */
-  growth(now = this.now) { return 0.34 + 0.66 * smoothstep(0, 42, this.ageDays(now)); }
+  growth(now = this.now) { return 0.34 + 0.66 * smoothstep(0, this.def.adult * 1.2, this.ageDays(now)); }
   /** Erkekte renk olgunluğu: günler içinde yavaşça "açılır". */
   maturity(now = this.now) { return this.sex === 'M' ? smoothstep(14, 70, this.ageDays(now)) : 1; }
-  stage(now = this.now) { const a = this.ageDays(now); return a < 10 ? 'Yavru' : a < 42 ? 'Genç' : 'Yetişkin'; }
+  stage(now = this.now) { const a = this.ageDays(now); return a < 10 ? 'Yavru' : a < this.def.adult * 1.2 ? 'Genç' : 'Yetişkin'; }
   /** Dünya birimi cinsinden gövde uzunluğu. */
   /** Akrabalı yetiştirme katsayısı (soyağacı değişmediği için bir kez hesaplanır). */
   get F() { return this._F ?? (this._F = Pedigree.F(this.id)); }
-  bodyLen() { return 58 * this.pheno.size * this.growth() * (this.sex === 'F' ? 1.2 : 0.86) * (1 - 0.3 * this.F); }
-  adult(now = this.now) { return this.ageDays(now) >= MATURE_DAYS; }
+  bodyLen() { return this.def.len[this.sex === 'F' ? 1 : 0] * this.pheno.size * this.growth() * (1 - 0.3 * this.F); }
+  adult(now = this.now) { return this.ageDays(now) >= this.def.adult; }
   breed() { return Genetics.breedOf(this.pheno); }
   rarity() { return this.breed().rarity; }
   inbreeding() { return this.F; }
   health() { return Genetics.health(this.genome, this.inbreeding()) * (this.defect ? 0.6 : 1); }
   /** Pazar çarpanından bağımsız taban değer. */
   baseValue() {
-    const r = RARITY[this.rarity()].value * (this.defect ? 0.4 : 1), size = 0.6 + 0.4 * this.growth();
+    const r = RARITY[this.rarity()].value * this.def.pm * (this.defect ? 0.4 : 1), size = 0.6 + 0.4 * this.growth();
     const stageMul = this.ageDays() < 10 ? 0.4 : 1;
     return Math.max(5, Math.round(r * size * stageMul * clamp(this.health(), 0.5, 1.15) * (this.vit ?? 1)));
   }
@@ -1343,40 +1370,42 @@ const Breeding = {
   problems(m, f, now) {
     const out = [];
     if (!m || !f) return ['Bir erkek ve bir dişi seç'];
+    if (!canCross(m.species, f.species)) return [`${SPECIES.find((s) => s.id === m.species).name} ile ${SPECIES.find((s) => s.id === f.species).name} melezlenemez`];
     if (!m.adult(now)) out.push(`${m.name} henüz olgun değil`);
     if (!f.adult(now)) out.push(`${f.name} henüz olgun değil`);
+    if (f.def.breed === 'bubble' && !(Game.S.bettaPair && Game.S.bettaPair.m === m.id && Game.S.bettaPair.f === f.id && Game.S.bettaPair.ready)) out.push('Önce kavanozları yan yana koyup bir gün bekle');
     return out;
   },
   /** Yavruların beklenen akrabalık katsayısı. */
   predictF(m, f) { return Pedigree.kin(m.id, f.id); },
 
-  gestDays(f) { return R.float(GEST_DAYS[0], GEST_DAYS[1]); },
+  gestDays(f) { const b = f.def.breed; return b === 'shrimp' ? R.float(22, 28) : b === 'snail' ? R.float(3, 5) : b === 'bubble' ? 2 : R.float(GEST_DAYS[0], GEST_DAYS[1]); },
 
-  /** Çiftleştirir. Dişi gebe değilse (ve dinlenmişse) gebelik başlar. */
-  mate(m, f, now) {
-    let rec = f.sperm.find((s) => s.sire === m.id);
-    if (rec) rec.left = SPERM_BATCHES; else { f.sperm.push({ sire: m.id, name: m.name, g: JSON.parse(JSON.stringify(m.genome)), left: SPERM_BATCHES }); }
+  /** Çiftleştirir. Dişi gebe/kuluçkada değilse (ve dinlenmişse) süreç başlar. quality: betta mini oyunu başarısı. */
+  mate(m, f, now, quality = 1) {
+    let rec = f.sperm.find((s) => s.sire === m.id), batches = f.def.breed === 'live' ? SPERM_BATCHES : 1;
+    if (rec) rec.left = batches; else { f.sperm.push({ sire: m.id, name: m.name, g: JSON.parse(JSON.stringify(m.genome)), left: batches }); }
     while (f.sperm.length > 4) f.sperm.sort((a, b) => b.left - a.left).pop();
     let started = false;
-    if (!f.preg) { const rest = Math.max(0, f.lastBirth + 2 * 1440 - now); const d = this.gestDays(f) * 1440; f.preg = { start: now + rest, due: now + rest + d }; started = true; }
+    if (!f.preg) { const rest = Math.max(0, f.lastBirth + 2 * 1440 - now), d = this.gestDays(f) * 1440; f.preg = { start: now + rest, due: now + rest + d, q: quality }; started = true; if (f.def.breed === 'bubble') m.nestUntil = now + d + 3 * 1440; }
     return { started, due: f.preg.due };
   },
 
   progress(f, now) { return f.preg ? clamp((now - f.preg.start) / (f.preg.due - f.preg.start), 0, 1) : 0; },
 
   litterSize(f) {
-    const p = f.pheno, base = 9 + 16 * (p.size - 0.75) + Math.min(6, f.ageDays() / 60);
-    let n = Math.round(R.gauss(base, 4)); n *= (1 - 1.4 * f.F) * (p.metalDouble ? 0.6 : 1) * clamp(p.vigor, 0.6, 1.2);
-    return clamp(Math.round(n), 2, 60);
+    const LIT = { guppy: [5, 40], endler: [4, 18], molly: [12, 50], platy: [10, 40], swordtail: [12, 45], betta: [60, 300], shrimp: [8, 30], snail: [20, 100] }, [lo, hi] = LIT[f.species], p = f.pheno;
+    let n = Math.round(R.gauss(lerp(lo, hi, clamp(0.35 + (p.size - 1) * 1.0 + Math.min(0.2, f.ageDays() / 400), 0.05, 0.95)), (hi - lo) * 0.1));
+    if (f.def.breed === 'bubble') n = Math.round(n * (0.5 + 0.8 * ((f.preg && f.preg.q) ?? 1)));
+    n *= (1 - 1.4 * f.F) * (p.penalty ?? 1) * clamp(p.vigor, 0.6, 1.2);
+    return clamp(Math.round(n), 2, 400);
   },
 
-  /** Zamanı gelen doğumları işler. Doğan yavruları döndürür: [{dam, kept, lost, released}] */
+  /** Zamanı gelen doğum/kuluçkaları işler. Sonuç: [{dam, kept, lost, released, …}] */
   tick(now, tank) {
-    const births = [];
-    for (const f of tank.creatures.slice()) {
-      let guard = 0;
-      while (f.preg && now >= f.preg.due && guard++ < 12) births.push(this.birth(f, f.preg.due, tank, now));
-    }
+    const births = [], pool = tank.creatures.concat((Game.S && Game.S.qFish) || []);
+    for (const f of pool) { let guard = 0; while (f.preg && now >= f.preg.due && guard++ < 12) births.push(this.birth(f, f.preg.due, tank, now)); }
+    for (const cl of (tank.clutches || []).slice()) if (now >= cl.due) births.push(this.hatch(cl, tank, now));
     return births.filter(Boolean);
   },
 
@@ -1384,9 +1413,36 @@ const Breeding = {
     f.preg = null; f.lastBirth = t;
     const sp = f.sperm.filter((s) => s.left > 0);
     if (!sp.length) return { dam: f, kept: [], lost: 0, released: 0, empty: true };
-    const n = this.litterSize(f), kept = [], used = new Set(); let lost = 0, released = 0, dead = 0;
-    for (const _ of Array(n)) {
-      if (R.next() > Research.survival()) { lost++; continue; }
+    const n = this.litterSize(f), kind = f.def.breed;
+    if (kind === 'snail') { // yumurta kümesi su üstüne bırakılır, kuluçka 2 hafta
+      const rec = sp[0]; rec.left--; f.sperm = f.sperm.filter((s) => s.left > 0);
+      (tank.clutches = tank.clutches || []).push({ x: clamp(f.sw.x, 30, tank.W - 30), due: t + 14 * 1440, n, sire: rec.g, sireId: rec.sire, dam: JSON.parse(JSON.stringify(f.genome)), damId: f.id, damName: f.name });
+      return { dam: f, kept: [], lost: 0, released: 0, clutch: true, n };
+    }
+    const surv = kind === 'live' ? Research.survival() : kind === 'shrimp' ? 0.92 : clamp(0.25 + 0.6 * ((f.preg && f.preg.q) ?? 0.7) - (Chem.overall() > 0 ? 0.15 : 0), 0.15, 0.9);
+    const res = this.spawn(f, sp, n, t, tank, now, surv);
+    if (kind === 'live' && f.sperm.length) f.preg = { start: t + 2 * 1440, due: t + 2 * 1440 + this.gestDays(f) * 1440 };
+    else if (kind !== 'live') f.sperm = [];
+    f.eggs = 0; return res;
+  },
+
+  /** Yumurta kümesi açılır. */
+  hatch(cl, tank, now) {
+    tank.clutches = tank.clutches.filter((c) => c !== cl);
+    const fake = { sp: 'snail', id: cl.damId, name: cl.damName, genome: cl.dam, sw: { x: cl.x, y: tank.H - 100 }, species: 'snail' };
+    const kept = []; let lost = 0, released = 0;
+    for (let i = 0; i < cl.n; i++) {
+      if (R.next() > 0.85) { lost++; continue; } if (tank.creatures.length + kept.length >= tankCap()) { released++; continue; }
+      const g = Genetics.breed(cl.sire, cl.dam, R), c = new Creature({ genome: g, bornT: cl.due, sire: cl.sireId, dam: cl.damId, unrevealed: true }); this.reg(c); c.now = now; c.sw.x = cl.x + R.float(-30, 30); c.sw.y = tank.H - 100; tank.addCreature(c); kept.push(c);
+    }
+    return { dam: fake, kept, lost, released };
+  },
+
+  /** Yavruları üretir (canlı doğuran / karides / beta). */
+  spawn(f, sp, n, t, tank, now, surv) {
+    const kept = [], used = new Set(); let lost = 0, released = 0, dead = 0;
+    for (let i = 0; i < n; i++) {
+      if (R.next() > surv) { lost++; continue; }
       const tot = sp.reduce((a, s) => a + s.left, 0); let r = R.next() * tot, rec = sp[0];
       for (const s of sp) { r -= s.left; if (r <= 0) { rec = s; break; } }
       used.add(rec);
@@ -1399,8 +1455,6 @@ const Breeding = {
     }
     for (const s of used) s.left--;
     f.sperm = f.sperm.filter((s) => s.left > 0);
-    // kalan sperm varsa 2 gün dinlenip yeni gebelik
-    if (f.sperm.length) f.preg = { start: t + 2 * 1440, due: t + 2 * 1440 + this.gestDays(f) * 1440 };
     return { dam: f, kept, lost, released, defects: dead };
   },
 
@@ -1536,7 +1590,7 @@ class Tank {
     this.t += dt; this.minute = minute; this.foodAge += dt;
     this.lightTarget = this.lampTarget(minute);
     this.light = damp(this.light, this.lightTarget, 0.55, dt);
-    const env = { W: this.W, H: this.H, top: 56, bottom: Math.min(this.H - 76, this.ground(this.W * 0.5) - 6), food: this.food, foodAge: this.foodAge, others: this.creatures, night: 1 - this.light, time: this.t, onEat: this.onEat };
+    const env = { W: this.W, H: this.H, top: 56, bottom: Math.min(this.H - 76, this.ground(this.W * 0.5) - 6), food: this.food, foodAge: this.foodAge, others: this.creatures, night: 1 - this.light, time: this.t, onEat: this.onEat, ground: (x) => this.ground(x), scape: this.scape };
     if (!this.frozen) for (const c of this.creatures) { c.now = minute; env.bottom = Math.min(this.H - 70, this.ground(c.sw.x) - 10); c.sw.update(dt, env); }
     // yem
     for (const f of this.food) {
@@ -1555,6 +1609,7 @@ class Tank {
     for (const b of this.bubbles) { b.y -= b.vy * dt; b.x += Math.sin(this.t * 3 + b.ph) * 9 * dt; b.r += dt * (b.co2 ? 0.1 : 0.5); }
     for (let i = this.bubbles.length - 1; i >= 0; i--) if (this.bubbles[i].y < 30) { if (R.chance(0.25)) this.ripples.push({ x: this.bubbles[i].x, y: 28, r: 2, life: 0.9, max: 18 }); this.bubbles.splice(i, 1); }
     for (const r of this.ripples) { r.life -= dt; r.r += (r.max / 1.2) * dt; }
+    if (this.molts) this.molts = this.molts.filter((m) => this.t - m.t < 110);
     this.ripples = this.ripples.filter((r) => r.life > 0);
     for (const m of this.motes) { m.y -= m.v * dt * 0.004; m.x += Math.sin(this.t * 0.2 + m.ph) * 0.0002; if (m.y < 0) m.y = 1; }
     // bitki büyümesi (Aşama 4'te kimyaya bağlanır): Chem.growPlants varsa o kullanılır
@@ -1656,7 +1711,7 @@ class Tank {
       const vx0 = (-tx) / S - 160, vx1 = (v.cw - tx) / S + 160, vy0 = (-ty) / S - 160, vy1 = (v.ch - ty) / S + 160;
       for (const c of list) {
         const s = c.sw; if (s.x < vx0 || s.x > vx1 || s.y < vy0 || s.y > vy1) continue;
-        FishArt.draw(ctx, c, t, 0.9 + 0.2 * s.z, (0.82 + 0.18 * s.z) * fa, base);
+        (c.def.kind === 'fish' ? FishArt : CrawlerArt).draw(ctx, c, t, 0.9 + 0.2 * s.z, (0.82 + 0.18 * s.z) * fa, base);
         if (c.fav && v.showFav) { ctx.fillStyle = '#ffd36b'; ctx.font = '14px sans-serif'; ctx.fillText('★', s.x - 5, s.y - c.bodyLen() * 0.55); }
       }
     }
@@ -1682,6 +1737,11 @@ class Tank {
     ctx.restore();
     // armatür (hava boşluğunda)
     { const lp = sc.equip.light, lx0 = W * 0.14, lx1 = W * 0.86; ctx.fillStyle = '#1b262c'; ctx.beginPath(); ctx.roundRect(lx0, -14, lx1 - lx0, 16, 5); ctx.fill(); const on = this.light > 0.2; ctx.fillStyle = on ? `rgba(255,248,225,${0.5 + 0.4 * this.lightPower})` : 'rgba(80,90,95,.6)'; ctx.fillRect(lx0 + 10, -2, lx1 - lx0 - 20, 3); if (on && !v.dry) { const g = ctx.createLinearGradient(0, 2, 0, 40); g.addColorStop(0, `rgba(255,245,220,${0.18 * this.lightPower})`); g.addColorStop(1, 'rgba(255,245,220,0)'); ctx.fillStyle = g; ctx.fillRect(lx0, 2, lx1 - lx0, 38); } }
+    if (!v.dry) {
+      for (const cl of this.clutches || []) { const r = new RNG(Math.floor(cl.x) + cl.n); for (let i = 0, n = Math.min(26, 8 + cl.n / 5); i < n; i++) { ctx.fillStyle = `rgba(255,${120 + (i * 13) % 50},${160 + (i * 7) % 40},.92)`; ctx.beginPath(); ctx.arc(cl.x + r.float(-14, 14), 15 - r.float(0, 7) * 0.5, r.float(2, 3.4), 0, TAU); ctx.fill(); } }
+      for (const c of this.creatures) if (c.nestUntil > this.minute && c.sex === 'M') { const r = new RNG(c.id); ctx.strokeStyle = 'rgba(240,250,255,.8)'; ctx.fillStyle = 'rgba(255,255,255,.35)'; for (let i = 0; i < 18; i++) { const bx = c.sw.x + r.float(-26, 26), br = r.float(2.5, 5); ctx.beginPath(); ctx.arc(bx, 29 + r.float(-2, 4), br, 0, TAU); ctx.fill(); ctx.stroke(); } }
+      for (const m of this.molts || []) { const a = clamp(1 - (this.t - m.t) / 110, 0, 1) * 0.55; ctx.strokeStyle = `rgba(235,245,250,${a})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(m.x, m.y + 2, 9, 2.4, 0.1, 0, TAU); ctx.stroke(); ctx.beginPath(); ctx.moveTo(m.x - 9, m.y + 2); ctx.quadraticCurveTo(m.x - 14, m.y - 4, m.x - 6, m.y - 5); ctx.stroke(); }
+    }
     if (!v.dry) for (const r of this.ripples) { ctx.strokeStyle = `rgba(230,255,255,${clamp(r.life, 0, 1) * 0.5})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(r.x, r.y, r.r * 1.6, r.r * 0.5, 0, 0, TAU); ctx.stroke(); }
     // gece / gün-doğumu rengi
     const night = 1 - this.light;
@@ -1983,7 +2043,7 @@ const Progress = {
 class Portrait {
   constructor(cr, canvas, o = {}) {
     this.cr = cr; this.cv = canvas; this.zoom = o.zoom || 1; this.t = 0; this.bub = []; this.run = false; this.big = !!o.big;
-    this.p = Object.create(cr); this.p.sprite = null; this.p.sw = new Swimmer(this.p); this.p.stress = 0;
+    this.p = Object.create(cr); this.p.sprite = null; this.p.sw = cr.def.kind === 'fish' ? new Swimmer(this.p) : new Crawler(this.p); this.p.stress = 0;
     this.p.sw.heading = 0; this.p.sw.flipTarget = 1; this.p.sw.flip = 1;
     for (let i = 0; i < 14; i++) this.bub.push({ x: R.next(), y: R.next(), r: R.float(1, 3.2), v: R.float(0.04, 0.1) });
     this.resize(); this._f = this._f.bind(this);
@@ -2000,7 +2060,7 @@ class Portrait {
     if (!this.run) return; const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now; this.t += dt; this.draw(dt); requestAnimationFrame(this._f);
   }
   draw(dt) {
-    const ctx = this.cv.getContext('2d'), cw = this.cw, ch = this.ch, dpr = this.dpr, p = this.p, sp = FishArt.sprite(p);
+    const ctx = this.cv.getContext('2d'), cw = this.cw, ch = this.ch, dpr = this.dpr, p = this.p, fishy = p.def.kind === 'fish', sp = fishy ? FishArt.sprite(p) : { bf: p.species === 'shrimp' ? 0.78 : 0.9 };
     const adultLen = p.bodyLen() / p.growth() / sp.bf;
     const scale = (cw * (this.big ? 0.46 : 0.5) / adultLen) * this.zoom, W = cw / scale, H = ch / scale;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -2012,6 +2072,7 @@ class Portrait {
     // balık
     p.now = this.cr.now;
     p.sw.update(dt, { calm: true });
+    if (!fishy) { p.sw.x = W / 2; p.sw.y = H * (p.species === 'shrimp' ? 0.64 : 0.72); const bs = [dpr * scale, 0, 0, dpr * scale, 0, 0]; ctx.setTransform(bs[0], 0, 0, bs[3], 0, 0); CrawlerArt.draw(ctx, p, this.t, 1, 1, bs); return; }
     const len = p.bodyLen() / sp.bf;   // yüzen balık, kuyruğu soldaysa merkez sağa kaydırılır
     p.sw.x = W / 2 + 0.22 * len + noise1(this.t * 0.3) * W * 0.025; p.sw.y = H * 0.47 + noise1(this.t * 0.37 + 9) * H * 0.04;
     const base = [dpr * scale, 0, 0, dpr * scale, 0, 0];
@@ -2367,14 +2428,20 @@ Object.assign(UI, {
     return h('div', { style: { margin: '5px 0' } }, h('div.row', { style: { fontSize: '13.5px' } }, h('span.sp', null, label), h('b', null, (p * 100 < 1 && p > 0 ? '<1' : Math.round(p * 100)) + '%')),
       h('div.pbar', null, h('i', { style: { width: Math.max(2, p * 100) + '%', background: color || '' } })), extra);
   },
-  thumbCv(cr, w = 90) { const cv = h('canvas', { width: w, height: Math.round(w * FishArt.TH / FishArt.TW) }); cv.getContext('2d').drawImage(FishArt.sprite(cr).tex, 0, 0, cv.width, cv.height); return cv; },
+  thumbCv(cr, w = 90) {
+    const cv = h('canvas', { width: w, height: Math.round(w * FishArt.TH / FishArt.TW) }), c = cv.getContext('2d');
+    if (cr.def.kind === 'fish') { c.drawImage(FishArt.sprite(cr).tex, 0, 0, cv.width, cv.height); return cv; }
+    const tmp = Object.create(cr), L = cr.bodyLen() / cr.growth(), s = (w * (cr.species === 'shrimp' ? 0.5 : 0.62)) / (L * (cr.species === 'shrimp' ? 1.15 : 1.6)); tmp.sw = { x: 0, y: 0, flip: 1, rot: 0, speed: 0, state: 'walk', mode: 'ground', antPh: 0.6, legPh: 0 }; tmp.growth = () => 1; tmp.preg = null; tmp.dis = null;
+    CrawlerArt.draw(c, tmp, 0, 1, 1, [s, 0, 0, s, w * (cr.species === 'shrimp' ? 0.46 : 0.45), cv.height * 0.72]); return cv;
+  },
   silhouette(cr, w = 90) { const cv = this.thumbCv(cr, w), c = cv.getContext('2d'); c.globalCompositeOperation = 'source-in'; c.fillStyle = 'rgba(0,0,0,.9)'; c.fillRect(0, 0, cv.width, cv.height); cv.style.opacity = '.35'; return cv; },
 
   /* ---------- Laboratuvar ---------- */
   render_lab(el) {
     const S = Game.S, t = Game.tank, now = S.clockMin, sel = this.labSel;
-    if (sel.m && !t.creatures.includes(sel.m)) sel.m = null; if (sel.f && !t.creatures.includes(sel.f)) sel.f = null;
-    const males = t.creatures.filter((c) => c.sex === 'M'), females = t.creatures.filter((c) => c.sex === 'F');
+    const pool = t.creatures.concat(S.qFish || []); if (sel.m && !pool.includes(sel.m)) sel.m = null; if (sel.f && !pool.includes(sel.f)) sel.f = null;
+    this.labSp = this.labSp || 'guppy'; const have = SPECIES.filter((s) => pool.some((c) => c.species === s.id)).map((s) => s.id); if (!have.includes(this.labSp)) this.labSp = have[0] || 'guppy';
+    const sp0 = this.labSp, males = pool.filter((c) => c.sex === 'M' && canCross(c.species, sp0)), females = pool.filter((c) => c.sex === 'F' && c.species === sp0);
     const unrev = Game.unrevealed(), pregs = females.filter((f) => f.preg), stored = females.filter((f) => !f.preg && f.sperm.length);
     const pick = (list, key) => h('div.chips', { style: { flexWrap: 'nowrap' } }, list.length ? list.map((c) => {
       const ok = c.adult(now), r = RARITY[c.rarity()];
@@ -2384,6 +2451,7 @@ Object.assign(UI, {
 
     const blocks = [];
     blocks.push(h('div.row', { style: { margin: '4px 2px' } }, h('h2.sp', null, 'Üretim Laboratuvarı'), h('span.pill', null, icon('fish'), `${t.creatures.length}/${tankCap()}`)));
+    blocks.push(have.length > 1 ? UI.tabs(have.map((id) => [id, SPECIES.find((s) => s.id === id).name]), sp0, (k) => { this.labSp = k; sel.m = null; sel.f = null; UI.render_lab(el); }) : null);
     if (unrev.length) blocks.push(h('div.card.glow', null, h('div.row', null, h('div', { style: { fontSize: '34px' } }, '🍼'), h('div.sp', null, h('b', null, `${unrev.length} yeni yavru seni bekliyor`), h('div.small.muted', null, 'Renklerinin ilk kez ortaya çıkma anı!')), h('button.btn.primary', { onclick: () => UI.openReveal() }, 'Aç'))));
     if (pregs.length || stored.length) blocks.push(h('div.card', null, h('h3', { style: { marginBottom: '6px' } }, 'Gebelikler'),
       pregs.map((f) => { const pr = Breeding.progress(f, now), wait = f.preg.start > now;
@@ -2392,6 +2460,7 @@ Object.assign(UI, {
 
     blocks.push(h('div.card', null, h('h3', null, '♂ Baba adayı'), pick(males, 'm'), h('h3', { style: { marginTop: '4px' } }, '♀ Anne adayı'), pick(females, 'f')));
 
+    blocks.push(...UI.speciesExtras(sp0, el));
     if (sel.m && sel.f) blocks.push(this.pairCard(sel.m, sel.f, el));
     else blocks.push(h('div.card', null, UI.emptyState('🧬', 'Bir çift seç', 'Olgun bir erkek ve bir dişi seçince olası yavruların Punnett önizlemesi burada belirir. Gizli genleri görmek için balıklarını test et.')));
     el.replaceChildren(h('div.wrap.stack', null, ...blocks));
@@ -2415,6 +2484,7 @@ Object.assign(UI, {
       const need = [m, f].filter((c) => !c.tested);
       out.push(h('div.locked', null, icon('lock'), h('div.sp', null, 'Ebeveynlerin genotipi bilinmiyor; olasılıklar "?" olarak gizli.'), ...need.map((c) => h('button.btn.sm.primary', { onclick: () => { if (Game.testCreature(c)) UI.render_lab(el); } }, `${c.name} · 40 💰`))));
       out.push(h('div.row.wrap-r', { style: { marginTop: '8px' } }, ...['Gövde ?', 'Kuyruk ?', 'Desen ?', 'Irk ?'].map((x) => h('span.pill', null, x))));
+    } else if (m.species !== 'guppy' || f.species !== 'guppy') { out.push(...UI.genericPreview(m, f, P));
     } else {
       const grid = (title, loc, name) => {
         const g = Breeding.punnett(m.genome.auto[loc], f.genome.auto[loc]);
@@ -2432,6 +2502,7 @@ Object.assign(UI, {
         return h('div.dex-tile', { style: { '--c': r.color, cursor: 'default' } }, disc ? UI.thumbCv(cr, 120) : UI.silhouette(cr, 120), h('div.nm', null, disc ? b.name : '???'), h('div.tiny.muted', null, `%${p * 100 < 1 ? '<1' : Math.round(p * 100)}${disc ? '' : ' · yeni olabilir'}`), h('div.rarbar'));
       })));
     }
+    if (f.def.breed === 'bubble') { out.push(UI.bettaControls(m, f, el)); return h('div.card', null, ...out); }
     out.push(h('button.btn.primary', { style: { width: '100%', marginTop: '14px' }, disabled: probs.length ? true : null, onclick: () => { if (Game.mate(m, f)) UI.render_lab(el); } }, icon('heart'), probs.length ? probs[0] : 'Çiftleştir'));
     return h('div.card', null, ...out);
   },
@@ -2561,6 +2632,7 @@ const Game = {
     if (!('qFish' in this.S)) Object.defineProperty(this.S, 'qFish', { value: [], writable: true, enumerable: false, configurable: true });
     const S = this.S; if (!S.scape) S.scape = Scape.fromTemplate('start'); this.tank.setScape(S.scape); this.tank.lampMode = S.settings.lamp; this.tank.light = this.tank.lampTarget(S.clockMin); this.tank.setAspect(this.tank.W / this.tank.H);
     if (!this.tank.bg) this.tank.buildBG();
+    if (!this.S.clutches) this.S.clutches = []; this.tank.clutches = this.S.clutches;
     this.scanSeen(); this.S.cnt = this.S.cnt || {}; Quests.refresh(this.S); Orders.refresh(this.S); Market.ensure(this.S);
     this.tank.onEat = () => { if (R.chance(0.45)) AudioSys.SFX.eat(); };
     UI.refreshTop && $('#app') && UI.refreshTop();
@@ -2615,6 +2687,7 @@ const Game = {
   addXp(n, onceKey) {
     const S = this.S; if (onceKey) { S.once = S.once || {}; if (S.once[onceKey]) return; S.once[onceKey] = 1; }
     const before = Progress.level(S.xp); S.xp += n; const after = Progress.level(S.xp);
+    for (const s of SPECIES) if (SPECIES_LVL[s.id] > before && SPECIES_LVL[s.id] <= after) { UI.toast(`🎉 Yeni tür açıldı: ${s.name}! Mağaza > Canlı`, 'fish', 6000); this.notify('info', `Yeni tür açıldı: ${s.name}`); }
     if (after > before) { UI.toast(`Seviye ${after}! ${Progress.title(after)}`, 'star', 4200); AudioSys.SFX.discover(1); this.notify('level', `Seviye ${after} oldun.`); }
   },
   notify(type, text) { const S = this.S; S.notifs.push({ t: S.clockMin, type, text, read: false }); if (S.notifs.length > 80) S.notifs.shift(); UI.refreshTop(); },
@@ -2630,8 +2703,8 @@ const Game = {
   cycleLamp() { const o = ['auto', 'on', 'off'], t = this.tank; t.lampMode = o[(o.indexOf(t.lampMode) + 1) % 3]; this.S.settings.lamp = t.lampMode; UI.toast({ auto: 'Işık: otomatik (07:00–21:00)', on: 'Işık: sürekli açık', off: 'Işık: kapalı' }[t.lampMode], t.lampMode === 'off' ? 'moon' : 'sun', 1800); },
   cycleSpeed() { const o = [1, 2, 4, 8], st = this.S.settings; st.speed = o[(o.indexOf(st.speed) + 1) % o.length]; UI.toast(`Oyun hızı ${st.speed}×`, 'speed', 1500); },
   sell(c) {
-    if (this.tank.creatures.length <= 1) { UI.toast('Son balığını satamazsın', 'fish'); return false; }
-    const v = c.value(); Market.sold(c); this.tank.removeCreature(c); this.S.stats.sold++; this.S.stats.maxSale = Math.max(this.S.stats.maxSale, v); this.ev('sold');
+    if (this.tank.creatures.length + (this.S.qFish || []).length <= 1) { UI.toast('Son canlını satamazsın', 'fish'); return false; }
+    const v = c.value(); Market.sold(c); this.dropCreature(c); this.S.stats.sold++; this.S.stats.maxSale = Math.max(this.S.stats.maxSale, v); this.ev('sold');
     this.addCoins(v, true); this.addXp(2); AudioSys.SFX.sell(); UI.toast(`${c.name} satıldı · +${fmt(v)} Altın Pul`, 'coin'); this.save(); UI.refreshAq(); return true;
   },
   testCreature(c) {
@@ -2654,12 +2727,13 @@ const Game = {
   tickBreeding(quiet) {
     const S = this.S, births = Breeding.tick(S.clockMin, this.tank), out = [];
     for (const b of births) {
+      if (b.clutch) { this.notify('birth', `${b.dam.name} su üstüne ${b.n} yumurtalık bir küme bıraktı (14 gün).`); if (!quiet) UI.toast(`🥚 ${b.dam.name} yumurta bıraktı`, 'fish', 3500); continue; }
       if (b.empty) { if (!quiet) UI.toast(`${b.dam.name} doğurdu ama yavru çıkmadı (sperm yoktu)`, 'bell'); continue; }
       const kept = b.kept.length; S.stats.born += kept; this.ev('born', kept); this.ev('bornHealthy', b.kept.filter((k) => !k.defect).length); this.addXp(5 + Math.min(40, kept * 2));
       if (b.released) this.addCoins(b.released * 2);
       S.litters.push({ t: S.clockMin, dam: b.dam.name, kept, lost: b.lost, released: b.released }); if (S.litters.length > 40) S.litters.shift();
-      this.notify('birth', `${b.dam.name} doğurdu: ${kept} yavru yaşıyor${b.lost ? `, ${b.lost} yavru yenildi` : ''}${b.released ? `, ${b.released} yavru tank dolu olduğu için dükkâna verildi` : ''}.`);
-      if (!quiet) { UI.toast(`🍼 ${b.dam.name} doğurdu! ${kept} yavru yaşıyor`, 'fish', 4500); AudioSys.SFX.born(); }
+      this.notify('birth', `${b.dam.name} ${b.dam.species === 'shrimp' ? 'yavru karides çıkardı' : b.dam.species === 'betta' ? 'kuluçkadan çıkardı' : b.dam.species === 'snail' ? 'yumurtaları açıldı' : 'doğurdu'}: ${kept} yavru yaşıyor${b.lost ? `, ${b.lost} yavru yenildi` : ''}${b.released ? `, ${b.released} yavru tank dolu olduğu için dükkâna verildi` : ''}.`);
+      if (!quiet) { UI.toast(`🍼 ${b.dam.name} yavruladı! ${kept} yavru yaşıyor`, 'fish', 4500); AudioSys.SFX.born(); }
       out.push(b);
     }
     if (births.length) { UI.refreshTop(); if (UI.cur === 'aq') UI.refreshAq(); if (UI.cur === 'lab') UI.render_lab($('#s-lab')); }
@@ -2675,6 +2749,14 @@ const Game = {
     }
     if (Research.has('feeder') && S.settings.autoFeed !== false && hr >= 18 && S.lastAutoFeed !== day && !this.tank.scape.dry) { S.lastAutoFeed = day; if (this.tank.feed()) { Chem.onFeed(); this.notify('info', 'Otomatik besleyici yem verdi.'); } }
   },
+  /** Canlıyı tanktan ve karantina/kavanozdan çıkarır. */
+  dropCreature(c) { this.tank.removeCreature(c); this.S.qFish = (this.S.qFish || []).filter((x) => x !== c); },
+  /** Yeni canlıyı tanka koyar; ikinci yetişkin beta erkeği kavanoza gider. */
+  addToTank(c) {
+    if (c.species === 'betta' && c.sex === 'M' && c.adult() && this.tank.creatures.some((x) => x !== c && x.species === 'betta' && x.sex === 'M' && x.adult())) { this.toJar(c); return false; }
+    this.tank.addCreature(c); return true;
+  },
+  toJar(c) { this.tank.removeCreature(c); c.quarantined = true; c.jar = true; if (!(this.S.qFish || []).includes(c)) (this.S.qFish = this.S.qFish || []).push(c); UI.toast(`${c.name}: beta erkekleri aynı tankta tutulamaz — kavanoza alındı`, 'bell', 5000); },
   reapPlants() {
     const sc = this.tank.scape, dead = sc.items.filter((i) => i.dead); if (!dead.length) return;
     sc.items = sc.items.filter((i) => !i.dead && !(i.att && dead.some((d) => d.id === i.att.id))); this.tank.touch();
@@ -2685,9 +2767,9 @@ const Game = {
     for (const sex of ['M', 'F']) { const c = new Creature({ genome: Genetics.randomFounder(sex), bornT: this.S.clockMin - 80 * 1440 }); c.now = this.S.clockMin; Breeding.reg(c); this.tank.addCreature(c); }
     this.notify('birth', 'Büyükbabanın yedek balıkları tanka bırakıldı.'); UI.toast('Büyükbabanın yedek iki balığı tanka bırakıldı 🐟', 'fish', 5000);
   },
-  mate(m, f) {
+  mate(m, f, q) {
     const pr = Breeding.problems(m, f, this.S.clockMin); if (pr.length) { UI.toast(pr[0], 'bell'); return null; }
-    const r = Breeding.mate(m, f, this.S.clockMin); this.ev('mate'); this.addXp(4); AudioSys.SFX.coin();
+    const r = Breeding.mate(m, f, this.S.clockMin, q); this.ev('mate'); this.addXp(4); AudioSys.SFX.coin();
     UI.toast(r.started ? `${f.name} gebe kaldı! Doğum ~${Math.round((r.due - this.S.clockMin) / 1440)} gün sonra` : `${f.name} sperm depoladı (zaten gebe)`, 'heart', 4200);
     this.save(); return r;
   },
@@ -2793,6 +2875,7 @@ const Game = {
       return;
     }
     const w = this.vp.toWorld(sx, sy), c = this.tank.hit(w.x, w.y, 26 / w.S); this.S.stats.taps++;
+    const cl = (this.tank.clutches || []).find((k) => Math.abs(k.x - w.x) < 40 && w.y < 90); if (cl && !c) return UI.confirm('Yumurta kümesi temizlensin mi?', `${cl.damName} ~${cl.n} yumurta bıraktı. Temizlersen açılmaz.`, () => { this.tank.clutches.splice(this.tank.clutches.indexOf(cl), 1); });
     if (c) { const s = this.vp.toScreen(c.sw.x, c.sw.y), r = this.vp.cv.getBoundingClientRect(), sz = c.bodyLen() * s.S * 1.4;
       UI.openCreature(c, { left: r.left + s.x - sz / 2, top: r.top + s.y - sz / 4, width: sz, height: sz / 2 }); }
     else this.tank.startleAt(w.x, w.y, 150);   // cama dokunuşu: halka + bazı balıklar ürker
@@ -3010,7 +3093,22 @@ const Tests = {
     return this._log('Ekonomi (görevler, pazar talebi, mağaza stoğu, sipariş, başarım/araştırma tutarlılığı)', ok1 && ok2 && ok3 && ok4 && ok5, { ok1, ok2, ok3, ok4, ok5 });
   },
 
-  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding(), this.chemistry(), this.content(), this.economy()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
+  /** Türler: ırk örnekleri, karides F1/F2, molly melanizm, beta dumbo oranı, melezleme kuralları, yürüyen canlı simülasyonu. */
+  species() {
+    const bad = []; for (const sp of Object.keys(SP_BREEDS)) for (const b of SP_BREEDS[sp]) { const g = Genetics.make(b.spec, 'M', new RNG(3), sp), got = Genetics.breedOf(Genetics.phenotype(g)); if (got.id !== b.id) bad.push(b.id + '→' + got.id); }
+    const rng = new RNG(77), orange = Genetics.make({ sp: 'shrimp', col: 'O', dens: 0.5 }, 'M', rng, 'shrimp'), blueF = Genetics.make({ sp: 'shrimp', col: 'B', rili: ['R', 'R'], dens: 0.5 }, 'F', rng, 'shrimp');
+    let f1ok = 0; const F1 = []; for (let i = 0; i < 200; i++) { const c = Genetics.breed(orange, blueF, rng, { noMut: true }), p = Genetics.phenotype(c); if (p.shrimpCol === 'red' && p.rili) f1ok++; F1.push(c); }
+    const m1 = F1.find((g) => g.sex === 'M'), f1 = F1.find((g) => g.sex === 'F'); let orangeRili = 0, N2 = 2000; for (let i = 0; i < N2; i++) { const p = Genetics.phenotype(Genetics.breed(m1, f1, rng, { noMut: true })); if (p.shrimpCol === 'orange' && p.rili) orangeRili++; }
+    const blk = Genetics.phenotype(Genetics.make({ sp: 'molly', mel: ['m2', 'm2'], mex: 0.5 }, 'M', rng, 'molly')), wht = Genetics.phenotype(Genetics.make({ sp: 'molly' }, 'M', rng, 'molly'));
+    const bm = Genetics.make({ sp: 'betta', dumbo: ['D', 'd'] }, 'M', rng, 'betta'), bf = Genetics.make({ sp: 'betta', dumbo: ['D', 'd'] }, 'F', rng, 'betta'); let dumbo = 0; for (let i = 0; i < 2000; i++) if (Genetics.phenotype(Genetics.breed(bm, bf, rng, { noMut: true })).dumbo) dumbo++;
+    const gm = Genetics.make({ tc: 'red' }, 'M', rng), ef = Genetics.make({ sp: 'endler', pur: 1 }, 'F', rng, 'endler'), hy = Genetics.breed(gm, ef, rng, { noMut: true });
+    // yürüyen canlı: sınırda kalır, NaN üretmez
+    const cr = new Creature({ id: -7777, genome: Genetics.make({ sp: 'shrimp', col: 'R' }, 'F', rng, 'shrimp'), bornT: -90 * 1440 }); cr.now = 0; const env = { W: 800, H: 700, ground: () => 620, scape: { items: [] }, food: [], night: 0 }; for (let i = 0; i < 3000; i++) cr.sw.update(0.03, env);
+    const ok = { breeds: bad.length === 0, f1: f1ok === 200, f2: orangeRili / N2 > 0.08 && orangeRili / N2 < 0.25, molly: blk.cls === 'black' && wht.cls === 'none', dumbo: Math.abs(dumbo / 2000 - 0.25) < 0.05, hybrid: hy.sp === 'endler' && Math.abs(hy.quant.pur - 0.5) < 0.12, cross: canCross('platy', 'swordtail') && !canCross('guppy', 'betta') && !canCross('molly', 'platy'), walk: Number.isFinite(cr.sw.x) && cr.sw.x >= 14 && cr.sw.x <= 786 && cr.sw.y > 400 };
+    return this._log('Türler (ırk tanıma, karides F1=Red Rili/F2 Orange Rili, molly, beta dumbo 25%, melez, yürüyüş)', Object.values(ok).every(Boolean), { ...ok, bad, orangeRili: +(orangeRili / N2).toFixed(3) });
+  },
+
+  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding(), this.chemistry(), this.content(), this.economy(), this.species()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
 };
 
 /* ───── 12-scape-data.js ───── */
@@ -3852,7 +3950,7 @@ const Chem = {
     // şok izleme (saatlik), geçmiş kaydı (6 saatte bir)
     w.hT += dd; if (w.hT >= 1 / 24) { w.hT = 0; this.shockCheck(); }
     w.hist.hT = (w.hist.hT || 0) + dd; if (w.hist.hT >= 0.25) { w.hist.hT = 0; const s = { t: now }; for (const p of PARAMS) s[p.k] = +w[p.k].toFixed(3); w.hist.push(s); if (w.hist.length > 28) w.hist.shift(); }
-    this.fishStep(dd, quiet);
+    this.fishStep(dd, quiet); this.speciesStep(dd, quiet);
   },
 
   /** Kuru başlangıç: su yok, nemli ortamda bitkiler (halılar) kökleşir; yosun/azot yok. */
@@ -3935,6 +4033,25 @@ const Chem = {
       c.vit = clamp(c.vit + dv * dd, this.noDeath ? 0.15 : 0, 1);
       if (c.vit <= 0 && !this.noDeath) { this.die(c); }
     }
+  },
+  /** Türe özgü kurallar: temizlikçiler, karides yenmesi/deri değişimi, beta çatışması, kılıçkuyruk dönüşümü. */
+  speciesStep(dd, quiet) {
+    const t = Game.tank, list = t.creatures, w = this.w, fish = list.filter((c) => c.def.kind === 'fish'), pred = fish.filter((c) => c.adult()).length;
+    this.cleaners = list.reduce((a, c) => a + (c.species === 'snail' ? 0.35 : c.species === 'shrimp' ? 0.12 : 0), 0);
+    const cover = clamp(this.plants().length / 12, 0, 1) * 0.5;
+    for (const c of list.slice()) {
+      if (c.species === 'shrimp') {
+        if (pred > 0 && !this.noDeath && R.next() < dd * pred * 0.012 * (c.ageDays() < 10 ? 3 : 1) * (1 - cover)) { t.removeCreature(c); Game.notify('warn', `${c.name} (karides) balıklara yem oldu. Saklanma için bitki/yosun artır veya balıklardan ayır.`); if (!quiet) UI.toast(`${c.name} yenildi 🦐`, 'bell'); continue; }
+        c.moltT = (c.moltT ?? R.float(0, 10)) + dd;
+        if (c.moltT > 12) { c.moltT = R.float(0, 2); (t.molts = t.molts || []).push({ x: c.sw.x, y: c.sw.y, t: t.t }); if (w.gh < 4 && !this.noDeath && R.next() < 0.4) { this.die(c); continue; } }
+      }
+      if (c.species === 'swordtail' && c.sex === 'F' && c.ageDays() > 200 && !this.noDeath && R.next() < dd * 0.0006) {
+        c.genome.sex = 'M'; c.genome.sc[1].Y = true; c.pheno = Genetics.phenotype(c.genome); c.sprite = null; Game.notify('info', `${c.name} dişiden erkeğe dönüştü! (nadir olay)`); if (!quiet) UI.toast(`${c.name} erkeğe dönüştü — nadir bir olay!`, 'dna', 5000);
+      }
+    }
+    const bm = list.filter((c) => c.species === 'betta' && c.sex === 'M' && c.adult());
+    for (const c of bm.slice(1)) Game.toJar(c);
+    if (bm.length && t.scape.liters < 40) for (const c of fish) if ((c.species === 'guppy' || c.species === 'endler') && c.adult()) c.stress = Math.max(c.stress, 0.25);
   },
   die(c) {
     Game.tank.removeCreature(c); Game.S.stats.deaths = (Game.S.stats.deaths || 0) + 1;
@@ -4356,7 +4473,7 @@ Object.assign(UI, {
   },
   speciesCreature(sp, variant, sex, ageDays) {
     const key = [sp, variant, sex, ageDays].join('|'); this._spc = this._spc || new Map(); let c = this._spc.get(key);
-    if (!c) { const b = sp === 'guppy' ? BREEDS[variant % BREEDS.length] : null; if (!b) return null; c = new Creature({ id: -3000000 - this._spc.size, genome: Genetics.make(b.spec, sex, new RNG(9)), bornT: -ageDays * 1440, seed: 777 + variant }); c.now = 0; this._spc.set(key, c); }
+    if (!c) { const list = breedsOf(sp), b = list[variant % list.length]; if (!b) return null; c = new Creature({ id: -3000000 - this._spc.size, genome: Genetics.make(b.spec, sex, new RNG(9), sp), bornT: -ageDays * 1440, seed: 777 + variant }); c.now = 0; this._spc.set(key, c); }
     return c;
   },
   tabs(names, cur, fn) { return h('div.chips', null, names.map(([k, l]) => h('button.sp-chip' + (cur === k ? '.on' : ''), { onclick: () => fn(k) }, l))); },
@@ -4365,14 +4482,14 @@ Object.assign(UI, {
   dexTab: 'fish',
   render_dex(el) {
     const S = Game.S, seen = S.seen || {};
-    const fishFound = BREEDS.filter((b) => S.discovered[b.id]).length, plantFound = Object.keys(PLANTS).filter((k) => (seen.plant || {})[k]).length;
+    const fishFound = ALL_BREEDS.filter((b) => S.discovered[b.id]).length, plantFound = Object.keys(PLANTS).filter((k) => (seen.plant || {})[k]).length;
     const hardAll = [...Object.keys(HARDSCAPE), ...Object.keys(DECOR), ...Object.keys(SUBSTRATES)], hardFound = hardAll.filter((k) => ((seen.hard || {})[k])).length;
-    const total = BREEDS.length + Object.keys(PLANTS).length + hardAll.length, found = fishFound + plantFound + hardFound, pc = Math.round(100 * found / total);
+    const total = ALL_BREEDS.length + Object.keys(PLANTS).length + hardAll.length, found = fishFound + plantFound + hardFound, pc = Math.round(100 * found / total);
     const ring = (p, label) => h('div.ring', { style: { '--p': p, width: '56px', height: '56px' } }, h('span', { style: { width: '44px', height: '44px', fontSize: '13px' } }, label));
     let body;
     if (this.dexTab === 'fish') {
-      body = h('div.stack', null, ...SPECIES.map((s) => { const i = SPECIES_INFO[s.id], open = s.status === 'open', p = open ? Math.round(100 * fishFound / BREEDS.length) : 0;
-        return h('div.card.sptile', { role: 'button', tabindex: 0, onclick: () => UI.openSpecies(s.id) }, h('div', { style: { fontSize: '38px' } }, i.emoji), h('div.sp', null, h('b', null, s.name), h('div.small.muted', null, s.sci), h('div.tiny.muted', null, open ? `${fishFound}/${BREEDS.length} varyasyon` : `Seviye ${SPECIES_LVL[s.id]}'de açılır · bilgi kartı açık`)), open ? ring(p, p + '%') : icon('lock')); }));
+      body = h('div.stack', null, ...SPECIES.map((s) => { const i = SPECIES_INFO[s.id], open = Shop.unlocked(s.id), L2 = breedsOf(s.id), fnd = L2.filter((b) => S.discovered[b.id]).length, p = Math.round(100 * fnd / L2.length);
+        return h('div.card.sptile', { role: 'button', tabindex: 0, onclick: () => UI.openSpecies(s.id) }, h('div', { style: { fontSize: '38px' } }, i.emoji), h('div.sp', null, h('b', null, s.name), h('div.small.muted', null, s.sci), h('div.tiny.muted', null, open ? `${fnd}/${L2.length} varyasyon` : `Seviye ${SPECIES_LVL[s.id]}'de açılır · bilgi kartı açık`)), open ? ring(p, p + '%') : icon('lock')); }));
     } else if (this.dexTab === 'plant') {
       body = h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(104px,1fr))' } }, ...Object.entries(PLANTS).map(([id, pl]) => { const d = !!(seen.plant || {})[id], cv = Editor.thumb('plant', id); if (!d) { cv.style.filter = 'brightness(0) opacity(.35)'; }
         return h('div.cat', { role: 'button', tabindex: 0, onclick: () => UI.openPlant(id) }, cv, h('b', null, d ? pl.name : '???'), h('span.tiny.muted', null, d ? ['', 'Kolay', 'Kolay', 'Orta', 'Zor', 'Uzman'][pl.diff] : 'Keşfedilmedi')); }));
@@ -4381,29 +4498,29 @@ Object.assign(UI, {
       body = h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(104px,1fr))' } }, ...Object.entries(HARDSCAPE).map(([id, d]) => mk(d.kind, id, d)), ...Object.entries(SUBSTRATES).map(([id, d]) => mk('sub', id, d)), ...Object.entries(DECOR).map(([id, d]) => mk('decor', id, d)));
     }
     el.replaceChildren(h('div.wrap', null,
-      h('div.row', { style: { margin: '6px 0 10px' } }, h('div.ring', { style: { '--p': pc } }, h('span', null, pc + '%')), h('div', null, h('h2', null, 'Ansiklopedi'), h('div.muted.small', null, `${found}/${total} keşif · Balık ${fishFound}/${BREEDS.length} · Bitki ${plantFound}/${Object.keys(PLANTS).length} · Taş&zemin ${hardFound}/${hardAll.length}`))),
+      h('div.row', { style: { margin: '6px 0 10px' } }, h('div.ring', { style: { '--p': pc } }, h('span', null, pc + '%')), h('div', null, h('h2', null, 'Ansiklopedi'), h('div.muted.small', null, `${found}/${total} keşif · Balık ${fishFound}/${ALL_BREEDS.length} · Bitki ${plantFound}/${Object.keys(PLANTS).length} · Taş&zemin ${hardFound}/${hardAll.length}`))),
       UI.tabs([['fish', 'Balıkdex'], ['plant', 'Bitkidex'], ['hard', 'Taşdex']], this.dexTab, (k) => { this.dexTab = k; UI.render_dex(el); }), body));
   },
   subThumb(id) { const cv = document.createElement('canvas'); cv.width = cv.height = 96; const c = cv.getContext('2d'), [h_, s, l] = SUBSTRATES[id].colors.natural; c.fillStyle = hsl(h_, s, l); c.beginPath(); c.moveTo(6, 70); c.quadraticCurveTo(48, 40, 90, 66); c.lineTo(90, 90); c.lineTo(6, 90); c.fill(); const r = new RNG(3); for (let i = 0; i < 60; i++) { c.fillStyle = r.pick(['rgba(255,255,255,.25)', 'rgba(0,0,0,.25)']); c.beginPath(); c.arc(r.float(10, 88), r.float(62, 88), r.float(0.8, 2.4), 0, TAU); c.fill(); } return cv; },
 
   /* ---------- Tür Kartı ---------- */
   openSpecies(id) {
-    const sp = SPECIES.find((s) => s.id === id), info = SPECIES_INFO[id], S = Game.S; let tab = 'gen', vi = Math.max(0, BREEDS.findIndex((b) => S.discovered[b.id])), sex = 'M', age = 120, zoomed = false, pt = null;
+    const sp = SPECIES.find((s) => s.id === id), info = SPECIES_INFO[id], S = Game.S, list = breedsOf(id); let tab = 'gen', vi = Math.max(0, list.findIndex((b) => S.discovered[b.id])), sex = 'M', age = 120, zoomed = false, pt = null;
     const portrait = h('div.cc-portrait.sp-portrait'), cv = h('canvas'); portrait.append(cv);
     const label = h('div.sp-label'), controls = h('div.cc-tools'), body = h('div.sp-body');
-    const open = sp.status === 'open';
+    const open = true;
     const setPortrait = () => {
-      pt && pt.stop(); pt = null; const b = open ? BREEDS[vi % BREEDS.length] : null, disc = b ? !!S.discovered[b.id] : false;
+      pt && pt.stop(); pt = null; const b = open ? list[vi % list.length] : null, disc = b ? !!S.discovered[b.id] : false;
       if (open) {
         const cr = UI.speciesCreature(id, vi, sex, age); portrait.style.setProperty('--c', b ? RARITY[b.rarity].color : '#4aa');
         if (disc) { pt = new Portrait(cr, cv); pt.setZoom(zoomed ? 1.8 : 1); pt.start(); }
-        else { const c = cv.getContext('2d'); cv.width = 600; cv.height = 340; const g = c.createLinearGradient(0, 0, 0, 340); g.addColorStop(0, info.hab[0]); g.addColorStop(1, info.hab[2]); c.fillStyle = g; c.fillRect(0, 0, 600, 340); const sp2 = FishArt.sprite(cr), tmp = document.createElement('canvas'); tmp.width = 600; tmp.height = 340; const tc = tmp.getContext('2d'); tc.drawImage(sp2.tex, 100, 60, 400, 190); tc.globalCompositeOperation = 'source-atop'; tc.fillStyle = 'rgba(0,10,16,.92)'; tc.fillRect(0, 0, 600, 340); c.drawImage(tmp, 0, 0); cv.style.width = '100%'; cv.style.height = '100%'; }
+        else { const c = cv.getContext('2d'); cv.width = 600; cv.height = 340; const g = c.createLinearGradient(0, 0, 0, 340); g.addColorStop(0, info.hab[0]); g.addColorStop(1, info.hab[2]); c.fillStyle = g; c.fillRect(0, 0, 600, 340); const sp2 = cr.def.kind === 'fish' ? FishArt.sprite(cr) : { tex: UI.thumbCv(cr, 400) }, tmp = document.createElement('canvas'); tmp.width = 600; tmp.height = 340; const tc = tmp.getContext('2d'); tc.drawImage(sp2.tex, 100, 60, 400, 190); tc.globalCompositeOperation = 'source-atop'; tc.fillStyle = 'rgba(0,10,16,.92)'; tc.fillRect(0, 0, 600, 340); c.drawImage(tmp, 0, 0); cv.style.width = '100%'; cv.style.height = '100%'; }
         label.replaceChildren(h('b', null, disc ? b.name : '??? · Keşfedilmedi'), b ? UI.rarityPill(b.rarity) : null, h('span.tiny', { style: { color: '#fff', textShadow: '0 1px 3px #000' } }, disc ? '' : 'İpucu: ' + b.hint));
       } else {
         const c = cv.getContext('2d'); cv.width = 600; cv.height = 340; const g = c.createLinearGradient(0, 0, 0, 340); g.addColorStop(0, info.hab[0]); g.addColorStop(0.6, info.hab[1]); g.addColorStop(1, info.hab[2]); c.fillStyle = g; c.fillRect(0, 0, 600, 340); c.font = '120px serif'; c.textAlign = 'center'; c.fillText(info.emoji, 300, 210); cv.style.width = '100%'; cv.style.height = '100%';
-        label.replaceChildren(h('b', null, sp.name), h('span.tiny', { style: { color: '#fff', textShadow: '0 1px 3px #000' } }, `Canlı portre: Aşama ${sp.stage}`));
+        label.replaceChildren(h('b', null, sp.name));
       }
-      controls.replaceChildren(...[open ? h('button.icon-btn', { 'aria-label': 'Önceki varyasyon', onclick: () => { vi = (vi + BREEDS.length - 1) % BREEDS.length; setPortrait(); if (tab === 'gen2') draw(); } }, '◀') : null, open ? h('button.icon-btn', { 'aria-label': 'Sonraki varyasyon', onclick: () => { vi = (vi + 1) % BREEDS.length; setPortrait(); } }, '▶') : null,
+      controls.replaceChildren(...[open ? h('button.icon-btn', { 'aria-label': 'Önceki varyasyon', onclick: () => { vi = (vi + list.length - 1) % list.length; setPortrait(); if (tab === 'gen2') draw(); } }, '◀') : null, open ? h('button.icon-btn', { 'aria-label': 'Sonraki varyasyon', onclick: () => { vi = (vi + 1) % list.length; setPortrait(); } }, '▶') : null,
         open ? h('button.icon-btn', { 'aria-label': 'Cinsiyet', onclick: () => { sex = sex === 'M' ? 'F' : 'M'; setPortrait(); } }, sex === 'M' ? '♂' : '♀') : null,
         open ? h('button.icon-btn', { 'aria-label': 'Yaş', title: 'Yavru / genç / yetişkin', onclick: () => { age = age === 120 ? 5 : age === 5 ? 25 : 120; setPortrait(); } }, age === 120 ? 'Yet.' : age === 5 ? 'Yav.' : 'Genç') : null,
         open ? h('button.icon-btn', { 'aria-label': 'Yakınlaştır', onclick: () => { zoomed = !zoomed; pt && pt.setZoom(zoomed ? 1.8 : 1); } }, icon('zoom')) : null, h('button.icon-btn', { 'aria-label': 'Kapat', onclick: () => rec.close() }, icon('close'))].filter(Boolean));
@@ -4429,7 +4546,7 @@ Object.assign(UI, {
       else if (tab === 'breed') c = h('div.stack', null, kv([['Üreme tipi', info.breed.type], ['Gebelik / kuluçka', info.breed.time], ['Yavru sayısı', info.breed.count]]), h('p', null, info.breed.care));
       else if (tab === 'gen2') {
         c = h('div.stack', null, ...info.genetics.map((g) => h('p', { style: { margin: 0 } }, '• ', UI.rich(g))));
-        if (open) { const found = BREEDS.filter((b) => S.discovered[b.id]).length; c.append(h('b', null, `Varyasyonlar (${found}/${BREEDS.length})`), h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(92px,1fr))' } }, ...BREEDS.map((b, i) => { const d = !!S.discovered[b.id], cr = Game.sampleCreature(b.spec); return h('div.dex-tile' + (d ? '' : '.undisc'), { style: { '--c': RARITY[b.rarity].color, padding: '6px' }, onclick: () => { vi = i; setPortrait(); portrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } }, UI.thumbCv(cr, 90), h('div.tiny', null, d ? b.name : '???'), h('div.rarbar')); })),
+        if (open) { const found = list.filter((b) => S.discovered[b.id]).length; c.append(h('b', null, `Varyasyonlar (${found}/${list.length})`), h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(92px,1fr))' } }, ...list.map((b, i) => { const d = !!S.discovered[b.id], cr = Game.sampleCreature(b.spec); return h('div.dex-tile' + (d ? '' : '.undisc'), { style: { '--c': RARITY[b.rarity].color, padding: '6px' }, onclick: () => { vi = i; setPortrait(); portrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } }, UI.thumbCv(cr, 90), h('div.tiny', null, d ? b.name : '???'), h('div.rarbar')); })),
           h('b', null, 'Örnek Punnett: iki taşıyıcı'), h('div.pgrid', null, h('span'), h('b', null, 'Yabani'), h('b', null, 'Albino'), h('b', null, 'Yabani'), h('span.pc', null, 'YY'), h('span.pc', null, 'YA'), h('b', null, 'Albino'), h('span.pc', null, 'YA'), h('span.pc', null, 'AA')), h('div.small.muted', null, '¼ albino · ¾ yabani görünüm (3:1).')); }
       } else c = h('div.stack', null, h('b', null, 'İlginç bilgiler'), ...info.trivia.map((t) => h('p', { style: { margin: 0 } }, '💡 ', t)), h('b', null, 'Sağlık ve dürüst notlar'), ...info.health.map((t) => h('p', { style: { margin: 0 } }, '🩺 ', t)));
       body.replaceChildren(tabEl, c);
@@ -4614,8 +4731,8 @@ const Market = {
   tickDay(S, day) {
     const m = this.ensure(S), rng = new RNG((day ?? Math.floor(S.clockMin / 1440)) * 7919 + 13);
     if (m.trend && --m.trend.days <= 0) m.trend = null;
-    if (!m.trend && rng.chance(0.25)) { const b = rng.pick(BREEDS.filter((x) => x.rarity <= 2)); m.trend = { id: b.id, up: rng.chance(0.7), days: rng.int(5, 9) }; Game.notify('market', `Pazar: ${b.name} ${m.trend.up ? 'moda oldu ↑' : 'ilgi görmüyor ↓'}`); }
-    for (const b of BREEDS) { let d = m.demand[b.id] ?? 1; d += (1 - d) * 0.08 + rng.float(-0.04, 0.04); if (m.trend && m.trend.id === b.id) d += m.trend.up ? 0.06 : -0.05; d = clamp(d, 0.45, 1.7); m.demand[b.id] = d; const h_ = m.hist[b.id] || (m.hist[b.id] = []); h_.push(+d.toFixed(2)); if (h_.length > 14) h_.shift(); }
+    if (!m.trend && rng.chance(0.25)) { const b = rng.pick(ALL_BREEDS.filter((x) => x.rarity <= 2)); m.trend = { id: b.id, up: rng.chance(0.7), days: rng.int(5, 9) }; Game.notify('market', `Pazar: ${b.name} ${m.trend.up ? 'moda oldu ↑' : 'ilgi görmüyor ↓'}`); }
+    for (const b of ALL_BREEDS) { let d = m.demand[b.id] ?? 1; d += (1 - d) * 0.08 + rng.float(-0.04, 0.04); if (m.trend && m.trend.id === b.id) d += m.trend.up ? 0.06 : -0.05; d = clamp(d, 0.45, 1.7); m.demand[b.id] = d; const h_ = m.hist[b.id] || (m.hist[b.id] = []); h_.push(+d.toFixed(2)); if (h_.length > 14) h_.shift(); }
   },
 };
 
@@ -4624,9 +4741,10 @@ const Shop = {
   maxRarity() { const l = Progress.level(Game.S.xp); return l < 5 ? 0 : l < 15 ? 1 : 2; },
   day() { return Math.floor(Game.S.clockMin / 1440); },
   /** Günün seçkisi ve haftanın gezgin satıcısı (tohumlu → kayıtsız tutarlı). */
-  daily() { const rng = new RNG(this.day() * 104729 + 7), pool = BREEDS.filter((b) => b.rarity <= this.maxRarity()); return rng.shuffle(pool.slice()).slice(0, 6).map((b) => ({ b, price: this.price(b), qty: 2 })); },
-  trader() { const week = Math.floor(this.day() / 7), rng = new RNG(week * 1299709 + 3), pool = BREEDS.filter((b) => b.rarity >= 2 && b.rarity <= 3); return rng.shuffle(pool.slice()).slice(0, 3).map((b) => ({ b, price: Math.round(this.price(b) * 1.5), qty: 1, rare: true })); },
-  price(b) { return Math.round(RARITY[b.rarity].value * 1.9); },
+  unlocked(sp) { return Progress.level(Game.S.xp) >= SPECIES_LVL[sp]; },
+  daily(sp = 'guppy') { const rng = new RNG(this.day() * 104729 + 7 + hashStr(sp) % 997), pool = breedsOf(sp).filter((b) => b.rarity <= this.maxRarity()); return rng.shuffle(pool.slice()).slice(0, sp === 'guppy' ? 6 : 4).map((b) => ({ b, price: this.price(b), qty: 2 })); },
+  trader() { const week = Math.floor(this.day() / 7), rng = new RNG(week * 1299709 + 3), pool = ALL_BREEDS.filter((b) => b.rarity >= 2 && b.rarity <= 3 && this.unlocked(b.spec.sp || 'guppy')); return rng.shuffle(pool.slice()).slice(0, 3).map((b) => ({ b, price: Math.round(this.price(b) * 1.5), qty: 1, rare: true })); },
+  price(b) { return Math.round(RARITY[b.rarity].value * 1.9 * SPDEF[b.spec.sp || 'guppy'].pm); },
   bought(key) { const S = Game.S; S.shop = S.shop || {}; if (S.shop.day !== this.day()) S.shop = { day: this.day(), n: {} }; return S.shop.n[key] || 0; },
   buy(offer, sex) {
     const S = Game.S, key = offer.b.id + (offer.rare ? '!' : '');
@@ -4634,7 +4752,7 @@ const Shop = {
     if (Game.tank.creatures.length >= tankCap()) return UI.toast('Tank dolu', 'fish');
     if (S.coins < offer.price) return UI.toast('Yeterli Altın Pul yok', 'coin');
     S.coins -= offer.price; S.shop.n[key] = this.bought(key) + 1;
-    const c = new Creature({ genome: Genetics.make(offer.b.spec, sex, R), bornT: S.clockMin - R.int(55, 110) * 1440, x: Game.tank.W * 0.5, y: 120 }); c.now = S.clockMin; Breeding.reg(c); Game.tank.addCreature(c);
+    const c = new Creature({ genome: Genetics.make(offer.b.spec, sex, R, offer.b.spec.sp || 'guppy'), bornT: S.clockMin - R.int(55, 110) * 1440, x: Game.tank.W * 0.5, y: 120 }); c.now = S.clockMin; Breeding.reg(c); Game.addToTank(c);
     UI.refreshTop(); Game.ev('buy'); Game.checkDiscoveries(false); Game.save(); UI.toast(`${c.name} (${sex === 'M' ? 'erkek' : 'dişi'} ${offer.b.name}) tanka eklendi`, 'fish'); AudioSys.SFX.coin(); return c;
   },
 };
@@ -4652,7 +4770,7 @@ const Orders = {
   gen(S, rng) {
     const lvl = Progress.level(S.xp), maxR = lvl < 5 ? 1 : lvl < 15 ? 2 : 3, kinds = ['breed', 'rarity', 'tail', 'size'], kind = rng.pick(kinds), [name, emo] = rng.pick(NPCS);
     const o = { id: S.orders.next++, npc: name, emo, kind, until: S.clockMin + rng.int(3, 6) * 1440, sex: rng.chance(0.5) ? 'M' : 'F' };
-    if (kind === 'breed') { const b = rng.pick(BREEDS.filter((x) => x.rarity <= Math.min(maxR, 2) && S.discovered[x.id])); if (!b) return null; const sp = b.spec; o.breed = b.id; if (sp.tc && sp.tc !== 'none' || sp.tux || sp.sb || sp.st || sp.grass || sp.mosaic || sp.moscow) o.sex = 'M'; o.text = `${o.sex === 'M' ? 'Erkek' : 'Dişi'} ${b.name}`; o.base = RARITY[b.rarity].value * 1.9; }
+    if (kind === 'breed') { const b = rng.pick(ALL_BREEDS.filter((x) => x.rarity <= Math.min(maxR, 2) && S.discovered[x.id])); if (!b) return null; const sp = b.spec; o.breed = b.id; if (sp.tc && sp.tc !== 'none' || sp.tux || sp.sb || sp.st || sp.grass || sp.mosaic || sp.moscow) o.sex = 'M'; o.text = `${o.sex === 'M' ? 'Erkek' : 'Dişi'} ${b.name}`; o.base = RARITY[b.rarity].value * 1.9; }
     else if (kind === 'rarity') { o.minR = rng.int(0, Math.min(2, maxR)) + (lvl > 12 ? 1 : 0); o.minR = Math.min(o.minR, 3); o.text = `${RARITY[o.minR].name} veya üstü ${o.sex === 'M' ? 'erkek' : 'dişi'} balık`; o.base = RARITY[o.minR].value * 1.8 + 30; }
     else if (kind === 'tail') { const t = rng.pick(['fan', 'delta', 'round', 'veil', 'spade']); o.tail = t; o.sex = 'M'; o.text = `${TAILS[t].name} kuyruklu erkek`; o.base = 70; }
     else { o.size = 1.1; o.text = `İri (büyük boy) ${o.sex === 'M' ? 'erkek' : 'dişi'} balık`; o.base = 80; }
@@ -4662,7 +4780,7 @@ const Orders = {
     if (c.sex !== o.sex || !c.adult() || c.dis) return false; const p = c.pheno;
     if (o.kind === 'breed') return c.breed().id === o.breed; if (o.kind === 'rarity') return c.rarity() >= o.minR; if (o.kind === 'tail') return p.tail === o.tail; if (o.kind === 'size') return p.size >= o.size; return false;
   },
-  deliver(o, c) { const S = Game.S; Game.tank.removeCreature(c); S.orders.list = S.orders.list.filter((x) => x !== o); Game.addCoins(o.reward, true); S.rep += o.rep; Game.addXp(10 + o.rep); Game.ev('order'); S.stats.sold++; UI.refreshTop(); AudioSys.SFX.discover(1); UI.toast(`${o.npc} memnun: +${o.reward} 💰, +${o.rep} İtibar`, 'heart', 4200); Game.save(); },
+  deliver(o, c) { const S = Game.S; Game.dropCreature(c); S.orders.list = S.orders.list.filter((x) => x !== o); Game.addCoins(o.reward, true); S.rep += o.rep; Game.addXp(10 + o.rep); Game.ev('order'); S.stats.sold++; UI.refreshTop(); AudioSys.SFX.discover(1); UI.toast(`${o.npc} memnun: +${o.reward} 💰, +${o.rep} İtibar`, 'heart', 4200); Game.save(); },
 };
 
 /* Araştırma yardımcıları */
@@ -4725,7 +4843,7 @@ Object.assign(UI, {
     const offer = (o) => { const cr = Game.sampleCreature(o.b.spec), left = o.qty - Shop.bought(o.b.id + (o.rare ? '!' : '')), r = RARITY[o.b.rarity];
       return h('div.dex-tile', { style: { '--c': r.color, cursor: 'default' } }, UI.thumbCv(cr, 120), h('div.nm', null, o.b.name), h('div.tiny', { style: { color: r.color } }, r.icon + ' ' + r.name), h('div.small', null, `${o.price} 💰 · stok ${left}`), h('div.row', { style: { justifyContent: 'center', marginTop: '4px' } }, h('button.btn.sm', { disabled: left > 0 ? null : true, onclick: () => { Shop.buy(o, 'M'); UI.render_shop(el); } }, '♂'), h('button.btn.sm', { disabled: left > 0 ? null : true, onclick: () => { Shop.buy(o, 'F'); UI.render_shop(el); } }, '♀')), h('div.rarbar')); };
     const item = (k, id, def, extra) => { const lock = lvl < (def.lvl || 1); return h('div.cat' + (lock ? '.lock' : ''), { style: { cursor: 'default' } }, k === 'sub' ? UI.subThumb(id) : Editor.thumb(k, id), h('b', null, def.name), h('span.tiny.muted', null, lock ? `🔒 Sv ${def.lvl}` : `💰 ${def.cost}`), h('div.row', { style: { gap: '4px' } }, h('button.btn.sm', { onclick: () => (k === 'plant' ? UI.openPlant(id) : UI.openHard(k, id)) }, 'Bilgi'), h('button.btn.sm.primary', { disabled: lock ? true : null, onclick: () => { UI.go('design'); setTimeout(() => { Editor.mode = k === 'plant' ? 'plant' : k === 'decor' ? 'decor' : k === 'sub' ? 'sub' : 'hard'; if (k === 'sub') Editor.refresh(); else Editor.pick(k, id, def); }, 700); } }, k === 'sub' ? 'Stüdyo' : 'Yerleştir'))); };
-    if (this.shopTab === 'live') body = h('div.stack', null, h('div.small.muted', null, `Günün seçkisi (seviyene göre: en çok ${RARITY[Shop.maxRarity()].name}). Yeni seçki her oyun günü gelir.`), h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(130px,1fr))' } }, ...Shop.daily().map(offer)), h('div.section-t', null, h('h3', null, '🧳 Gezgin Satıcı'), h('span.tiny.muted', null, 'haftada bir nadir ürünler')), h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(130px,1fr))' } }, ...Shop.trader().map(offer)), h('div.small.muted', null, 'Diğer türler seviye atladıkça açılır: ' + SPECIES.slice(1).map((s) => `${s.name} (Sv ${SPECIES_LVL[s.id]})`).join(' · ')));
+    if (this.shopTab === 'live') { this.shopSp = this.shopSp || 'guppy'; if (!Shop.unlocked(this.shopSp)) this.shopSp = 'guppy'; } if (this.shopTab === 'live') body = h('div.stack', null, UI.tabs(SPECIES.map((s) => [s.id, (Shop.unlocked(s.id) ? '' : '🔒 ') + s.name]), this.shopSp, (k) => { if (!Shop.unlocked(k)) return UI.toast(`${SPECIES.find((s) => s.id === k).name}: Seviye ${SPECIES_LVL[k]}'de açılır`, 'lock'); this.shopSp = k; UI.render_shop(el); }), h('div.small.muted', null, `Günün seçkisi (seviyene göre: en çok ${RARITY[Shop.maxRarity()].name}). Yeni seçki her oyun günü gelir.`), h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(130px,1fr))' } }, ...Shop.daily(this.shopSp).map(offer)), h('div.section-t', null, h('h3', null, '🧳 Gezgin Satıcı'), h('span.tiny.muted', null, 'haftada bir nadir ürünler')), h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(130px,1fr))' } }, ...Shop.trader().map(offer)), h('div.small.muted', null, 'Türler seviye atladıkça açılır: ' + SPECIES.map((s) => `${s.name} (Sv ${SPECIES_LVL[s.id]})`).join(' · ')));
     else if (this.shopTab === 'plant') body = h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(112px,1fr))' } }, ...Object.entries(PLANTS).sort((a, b) => a[1].lvl - b[1].lvl).map(([id, d]) => item('plant', id, d)));
     else if (this.shopTab === 'hard') body = h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(112px,1fr))' } }, ...Object.entries(HARDSCAPE).map(([id, d]) => item(d.kind, id, d)), ...Object.entries(DECOR).map(([id, d]) => item('decor', id, d)));
     else if (this.shopTab === 'sub') body = h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(112px,1fr))' } }, ...Object.entries(SUBSTRATES).map(([id, d]) => item('sub', id, d)));
@@ -4750,7 +4868,7 @@ Object.assign(UI, {
       ...(list.length ? list.map((c) => { const b = c.breed(), mu = Market.mult(b.id), col = mu > 1.05 ? 'var(--ok)' : mu < 0.95 ? 'var(--warn)' : 'var(--muted)';
         return h('div.fish-row', null, UI.thumbCv(c, 84), h('div.sp', null, h('b', null, (c.fav ? '★ ' : '') + c.name), h('div.small.muted', null, `${b.name} · ${c.stage()}`), h('div.tiny', { style: { color: col } }, `talep ×${mu.toFixed(2)} ${mu > 1.05 ? '↑' : mu < 0.95 ? '↓' : '→'}`)), h('div', { style: { textAlign: 'right' } }, h('b', null, c.value() + ' 💰'), h('div', null, h('button.btn.sm.coral', { disabled: Game.tank.creatures.length <= 1 ? true : null, onclick: () => UI.confirm(`${c.name} satılsın mı?`, `${c.value()} Altın Pul`, () => { Game.sell(c); UI.render_market(el); }) }, 'Sat')))); }) : [UI.emptyState('🐟', 'Satacak balık yok', '')]),
       h('h3', { style: { margin: '14px 2px 0' } }, 'Talep göstergeleri'),
-      ...BREEDS.filter((b) => S.discovered[b.id]).map((b) => { const mu = m.demand[b.id] ?? 1; return h('div.row', { style: { padding: '6px 4px', borderBottom: '1px solid var(--panel-b)' } }, h('b.sp', { style: { color: RARITY[b.rarity].color } }, b.name), spark(b.id, mu >= 1 ? '#4cd694' : '#ffc65c'), h('span', { style: { width: '54px', textAlign: 'right' } }, '×' + mu.toFixed(2))); })));
+      ...ALL_BREEDS.filter((b) => S.discovered[b.id]).map((b) => { const mu = m.demand[b.id] ?? 1; return h('div.row', { style: { padding: '6px 4px', borderBottom: '1px solid var(--panel-b)' } }, h('b.sp', { style: { color: RARITY[b.rarity].color } }, b.name), spark(b.id, mu >= 1 ? '#4cd694' : '#ffc65c'), h('span', { style: { width: '54px', textAlign: 'right' } }, '×' + mu.toFixed(2))); })));
   },
 
   /* ---------- Araştırma ağacı ---------- */
@@ -4820,6 +4938,466 @@ Object.assign(UI, {
     const S = Game.S, sel = new Set((S.shown || []).filter((id) => (S.ach || {})[id])); const box = h('div.grid2', { style: { gridTemplateColumns: 'repeat(3,1fr)' } });
     const draw = () => box.replaceChildren(...ACHIEVEMENTS.filter((a) => (S.ach || {})[a.id]).map((a) => h('button.dex-tile', { style: { '--c': sel.has(a.id) ? 'var(--accent)' : 'var(--panel-b)', border: '2px solid ' + (sel.has(a.id) ? 'var(--accent)' : 'var(--panel-b)') }, onclick: () => { if (sel.has(a.id)) sel.delete(a.id); else if (sel.size < 6) sel.add(a.id); draw(); } }, h('div', { style: { fontSize: '30px' } }, a.ic), h('div.tiny', null, a.name))));
     draw(); const rec = UI.sheet(h('div.stack', null, UI.sheetHead('Vitrin rozetleri (en çok 6)', { close: () => rec.close() }), box, h('button.btn.primary', { onclick: () => rec.close() }, 'Tamam')), { onClose: () => { S.shown = [...sel]; Game.save(); UI.render_profile(el); } });
+  },
+});
+
+/* ───── 17-species.js ───── */
+'use strict';
+/* =====================================================================
+   17 · TÜRLER — Endler, Moli, Plati, Kılıçkuyruk, Beta, Neocaridina, Salyangoz
+   Her tür: genetik şeması (SCHEMA), fenotip (render-spec üretir), ırk tablosu
+   (SP_BREEDS), tür tanımı (SPDEF). Lepistes 02-genetics.js'te.
+   ===================================================================== */
+
+TAILCOL.orange = { name: 'Turuncu', h: 24, s: 92, l: 52 }; TAILCOL.black = { name: 'Siyah', h: 230, s: 20, l: 14 };
+TAILS.double = { name: 'Çift kuyruk', bf: 0.56, soft: 0.6 }; TAILS.plakat = { name: 'Plakat', bf: 0.64, soft: 0.8 };
+
+/** Tür tanımı: kind (çizim/davranış), boy [erkek,dişi] (dünya birimi), üreme tipi */
+const SPDEF = {
+  guppy:     { pm: 1, kind: 'fish',   len: [49.9, 69.6], breed: 'live',  adult: 35, fry: 'Yavru' },
+  endler:    { pm: 0.8, kind: 'fish',   len: [30, 41],     breed: 'live',  adult: 30 },
+  molly:     { pm: 1, kind: 'fish',   len: [62, 84],     breed: 'live',  adult: 45 },
+  platy:     { pm: 0.9, kind: 'fish',   len: [52, 66],     breed: 'live',  adult: 40 },
+  swordtail: { pm: 1, kind: 'fish',   len: [60, 76],     breed: 'live',  adult: 45 },
+  betta:     { pm: 1.2, kind: 'fish',   len: [62, 52],     breed: 'bubble', adult: 60, solitary: true },
+  shrimp:    { pm: 0.3, kind: 'shrimp', len: [24, 34],     breed: 'shrimp', adult: 50 },
+  snail:     { pm: 0.5, kind: 'snail',  len: [32, 32],     breed: 'snail', adult: 40 },
+};
+/** Melezlenebilen çiftler (diğerleri laboratuvarda reddedilir). */
+const HYBRIDS = [['guppy', 'endler'], ['platy', 'swordtail']];
+const canCross = (a, b) => a === b || HYBRIDS.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+
+const pick2 = (alleles, rank) => rank[Math.min(rank.indexOf(alleles[0]), rank.indexOf(alleles[1]))];
+const sig = (a) => a.join('|');
+const HSL = (h, s, l) => ({ h, s, l });
+const mutPool = (pool) => (locus, al, rng) => { const p = pool[locus]; return p ? rng.pick(p.filter((x) => x !== al)) : al; };
+const mutScNone = (l, v) => v;
+/** Başlangıç popülasyonu için havuzdan seçici */
+const rndSpec = (rng, spec) => { const o = {}; for (const k in spec) { const v = spec[k]; o[k] = Array.isArray(v) ? rng.pick(v) : v; } return o; };
+
+/* ======================= ENDLER ======================= */
+SCHEMA.endler = {
+  auto: ['body', 'tail'], sc: ['pat', 'tc'], xy: 0.03,
+  defAuto: { body: ['W', 'W'], tail: ['delta', 'delta'] }, defSc: { pat: 'none', tc: 'none' },
+  quant: { size: [0.8, 1.25], vigor: [0.5, 1.4], intensity: [0.55, 1.3], pur: [0, 1] }, qdef: { pur: 1 }, qOther: { pur: 0 },
+  mut: mutPool({ body: ['W', 'alb', 'gld'], tail: ['delta', 'fan', 'round', 'spade'] }),
+  mutSc(l, v, rng) { return rng.pick((l === 'pat' ? ['none', 'tiger', 'cobra', 'bar'] : ['none', 'orange', 'green']).filter((x) => x !== v)); },
+  founder: (sex, rng) => Genetics.make({ sp: 'endler', tail: rng.pick(['delta', 'fan']), X: { tc: 'none' }, body: 'W', ...(sex === 'M' ? { pat: rng.pick(['tiger', 'cobra', 'bar']), tc: rng.pick(['orange', 'green']) } : { X: { pat: rng.pick(['none', 'tiger']), tc: 'none' } }) }, sex, rng, 'endler'),
+  post(g, sire, dam) { g.quant.pur = clamp(g.quant.pur, 0, 1); },
+  pheno(g) {
+    const [x, y] = g.sc, body = pick2(g.auto.body, ['W', 'alb', 'gld']), M = g.sex === 'M', pat = M ? (y.pat !== 'none' ? y.pat : x.pat) : 'none', tc = M ? (y.tc !== 'none' ? y.tc : x.tc) : 'none';
+    const base = { W: HSL(60, 14, 56), alb: HSL(48, 70, 84), gld: HSL(44, 85, 58) }[body];
+    const p = { sex: g.sex, sp: 'endler', body, tail: pick2(g.auto.tail, ['round', 'fan', 'spade', 'delta']), tailColor: tc === 'none' ? 'none' : tc, tailColor2: null, tux: 0, sb: 0, st: 0, grass: 0, mosaic: 0, moscow: 0, purple: false, metal: false,
+      size: g.quant.size, tailLen: 1, vigor: g.quant.vigor, intensity: g.quant.intensity, pur: g.quant.pur, pat, bodyCol: base, penalty: 1, H: 0.9, extra: [] };
+    if (M && pat === 'tiger') p.extra.push({ t: 'tiger' }); if (M && pat === 'cobra') p.extra.push({ t: 'cobra' }); if (M && pat === 'bar') p.extra.push({ t: 'bars', n: 4 });
+    if (M && tc === 'orange') p.extra.push({ t: 'spots', col: 'hsl(26,95%,52%)', n: 9, r: 6 });
+    p.hybrid = g.quant.pur < 0.9; p.sig = ['e', g.sex, body, p.tail, tc, pat, p.hybrid | 0].join('|'); return p;
+  },
+  describe: (g) => [['Gövde', g.auto.body.join(' / ')], ['Kuyruk', g.auto.tail.join(' / ')], ['Desen (X)', g.sc[0].pat + '/' + g.sc[0].tc], [g.sex === 'M' ? 'Desen (Y)' : 'Desen (X2)', g.sc[1].pat + '/' + g.sc[1].tc], ['Saflık', Math.round(g.quant.pur * 100) + '%']],
+  carried: (g) => (g.sex === 'F' ? [...new Set(g.sc.flatMap((h) => [h.pat !== 'none' && 'Desen: ' + h.pat, h.tc !== 'none' && 'Renk: ' + h.tc].filter(Boolean)))] : []),
+};
+SP_BREEDS.endler = [
+  { id: 'en_hybrid', name: 'Melez (Lepistes×Endler)', rarity: 0, test: (p) => p.hybrid, spec: { sp: 'endler', pur: 0.5, pat: 'tiger', tc: 'orange' }, hint: 'Lepistesle karışmış; "Saf Endler" sertifikası kaybolur.', blurb: 'Lepistes genleri taşıyan melez; saf hat değildir.' },
+  { id: 'en_cobra', name: 'Cobra', rarity: 2, test: (p) => p.pat === 'cobra', spec: { sp: 'endler', pat: 'cobra', tc: 'orange' }, hint: 'Yılan gibi kıvrımlı siyah bantlar.', blurb: 'Gövdede dalgalı siyah bantlı Endler formu.' },
+  { id: 'en_tiger', name: 'Tiger', rarity: 1, test: (p) => p.pat === 'tiger', spec: { sp: 'endler', pat: 'tiger', tc: 'orange' }, hint: 'Turuncu-siyah kaplan desenli.', blurb: 'Kaplan desenli turuncu-siyah Endler.' },
+  { id: 'en_bar', name: 'Black Bar', rarity: 1, test: (p) => p.pat === 'bar', spec: { sp: 'endler', pat: 'bar', tc: 'green' }, hint: 'Dikey siyah çubuklar.', blurb: 'Gövdede dikey siyah çubuklu form.' },
+  { id: 'en_gold', name: 'Altın Endler', rarity: 1, test: (p) => p.body === 'gld', spec: { sp: 'endler', body: 'gld', pat: 'none' }, hint: 'Altın gövdeli.', blurb: 'Altın sarısı gövdeli seçici hat.' },
+  { id: 'en_albino', name: 'Albino Endler', rarity: 1, test: (p) => p.body === 'alb', spec: { sp: 'endler', body: 'alb' }, hint: 'Kırmızı gözlü beyaz.', blurb: 'Pigmentsiz, kırmızı gözlü Endler.' },
+  { id: 'en_wild', name: 'Yabani Endler', rarity: 0, test: () => true, spec: { sp: 'endler', pat: 'none' }, hint: 'Doğal görünüm.', blurb: 'Sade gri tonlu doğal Endler.' },
+];
+
+/* ======================= MOLİ ======================= */
+SCHEMA.molly = {
+  auto: ['mel', 'col', 'tail', 'bal'], sc: [], xy: 0,
+  defAuto: { mel: ['m0', 'm0'], col: ['W', 'W'], tail: ['norm', 'norm'], bal: ['B', 'B'] }, defSc: {},
+  quant: { size: [0.8, 1.3], vigor: [0.5, 1.4], intensity: [0.6, 1.3], sail: [0.6, 1.6], mex: [0, 1] }, qdef: { sail: 0.9, mex: 0.5 },
+  mut: mutPool({ mel: ['m0', 'm1', 'm2'], col: ['W', 'gold', 'white', 'orange'], tail: ['norm', 'lyre'], bal: ['B', 'bal'] }), mutSc: mutScNone,
+  founder: (sex, rng) => Genetics.make({ sp: 'molly', mel: rng.pick([['m0', 'm0'], ['m1', 'm0'], ['m2', 'm1']]), col: rng.pick(['W', 'W', 'gold', 'white']) }, sex, rng, 'molly'),
+  post(g, s, d, rng) { g.quant.mex = clamp(0.5 + rng.gauss(0, 0.22), 0, 1); },       // değişken ifade
+  pheno(g) {
+    const dose = g.auto.mel.reduce((a, m) => a + (m === 'm2' ? 2 : m === 'm1' ? 1 : 0), 0), pct = clamp(dose / 4 * 100 + (g.quant.mex - 0.5) * 55, 0, 100), col = pick2(g.auto.col, ['W', 'gold', 'orange', 'white']);
+    const base = { W: HSL(75, 8, 62), gold: HSL(44, 88, 60), white: HSL(50, 6, 92), orange: HSL(24, 92, 56) }[col], bal = pick2(g.auto.bal, ['B', 'bal']) === 'bal', lyre = pick2(g.auto.tail, ['lyre', 'norm']) === 'lyre';
+    const dark = pct >= 85, bodyCol = dark ? HSL(230, 14, 9) : pct >= 45 ? HSL(base.h, base.s * 0.5, base.l * 0.45) : base;
+    const p = { sex: g.sex, sp: 'molly', body: col === 'white' ? 'alb' : 'W', tail: lyre ? 'lyre' : 'fan', tailColor: 'none', tailColor2: null, tux: 0, sb: 0, st: 0, grass: 0, mosaic: 0, moscow: 0, purple: false, metal: false, size: g.quant.size * (bal ? 0.85 : 1), tailLen: lyre ? 1.15 : 0.9,
+      vigor: g.quant.vigor, intensity: g.quant.intensity, bodyCol, tcol: dark ? HSL(230, 14, 14) : base, H: bal ? 1.55 : 1.15, dorsal: g.quant.sail * 1.2, melPct: pct, colId: col, bal, sail: g.quant.sail, penalty: bal ? 0.7 : 1, extra: [] };
+    if (pct >= 8 && pct < 45) p.extra.push({ t: 'spots', col: 'rgba(15,15,25,.85)', n: Math.round(8 + pct * 1.1), r: 5, rand: true });
+    else if (pct >= 45 && pct < 85) p.extra.push({ t: 'marble', col: 'rgba(15,15,25,.75)', n: 12 }); if (col === 'white') p.eyeRed = false;
+    p.cls = pct >= 85 ? 'black' : pct >= 45 ? 'marble' : pct >= 8 ? 'dalm' : 'none'; p.sig = ['m', g.sex, col, p.cls, lyre | 0, bal | 0, Math.round(g.quant.sail * 4)].join('|'); return p;
+  },
+  describe: (g) => [['Siyahlık (melanin)', g.auto.mel.join(' / ')], ['Renk', g.auto.col.join(' / ')], ['Kuyruk', g.auto.tail.join(' / ')], ['Balon geni', g.auto.bal.join(' / ')]],
+};
+SP_BREEDS.molly = [
+  { id: 'mo_balloon', name: 'Balon Moli', rarity: 2, test: (p) => p.bal, spec: { sp: 'molly', bal: ['bal', 'bal'], mel: ['m2', 'm2'] }, hint: 'Yuvarlak, kısa gövdeli (sağlık cezalı).', blurb: 'Omurga deformasyonuna bağlı balon form: kısa ömürlü ve zayıf doğurgan — dürüst not.' },
+  { id: 'mo_black_sail', name: 'Siyah Sailfin', rarity: 2, test: (p) => p.cls === 'black' && p.sail > 1.25, spec: { sp: 'molly', mel: ['m2', 'm2'], sail: 1.45, mex: 0.9 }, hint: 'Siyah gövde, dev yelken yüzgeç.', blurb: 'Yelkenimsi sırt yüzgeçli siyah moli.' },
+  { id: 'mo_black_lyre', name: 'Siyah Lyretail', rarity: 1, test: (p) => p.cls === 'black' && p.tail === 'lyre', spec: { sp: 'molly', mel: ['m2', 'm2'], tail: ['lyre', 'lyre'], mex: 0.9 }, hint: 'Siyah, lir kuyruklu.', blurb: 'Lir kuyruklu siyah moli.' },
+  { id: 'mo_black', name: 'Siyah Moli', rarity: 0, test: (p) => p.cls === 'black', spec: { sp: 'molly', mel: ['m2', 'm2'], mex: 0.9 }, hint: 'Tam siyah.', blurb: 'Melanizm geninin tam ifade olduğu klasik siyah moli.' },
+  { id: 'mo_marble', name: 'Mermer Moli', rarity: 1, test: (p) => p.cls === 'marble', spec: { sp: 'molly', mel: ['m1', 'm1'], mex: 0.6 }, hint: 'Siyah-gümüş mermer görünümlü.', blurb: 'Melanizmin kısmi ifadesiyle mermer desen.' },
+  { id: 'mo_dalm', name: 'Dalmaçyalı Moli', rarity: 1, test: (p) => p.cls === 'dalm', spec: { sp: 'molly', mel: ['m1', 'm0'], mex: 0.6 }, hint: 'Siyah benekli.', blurb: 'Benekli (Dalmaçyalı) moli: melanizm düşük ifade.' },
+  { id: 'mo_gold_sail', name: 'Altın Sailfin', rarity: 1, test: (p) => p.colId === 'gold' && p.sail > 1.25, spec: { sp: 'molly', col: 'gold', sail: 1.45 }, hint: 'Altın, büyük yelkenli.', blurb: 'Altın gövdeli sailfin.' },
+  { id: 'mo_snow', name: 'Snowball (Beyaz)', rarity: 1, test: (p) => p.colId === 'white', spec: { sp: 'molly', col: 'white' }, hint: 'Kar gibi beyaz.', blurb: 'Pigmentsiz beyaz moli.' },
+  { id: 'mo_orange', name: 'Turuncu Moli', rarity: 1, test: (p) => p.colId === 'orange', spec: { sp: 'molly', col: 'orange' }, hint: 'Parlak turuncu.', blurb: 'Turuncu gövdeli seçici form.' },
+  { id: 'mo_gold', name: 'Altın Moli', rarity: 0, test: (p) => p.colId === 'gold', spec: { sp: 'molly', col: 'gold' }, hint: 'Altın sarısı.', blurb: 'Altın renkli moli.' },
+  { id: 'mo_lyre', name: 'Lyretail Moli', rarity: 1, test: (p) => p.tail === 'lyre', spec: { sp: 'molly', tail: ['lyre', 'lyre'] }, hint: 'Lir kuyruklu.', blurb: 'Baskın lir kuyruk geni.' },
+  { id: 'mo_wild', name: 'Gümüş Moli', rarity: 0, test: () => true, spec: { sp: 'molly' }, hint: 'Doğal gümüş-yeşil.', blurb: 'Doğadaki gri-yeşil moli.' },
+];
+
+/* ======================= PLATİ ======================= */
+SCHEMA.platy = {
+  auto: ['base', 'col', 'pat', 'tail', 'tux'], sc: [], xy: 0,
+  defAuto: { base: ['W', 'W'], col: ['W', 'W'], pat: ['none', 'none'], tail: ['norm', 'norm'], tux: ['t', 't'] }, defSc: {},
+  quant: { size: [0.8, 1.3], vigor: [0.55, 1.4], intensity: [0.6, 1.3] },
+  mut: mutPool({ base: ['W', 'alb', 'bld'], col: ['W', 'red', 'blue', 'yellow'], pat: ['none', 'mickey', 'comet', 'moon', 'twospot', 'sp'], tail: ['norm', 'wag'], tux: ['T', 't'] }), mutSc: mutScNone,
+  founder: (sex, rng) => Genetics.make({ sp: 'platy', col: rng.pick(['W', 'W', 'red', 'yellow']), pat: rng.pick(['none', 'none', 'mickey', 'twospot', 'sp']) }, sex, rng, 'platy'),
+  pheno(g) {
+    const base = pick2(g.auto.base, ['W', 'alb', 'bld']), col = pick2(g.auto.col, ['red', 'yellow', 'blue', 'W']), pat = pick2(g.auto.pat, ['mickey', 'comet', 'moon', 'twospot', 'sp', 'none']), wag = pick2(g.auto.tail, ['wag', 'norm']) === 'wag', tux = pick2(g.auto.tux, ['T', 't']) === 'T';
+    let bc = { W: HSL(62, 12, 56), red: HSL(8, 82, 52), blue: HSL(208, 62, 55), yellow: HSL(46, 92, 60) }[col];
+    if (base === 'alb') bc = HSL(bc.h, bc.s * 0.6, 84); else if (base === 'bld') bc = HSL(bc.h, bc.s * 0.8, Math.min(78, bc.l + 14));
+    const p = { sex: g.sex, sp: 'platy', body: base === 'alb' ? 'alb' : 'W', tail: 'round', tailColor: 'none', tailColor2: null, tux: tux ? 1 : 0, sb: 0, st: 0, grass: 0, mosaic: 0, moscow: 0, purple: false, metal: false, size: g.quant.size, tailLen: 0.8, vigor: g.quant.vigor, intensity: g.quant.intensity,
+      bodyCol: bc, tcol: wag ? HSL(230, 14, 14) : { h: bc.h, s: bc.s * 0.8, l: bc.l }, H: 1.25, colId: col, patId: pat, wag, penalty: 1, extra: [] };
+    if (pat === 'mickey') p.extra.push({ t: 'mickey' }); else if (pat === 'comet') p.extra.push({ t: 'comet' }); else if (pat === 'moon') p.extra.push({ t: 'moon' }); else if (pat === 'twospot') p.extra.push({ t: 'twospot' }); else if (pat === 'sp') p.extra.push({ t: 'saltpepper' });
+    p.sig = ['p', g.sex, base, col, pat, wag | 0, tux | 0].join('|'); return p;
+  },
+  describe: (g) => [['Taban', g.auto.base.join(' / ')], ['Renk', g.auto.col.join(' / ')], ['Desen', g.auto.pat.join(' / ')], ['Kuyruk', g.auto.tail.join(' / ')], ['Tuxedo', g.auto.tux.join(' / ')]],
+};
+SP_BREEDS.platy = [
+  { id: 'pl_bleeding', name: 'Bleeding Heart', rarity: 2, test: (p) => p.colId === 'red' && p.patId === 'sp', spec: { sp: 'platy', col: 'red', pat: 'sp' }, hint: 'Kırmızı zeminde koyu benekler.', blurb: 'Kırmızı gövde ve salt&pepper deseni birleşimi.' },
+  { id: 'pl_blue_wag', name: 'Blue Wagtail', rarity: 2, test: (p) => p.colId === 'blue' && p.wag, spec: { sp: 'platy', col: 'blue', tail: ['wag', 'wag'] }, hint: 'Mavi gövde, siyah yüzgeçler.', blurb: 'Mavi gövde ile siyah yüzgeçli (wagtail).' },
+  { id: 'pl_mickey', name: 'Mickey Mouse', rarity: 1, test: (p) => p.patId === 'mickey', spec: { sp: 'platy', pat: 'mickey', col: 'yellow' }, hint: 'Kuyruk köküne Mickey kafası.', blurb: 'Kuyruk kökünde Mickey Mouse biçimli üç siyah leke.' },
+  { id: 'pl_comet', name: 'Comet', rarity: 1, test: (p) => p.patId === 'comet', spec: { sp: 'platy', pat: 'comet', col: 'red' }, hint: 'Kuyrukta siyah çizgi.', blurb: 'Kuyruk ve sırt boyunca koyu "kuyruklu yıldız" çizgisi.' },
+  { id: 'pl_moon', name: 'Moon', rarity: 1, test: (p) => p.patId === 'moon', spec: { sp: 'platy', pat: 'moon', col: 'yellow' }, hint: 'Hilal biçimli leke.', blurb: 'Kuyruk kökünde ay biçimli siyah leke.' },
+  { id: 'pl_twospot', name: 'Two-spot', rarity: 1, test: (p) => p.patId === 'twospot', spec: { sp: 'platy', pat: 'twospot', col: 'red' }, hint: 'İki siyah nokta.', blurb: 'Kuyruk kökünde üst ve altta iki siyah nokta.' },
+  { id: 'pl_sp', name: 'Salt & Pepper', rarity: 1, test: (p) => p.patId === 'sp', spec: { sp: 'platy', pat: 'sp' }, hint: 'Tuz-karabiber noktalı.', blurb: 'Gövdeye serpilmiş koyu noktalar.' },
+  { id: 'pl_coral', name: 'Coral (Kırmızı)', rarity: 0, test: (p) => p.colId === 'red', spec: { sp: 'platy', col: 'red' }, hint: 'Mercan kırmızısı.', blurb: 'Kırmızı gövdeli klasik plati.' },
+  { id: 'pl_blue', name: 'Blue Mirror', rarity: 1, test: (p) => p.colId === 'blue', spec: { sp: 'platy', col: 'blue' }, hint: 'Aynı gibi mavi.', blurb: 'Mavi gövdeli, parlak plati.' },
+  { id: 'pl_sun', name: 'Sunburst', rarity: 0, test: (p) => p.colId === 'yellow', spec: { sp: 'platy', col: 'yellow' }, hint: 'Güneş sarısı.', blurb: 'Sarı-turuncu gövdeli plati.' },
+  { id: 'pl_wag', name: 'Wagtail', rarity: 1, test: (p) => p.wag, spec: { sp: 'platy', tail: ['wag', 'wag'] }, hint: 'Siyah yüzgeçli.', blurb: 'Siyah sırt ve kuyruk yüzgeçli.' },
+  { id: 'pl_tux', name: 'Tuxedo Plati', rarity: 1, test: (p) => p.tux, spec: { sp: 'platy', tux: ['T', 't'] }, hint: 'Arka yarısı smokin gibi koyu.', blurb: 'Gövdenin arka yarısı koyu.' },
+  { id: 'pl_albino', name: 'Albino Plati', rarity: 1, test: (p) => p.body === 'alb', spec: { sp: 'platy', base: 'alb' }, hint: 'Pembe-beyaz.', blurb: 'Pigmentsiz plati.' },
+  { id: 'pl_wild', name: 'Yabani Plati', rarity: 0, test: () => true, spec: { sp: 'platy' }, hint: 'Zeytin-gri.', blurb: 'Doğal zeytin-gri plati.' },
+];
+
+/* ======================= KILIÇKUYRUK ======================= */
+SCHEMA.swordtail = {
+  auto: ['col', 'lyre', 'wag', 'tux', 'pine'], sc: [], xy: 0,
+  defAuto: { col: ['W', 'W'], lyre: ['l', 'l'], wag: ['n', 'n'], tux: ['t', 't'], pine: ['p', 'p'] }, defSc: {},
+  quant: { size: [0.8, 1.25], vigor: [0.55, 1.4], intensity: [0.6, 1.3], sword: [0.2, 1.5] }, qdef: { sword: 0.9 },
+  mut: mutPool({ col: ['W', 'red', 'lemon', 'alb'], lyre: ['L', 'l'], wag: ['wag', 'n'], tux: ['T', 't'], pine: ['P', 'p'] }), mutSc: mutScNone,
+  founder: (sex, rng) => Genetics.make({ sp: 'swordtail', col: rng.pick(['W', 'red', 'red', 'lemon']) }, sex, rng, 'swordtail'),
+  pheno(g) {
+    const col = pick2(g.auto.col, ['red', 'lemon', 'alb', 'W']), lyre = pick2(g.auto.lyre, ['L', 'l']) === 'L', wag = pick2(g.auto.wag, ['wag', 'n']) === 'wag', tux = pick2(g.auto.tux, ['T', 't']) === 'T', pine = pick2(g.auto.pine, ['P', 'p']) === 'P';
+    const bc = { W: HSL(100, 25, 42), red: HSL(6, 80, 50), lemon: HSL(52, 92, 64), alb: HSL(48, 55, 86) }[col], M = g.sex === 'M';
+    const p = { sex: g.sex, sp: 'swordtail', body: col === 'alb' ? 'alb' : 'W', tail: M ? (lyre ? 'lyre' : 'bottomsword') : 'round', tailColor: 'none', tailColor2: null, tux: tux ? 1 : 0, sb: 0, st: 0, grass: 0, mosaic: 0, moscow: 0, purple: false, metal: false, size: g.quant.size, tailLen: M ? 0.8 + g.quant.sword * 0.35 : 0.8,
+      vigor: g.quant.vigor, intensity: g.quant.intensity, bodyCol: bc, tcol: wag ? HSL(230, 14, 14) : { h: bc.h, s: bc.s, l: Math.min(60, bc.l + 4) }, H: 1.0, colId: col, lyre, wag, pine, sword: g.quant.sword, penalty: 1, extra: [] };
+    if (pine) p.extra.push({ t: 'saltpepper', dense: true }); if (col === 'red' && M) p.extra.push({ t: 'stripe', col: 'rgba(180,20,20,.6)' });
+    p.sig = ['s', g.sex, col, lyre | 0, wag | 0, tux | 0, pine | 0, Math.round(g.quant.sword * 5)].join('|'); return p;
+  },
+  describe: (g) => [['Renk', g.auto.col.join(' / ')], ['Lyretail', g.auto.lyre.join(' / ')], ['Wagtail', g.auto.wag.join(' / ')], ['Tuxedo', g.auto.tux.join(' / ')], ['Pineapple', g.auto.pine.join(' / ')]],
+};
+SP_BREEDS.swordtail = [
+  { id: 'sw_pineapple', name: 'Pineapple', rarity: 2, test: (p) => p.pine, spec: { sp: 'swordtail', pine: ['P', 'p'], col: 'lemon' }, hint: 'Ananas gibi ağsı desen.', blurb: 'Gövdede ağ biçimli koyu desen.' },
+  { id: 'sw_lyre', name: 'Lyretail', rarity: 2, test: (p) => p.lyre, spec: { sp: 'swordtail', lyre: ['L', 'l'], col: 'red' }, hint: 'Lir biçimli kuyruk.', blurb: 'Kılıç yerine lir kuyruk geni.' },
+  { id: 'sw_wag', name: 'Wagtail', rarity: 1, test: (p) => p.wag, spec: { sp: 'swordtail', wag: ['wag', 'wag'], col: 'red' }, hint: 'Siyah yüzgeçli.', blurb: 'Siyah yüzgeçli kılıçkuyruk.' },
+  { id: 'sw_tux', name: 'Tuxedo', rarity: 1, test: (p) => p.tux, spec: { sp: 'swordtail', tux: ['T', 't'], col: 'red' }, hint: 'Smokinli.', blurb: 'Arka yarısı koyu.' },
+  { id: 'sw_albino', name: 'Albino Kılıç', rarity: 1, test: (p) => p.body === 'alb', spec: { sp: 'swordtail', col: 'alb' }, hint: 'Kırmızı gözlü beyaz.', blurb: 'Pigmentsiz form.' },
+  { id: 'sw_lemon', name: 'Lemon', rarity: 0, test: (p) => p.colId === 'lemon', spec: { sp: 'swordtail', col: 'lemon' }, hint: 'Limon sarısı.', blurb: 'Parlak sarı form.' },
+  { id: 'sw_red', name: 'Red Kılıçkuyruk', rarity: 0, test: (p) => p.colId === 'red', spec: { sp: 'swordtail', col: 'red' }, hint: 'Kırmızı.', blurb: 'En bilinen kırmızı form.' },
+  { id: 'sw_wild', name: 'Yeşil Kılıçkuyruk', rarity: 0, test: () => true, spec: { sp: 'swordtail' }, hint: 'Doğal yeşil.', blurb: 'Doğadaki yeşil-kahve form.' },
+];
+
+/* ======================= BETA ======================= */
+const BETTA_COL = { R: HSL(2, 88, 44), B: HSL(218, 85, 44), Y: HSL(50, 95, 56), Wh: HSL(190, 12, 90), K: HSL(240, 18, 12) };
+SCHEMA.betta = {
+  auto: ['col', 'pat', 'fin', 'dumbo', 'marble'], sc: [], xy: 0,
+  defAuto: { col: ['R', 'R'], pat: ['solid', 'solid'], fin: ['veil', 'veil'], dumbo: ['D', 'D'], marble: ['mb', 'mb'] }, defSc: {},
+  quant: { size: [0.85, 1.25], vigor: [0.5, 1.4], intensity: [0.6, 1.3], giant: [0.8, 1.9] }, qdef: { giant: 1.0 },
+  mut: mutPool({ col: ['R', 'B', 'Y', 'Wh', 'K'], pat: ['solid', 'bi', 'butterfly', 'koi', 'dragon'], fin: ['veil', 'plakat', 'half', 'crown', 'double'], dumbo: ['D', 'd'], marble: ['Mb', 'mb'] }), mutSc: mutScNone,
+  founder: (sex, rng) => Genetics.make({ sp: 'betta', col: rng.pick(['R', 'B', 'Y', 'Wh']), fin: rng.pick(['veil', 'veil', 'plakat', 'half']) }, sex, rng, 'betta'),
+  pheno(g) {
+    const col = pick2(g.auto.col, ['K', 'B', 'R', 'Y', 'Wh']), col2 = g.auto.col.find((c) => c !== col) || 'Wh', pat = pick2(g.auto.pat, ['dragon', 'koi', 'butterfly', 'bi', 'solid']), fin = pick2(g.auto.fin, ['crown', 'half', 'double', 'plakat', 'veil']);
+    const dumbo = g.auto.dumbo[0] === 'd' && g.auto.dumbo[1] === 'd', marble = g.auto.marble.includes('Mb'), M = g.sex === 'M', giant = g.quant.giant;
+    const bc = BETTA_COL[col], p = { sex: g.sex, sp: 'betta', body: 'W', tail: M ? ({ veil: 'veil', plakat: 'plakat', half: 'halfmoon', crown: 'crown', double: 'double' })[fin] : 'round', tailColor: 'none', tailColor2: null, tux: 0, sb: 0, st: 0, grass: 0, mosaic: 0, moscow: 0, purple: false, metal: false,
+      size: g.quant.size * (0.85 + giant * 0.2), tailLen: M ? 1.15 : 0.7, vigor: g.quant.vigor, intensity: g.quant.intensity, bodyCol: pat === 'bi' ? HSL(bc.h, bc.s * 0.8, bc.l * 0.85) : bc, tcol: pat === 'bi' ? BETTA_COL[col2 === col ? 'Wh' : col2] : bc, H: 0.78, dorsal: M ? 1.9 : 1.0, bigAnal: M, pec: dumbo ? 3.2 : 1.3,
+      colId: col, patId: pat, fin, dumbo, marble, giant, fins: fin, penalty: fin === 'double' ? 0.92 : 1, extra: [] };
+    if (pat === 'butterfly') p.extra.push({ t: 'butterfly' }); if (pat === 'koi') p.extra.push({ t: 'koi' }); if (pat === 'dragon') { p.extra.push({ t: 'dragon' }); p.metal = true; } if (marble) p.extra.push({ t: 'marble', col: 'rgba(255,255,255,.55)', n: 14, dyn: true });
+    p.sig = ['b', g.sex, col, col2, pat, fin, dumbo | 0, marble | 0, Math.round(giant * 5)].join('|'); return p;
+  },
+  describe: (g) => [['Renk', g.auto.col.join(' / ')], ['Desen', g.auto.pat.join(' / ')], ['Yüzgeç', g.auto.fin.join(' / ')], ['Dumbo (çekinik)', g.auto.dumbo.join(' / ')], ['Marble', g.auto.marble.join(' / ')], ['Giant', g.quant.giant.toFixed(2)]],
+};
+SP_BREEDS.betta = [
+  { id: 'be_marble', name: 'Marble', rarity: 3, test: (p) => p.marble, spec: { sp: 'betta', marble: ['Mb', 'mb'], col: 'B', fin: 'half' }, hint: 'Rengi yaşam boyu değişir.', blurb: 'Zıplayan gen sayesinde renk lekeleri zamanla kayar.' },
+  { id: 'be_dragon', name: 'Dragon Scale', rarity: 2, test: (p) => p.patId === 'dragon', spec: { sp: 'betta', pat: ['dragon', 'dragon'], col: 'R', fin: 'plakat' }, hint: 'Metalik, kalın pullu.', blurb: 'Zırh gibi metalik pullu form.' },
+  { id: 'be_koi', name: 'Koi', rarity: 2, test: (p) => p.patId === 'koi', spec: { sp: 'betta', pat: ['koi', 'koi'], col: 'R', fin: 'half' }, hint: 'Kırmızı-beyaz-siyah blok renkli.', blurb: 'Koi balığı gibi renkli bloklar.' },
+  { id: 'be_butterfly', name: 'Butterfly', rarity: 1, test: (p) => p.patId === 'butterfly', spec: { sp: 'betta', pat: ['butterfly', 'butterfly'], col: 'B', fin: 'half' }, hint: 'Yüzgeç uçları açık renk.', blurb: 'Yüzgeçlerin dış kısmı beyaz-şeffaf bantlı.' },
+  { id: 'be_bi', name: 'Bi-color', rarity: 1, test: (p) => p.patId === 'bi', spec: { sp: 'betta', pat: ['bi', 'bi'], col: ['R', 'Wh'], fin: 'crown' }, hint: 'Gövde ve yüzgeç farklı renk.', blurb: 'İki renkli: gövde ve yüzgeçler zıt.' },
+  { id: 'be_dumbo', name: 'Dumbo', rarity: 2, test: (p) => p.dumbo, spec: { sp: 'betta', dumbo: ['d', 'd'], col: 'B', fin: 'half' }, hint: 'Fil kulağı gibi göğüs yüzgeçleri.', blurb: 'Büyük göğüs yüzgeçleriyle ünlü çekinik form.' },
+  { id: 'be_giant', name: 'Giant', rarity: 2, test: (p) => p.giant >= 1.45, spec: { sp: 'betta', giant: 1.6, col: 'R', fin: 'veil' }, hint: 'Normalden çok iri.', blurb: 'İki katı boyuta ulaşan dev beta.' },
+  { id: 'be_half', name: 'Halfmoon', rarity: 1, test: (p) => p.fin === 'half', spec: { sp: 'betta', fin: ['half', 'half'], col: 'R' }, hint: '180° açılan kuyruk.', blurb: 'Kuyruğu yarım daire biçiminde açılır.' },
+  { id: 'be_crown', name: 'Crowntail', rarity: 1, test: (p) => p.fin === 'crown', spec: { sp: 'betta', fin: ['crown', 'crown'], col: 'B' }, hint: 'Taç gibi ışınlar.', blurb: 'Işınları uzayan taç kuyruk.' },
+  { id: 'be_double', name: 'Double Tail', rarity: 1, test: (p) => p.fin === 'double', spec: { sp: 'betta', fin: ['double', 'double'], col: 'Y' }, hint: 'İki lobdan oluşan kuyruk.', blurb: 'Kuyruğu iki ayrı lob.' },
+  { id: 'be_plakat', name: 'Plakat', rarity: 0, test: (p) => p.fin === 'plakat', spec: { sp: 'betta', fin: ['plakat', 'plakat'], col: 'R' }, hint: 'Kısa yüzgeçli, atletik.', blurb: 'Kısa yüzgeçli, dövüşçü görünümlü.' },
+  { id: 'be_black', name: 'Black Orchid', rarity: 1, test: (p) => p.colId === 'K', spec: { sp: 'betta', col: 'K' }, hint: 'Simsiyah.', blurb: 'Koyu, siyah beta.' },
+  { id: 'be_cello', name: 'Cellophane', rarity: 0, test: (p) => p.colId === 'Wh', spec: { sp: 'betta', col: 'Wh' }, hint: 'Saydam beyaz.', blurb: 'Pigmentsiz saydam görünüm.' },
+  { id: 'be_yellow', name: 'Sarı Beta', rarity: 0, test: (p) => p.colId === 'Y', spec: { sp: 'betta', col: 'Y' }, hint: 'Sarı.', blurb: 'Sarı beta.' },
+  { id: 'be_blue', name: 'Mavi Beta', rarity: 0, test: (p) => p.colId === 'B', spec: { sp: 'betta', col: 'B' }, hint: 'Mavi.', blurb: 'Mavi beta.' },
+  { id: 'be_red', name: 'Kırmızı Veiltail', rarity: 0, test: () => true, spec: { sp: 'betta', col: 'R' }, hint: 'Kırmızı klasik.', blurb: 'Klasik kırmızı veiltail.' },
+];
+
+/* ======================= NEOCARİDİNA KARİDES ======================= */
+const SH_PAIR = { 'B+O': 'red', 'B+R': 'bloody', 'K+R': 'bloody', 'B+Y': 'green', 'K+Y': 'green', 'O+Y': 'orange', 'O+R': 'red', 'R+Y': 'red', 'B+K': 'black', 'K+O': 'wild' };
+const SH_COL = { wild: HSL(32, 24, 34), yellow: HSL(52, 92, 58), orange: HSL(26, 94, 54), red: HSL(2, 86, 44), blue: HSL(218, 78, 40), black: HSL(232, 22, 12), bloody: HSL(354, 72, 24), green: HSL(128, 62, 36) };
+const shColor = (a) => { const [x, y] = a; if (x === 'W' || y === 'W') return 'wild'; if (x === y) return { Y: 'yellow', O: 'orange', R: 'red', B: 'blue', K: 'black' }[x]; return SH_PAIR[[x, y].sort().join('+')] || 'wild'; };
+SCHEMA.shrimp = {
+  auto: ['col', 'rili'], sc: [], xy: 0,
+  defAuto: { col: ['W', 'W'], rili: ['r', 'r'] }, defSc: {},
+  quant: { size: [0.85, 1.2], vigor: [0.5, 1.4], intensity: [0.6, 1.3], dens: [0.1, 1] }, qdef: { dens: 0.5 },
+  mut: mutPool({ col: ['W', 'Y', 'O', 'R', 'B', 'K'], rili: ['r', 'R'] }), mutSc: mutScNone,
+  founder: (sex, rng) => Genetics.make({ sp: 'shrimp', col: 'R', dens: 0.4 + rng.next() * 0.2 }, sex, rng, 'shrimp'),
+  post(g, sire, dam, rng) { // geri dönüş: karışık hatlar yabani kahverengiye döner
+    const mixed = (x) => x.auto.col && x.auto.col[0] !== x.auto.col[1] && x.auto.col[0] !== 'W' && x.auto.col[1] !== 'W';   // karışık hat (melez) ebeveyn
+    if (mixed(sire) || mixed(dam)) g.auto.col = g.auto.col.map((a) => (rng.chance(0.1) ? 'W' : a));
+  },
+  pheno(g) {
+    const color = shColor(g.auto.col), rili = g.auto.rili.includes('R'), dens = g.quant.dens, grade = dens < 0.35 ? 'C' : dens < 0.55 ? 'B' : dens < 0.78 ? 'A' : 'S', base = SH_COL[color];
+    const p = { sex: g.sex, sp: 'shrimp', shrimpCol: color, rili, dens, grade, size: g.quant.size, vigor: g.quant.vigor, intensity: g.quant.intensity, bodyCol: HSL(base.h, base.s * (0.5 + 0.5 * dens), color === 'wild' ? base.l : base.l + (1 - dens) * 22), penalty: 1 };
+    p.sig = ['h', g.sex, color, rili | 0, grade].join('|'); return p;
+  },
+  describe: (g) => [['Renk geni', g.auto.col.join(' / ')], ['Rili', g.auto.rili.join(' / ')], ['Yoğunluk', g.quant.dens.toFixed(2)]],
+};
+const shb = (id, name, rarity, test, spec, hint, blurb) => ({ id, name, rarity, test, spec, hint, blurb });
+SP_BREEDS.shrimp = [
+  shb('sh_carbon', 'Carbon Rili', 2, (p) => p.shrimpCol === 'black' && p.rili && p.dens >= 0.55, { sp: 'shrimp', col: 'K', rili: ['R', 'r'], dens: 0.9 }, 'Simsiyah, orta şeffaf.', 'Kömür gibi siyah, rili desenli.'),
+  shb('sh_bloody', 'Bloody Mary', 2, (p) => p.shrimpCol === 'bloody', { sp: 'shrimp', col: ['R', 'K'], dens: 0.8 }, 'Koyu kan kırmızısı.', 'Kırmızı-siyah karışımı koyu kırmızı.'),
+  shb('sh_painted', 'Painted Fire Red', 2, (p) => p.shrimpCol === 'red' && !p.rili && p.dens >= 0.78, { sp: 'shrimp', col: 'R', dens: 0.92 }, 'Tam kaplamalı yoğun kırmızı.', 'Yoğunluğu en üst derece kırmızı hat.'),
+  shb('sh_bluedream', 'Blue Dream', 2, (p) => p.shrimpCol === 'blue' && !p.rili && p.dens >= 0.55, { sp: 'shrimp', col: 'B', dens: 0.85 }, 'Derin, koyu mavi.', 'Koyu mavi, yoğun kaplama.'),
+  shb('sh_bluejelly', 'Blue Jelly', 1, (p) => p.shrimpCol === 'blue', { sp: 'shrimp', col: 'B', rili: ['R', 'R'], dens: 0.5 }, 'Açık mavi, rili.', 'Açık mavi, şeffaf alanlı.'),
+  shb('sh_redrili', 'Red Rili', 1, (p) => p.shrimpCol === 'red' && p.rili, { sp: 'shrimp', col: 'R', rili: ['R', 'r'], dens: 0.6 }, 'Kırmızı, gövde ortası şeffaf.', 'Orange Sakura × Blue Jelly F1\'inin klasik formu.'),
+  shb('sh_firered', 'Fire Red', 1, (p) => p.shrimpCol === 'red' && p.dens >= 0.55, { sp: 'shrimp', col: 'R', dens: 0.68 }, 'Yoğun kırmızı.', 'Cherry\'den daha yoğun kırmızı.'),
+  shb('sh_orangerili', 'Orange Rili', 1, (p) => p.shrimpCol === 'orange' && p.rili, { sp: 'shrimp', col: 'O', rili: ['R', 'r'], dens: 0.6 }, 'Turuncu, rili.', 'Turuncu zeminde şeffaf bölge.'),
+  shb('sh_yellowrili', 'Yellow Rili', 1, (p) => p.shrimpCol === 'yellow' && p.rili, { sp: 'shrimp', col: 'Y', rili: ['R', 'r'], dens: 0.6 }, 'Sarı, rili.', 'Sarı zeminde şeffaf bölge.'),
+  shb('sh_green', 'Green Jade', 1, (p) => p.shrimpCol === 'green', { sp: 'shrimp', col: ['Y', 'B'], dens: 0.6 }, 'Yeşim yeşili.', 'Sarı ve mavi hatların karışımı yeşil.'),
+  shb('sh_black', 'Chocolate / Siyah', 1, (p) => p.shrimpCol === 'black', { sp: 'shrimp', col: 'K', dens: 0.6 }, 'Çikolata-siyah.', 'Koyu kahve-siyah hat.'),
+  shb('sh_yfire', 'Yellow Fire', 0, (p) => p.shrimpCol === 'yellow' && p.dens >= 0.55, { sp: 'shrimp', col: 'Y', dens: 0.7 }, 'Yoğun sarı.', 'Yoğun sarı hat.'),
+  shb('sh_yneon', 'Yellow Neon', 0, (p) => p.shrimpCol === 'yellow', { sp: 'shrimp', col: 'Y', dens: 0.4 }, 'Açık sarı.', 'Açık sarı neon hat.'),
+  shb('sh_sakura_o', 'Orange Sakura', 0, (p) => p.shrimpCol === 'orange', { sp: 'shrimp', col: 'O', dens: 0.5 }, 'Turuncu.', 'Turuncu Sakura hattı.'),
+  shb('sh_sakura', 'Sakura', 0, (p) => p.shrimpCol === 'red' && p.dens >= 0.4, { sp: 'shrimp', col: 'R', dens: 0.5 }, 'Orta kırmızı.', 'Cherry\'den iyi, kaplaması orta kırmızı.'),
+  shb('sh_cherry', 'Cherry', 0, (p) => p.shrimpCol === 'red', { sp: 'shrimp', col: 'R', dens: 0.3 }, 'Açık kırmızı.', 'En yaygın kırmızı hat.'),
+  shb('sh_wild', 'Yabani (kahverengi)', 0, () => true, { sp: 'shrimp', col: 'W', dens: 0.3 }, 'Kahverengi, şeffaf.', 'Doğal, seçilmemiş yabani form.'),
+];
+
+/* ======================= GİZEMLİ SALYANGOZ ======================= */
+const SN_SHELL = { gold: HSL(44, 88, 55), blue: HSL(210, 70, 50), purple: HSL(280, 50, 42), ivory: HSL(48, 30, 88), black: HSL(240, 14, 12), choc: HSL(24, 50, 28) };
+SCHEMA.snail = {
+  auto: ['shell', 'body'], sc: [], xy: 0,
+  defAuto: { shell: ['gold', 'gold'], body: ['normal', 'normal'] }, defSc: {},
+  quant: { size: [0.8, 1.3], vigor: [0.5, 1.4], intensity: [0.6, 1.3] },
+  mut: mutPool({ shell: ['gold', 'blue', 'purple', 'ivory', 'black', 'choc'], body: ['normal', 'pale', 'dark'] }), mutSc: mutScNone,
+  founder: (sex, rng) => Genetics.make({ sp: 'snail', shell: rng.pick(['gold', 'gold', 'ivory', 'choc']) }, sex, rng, 'snail'),
+  pheno(g) {
+    const shell = pick2(g.auto.shell, ['gold', 'black', 'purple', 'blue', 'choc', 'ivory']), body = pick2(g.auto.body, ['dark', 'normal', 'pale']);
+    const p = { sex: g.sex, sp: 'snail', shell, bodyT: body, size: g.quant.size, vigor: g.quant.vigor, intensity: g.quant.intensity, shellCol: SN_SHELL[shell], bodyCol: body === 'dark' ? HSL(30, 30, 24) : body === 'pale' ? HSL(40, 30, 82) : HSL(36, 40, 56), penalty: 1 };
+    p.sig = ['n', g.sex, shell, body].join('|'); return p;
+  },
+  describe: (g) => [['Kabuk rengi', g.auto.shell.join(' / ')], ['Gövde rengi', g.auto.body.join(' / ')]],
+};
+SP_BREEDS.snail = [
+  { id: 'sn_black', name: 'Siyah Gizemli', rarity: 2, test: (p) => p.shell === 'black', spec: { sp: 'snail', shell: 'black', body: 'dark' }, hint: 'Siyah kabuk.', blurb: 'Nadir siyah kabuklu form.' },
+  { id: 'sn_purple', name: 'Mor Gizemli', rarity: 2, test: (p) => p.shell === 'purple', spec: { sp: 'snail', shell: 'purple' }, hint: 'Mor kabuk.', blurb: 'Mor kabuklu, nadir.' },
+  { id: 'sn_blue', name: 'Mavi Gizemli', rarity: 1, test: (p) => p.shell === 'blue', spec: { sp: 'snail', shell: 'blue' }, hint: 'Mavi kabuk.', blurb: 'Mavi kabuklu form.' },
+  { id: 'sn_choc', name: 'Çikolata Gizemli', rarity: 1, test: (p) => p.shell === 'choc', spec: { sp: 'snail', shell: 'choc' }, hint: 'Çikolata kabuk.', blurb: 'Çikolata renkli.' },
+  { id: 'sn_ivory', name: 'Fildişi Gizemli', rarity: 0, test: (p) => p.shell === 'ivory', spec: { sp: 'snail', shell: 'ivory', body: 'pale' }, hint: 'Fildişi.', blurb: 'Fildişi kabuklu.' },
+  { id: 'sn_gold', name: 'Altın Gizemli', rarity: 0, test: () => true, spec: { sp: 'snail', shell: 'gold' }, hint: 'Altın sarısı.', blurb: 'En yaygın altın form.' },
+];
+
+/** Tüm ırkların birleşik listesi ve kimlikle erişim */
+const ALL_BREEDS = [...BREEDS, ...Object.values(SP_BREEDS).flat()];
+for (const b of ALL_BREEDS) BREED_BY_ID[b.id] = b;
+const breedsOf = (sp) => (sp === 'guppy' ? BREEDS : SP_BREEDS[sp] || []);
+
+/* ───── 18-crawlers.js ───── */
+'use strict';
+/* =====================================================================
+   18 · YÜRÜYEN CANLILAR — karides ve salyangoz: davranış (Crawler) + prosedürel çizim
+   Karides: zeminde yürür, otlar, bitkiye tırmanır, ara sıra yüzer; tehlikede kuyruk
+   darbesiyle fırlar. Salyangoz: çok yavaş kayar, camda tırmanır, siphon uzatır.
+   Aynı arayüz (update/startle/x/y/z/eaten…) Swimmer ile uyumludur.
+   ===================================================================== */
+class Crawler {
+  constructor(c) {
+    this.c = c; this.kind = c.def.kind; const p = c.pers;
+    this.x = c.x ?? 300; this.y = c.y ?? 600; this.heading = 0; this.face = R.chance(0.5) ? 1 : -1; this.flip = 1; this.z = 0.5; this.speed = 0;
+    this.state = 'walk'; this.stateT = 0; this.t = R.float(0, 100); this.legPh = R.float(0, TAU); this.tx = this.x; this.ty = this.y; this.eaten = 0; this.mouthT = 0;
+    this.mode = 'ground'; this.swimT = 0; this.vx = 0; this.vy = 0; this.climbT = 0; this.joints = []; this.pf = 0; this.molt = 0; this.rot = 0; this.antPh = R.float(0, TAU);
+    this.speedMul = lerp(0.8, 1.2, p.activity);
+  }
+  startle(fx, fy, k = 1) { if (this.kind === 'shrimp') { this.mode = 'swim'; this.swimT = 0.8; this.vx = (Math.sign(this.x - fx) || 1) * 260 * k; this.vy = -90 * k; this.c.stress = Math.min(1, this.c.stress + 0.2); } else { this.state = 'hide'; this.stateT = 0; } }
+
+  update(dt, env) {
+    dt = Math.min(dt, 0.05); const c = this.c, L = c.bodyLen(), ground = env.ground ? env.ground(this.x) : env.H - 76; this.t += dt; this.stateT += dt; this.mouthT = Math.max(0, this.mouthT - dt);
+    c.stress = Math.max(0, c.stress - dt * 0.05);
+    if (env.calm) { this.calm(dt, env); return; }
+    const night = env.night > 0.62, shrimp = this.kind === 'shrimp', bottom = ground - (shrimp ? 2 : 3);
+    // --- yem arama (zemine inmiş yem) ---
+    let food = null, bd = 1e9; if (env.food) for (const f of env.food) { if (f.eaten || f.vy > 0) continue; const d = Math.abs(f.x - this.x) + Math.abs(f.y - this.y) * 0.5; if (d < bd && d < 420) { bd = d; food = f; } }
+    if (this.mode === 'swim') { // yüzme / fırlama
+      this.swimT -= dt; this.vy += 140 * dt; this.x += this.vx * dt; this.y += this.vy * dt; this.vx *= Math.exp(-dt * 2); this.heading = Math.atan2(this.vy, this.vx * this.face * 0 + this.vx);
+      const gy = env.ground ? env.ground(this.x) - 3 : bottom; if (this.swimT <= 0 && this.y >= gy) { this.y = gy; this.mode = 'ground'; this.vx = this.vy = 0; this.state = 'walk'; }
+      this.y = Math.min(this.y, gy + 40); this.x = clamp(this.x, 14, env.W - 14); this.legPh += dt * 20; this.facing(); return;
+    }
+    if (this.mode === 'climb') { // bitki/taş üstüne tırmanma
+      this.climbT -= dt; this.y += (this.ty - this.y) * Math.min(1, dt * 0.8); this.x += (this.tx - this.x) * Math.min(1, dt * 1.2); this.legPh += dt * 6;
+      if (this.climbT <= 0) { this.mode = 'fall'; this.vy = 0; } this.facing(); return;
+    }
+    if (this.mode === 'fall') { this.vy += 160 * dt; this.y += this.vy * dt; if (this.y >= bottom) { this.y = bottom; this.mode = 'ground'; this.state = 'walk'; } return; }
+    if (this.mode === 'glass') { this.glass(dt, env, ground); return; }
+    // --- zeminde ---
+    this.y += (bottom - this.y) * Math.min(1, dt * 6);
+    let st = this.state;
+    if (st === 'hide') { if (this.stateT > 6) st = 'walk'; }
+    else if (night && R.next() < dt * 0.2) st = 'rest'; else if (!night && st === 'rest') st = 'walk';
+    else if (food) st = 'walk';
+    else if (this.stateT > R.float(4, 12) && st === 'walk') st = R.chance(0.65) ? 'graze' : 'walk';
+    else if (this.stateT > R.float(3, 8) && st === 'graze') st = 'walk';
+    if (st !== this.state) { this.state = st; this.stateT = 0; this.tx = this.x + R.float(-1, 1) * 160; }
+    const sp0 = shrimp ? L * 0.9 : L * 0.28; let spd = 0;
+    if (st === 'walk') {
+      let tx = food ? food.x : this.tx; tx = clamp(tx, 20, env.W - 20); const dx = tx - this.x; if (Math.abs(dx) < 4) { this.tx = this.x + R.float(-1, 1) * 200; if (R.chance(0.2)) this.startClimb(env); } this.face = dx >= 0 ? 1 : -1;
+      spd = sp0 * this.speedMul * (food ? 1.5 : 0.55) * lerp(0.55, 1, c.vit ?? 1);
+      if (food && Math.abs(food.x - this.x) < L * 0.5 && Math.abs(food.y - this.y) < L) { food.eaten = true; this.eaten++; this.mouthT = 0.3; env.onEat && env.onEat(c, food); }
+      if (shrimp && R.next() < dt * 0.01 && !food) { this.mode = 'swim'; this.swimT = 1.4; this.vx = this.face * 90; this.vy = -80; }   // kısa yüzüş
+      if (!shrimp && R.next() < dt * 0.015 && !night) this.startGlass(env);
+    } else if (st === 'rest' || st === 'hide') spd = 0; else spd = 0;
+    this.speed = damp(this.speed, spd, 3, dt); this.x = clamp(this.x + this.face * this.speed * dt, 14, env.W - 14);
+    this.legPh += this.speed * dt * 0.22 + (st === 'graze' ? dt * 14 : 0); this.antPh += dt * (st === 'rest' ? 0.4 : 2); this.facing();
+  }
+  facing() { this.flip = damp(this.flip, this.face, 8, 0.016); if (Math.abs(this.flip) < 0.05) this.flip = this.face * 0.05; }
+  startClimb(env) {
+    const sc = env.scape; if (!sc || this.kind !== 'shrimp') return; const cand = sc.items.filter((i) => i.k !== 'leaf' && i.k !== 'decor' && !(i.k === 'plant' && PLANTS[i.d].type === 'float')); if (!cand.length) return;
+    const it = R.pick(cand), p = Scape.pos(sc, env.W, it), def = Scape.defOf(it), h = (it.k === 'plant' ? def.h * lerp(0.3, 1, it.g ?? 1) : def.h) * (it.s || 1);
+    this.mode = 'climb'; this.tx = p.x + R.float(-12, 12); this.ty = p.y - h * R.float(0.35, 0.8); this.climbT = R.float(5, 11);
+  }
+  startGlass(env) { this.mode = 'glass'; this.gx = this.x < env.W / 2 ? 20 : env.W - 20; this.stateT = 0; this.climbT = R.float(14, 30); this.gDir = -1; }
+  glass(dt, env, ground) {
+    this.x += (this.gx - this.x) * Math.min(1, dt * 1.5); const top = 90, bot = ground - 4; this.y += this.gDir * L_SNAIL * dt; this.rot = this.gx < env.W / 2 ? -Math.PI / 2 : Math.PI / 2;
+    if (this.y < top + (this.c.id % 7) * 20) this.gDir = 1; this.climbT -= dt; if (this.climbT <= 0 && this.y >= bot - 20) { this.mode = 'ground'; this.rot = 0; }
+    if (this.y >= bot) { this.y = bot; if (this.climbT <= 0) { this.mode = 'ground'; this.rot = 0; } else this.gDir = -1; } this.legPh += dt * 2;
+  }
+  calm(dt) { this.legPh += dt * 4; this.antPh += dt * 2; this.face = 1; this.flip = damp(this.flip, 1, 6, dt); this.speed = 0; this.mode = 'ground'; this.rot = 0; }
+}
+const L_SNAIL = 6;
+
+const CrawlerArt = {
+  snailSprite(p) {
+    const key = p.shell + p.bodyT; this._ss = this._ss || new Map(); let s = this._ss.get(key); if (s) return s;
+    const cv = document.createElement('canvas'); cv.width = cv.height = 128; const c = cv.getContext('2d'), sc = p.shellCol; c.translate(64, 70);
+    const pts = []; for (let i = 0; i <= 90; i++) { const a = i * 0.09, r = 5 * Math.exp(0.2 * a); pts.push([Math.cos(a) * r - 6, -Math.sin(a) * r]); }
+    const g = c.createRadialGradient(-6, -4, 2, 0, 0, 56); g.addColorStop(0, hsl(sc.h, sc.s, sc.l + 18)); g.addColorStop(1, hsl(sc.h, sc.s, sc.l - 12));
+    c.fillStyle = g; c.beginPath(); c.arc(-4, -2, 52, 0, TAU); c.fill(); c.strokeStyle = hsl(sc.h, sc.s, sc.l - 28, 0.85); c.lineWidth = 3;
+    c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.stroke();
+    c.strokeStyle = 'rgba(0,0,0,.18)'; c.lineWidth = 1; for (let k = 1; k < 6; k++) { c.beginPath(); c.arc(-4, -2, 52 - k * 9, 0.4 * k, 5 + 0.4 * k); c.stroke(); }
+    c.fillStyle = 'rgba(255,255,255,.28)'; c.beginPath(); c.ellipse(-22, -24, 12, 6, -0.7, 0, TAU); c.fill();
+    s = { cv }; this._ss.set(key, s); return s;
+  },
+
+  draw(ctx, cr, t, mul, alpha, base) {
+    const sw = cr.sw, p = cr.pheno, L = cr.bodyLen() * mul; ctx.setTransform(base[0], base[1], base[2], base[3], base[4], base[5]); ctx.globalAlpha = alpha;
+    ctx.translate(sw.x, sw.y); if (sw.rot) ctx.rotate(sw.rot); ctx.scale(sw.flip, 1);
+    if (cr.species === 'shrimp') this.shrimp(ctx, cr, sw, p, L, t); else this.snail(ctx, cr, sw, p, L, t);
+    ctx.globalAlpha = 1; ctx.setTransform(base[0], base[1], base[2], base[3], base[4], base[5]);
+  },
+
+  shrimp(c, cr, sw, p, L, t) {
+    const u = L / 10, bc = p.bodyCol, swim = sw.mode === 'swim', walk = sw.speed > 1, N = 7, alpha = p.shrimpCol === 'wild' ? 0.72 : 0.92;
+    const col = (dl = 0, a = alpha) => hsl(bc.h, bc.s, clamp(bc.l + dl, 4, 92), a);
+    // gövde noktaları: baştan (sağ) kuyruğa (sol); abdomen kavisli
+    const pts = []; for (let i = 0; i <= N; i++) { const f = i / N, curl = swim ? Math.sin(t * 22) * 0.3 + 0.7 : 0.55 + (walk ? Math.sin(sw.legPh * 0.5) * 0.04 : 0); pts.push([u * (4.2 - f * 9.2 + Math.sin(f * 3) * 0.5), -u * (1.6 - Math.sin(f * Math.PI * 0.95) * 1.2 * curl) + u * f * f * 1.3]); }
+    // antenler
+    c.strokeStyle = hsl(bc.h, bc.s * 0.6, bc.l + 20, 0.7); c.lineWidth = Math.max(0.5, u * 0.08);
+    for (const s of [-1, 1]) { c.beginPath(); c.moveTo(u * 4.6, -u * 1.7); c.quadraticCurveTo(u * 7.5, -u * (2.6 + s * 0.8 + Math.sin(sw.antPh + s) * 0.5), u * 10.5, -u * (1.6 + s * 1.4 + Math.sin(sw.antPh * 1.3 + s) * 0.6)); c.stroke(); }
+    // bacaklar
+    c.strokeStyle = hsl(bc.h, bc.s * 0.5, bc.l + 14, 0.75); c.lineWidth = Math.max(0.6, u * 0.1); for (let i = 0; i < 5; i++) { const px = u * (3.2 - i * 1.2), ph = sw.legPh * (swim ? 0.4 : 1) + i * 1.3, sx = Math.sin(ph) * u * 0.5 * (walk ? 1 : 0.15), lift = Math.max(0, Math.cos(ph)) * u * 0.4 * (walk ? 1 : 0); c.beginPath(); c.moveTo(px, -u * 0.5); c.lineTo(px + sx, u * 0.9 - lift); c.stroke(); }
+    // ön bacaklar: otlama hareketi
+    if (sw.state === 'graze') { c.strokeStyle = hsl(bc.h, bc.s * 0.5, bc.l + 20, 0.85); c.lineWidth = u * 0.12; for (const s of [0, 1]) { c.beginPath(); c.moveTo(u * 4, -u * 0.8); c.lineTo(u * (5.4 + Math.sin(sw.legPh + s * 1.5) * 0.7), u * (0.5 + Math.cos(sw.legPh * 1.2 + s) * 0.3)); c.stroke(); } }
+    // karın altı yumurtalar
+    if (cr.preg && cr.sex === 'F') { const pr = clamp((cr.now - cr.preg.start) / (cr.preg.due - cr.preg.start), 0, 1); if (pr > 0.02) { c.fillStyle = `rgba(${pr > 0.8 ? '120,200,90' : '235,200,80'},.9)`; for (let i = 0; i < 16; i++) { const q = pts[2 + (i % 4)]; c.beginPath(); c.arc(q[0] + Math.sin(i * 2.1) * u * 0.5, q[1] + u * (0.65 + (i % 3) * 0.22), u * 0.2, 0, TAU); c.fill(); } } }
+    // gövde segmentleri (kuyruktan başa)
+    for (let i = N - 1; i >= 0; i--) { const a = pts[i], b = pts[i + 1], mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, ang = Math.atan2(a[1] - b[1], a[0] - b[0]), rx = u * (i === 0 ? 2.3 : 1.15 + (N - i) * 0.0 + (i < 3 ? 0.3 : 0)) * (1 - i / N * 0.35), ry = u * (1.95 - i * 0.2);
+      c.save(); c.translate(mx, my); c.rotate(ang); const g = c.createLinearGradient(0, -ry, 0, ry); g.addColorStop(0, col(10)); g.addColorStop(0.5, col(0)); g.addColorStop(1, col(-10)); c.fillStyle = g; c.beginPath(); c.ellipse(0, 0, rx, Math.max(ry, u * 0.5), 0, 0, TAU); c.fill();
+      c.strokeStyle = col(-24, 0.45); c.lineWidth = Math.max(0.4, u * 0.06); c.stroke();
+      if (p.rili && i > 0 && i < 5) { c.fillStyle = 'rgba(200,235,240,.5)'; c.beginPath(); c.ellipse(0, 0, rx * 0.8, ry * 0.7, 0, 0, TAU); c.fill(); }
+      else if (p.shrimpCol === 'wild') { c.fillStyle = 'rgba(60,40,25,.35)'; c.fillRect(-rx * 0.7, -ry * 0.12, rx * 1.4, ry * 0.3); }
+      c.restore(); }
+    // kuyruk yelpazesi
+    const tl = pts[N], tf = swim ? 0.7 + Math.sin(t * 24) * 0.3 : 1; c.fillStyle = col(-4, 0.8); for (const k of [-0.5, 0, 0.5]) { c.save(); c.translate(tl[0], tl[1]); c.rotate(Math.PI + k * 0.8 * tf + 0.3); c.beginPath(); c.ellipse(u * 0.8, 0, u * 1.1, u * 0.45, 0, 0, TAU); c.fill(); c.restore(); }
+    // göz
+    c.fillStyle = '#0a0a0e'; c.beginPath(); c.arc(u * 5.3, -u * 1.55, u * 0.32, 0, TAU); c.fill(); c.fillStyle = 'rgba(255,255,255,.8)'; c.beginPath(); c.arc(u * 5.2, -u * 1.65, u * 0.1, 0, TAU); c.fill();
+    if (cr.dis) { c.fillStyle = 'rgba(255,255,255,.7)'; for (let i = 0; i < 5; i++) { c.beginPath(); c.arc(u * (2 - i * 1.4), -u * 0.5, u * 0.3, 0, TAU); c.fill(); } }
+  },
+
+  snail(c, cr, sw, p, L, t) {
+    const s = this.snailSprite(p), u = L / 26, glide = sw.speed > 0.2 || sw.mode === 'glass', bc = p.bodyCol;
+    // ayak ve baş
+    const g = c.createLinearGradient(0, -8 * u, 0, 6 * u); g.addColorStop(0, hsl(bc.h, bc.s, bc.l + 8)); g.addColorStop(1, hsl(bc.h, bc.s, bc.l - 8)); c.fillStyle = g;
+    c.beginPath(); c.moveTo(-22 * u, 3 * u); c.quadraticCurveTo(-8 * u, -10 * u, 12 * u, -10 * u); c.quadraticCurveTo(24 * u, -9 * u + (sw.state === 'hide' ? 6 * u : 0), 27 * u, 2 * u); c.quadraticCurveTo(10 * u, 7 * u, -22 * u, 3 * u); c.fill();
+    if (sw.state !== 'hide') for (const k of [0, 1]) { c.strokeStyle = hsl(bc.h, bc.s, bc.l - 6, 0.9); c.lineWidth = Math.max(0.8, u * 1.2); const sway = Math.sin(sw.antPh + k * 1.2) * 2 * u; c.beginPath(); c.moveTo(22 * u, -5 * u + k * u); c.quadraticCurveTo(28 * u, -9 * u, 31 * u + sway, -12 * u + k * 3 * u); c.stroke(); }
+    c.fillStyle = '#0c0c10'; c.beginPath(); c.arc(25 * u, -4 * u, u * 1.2, 0, TAU); c.fill();
+    // kabuk
+    c.save(); c.translate(-6 * u, -12 * u); const sc = u * 0.3; c.scale(sc, sc); c.rotate(-0.1); c.drawImage(s.cv, -64, -80); c.restore();
+    // siphon (nefes borusu) – yüzeye doğru uzar
+    if (sw.mode === 'ground' && cr.id % 3 === 0 && Math.sin(t * 0.15 + cr.id) > 0.55) { c.strokeStyle = hsl(bc.h, bc.s, bc.l - 10, 0.75); c.lineWidth = u * 1.6; c.beginPath(); c.moveTo(18 * u, -6 * u); c.quadraticCurveTo(24 * u, -60 * u, 18 * u, -120 * u); c.stroke(); }
+    if (cr.dis) { c.fillStyle = 'rgba(255,255,255,.7)'; c.beginPath(); c.arc(0, -3 * u, u * 2.5, 0, TAU); c.fill(); }
+  },
+};
+
+/* ───── 19-species-ui.js ───── */
+'use strict';
+/* =====================================================================
+   19 · TÜRE ÖZEL ARAYÜZ — genel Punnett önizleme, beta üretimi (köpük yuva mini oyunu),
+        karides ayıklama, salyangoz yumurta kümeleri
+   ===================================================================== */
+Object.assign(UI, {
+  genericPreview(m, f, P) {
+    const out = [], S = SCHEMA[f.species];
+    if (m.species !== f.species) out.push(h('div.locked', { style: { color: 'var(--warn)' } }, `Melez: yavrular anne türünde (${SPECIES.find((s) => s.id === f.species).name}) doğar; saf hat bozulur.`));
+    if (f.species === 'endler') out.push(h('div.small.muted', null, `Beklenen saflık: %${Math.round(((m.genome.quant.pur ?? (m.species === 'endler' ? 1 : 0)) + (f.genome.quant.pur ?? 1)) / 2 * 100)} (Saf Endler için %90+)`));
+    out.push(h('div.small.muted', null, 'Yavru dağılımı'), UI.bar('Erkek', P.male, '#4aa8ff'), UI.bar('Dişi', 1 - P.male, '#ff7ad9'));
+    for (const loc of S.auto.slice(0, 2)) { const a = m.genome.auto[loc] || ['–', '–'], b = f.genome.auto[loc], g = Breeding.punnett(a, b);
+      out.push(h('div', { style: { margin: '8px 0' } }, h('div.small.muted', null, 'Gen: ' + loc + ' (otozomal)'), h('div.pgrid', null, h('span'), ...a.map((x) => h('b', null, x)), ...g.flatMap((row, i) => [h('b', null, b[i]), ...row.map(([x, y]) => h('span.pc', null, x + '·' + y))])))); }
+    out.push(h('h4', { style: { margin: '12px 0 6px' } }, 'Olası ırklar'), h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(130px,1fr))' } }, ...P.breeds.slice(0, 8).map(([id, p]) => {
+      const b = BREED_BY_ID[id], disc = Game.S.discovered[id], cr = Game.sampleCreature(b.spec), r = RARITY[b.rarity];
+      return h('div.dex-tile', { style: { '--c': r.color, cursor: 'default' } }, disc ? UI.thumbCv(cr, 120) : UI.silhouette(cr, 120), h('div.nm', null, disc ? b.name : '???'), h('div.tiny.muted', null, `%${p * 100 < 1 ? '<1' : Math.round(p * 100)}${disc ? '' : ' · yeni olabilir'}`), h('div.rarbar')); })));
+    return out;
+  },
+
+  /* ---------- Beta: kavanoz + köpük yuva mini oyunu ---------- */
+  bettaControls(m, f, el) {
+    const S = Game.S, bp = S.bettaPair, same = bp && bp.m === m.id && bp.f === f.id, now = S.clockMin, probs = Breeding.problems(m, f, now).filter((p) => !p.startsWith('Önce kavanozları'));
+    if (probs.length) return h('button.btn.primary', { style: { width: '100%', marginTop: '14px' }, disabled: true }, probs[0]);
+    if (!same) return h('div.stack', null, h('div.small.muted', null, 'Beta çiftleşmesi: erkek ve dişi kavanozlarda yan yana tutulur (1 oyun günü); sonra salıverilir ve erkek köpük yuva yapar.'), h('button.btn.primary', { onclick: () => { S.bettaPair = { m: m.id, f: f.id, t0: now, ready: false }; UI.toast('Kavanozlar yan yana: 1 gün sonra salıverebilirsin', 'heart'); Game.save(); UI.render_lab(el); } }, icon('heart'), 'Kavanozları yan yana koy'));
+    if (now - bp.t0 < 1440) return h('div.card', null, h('b', null, 'Kavanozlar yan yana…'), h('div.small.muted', null, `Salıvermeye ${UI.daysLeft(bp.t0 + 1440 - now)} var`), h('div.pbar', { style: { marginTop: '6px' } }, h('i', { style: { width: (100 * (now - bp.t0) / 1440) + '%' } })));
+    bp.ready = true;
+    return h('button.btn.primary', { style: { width: '100%', marginTop: '14px' }, onclick: () => UI.bettaGame((q) => { if (Game.mate(m, f, q)) { S.bettaPair = null; UI.render_lab(el); } }) }, icon('heart'), 'Salıver — köpük yuva');
+  },
+  bettaGame(cb) {
+    let hits = 0, round = 0, pos = 0, dir = 1, raf = 0, last = performance.now(), done = false;
+    const zone = h('div', { style: { position: 'absolute', left: '40%', width: '20%', top: 0, bottom: 0, background: 'rgba(76,214,148,.55)', borderRadius: '8px' } }), mk = h('div', { style: { position: 'absolute', top: '-6px', width: '8px', bottom: '-6px', background: '#fff', borderRadius: '4px', boxShadow: '0 0 8px #000' } });
+    const bar = h('div', { style: { position: 'relative', height: '34px', background: 'rgba(255,255,255,.12)', borderRadius: '10px', margin: '14px 4px' } }, zone, mk), info = h('div.small.muted', null, 'Erkek dişiye sarılırken (beta "kucaklaması") doğru anda dokun! 3 deneme.');
+    const btn = h('button.btn.primary', { style: { width: '100%', minHeight: '56px', fontSize: '18px' }, onclick: () => { if (done) return; const ok = Math.abs(pos - 0.5) < 0.1; if (ok) hits++; round++; info.textContent = (ok ? '💚 Mükemmel sarılma!' : '💨 Kaçırdın…') + ` (${round}/3)`; AudioSys.SFX[ok ? 'coin' : 'tick'](); if (round >= 3) { done = true; cancelAnimationFrame(raf); setTimeout(() => { rec.close(); const q = 0.4 + 0.2 * hits; UI.toast(`Yumurtalar döküldü! Kalite %${Math.round(q * 100)}`, 'heart', 3500); cb(q); }, 700); } } }, 'Sarıl!');
+    const rec = UI.sheet(h('div.stack', null, UI.sheetHead('🫧 Köpük yuva', { close: () => { done = true; cancelAnimationFrame(raf); rec.close(); } }), info, bar, btn));
+    const loop = (now) => { if (done) return; const dt = (now - last) / 1000; last = now; pos += dir * dt * (0.9 + round * 0.35); if (pos > 1) { pos = 1; dir = -1; } if (pos < 0) { pos = 0; dir = 1; } mk.style.left = `calc(${pos * 100}% - 4px)`; raf = requestAnimationFrame(loop); }; raf = requestAnimationFrame(loop);
+  },
+
+  /* ---------- Türe özel Laboratuvar kartları ---------- */
+  cullT: 0.4,
+  speciesExtras(sp, el) {
+    const S = Game.S, out = [], t = Game.tank;
+    if (sp === 'betta') out.push(h('div.card', null, h('b', null, '🫧 Beta üretimi'), h('div.small.muted', null, 'Beta erkekleri aynı tankta tutulamaz; ikinci erkek otomatik kavanoza alınır. Üretim: çifti seç → kavanozları yan yana koy → 1 gün bekle → köpük yuva mini oyunu. Yumurta kalitesi ve su kalitesi yavru hayatta kalmasını belirler; larvalar ilk günlerde çok hassastır.')));
+    if (sp === 'shrimp') {
+      const list = (S.qFish || []).concat(t.creatures).filter((c) => c.species === 'shrimp' && !c.preg && c.pheno.dens < this.cullT), pay = (c) => Math.max(2, Math.floor(c.value() * 0.5));
+      out.push(h('div.card', null, h('b', null, '✂ Ayıklama (culling)'), h('div.small.muted', null, 'Düşük kaliteli (renk yoğunluğu az) karidesleri üretimden çıkar; hat kalitesi yükselir.'), h('div.seg', { style: { margin: '8px 0' } }, ...[[0.35, 'C altı'], [0.55, 'B altı'], [0.78, 'A altı']].map(([v, l]) => h('button' + (this.cullT === v ? '.on' : ''), { onclick: () => { UI.cullT = v; UI.render_lab(el); } }, l))),
+        h('div.row', null, h('div.sp.small', null, `${list.length} karides ayıklanır · ≈ ${list.reduce((a, c) => a + pay(c), 0)} 💰`), h('button.btn.coral.sm', { disabled: list.length ? null : true, onclick: () => UI.confirm(`${list.length} karides ayıklansın mı?`, 'Geri alınamaz.', () => { let tot = 0; for (const c of list) { tot += pay(c); Game.dropCreature(c); } Game.addCoins(tot, true); Game.ev('sold', list.length); S.stats.sold += list.length; Game.addXp(list.length); UI.toast(`${list.length} karides ayıklandı: +${tot} 💰`, 'coin'); UI.render_lab(el); }) }, 'Ayıkla'))));
+    }
+    if (sp === 'snail') out.push(h('div.card', null, h('b', null, '🥚 Yumurta kümeleri'), h('div.small.muted', null, 'Gizemli salyangoz yumurtalarını su üstüne bırakır; 14 günde açılır. Çok üremesin istersen kümeyi temizle.'), ...(t.clutches || []).map((cl) => h('div.row', { style: { margin: '6px 0' } }, h('div.sp.small', null, `${cl.damName} · ~${cl.n} yumurta · açılmaya ${UI.daysLeft(cl.due - S.clockMin)}`), h('button.btn.sm', { onclick: () => { t.clutches.splice(t.clutches.indexOf(cl), 1); UI.render_lab(el); } }, 'Temizle'))), (t.clutches || []).length ? null : h('div.small.muted', null, 'Şu an küme yok.')));
+    return out;
   },
 });
 

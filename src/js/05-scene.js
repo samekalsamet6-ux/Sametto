@@ -111,7 +111,7 @@ class Tank {
     this.t += dt; this.minute = minute; this.foodAge += dt;
     this.lightTarget = this.lampTarget(minute);
     this.light = damp(this.light, this.lightTarget, 0.55, dt);
-    const env = { W: this.W, H: this.H, top: 56, bottom: Math.min(this.H - 76, this.ground(this.W * 0.5) - 6), food: this.food, foodAge: this.foodAge, others: this.creatures, night: 1 - this.light, time: this.t, onEat: this.onEat };
+    const env = { W: this.W, H: this.H, top: 56, bottom: Math.min(this.H - 76, this.ground(this.W * 0.5) - 6), food: this.food, foodAge: this.foodAge, others: this.creatures, night: 1 - this.light, time: this.t, onEat: this.onEat, ground: (x) => this.ground(x), scape: this.scape };
     if (!this.frozen) for (const c of this.creatures) { c.now = minute; env.bottom = Math.min(this.H - 70, this.ground(c.sw.x) - 10); c.sw.update(dt, env); }
     // yem
     for (const f of this.food) {
@@ -130,6 +130,7 @@ class Tank {
     for (const b of this.bubbles) { b.y -= b.vy * dt; b.x += Math.sin(this.t * 3 + b.ph) * 9 * dt; b.r += dt * (b.co2 ? 0.1 : 0.5); }
     for (let i = this.bubbles.length - 1; i >= 0; i--) if (this.bubbles[i].y < 30) { if (R.chance(0.25)) this.ripples.push({ x: this.bubbles[i].x, y: 28, r: 2, life: 0.9, max: 18 }); this.bubbles.splice(i, 1); }
     for (const r of this.ripples) { r.life -= dt; r.r += (r.max / 1.2) * dt; }
+    if (this.molts) this.molts = this.molts.filter((m) => this.t - m.t < 110);
     this.ripples = this.ripples.filter((r) => r.life > 0);
     for (const m of this.motes) { m.y -= m.v * dt * 0.004; m.x += Math.sin(this.t * 0.2 + m.ph) * 0.0002; if (m.y < 0) m.y = 1; }
     // bitki büyümesi (Aşama 4'te kimyaya bağlanır): Chem.growPlants varsa o kullanılır
@@ -231,7 +232,7 @@ class Tank {
       const vx0 = (-tx) / S - 160, vx1 = (v.cw - tx) / S + 160, vy0 = (-ty) / S - 160, vy1 = (v.ch - ty) / S + 160;
       for (const c of list) {
         const s = c.sw; if (s.x < vx0 || s.x > vx1 || s.y < vy0 || s.y > vy1) continue;
-        FishArt.draw(ctx, c, t, 0.9 + 0.2 * s.z, (0.82 + 0.18 * s.z) * fa, base);
+        (c.def.kind === 'fish' ? FishArt : CrawlerArt).draw(ctx, c, t, 0.9 + 0.2 * s.z, (0.82 + 0.18 * s.z) * fa, base);
         if (c.fav && v.showFav) { ctx.fillStyle = '#ffd36b'; ctx.font = '14px sans-serif'; ctx.fillText('★', s.x - 5, s.y - c.bodyLen() * 0.55); }
       }
     }
@@ -257,6 +258,11 @@ class Tank {
     ctx.restore();
     // armatür (hava boşluğunda)
     { const lp = sc.equip.light, lx0 = W * 0.14, lx1 = W * 0.86; ctx.fillStyle = '#1b262c'; ctx.beginPath(); ctx.roundRect(lx0, -14, lx1 - lx0, 16, 5); ctx.fill(); const on = this.light > 0.2; ctx.fillStyle = on ? `rgba(255,248,225,${0.5 + 0.4 * this.lightPower})` : 'rgba(80,90,95,.6)'; ctx.fillRect(lx0 + 10, -2, lx1 - lx0 - 20, 3); if (on && !v.dry) { const g = ctx.createLinearGradient(0, 2, 0, 40); g.addColorStop(0, `rgba(255,245,220,${0.18 * this.lightPower})`); g.addColorStop(1, 'rgba(255,245,220,0)'); ctx.fillStyle = g; ctx.fillRect(lx0, 2, lx1 - lx0, 38); } }
+    if (!v.dry) {
+      for (const cl of this.clutches || []) { const r = new RNG(Math.floor(cl.x) + cl.n); for (let i = 0, n = Math.min(26, 8 + cl.n / 5); i < n; i++) { ctx.fillStyle = `rgba(255,${120 + (i * 13) % 50},${160 + (i * 7) % 40},.92)`; ctx.beginPath(); ctx.arc(cl.x + r.float(-14, 14), 15 - r.float(0, 7) * 0.5, r.float(2, 3.4), 0, TAU); ctx.fill(); } }
+      for (const c of this.creatures) if (c.nestUntil > this.minute && c.sex === 'M') { const r = new RNG(c.id); ctx.strokeStyle = 'rgba(240,250,255,.8)'; ctx.fillStyle = 'rgba(255,255,255,.35)'; for (let i = 0; i < 18; i++) { const bx = c.sw.x + r.float(-26, 26), br = r.float(2.5, 5); ctx.beginPath(); ctx.arc(bx, 29 + r.float(-2, 4), br, 0, TAU); ctx.fill(); ctx.stroke(); } }
+      for (const m of this.molts || []) { const a = clamp(1 - (this.t - m.t) / 110, 0, 1) * 0.55; ctx.strokeStyle = `rgba(235,245,250,${a})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(m.x, m.y + 2, 9, 2.4, 0.1, 0, TAU); ctx.stroke(); ctx.beginPath(); ctx.moveTo(m.x - 9, m.y + 2); ctx.quadraticCurveTo(m.x - 14, m.y - 4, m.x - 6, m.y - 5); ctx.stroke(); }
+    }
     if (!v.dry) for (const r of this.ripples) { ctx.strokeStyle = `rgba(230,255,255,${clamp(r.life, 0, 1) * 0.5})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(r.x, r.y, r.r * 1.6, r.r * 0.5, 0, 0, TAU); ctx.stroke(); }
     // gece / gün-doğumu rengi
     const night = 1 - this.light;

@@ -131,5 +131,20 @@ const Tests = {
     return this._log('Ekonomi (görevler, pazar talebi, mağaza stoğu, sipariş, başarım/araştırma tutarlılığı)', ok1 && ok2 && ok3 && ok4 && ok5, { ok1, ok2, ok3, ok4, ok5 });
   },
 
-  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding(), this.chemistry(), this.content(), this.economy()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
+  /** Türler: ırk örnekleri, karides F1/F2, molly melanizm, beta dumbo oranı, melezleme kuralları, yürüyen canlı simülasyonu. */
+  species() {
+    const bad = []; for (const sp of Object.keys(SP_BREEDS)) for (const b of SP_BREEDS[sp]) { const g = Genetics.make(b.spec, 'M', new RNG(3), sp), got = Genetics.breedOf(Genetics.phenotype(g)); if (got.id !== b.id) bad.push(b.id + '→' + got.id); }
+    const rng = new RNG(77), orange = Genetics.make({ sp: 'shrimp', col: 'O', dens: 0.5 }, 'M', rng, 'shrimp'), blueF = Genetics.make({ sp: 'shrimp', col: 'B', rili: ['R', 'R'], dens: 0.5 }, 'F', rng, 'shrimp');
+    let f1ok = 0; const F1 = []; for (let i = 0; i < 200; i++) { const c = Genetics.breed(orange, blueF, rng, { noMut: true }), p = Genetics.phenotype(c); if (p.shrimpCol === 'red' && p.rili) f1ok++; F1.push(c); }
+    const m1 = F1.find((g) => g.sex === 'M'), f1 = F1.find((g) => g.sex === 'F'); let orangeRili = 0, N2 = 2000; for (let i = 0; i < N2; i++) { const p = Genetics.phenotype(Genetics.breed(m1, f1, rng, { noMut: true })); if (p.shrimpCol === 'orange' && p.rili) orangeRili++; }
+    const blk = Genetics.phenotype(Genetics.make({ sp: 'molly', mel: ['m2', 'm2'], mex: 0.5 }, 'M', rng, 'molly')), wht = Genetics.phenotype(Genetics.make({ sp: 'molly' }, 'M', rng, 'molly'));
+    const bm = Genetics.make({ sp: 'betta', dumbo: ['D', 'd'] }, 'M', rng, 'betta'), bf = Genetics.make({ sp: 'betta', dumbo: ['D', 'd'] }, 'F', rng, 'betta'); let dumbo = 0; for (let i = 0; i < 2000; i++) if (Genetics.phenotype(Genetics.breed(bm, bf, rng, { noMut: true })).dumbo) dumbo++;
+    const gm = Genetics.make({ tc: 'red' }, 'M', rng), ef = Genetics.make({ sp: 'endler', pur: 1 }, 'F', rng, 'endler'), hy = Genetics.breed(gm, ef, rng, { noMut: true });
+    // yürüyen canlı: sınırda kalır, NaN üretmez
+    const cr = new Creature({ id: -7777, genome: Genetics.make({ sp: 'shrimp', col: 'R' }, 'F', rng, 'shrimp'), bornT: -90 * 1440 }); cr.now = 0; const env = { W: 800, H: 700, ground: () => 620, scape: { items: [] }, food: [], night: 0 }; for (let i = 0; i < 3000; i++) cr.sw.update(0.03, env);
+    const ok = { breeds: bad.length === 0, f1: f1ok === 200, f2: orangeRili / N2 > 0.08 && orangeRili / N2 < 0.25, molly: blk.cls === 'black' && wht.cls === 'none', dumbo: Math.abs(dumbo / 2000 - 0.25) < 0.05, hybrid: hy.sp === 'endler' && Math.abs(hy.quant.pur - 0.5) < 0.12, cross: canCross('platy', 'swordtail') && !canCross('guppy', 'betta') && !canCross('molly', 'platy'), walk: Number.isFinite(cr.sw.x) && cr.sw.x >= 14 && cr.sw.x <= 786 && cr.sw.y > 400 };
+    return this._log('Türler (ırk tanıma, karides F1=Red Rili/F2 Orange Rili, molly, beta dumbo 25%, melez, yürüyüş)', Object.values(ok).every(Boolean), { ...ok, bad, orangeRili: +(orangeRili / N2).toFixed(3) });
+  },
+
+  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding(), this.chemistry(), this.content(), this.economy(), this.species()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
 };

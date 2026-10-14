@@ -78,6 +78,7 @@ const Game = {
     if (!('qFish' in this.S)) Object.defineProperty(this.S, 'qFish', { value: [], writable: true, enumerable: false, configurable: true });
     const S = this.S; if (!S.scape) S.scape = Scape.fromTemplate('start'); this.tank.setScape(S.scape); this.tank.lampMode = S.settings.lamp; this.tank.light = this.tank.lampTarget(S.clockMin); this.tank.setAspect(this.tank.W / this.tank.H);
     if (!this.tank.bg) this.tank.buildBG();
+    if (!this.S.clutches) this.S.clutches = []; this.tank.clutches = this.S.clutches;
     this.scanSeen(); this.S.cnt = this.S.cnt || {}; Quests.refresh(this.S); Orders.refresh(this.S); Market.ensure(this.S);
     this.tank.onEat = () => { if (R.chance(0.45)) AudioSys.SFX.eat(); };
     UI.refreshTop && $('#app') && UI.refreshTop();
@@ -132,6 +133,7 @@ const Game = {
   addXp(n, onceKey) {
     const S = this.S; if (onceKey) { S.once = S.once || {}; if (S.once[onceKey]) return; S.once[onceKey] = 1; }
     const before = Progress.level(S.xp); S.xp += n; const after = Progress.level(S.xp);
+    for (const s of SPECIES) if (SPECIES_LVL[s.id] > before && SPECIES_LVL[s.id] <= after) { UI.toast(`🎉 Yeni tür açıldı: ${s.name}! Mağaza > Canlı`, 'fish', 6000); this.notify('info', `Yeni tür açıldı: ${s.name}`); }
     if (after > before) { UI.toast(`Seviye ${after}! ${Progress.title(after)}`, 'star', 4200); AudioSys.SFX.discover(1); this.notify('level', `Seviye ${after} oldun.`); }
   },
   notify(type, text) { const S = this.S; S.notifs.push({ t: S.clockMin, type, text, read: false }); if (S.notifs.length > 80) S.notifs.shift(); UI.refreshTop(); },
@@ -147,8 +149,8 @@ const Game = {
   cycleLamp() { const o = ['auto', 'on', 'off'], t = this.tank; t.lampMode = o[(o.indexOf(t.lampMode) + 1) % 3]; this.S.settings.lamp = t.lampMode; UI.toast({ auto: 'Işık: otomatik (07:00–21:00)', on: 'Işık: sürekli açık', off: 'Işık: kapalı' }[t.lampMode], t.lampMode === 'off' ? 'moon' : 'sun', 1800); },
   cycleSpeed() { const o = [1, 2, 4, 8], st = this.S.settings; st.speed = o[(o.indexOf(st.speed) + 1) % o.length]; UI.toast(`Oyun hızı ${st.speed}×`, 'speed', 1500); },
   sell(c) {
-    if (this.tank.creatures.length <= 1) { UI.toast('Son balığını satamazsın', 'fish'); return false; }
-    const v = c.value(); Market.sold(c); this.tank.removeCreature(c); this.S.stats.sold++; this.S.stats.maxSale = Math.max(this.S.stats.maxSale, v); this.ev('sold');
+    if (this.tank.creatures.length + (this.S.qFish || []).length <= 1) { UI.toast('Son canlını satamazsın', 'fish'); return false; }
+    const v = c.value(); Market.sold(c); this.dropCreature(c); this.S.stats.sold++; this.S.stats.maxSale = Math.max(this.S.stats.maxSale, v); this.ev('sold');
     this.addCoins(v, true); this.addXp(2); AudioSys.SFX.sell(); UI.toast(`${c.name} satıldı · +${fmt(v)} Altın Pul`, 'coin'); this.save(); UI.refreshAq(); return true;
   },
   testCreature(c) {
@@ -171,12 +173,13 @@ const Game = {
   tickBreeding(quiet) {
     const S = this.S, births = Breeding.tick(S.clockMin, this.tank), out = [];
     for (const b of births) {
+      if (b.clutch) { this.notify('birth', `${b.dam.name} su üstüne ${b.n} yumurtalık bir küme bıraktı (14 gün).`); if (!quiet) UI.toast(`🥚 ${b.dam.name} yumurta bıraktı`, 'fish', 3500); continue; }
       if (b.empty) { if (!quiet) UI.toast(`${b.dam.name} doğurdu ama yavru çıkmadı (sperm yoktu)`, 'bell'); continue; }
       const kept = b.kept.length; S.stats.born += kept; this.ev('born', kept); this.ev('bornHealthy', b.kept.filter((k) => !k.defect).length); this.addXp(5 + Math.min(40, kept * 2));
       if (b.released) this.addCoins(b.released * 2);
       S.litters.push({ t: S.clockMin, dam: b.dam.name, kept, lost: b.lost, released: b.released }); if (S.litters.length > 40) S.litters.shift();
-      this.notify('birth', `${b.dam.name} doğurdu: ${kept} yavru yaşıyor${b.lost ? `, ${b.lost} yavru yenildi` : ''}${b.released ? `, ${b.released} yavru tank dolu olduğu için dükkâna verildi` : ''}.`);
-      if (!quiet) { UI.toast(`🍼 ${b.dam.name} doğurdu! ${kept} yavru yaşıyor`, 'fish', 4500); AudioSys.SFX.born(); }
+      this.notify('birth', `${b.dam.name} ${b.dam.species === 'shrimp' ? 'yavru karides çıkardı' : b.dam.species === 'betta' ? 'kuluçkadan çıkardı' : b.dam.species === 'snail' ? 'yumurtaları açıldı' : 'doğurdu'}: ${kept} yavru yaşıyor${b.lost ? `, ${b.lost} yavru yenildi` : ''}${b.released ? `, ${b.released} yavru tank dolu olduğu için dükkâna verildi` : ''}.`);
+      if (!quiet) { UI.toast(`🍼 ${b.dam.name} yavruladı! ${kept} yavru yaşıyor`, 'fish', 4500); AudioSys.SFX.born(); }
       out.push(b);
     }
     if (births.length) { UI.refreshTop(); if (UI.cur === 'aq') UI.refreshAq(); if (UI.cur === 'lab') UI.render_lab($('#s-lab')); }
@@ -192,6 +195,14 @@ const Game = {
     }
     if (Research.has('feeder') && S.settings.autoFeed !== false && hr >= 18 && S.lastAutoFeed !== day && !this.tank.scape.dry) { S.lastAutoFeed = day; if (this.tank.feed()) { Chem.onFeed(); this.notify('info', 'Otomatik besleyici yem verdi.'); } }
   },
+  /** Canlıyı tanktan ve karantina/kavanozdan çıkarır. */
+  dropCreature(c) { this.tank.removeCreature(c); this.S.qFish = (this.S.qFish || []).filter((x) => x !== c); },
+  /** Yeni canlıyı tanka koyar; ikinci yetişkin beta erkeği kavanoza gider. */
+  addToTank(c) {
+    if (c.species === 'betta' && c.sex === 'M' && c.adult() && this.tank.creatures.some((x) => x !== c && x.species === 'betta' && x.sex === 'M' && x.adult())) { this.toJar(c); return false; }
+    this.tank.addCreature(c); return true;
+  },
+  toJar(c) { this.tank.removeCreature(c); c.quarantined = true; c.jar = true; if (!(this.S.qFish || []).includes(c)) (this.S.qFish = this.S.qFish || []).push(c); UI.toast(`${c.name}: beta erkekleri aynı tankta tutulamaz — kavanoza alındı`, 'bell', 5000); },
   reapPlants() {
     const sc = this.tank.scape, dead = sc.items.filter((i) => i.dead); if (!dead.length) return;
     sc.items = sc.items.filter((i) => !i.dead && !(i.att && dead.some((d) => d.id === i.att.id))); this.tank.touch();
@@ -202,9 +213,9 @@ const Game = {
     for (const sex of ['M', 'F']) { const c = new Creature({ genome: Genetics.randomFounder(sex), bornT: this.S.clockMin - 80 * 1440 }); c.now = this.S.clockMin; Breeding.reg(c); this.tank.addCreature(c); }
     this.notify('birth', 'Büyükbabanın yedek balıkları tanka bırakıldı.'); UI.toast('Büyükbabanın yedek iki balığı tanka bırakıldı 🐟', 'fish', 5000);
   },
-  mate(m, f) {
+  mate(m, f, q) {
     const pr = Breeding.problems(m, f, this.S.clockMin); if (pr.length) { UI.toast(pr[0], 'bell'); return null; }
-    const r = Breeding.mate(m, f, this.S.clockMin); this.ev('mate'); this.addXp(4); AudioSys.SFX.coin();
+    const r = Breeding.mate(m, f, this.S.clockMin, q); this.ev('mate'); this.addXp(4); AudioSys.SFX.coin();
     UI.toast(r.started ? `${f.name} gebe kaldı! Doğum ~${Math.round((r.due - this.S.clockMin) / 1440)} gün sonra` : `${f.name} sperm depoladı (zaten gebe)`, 'heart', 4200);
     this.save(); return r;
   },
@@ -310,6 +321,7 @@ const Game = {
       return;
     }
     const w = this.vp.toWorld(sx, sy), c = this.tank.hit(w.x, w.y, 26 / w.S); this.S.stats.taps++;
+    const cl = (this.tank.clutches || []).find((k) => Math.abs(k.x - w.x) < 40 && w.y < 90); if (cl && !c) return UI.confirm('Yumurta kümesi temizlensin mi?', `${cl.damName} ~${cl.n} yumurta bıraktı. Temizlersen açılmaz.`, () => { this.tank.clutches.splice(this.tank.clutches.indexOf(cl), 1); });
     if (c) { const s = this.vp.toScreen(c.sw.x, c.sw.y), r = this.vp.cv.getBoundingClientRect(), sz = c.bodyLen() * s.S * 1.4;
       UI.openCreature(c, { left: r.left + s.x - sz / 2, top: r.top + s.y - sz / 4, width: sz, height: sz / 2 }); }
     else this.tank.startleAt(w.x, w.y, 150);   // cama dokunuşu: halka + bazı balıklar ürker
