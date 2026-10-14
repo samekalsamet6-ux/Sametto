@@ -44,3 +44,20 @@ Object.assign(Tests, {
   },
   all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding(), this.chemistry(), this.content(), this.economy(), this.species(), this.meta()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
 });
+
+/* Eğitim adımları: yapı ve ilerleme koşulları */
+Object.assign(Tests, {
+  tutorial() {
+    const ok = {}, ids = Tut.steps.map((s) => s.id);
+    ok.steps = ids.length >= 8 && new Set(ids).size === ids.length && Tut.steps.every((s) => typeof s.done === 'function' && s.text);
+    const S = { cnt: { scape: 5, feed: 2, mate: 1 }, stats: { sold: 3 }, settings: { speed: 2 }, tut: { i: 1, base: { scape: 1, feed: 0, mate: 0, sold: 0, speed: 1 } } }, cur = UI.cur;
+    ok.place = Tut.check(S); S.tut.base.scape = 4; ok.placeNo = !Tut.check(S);
+    S.tut.i = Tut.steps.findIndex((s) => s.id === 'speed'); ok.speed = Tut.check(S); S.settings.speed = 1; ok.speedNo = !Tut.check(S);
+    S.tut.i = Tut.steps.findIndex((s) => s.id === 'feed'); ok.feed = Tut.check(S);
+    S.tut.i = Tut.steps.findIndex((s) => s.id === 'mate'); ok.mate = Tut.check(S);
+    S.tut.i = Tut.steps.findIndex((s) => s.id === 'sell'); ok.sell = Tut.check(S);
+    S.tut.i = Tut.steps.findIndex((s) => s.id === 'profile'); ok.name = !Tut.check(S) && (S.tut.named = 1, Tut.check(S));
+    UI.cur = cur; return this._log('Eğitim (adım yapısı ve tamamlanma koşulları)', Object.values(ok).every(Boolean), ok);
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.tutorial(); return a && b; })(Tests.all);

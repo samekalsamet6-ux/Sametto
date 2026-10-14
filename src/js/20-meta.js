@@ -261,7 +261,7 @@ const Prestige = {
   can(S = Game.S) { return Meta.finale(S) || Progress.level(S.xp) >= 100; },
   perform(branchId) {
     const S = Game.S, M = Meta.ensure(S), br = BRANCHES.find((b) => b.id === branchId) || BRANCHES[0];
-    const keep = { name: S.name, avatar: S.avatar, av: S.av, discovered: S.discovered, lessons: S.lessons, ach: S.ach, owns: S.owns, settings: S.settings, stone: S.stone, gallery: S.gallery, templates: S.templates, once: S.once, meta: M };
+    const keep = { name: S.name, avatar: S.avatar, av: S.av, discovered: S.discovered, lessons: S.lessons, ach: S.ach, owns: S.owns, settings: S.settings, stone: S.stone, gallery: S.gallery, templates: S.templates, once: S.once, meta: M, onboarded: true, tut: { i: 0, base: {}, fin: 1, off: 0 } };
     const lines = M.lines.slice(0, 3); M.prestige = { n: (M.prestige.n || 0) + 1, branch: br.id }; M.shows.entered = {}; M.season = { idx: -1, pts: 0, claimed: [] };
     Game.freshState(); const N = Game.S; Object.assign(N, keep); Meta.ensure(N);
     N.coins = 500 + 250 * M.prestige.n + br.coins; N.xp = Progress.xpFor(br.lvl); N.research = {}; for (const r of br.res) N.research[r] = 1; N.scape.liters = br.l; N.rep = 0;

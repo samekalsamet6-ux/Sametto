@@ -254,3 +254,11 @@ details.card summary{list-style:none}
 .mt-me{background:rgba(255,255,255,.1);border-radius:8px;font-weight:700}
 .mt-season{border-left:5px solid var(--c)}
 .trophy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+
+/* ---- Eğitim (onboarding) ---- */
+#tut-card{position:fixed;left:12px;right:12px;top:calc(var(--top-h,56px) + env(safe-area-inset-top) + 8px);z-index:46;max-width:520px;margin:0 auto;padding:10px 14px;border-radius:16px;background:var(--panel-solid,#0b2a38);border:1px solid var(--accent,#3fe0d0);box-shadow:0 8px 30px rgba(0,0,0,.4);animation:rise .4s var(--ease,ease) both}
+#tut-card .tut-t{font-size:15px;line-height:1.4}
+#tut-ring{position:fixed;z-index:45;pointer-events:none;border:3px solid var(--accent,#3fe0d0);border-radius:16px;box-shadow:0 0 0 4px rgba(63,224,208,.25),0 0 22px rgba(63,224,208,.6);animation:tutpulse 1.4s ease-in-out infinite;transition:left .25s,top .25s,width .25s,height .25s}
+#tut-ring.hidden{display:none}
+@keyframes tutpulse{50%{box-shadow:0 0 0 9px rgba(63,224,208,.1),0 0 30px rgba(63,224,208,.8)}}
+@media (prefers-reduced-motion:reduce){#tut-ring{animation:none}}

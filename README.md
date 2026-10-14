@@ -62,6 +62,7 @@ src/js/
   20b-meta-ui.js       hikâye, yarışma, sezon, miras ekranları
   20c-meta-tests.js    Tests.meta() ve Tests.all()
   21-native.js         APK: Android geri tuşu, uygulama yaşam döngüsü
+  22-tutorial.js       onboarding: sinematik + 10 adımlık ~5 dk eğitim
 ```
 
 ## Testler
