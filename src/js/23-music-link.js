@@ -5,7 +5,7 @@
    ===================================================================== */
 const Weather = {
   /** Günlük deterministik: ~her 6 günde bir yağmurlu gün, 09–19 arası. */
-  rainy(clockMin) { const day = Math.floor(clockMin / 1440), hr = (clockMin % 1440) / 60; let x = (day * 2654435761) >>> 0; x ^= x >>> 13; x = (x * 1274126177) >>> 0; return x % 6 === 0 && hr >= 9 && hr < 19; },
+  rainy(clockMin) { const day = Math.floor(clockMin / 1440), hr = (clockMin % 1440) / 60; let x = Math.imul(day ^ (day >>> 15), 2246822519); x ^= x >>> 13; x = Math.imul(x, 3266489917); x ^= x >>> 16; return (x >>> 0) % 6 === 0 && hr >= 9 && hr < 19; },
 };
 
 const MusicLink = {
