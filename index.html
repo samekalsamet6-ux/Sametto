@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Akvaryum Ustası</title>
+<style>
+:root{--bg:#07131f;--panel:#0e2236;--panel2:#143250;--line:#24527a;--txt:#e6f4ff;--mut:#8fb3d1;--acc:#3ddcc0;--warn:#ffb347;--bad:#ff6b6b;--good:#6bff9c}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 50% 0,#0f2f4d,#050d16);color:var(--txt);font:14px/1.4 system-ui,Segoe UI,Roboto,sans-serif;min-height:100vh;user-select:none}
+button{font:inherit;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;transition:.15s}
+button:hover:not(:disabled){background:#1d4a73;border-color:var(--acc)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.pri{background:linear-gradient(#2fc9ae,#17917f);border-color:#5ff0d6;color:#032;font-weight:700}
+button.dan{background:#6a2430;border-color:#b24b5c}
+button.on{background:#1d6f63;border-color:var(--acc)}
+#app{max-width:1500px;margin:0 auto;padding:8px;display:grid;gap:8px;grid-template-columns:1fr 330px;grid-template-areas:"top top" "tabs tabs" "tank side" "bar side"}
+#top{grid-area:top;display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+#top .stat{background:#0a1a2a;border:1px solid var(--line);border-radius:8px;padding:4px 10px;white-space:nowrap}
+#top .grow{flex:1}
+#xpbar{width:110px;height:8px;background:#0a1a2a;border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle;margin-left:6px}
+#xpbar i{display:block;height:100%;background:var(--acc)}
+#tabs{grid-area:tabs;display:flex;gap:6px;flex-wrap:wrap}
+#tankwrap{grid-area:tank;position:relative;border:3px solid #2b4d6b;border-radius:14px;overflow:hidden;background:#000;box-shadow:0 0 40px #0006,inset 0 0 30px #0008}
+canvas#c{display:block;width:100%;aspect-ratio:1000/600;cursor:pointer}
+#bar{grid-area:bar;display:flex;flex-wrap:wrap;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px}
+#bar .sep{width:1px;background:var(--line);margin:0 4px}
+#side{grid-area:side;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px}
+.card h3{margin:0 0 6px;font-size:13px;color:var(--acc);letter-spacing:.5px;text-transform:uppercase}
+.gauge{display:grid;grid-template-columns:62px 1fr 48px;align-items:center;gap:6px;margin:3px 0;font-size:12px}
+.gauge .bar{height:9px;background:#07131f;border-radius:5px;overflow:hidden;position:relative}
+.gauge .bar i{display:block;height:100%;border-radius:5px;transition:width .4s}
+#flist{max-height:330px;overflow:auto;display:flex;flex-direction:column;gap:3px}
+.frow{display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:7px;background:#0a1a2a;cursor:pointer;border:1px solid transparent;font-size:12px}
+.frow:hover,.frow.sel{border-color:var(--acc);background:#10304a}
+.frow canvas{width:42px;height:26px;flex:none}
+.frow .n{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.chip{font-size:11px;padding:1px 6px;border-radius:10px;background:#1a3a58;color:var(--mut);white-space:nowrap}
+.filters{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.filters button{padding:2px 7px;font-size:12px}
+#toasts{position:fixed;right:12px;top:70px;display:flex;flex-direction:column;gap:6px;z-index:50;pointer-events:none;max-width:340px}
+.toast{background:#0e2236ee;border:1px solid var(--acc);border-left:5px solid var(--acc);padding:8px 12px;border-radius:8px;animation:in .3s;box-shadow:0 4px 18px #0008}
+.toast.bad{border-color:var(--bad)}.toast.gold{border-color:gold;background:#3a2f0aee}
+@keyframes in{from{transform:translateX(40px);opacity:0}}
+#modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:40;padding:10px}
+#modal.show{display:flex}
+#mbox{background:var(--panel);border:1px solid var(--acc);border-radius:14px;max-width:960px;width:100%;max-height:92vh;overflow:auto;padding:16px;user-select:text}
+#mbox h2{margin:0 0 10px;display:flex;justify-content:space-between;align-items:center}
+.grid{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.item{background:#0a1a2a;border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:4px}
+.item b{color:var(--acc)}
+.item small{color:var(--mut)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+td,th{border-bottom:1px solid #1d3d5c;padding:4px 6px;text-align:left}
+.tag{display:inline-block;padding:1px 7px;border-radius:10px;background:#1a3a58;margin:1px;font-size:12px}
+.tag.rare{background:#5a3b00;color:gold}
+.pbar{display:flex;height:16px;border-radius:5px;overflow:hidden;margin:2px 0;background:#07131f}
+.pbar i{display:block;font-style:normal;font-size:10px;overflow:hidden;white-space:nowrap;padding-left:3px;color:#021}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:1000px){#app{grid-template-columns:1fr;grid-template-areas:"top" "tabs" "tank" "bar" "side"}.two{grid-template-columns:1fr}}
+.dim{color:var(--mut)}
+select,input{background:#0a1a2a;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:4px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top"></div>
+  <div id="tabs"></div>
+  <div id="tankwrap"><canvas id="c"></canvas></div>
+  <div id="bar"></div>
+  <div id="side">
+    <div class="card" id="water"></div>
+    <div class="card"><h3>Balıklar</h3><div class="filters" id="filters"></div><div id="flist"></div></div>
+    <div class="card" id="log"><h3>Günlük</h3><div id="logbody" style="max-height:110px;overflow:auto;font-size:12px" class="dim"></div></div>
+  </div>
+</div>
+<div id="toasts"></div>
+<div id="modal"><div id="mbox"></div></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   AKVARYUM USTASI — canlı doğuran balık (Poeciliidae) yetiştirme oyunu
+   Bölümler: 1 Yardımcılar · 2 Tür/Gen verileri · 3 Genetik · 4 Dünya
+             5 Su/Hastalık/Ekonomi · 6 Çizim · 7 Arayüz · 8 Ana döngü
+   ===================================================================== */
+
+/* ---------- 1. Yardımcılar ---------- */
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const rnd=(a=1,b)=>b===undefined?Math.random()*a:a+Math.random()*(b-a);
+const rint=(a,b)=>Math.floor(rnd(a,b+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const chance=p=>Math.random()<p;
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const hsl=(c,l=0,s=0,a=1)=>`hsla(${c[0]},${clamp(c[1]+s,0,100)}%,${clamp(c[2]+l,0,100)}%,${a})`;
+const fmt=n=>Math.round(n).toLocaleString('tr-TR');
+let UID=1;const uid=()=>UID++;
+
+/* ---------- 2. Tür ve gen verileri ---------- */
+// allel satırı: [id, ad, baskınlık(d), değer(v), renk/ekstra, nadir?]
+function mk(rows){return rows.map(r=>({id:r[0],name:r[1],d:r[2],v:r[3],x:r[4],rare:!!r[5]}))}
+const TAILS={ // len, h, fork, pt(sivrilik), sw(kılıç), flow
+  round:{len:.55,h:.7,fork:0,pt:0,sw:0,flow:0},spade:{len:.7,h:.55,fork:0,pt:.55,sw:0,flow:0},
+  fan:{len:.85,h:1.0,fork:0,pt:.1,sw:0,flow:.2},delta:{len:1.15,h:1.5,fork:0,pt:.25,sw:0,flow:.3},
+  lyre:{len:.95,h:1.1,fork:.5,pt:.2,sw:.7,flow:.1},needle:{len:1.2,h:.4,fork:0,pt:.95,sw:0,flow:0},
+  veil:{len:1.5,h:1.7,fork:.1,pt:0,sw:0,flow:.9},dsword:{len:.9,h:.8,fork:.35,pt:.3,sw:1.1,flow:.1},
+  comet:{len:1.0,h:.6,fork:0,pt:.6,sw:0,flow:.2},sword:{len:.7,h:.65,fork:0,pt:.2,sw:1.0,flow:0}};
+const FINS=mk([ // kuyruk/yüzgeç rengi
+ ['clear','Saydam',5,1,null],['match','Uyumlu',4,1,'m'],['red','Kırmızı',3,2,[355,85,52]],['blue','Mavi',3,2,[212,85,55]],
+ ['yellow','Sarı',3,2,[50,92,58]],['orange','Turuncu',3,2,[26,95,55]],['black','Siyah Kenarlı',2,3,[240,10,12]],['purple','Mor',2,3,[282,60,48]],
+ ['neon','Neon Turkuaz',1,7,[172,100,52],1]]);
+const SHINE=mk([['mat','Mat',5,1],['metal','Metalik',3,2],['gold','Altın Parıltı',2,3],['glow','Floresan (karanlıkta parlar)',1,7,0,1]]);
+const SIZE=[{id:'s',name:'Küçük',v:.86,d:0,x:0},{id:'m',name:'Normal',v:1,d:0,x:1},{id:'l',name:'Büyük',v:1.14,d:0,x:2},{id:'x',name:'Dev',v:1.3,d:0,x:3,rare:true}].map(s=>({id:s.id,name:s.name,d:0,v:s.x===3?4:s.x===2?2:1,x:s.v,rare:!!s.rare}));
+const SPECIES={
+ guppy:{name:'Lepistes',latin:'Poecilia reticulata',icon:'🐟',price:18,body:{len:34,hr:.27},mscale:.78,fscale:1.12,
+  gest:5,litter:[5,18],mature:6,life:[80,105],temp:[23,28],shopCost:0,
+  color:mk([['wild','Gri',5,1,[30,8,52]],['blue','Mavi',3,2,[215,80,50]],['red','Kırmızı',3,2,[356,80,50]],['green','Yeşil',3,2,[140,60,42]],
+   ['orange','Turuncu',3,2,[24,92,54]],['yellow','Sarı (Blond)',2,2,[48,90,57]],['purple','Mor',2,3,[280,55,45]],['white','Beyaz',1,3,[200,12,92]],
+   ['black','Siyah',2,4,[240,10,14]],['albino','Albino',0,4,[48,55,90]],['galaxy','Galaksi',3,8,[262,85,34],1],['flamingo','Flamingo Pembe',3,7,[330,70,66],1]]),
+  pattern:mk([['none','Düz',5,1],['spots','Benekli',4,2],['stripes','Çizgili',3,2],['mosaic','Mozaik',2,3],['snake','Yılan Derisi',2,4],['leopard','Leopar',1,4],['cobra','Kobra',3,7,0,1],['glitter','Yıldız Tozu',3,8,0,1]]),
+  tail:mk([['spade','Kürek',5,1,'spade'],['round','Yuvarlak',4,1,'round'],['fan','Yelpaze',3,2,'fan'],['delta','Delta',2,3,'delta'],['lyre','Lir',2,4,'lyre'],['needle','İğne',2,3,'needle'],['veil','Peçe',1,5,'veil'],['dsword','Çift Kılıç',3,7,'dsword',1]]),
+  fin:FINS,
+  dorsal:mk([['short','Kısa',5,1,.6],['long','Uzun',3,2,1.1],['sail','Yelken',1,4,1.8]]),
+  shine:SHINE,size:SIZE},
+ molly:{name:'Moli',latin:'Poecilia sphenops / latipinna',icon:'🐠',price:35,body:{len:46,hr:.31},mscale:.85,fscale:1.12,
+  gest:8,litter:[10,28],mature:9,life:[110,150],temp:[24,29],shopCost:350,
+  color:mk([['black','Siyah',4,1,[250,10,12]],['silver','Gümüş',3,1,[200,10,70]],['gold','Altın',2,2,[45,85,56]],['white','Beyaz',1,3,[200,10,94]],
+   ['sun','Gün Batımı',2,3,[22,95,56]],['choco','Çikolata',3,3,[25,50,30]],['lime','Limon Sarısı',2,3,[62,85,58]],['platin','Platin Mavi',2,7,[205,55,64],1],['rose','Gül Kurusu',2,7,[345,55,62],1]]),
+  pattern:mk([['none','Düz',5,1],['dalm','Dalmaçyalı',4,3],['marble','Mermer',2,3],['tiger','Kaplan',3,4],['panda','Panda',1,5],['calico','Kaliko',2,4],['kaleido','Kaleydoskop',3,8,0,1]]),
+  tail:mk([['round','Yuvarlak',5,1,'round'],['fan','Yelpaze',3,2,'fan'],['lyre','Lir Kuyruk',2,4,'lyre'],['veil','Peçe',1,5,'veil'],['dsword','Elmas Kılıç',3,7,'dsword',1]]),
+  fin:FINS,
+  dorsal:mk([['normal','Normal',5,1,.9],['high','Yüksek',2,3,1.4],['sail','Yelken (Sailfin)',1,5,2.1]]),
+  shine:SHINE,size:SIZE},
+ platy:{name:'Plati',latin:'Xiphophorus maculatus',icon:'🐡',price:26,body:{len:38,hr:.34},mscale:.85,fscale:1.1,
+  gest:6,litter:[6,20],mature:7,life:[90,125],temp:[22,26],shopCost:220,
+  color:mk([['red','Kırmızı',4,1,[4,85,50]],['orange','Turuncu',3,2,[26,92,55]],['yellow','Güneş Sarısı',2,2,[50,90,58]],['blue','Mavi',2,3,[208,75,52]],
+   ['green','Yeşil',2,3,[150,55,42]],['black','Siyah',2,3,[240,10,14]],['white','Beyaz',1,3,[200,10,94]],['neonred','Neon Kızıl',3,7,[348,100,55],1]]),
+  pattern:mk([['none','Düz',5,1],['tux','Smokin',3,3],['mickey','Mickey Mouse',3,3],['calico','Kaliko',2,4],['wag','Yelpaze Lekeli',2,3],['panda','Panda',1,5],['harlequin','Harlequin',3,8,0,1]]),
+  tail:mk([['round','Yuvarlak',5,1,'round'],['fan','Yelpaze',3,2,'fan'],['comet','Kuyruklu Yıldız',2,3,'comet'],['lyre','Lir',2,4,'lyre'],['sword','Kılıç Kuyruk',2,6,'sword',1]]),
+  fin:FINS,
+  dorsal:mk([['short','Kısa',5,1,.7],['long','Uzun',3,2,1.15],['sail','Yelken',1,4,1.7]]),
+  shine:SHINE,size:SIZE}
+};
+const GENES=['color','pattern','tail','fin','dorsal','shine','size'];
+const GNAME={color:'Gövde Rengi',pattern:'Desen',tail:'Kuyruk',fin:'Kuyruk Rengi',dorsal:'Sırt Yüzgeci',shine:'Parlaklık',size:'Boy'};
+const allele=(sp,g,id)=>SPECIES[sp][g].find(a=>a.id===id);
+const NAMES_F=['Pırıl','Elmas','Deniz','Gümüş','Lale','Zeytin','Nehir','Boncuk','Yıldız','Mercan','Sedef','Şeker','Fındık','Misket','Ceylin','Damla','Papatya','Mavi','Bulut','Defne'];
+const NAMES_M=['Korsan','Poyraz','Tufan','Kaptan','Oltan','Fırtına','Çınar','Atlas','Zeybek','Pamuk','Şimşek','Toprak','Gölge','Barış','Efe','Sülo','Ateş','Yavuz','Rüzgar','Duman'];
+
+const FOODS={
+ flake:{name:'Pul Yem',icon:'🍂',price:2,pack:20,hunger:35,waste:1,col:'#e8b04a',desc:'Temel yem.'},
+ live:{name:'Canlı Yem (Artemia)',icon:'🦐',price:8,pack:10,hunger:38,waste:.5,col:'#ff8a65',desc:'Doğurganlık ve renk artırır.',boost:1},
+ algae:{name:'Yosun Tableti',icon:'🥬',price:4,pack:12,hunger:30,waste:.8,col:'#5fbf6a',desc:'Alg yer, moliler bayılır; suyu temizler.',algae:1},
+ fry:{name:'Yavru Tozu',icon:'✨',price:3,pack:20,hunger:35,waste:.4,col:'#f3e9a4',desc:'Yavruları hızla büyütür.',fry:1}};
+const EQUIP={
+ filter1:{name:'Sünger Filtre',icon:'🧽',price:60,desc:'Temel biyolojik filtre.',lvl:1,type:'filter'},
+ filter2:{name:'Dış Kutu Filtre',icon:'🛢️',price:220,desc:'Güçlü filtre (amonyağı hızla dönüştürür).',lvl:2,type:'filter'},
+ filter3:{name:'Pro Filtre + UV',icon:'⚙️',price:600,desc:'Profesyonel filtrasyon, berrak su.',lvl:3,type:'filter'},
+ heater:{name:'Isıtıcı',icon:'🔥',price:80,desc:'Sıcaklık hedefini ayarlayabilirsin.',type:'heater'},
+ air:{name:'Hava Taşı',icon:'🫧',price:40,desc:'Oksijen + baloncuk.',type:'air'},
+ led:{name:'LED Aydınlatma',icon:'💡',price:90,desc:'Bitkiler büyür, renkler canlı görünür.',type:'led'},
+ nursery:{name:'Doğum/Yavru Kutusu',icon:'📦',price:120,desc:'Balıkları ayrı kutuya al; yavrular yenmez.',type:'nursery'}};
+const PLANTS={moss:{name:'Java Moss',price:15,col:[110,50,32]},val:{name:'Vallisneria',price:20,col:[130,60,38]},sword:{name:'Amazon Kılıcı',price:30,col:[100,55,36]},cabomba:{name:'Kabomba',price:25,col:[95,60,42]},ludwig:{name:'Kırmızı Ludwigia',price:35,col:[8,60,42]}};
+const DECOR={rock:{name:'Dağ Taşı',price:25},wood:{name:'Kök/Kütük',price:35},cave:{name:'Mağara',price:45},castle:{name:'Kale',price:70},chest:{name:'Hazine Sandığı',price:60},shell:{name:'Deniz Kabuğu',price:20}};
+const BACKS={blue:{name:'Okyanus Mavisi',price:0,c:['#1c6fa8','#0a3558','#06182c']},green:{name:'Orman Yeşili',price:150,c:['#2a8a6a','#0f4a3c','#06241e']},purple:{name:'Gün Batımı',price:250,c:['#6a4aa8','#32225e','#140c2e']},teal:{name:'Mercan Resifi',price:350,c:['#1fb0b8','#0b5560','#042a30']}};
+const MEDS={med:{name:'İlaç (Hastalık Tedavisi)',price:40}};
+const TANKS=[{cap:10,price:0,name:'30 Litre'},{cap:16,price:250,name:'60 Litre'},{cap:24,price:700,name:'120 Litre'},{cap:36,price:1800,name:'250 Litre'}];
+
+/* ---------- 3. Genetik ---------- */
+const MUT_BASE=.03;
+function phenotype(f){
+  const S=SPECIES[f.sp],p={};
+  for(const g of GENES){
+    const [a,b]=f.g[g].map(id=>allele(f.sp,g,id));
+    if(g==='size'){p.size=(a.x+b.x)/2;p.sizeName=(a.x+b.x)/2<.93?'Küçük':(a.x+b.x)/2>1.2?'Dev':(a.x+b.x)/2>1.07?'Büyük':'Normal';p.sizeV=(a.v+b.v)/2;continue}
+    p[g]=(a.d>=b.d?a:b);
+  }
+  return p;
+}
+function traitKey(f){const p=phenotype(f);return f.sp+'|'+['color','pattern','tail','fin','dorsal','shine'].map(g=>p[g].id).join('|')}
+function gamete(f,g,mutMul){
+  let id=pick(f.g[g]);
+  if(chance(MUT_BASE*(mutMul||1)*(f.vigor===-1?1.3:1))){
+    const pool=SPECIES[f.sp][g];
+    const w=pool.map(a=>a.rare?1.6:1);let t=rnd(w.reduce((x,y)=>x+y,0)),i=0;
+    while(t>w[i]){t-=w[i];i++}
+    const n=pool[i].id;if(n!==id){id=n;f._mut=(f._mut||[]).concat([[g,n]])}
+  }
+  return id;
+}
+function breed(mom,dad,mutMul){
+  const child={sp:mom.sp,g:{}};
+  const mutH=[];
+  for(const g of GENES){
+    const m=gamete(mom,g,mutMul),d=gamete(dad,g,mutMul);
+    child.g[g]=[m,d];
+  }
+  for(const g of GENES){ // mutasyon bildirimi
+    for(const x of ['0','1']){}
+  }
+  child.mutated=[...(mom._mut||[]),...(dad._mut||[])];mom._mut=[];dad._mut=[];
+  return child;
+}
+function related(a,b){ // akraba üremesi: ortak ebeveyn/büyük ebeveyn
+  if(!a||!b)return false;
+  const la=new Set([a.id,...(a.lin||[])]),lb=new Set([b.id,...(b.lin||[])]);
+  for(const x of la)if(lb.has(x))return true;return false;
+}
+function fishValue(f){
+  const S=SPECIES[f.sp],p=phenotype(f);
+  let v=S.price;
+  for(const g of ['color','pattern','tail','fin','dorsal','shine'])v*=1+(p[g].v-1)*.32;
+  v*=p.size;v*=.5+f.health/200;
+  if(f.stage==='fry')v*=.2;else if(f.stage==='juv')v*=.6;else if(f.stage==='old')v*=.7;
+  if(f.inbred)v*=.8;
+  return Math.max(2,Math.round(v));
+}
+function rarityScore(f){const p=phenotype(f);return GENES.slice(0,6).reduce((s,g)=>s+p[g].v,0)+p.sizeV}
+function newFish(sp,over={}){
+  const f={id:uid(),sp,sex:chance(.5)?'F':'M',g:{},age:0,hunger:30,health:100,stress:0,x:rnd(100,900),y:rnd(120,450),vx:0,vy:0,
+    dir:1,ph:rnd(6.28),tx:0,ty:0,tt:0,seed:rint(1,1e9),preg:null,sperm:null,cool:0,sick:null,lin:[],gen:1,iso:false,fav:false,vigor:0,dead:false,mood:0,eaten:0,fresh:.5};
+  Object.assign(f,over);
+  f.name=f.name||pick(f.sex==='F'?NAMES_F:NAMES_M);
+  f.life=rint(...SPECIES[sp].life)*(f.inbred?.85:1);
+  return f;
+}
+function wildGenome(sp,rarePlus){ // mağaza kalitesi: baskın alleller ağırlıklı, taşıyıcılar var
+  const g={};
+  for(const k of GENES){
+    const pool=SPECIES[sp][k].filter(a=>!a.rare||rarePlus);
+    const w=pool.map(a=>(a.d>=4?4:a.d>=2?1.8:1)*(a.rare?.6:1)/(1+Math.max(0,a.v-3)*.5));
+    const roll=()=>{let t=rnd(w.reduce((x,y)=>x+y,0)),i=0;while(t>w[i]){t-=w[i];i++}return pool[i].id};
+    g[k]=[roll(),roll()];
+  }
+  return g;
+}
+function stageOf(f){const m=SPECIES[f.sp].mature;return f.age<m*.45?'fry':f.age<m?'juv':f.age>f.life*.8?'old':'adult'}
+const STAGE={fry:'Yavru',juv:'Genç',adult:'Yetişkin',old:'Yaşlı'};
+
+/* ---------- 4. Dünya / Durum ---------- */
+const W=1000,H=600,SURF=34,FLOOR=520;
+const DAY=42;           // gerçek saniye = 1 oyun günü (hız 1x)
+let G=null;             // oyun durumu
+function newTank(i){return{name:'Akvaryum '+(i+1),lvl:0,fish:[],plants:[],decor:[],food:[],bubbles:[],parts:[],eq:{filter:0,heater:false,air:false,led:false,nursery:false},
+  w:{nh3:0,no3:5,o2:8,temp:24,ph:7.2,clar:95,alg:5},target:25,light:true,back:'blue',hist:[],box:{x:20,y:46,w:210,h:130},mutT:0,medT:0,decorN:0}}
+function newGame(){
+  const t=newTank(0);t.eq.filter=1;
+  G={v:2,money:160,day:1,time:7,xp:0,lvl:1,tank:0,tanks:[t],stock:{flake:40,live:0,algae:0,fry:0,med:2},food:'flake',
+     unlocked:{guppy:true},seen:{},seenAllele:{},orders:[],ach:{},log:[],sold:0,born:0,bred:0,stats:{money:[],pop:[]},show:{next:10,active:false},
+     back:{blue:true},speed:1,muted:false,sel:null,filter:'all',tutorial:true,orderN:1};
+  const mk=(sex)=>{const f=newFish('guppy',{sex,age:12,stage:'adult'});f.g=wildGenome('guppy');f.age=12;return f};
+  t.fish.push(mk('F'),mk('F'),mk('M'));
+  t.fish.forEach(f=>{f.stage=stageOf(f);discover(f)});
+  addPlant(t,'val');addPlant(t,'moss');
+  genOrders();
+}
+function curTank(){return G.tanks[G.tank]}
+function addPlant(t,type){t.plants.push({type,x:rnd(250,950),h:rnd(.7,1.2),seed:rint(1,1e6),size:0.2})}
+function discover(f){
+  const k=traitKey(f);let isNew=false;
+  if(!G.seen[k]){G.seen[k]=G.day;isNew=true;}
+  for(const g of GENES)for(const id of f.g[g]){const key=f.sp+'.'+g+'.'+id;if(!G.seenAllele[key])G.seenAllele[key]=1}
+  return isNew;
+}
+function log(msg,kind){
+  G.log.unshift(`G${G.day}: ${msg}`);if(G.log.length>60)G.log.pop();
+  const lb=$('#logbody');if(lb)lb.innerHTML=G.log.slice(0,20).map(x=>`<div>${x}</div>`).join('');
+}
+function toast(msg,kind=''){const d=document.createElement('div');d.className='toast '+kind;d.innerHTML=msg;const tb=$('#toasts');tb.appendChild(d);while(tb.children.length>5)tb.firstChild.remove();setTimeout(()=>d.remove(),4800);log(msg.replace(/<[^>]+>/g,''))}
+function addXP(n){G.xp+=n;const need=G.lvl*120;if(G.xp>=need){G.xp-=need;G.lvl++;toast(`⭐ İtibar seviyesi <b>${G.lvl}</b>! Yeni siparişler açıldı.`,'gold');sfx('win')}}
+
+/* ---------- 5. Simülasyon: su, balık, üreme, ekonomi ---------- */
+function tankCap(t){return TANKS[t.lvl].cap}
+function bioload(t){return t.fish.reduce((s,f)=>s+(f.stage==='fry'?.2:f.stage==='juv'?.55:1)*phenotype(f).size*(f.dead?1.6:1),0)}
+function stepWater(t,dt){
+  const w=t.w,load=bioload(t),cap=tankCap(t),hrDay=G.time>=7&&G.time<21,lightOn=t.light&&(t.eq.led||hrDay);
+  const plantMass=t.plants.reduce((s,p)=>s+p.size*p.h,0);
+  w.nh3+=load*.0055*dt/ (1+t.lvl*.5);
+  const flt=t.eq.filter*.04+(t.eq.filter?.01:0);
+  const conv=Math.min(w.nh3,flt*dt*(1+ (w.o2>5?0:-.4)));
+  w.nh3-=conv;w.no3+=conv*1.1;
+  w.nh3-=Math.min(w.nh3,plantMass*.0009*dt*(lightOn?1:.3));
+  w.no3-=Math.min(w.no3,plantMass*.0022*dt*(lightOn?1:.2));
+  // yosun
+  const algG=(lightOn?1:.2)*(w.no3/30)*.05*(t.eq.led?1.4:1);
+  w.alg=clamp(w.alg+algG*dt-(t.fish.filter(f=>!f.dead&&f.eatsAlgae).length*.01)*dt,0,100);
+  // sıcaklık
+  const room=21+Math.sin((G.time-14)/24*6.283)*1.2;
+  const tgt=t.eq.heater?t.target:room;
+  w.temp+=(tgt-w.temp)*.12*dt/ (1+t.lvl*.3);
+  // oksijen
+  const o2t=8.6-(w.temp-22)*.18-load*.18/(1+t.lvl*.35)+t.eq.filter*.6+(t.eq.air?1.8:0)+plantMass*(lightOn?.28:-.05)-w.alg*.01;
+  w.o2+=(clamp(o2t,1,10)-w.o2)*.2*dt;
+  w.ph+=((7.4-Math.min(w.no3,80)*.012)-w.ph)*.03*dt;
+  const clt=100-w.nh3*30-w.alg*.5-Math.max(0,w.no3-20)*.3-t.food.filter(f=>f.rot).length*1.2+t.eq.filter*5;
+  w.clar+=(clamp(clt,5,100)-w.clar)*.1*dt;
+  w.nh3=clamp(w.nh3,0,8);w.no3=clamp(w.no3,0,200);
+}
+function waterStress(t,f){
+  const w=t.w,S=SPECIES[f.sp];let s=0;
+  s+=clamp((w.nh3-.3)*55,0,50);s+=clamp((w.no3-40)*.5,0,25);s+=clamp((4.5-w.o2)*14,0,45);
+  s+=clamp((S.temp[0]-w.temp)*12,0,45)+clamp((w.temp-S.temp[1])*12,0,45);
+  s+=clamp(((bioload(t)/tankCap(t))-1)*40,0,35);
+  s+=f.sick?20:0;
+  return clamp(s,0,100);
+}
+function eatFood(t,f,fd){
+  const F=FOODS[fd.type];
+  f.hunger=clamp(f.hunger-F.hunger,0,100);
+  if(F.boost)f.fresh=clamp(f.fresh+.25,0,1);
+  if(F.fry&&f.stage==='fry')f.growBoost=3*DAY;
+  t.w.nh3+=.01*F.waste*0;fd.eaten=true;f.eaten++;
+  for(let i=0;i<3;i++)t.parts.push({x:f.x+f.dir*12,y:f.y,vx:rnd(-8,8),vy:rnd(-12,0),life:.6,c:'#fff8'});
+  sfx('pop');
+}
+function dayTick(t){
+  // yaş, büyüme, hastalık, doğum, ölüm — günde bir
+  const w=t.w;
+  if(t.mutT>0)t.mutT--;
+  for(const f of t.fish.slice()){
+    if(f.dead)continue;
+    f.age++;f.stage=stageOf(f);
+    f.cool=Math.max(0,f.cool-1);
+    if(f.age>f.life&&chance(.35)){kill(t,f,'yaşlılıktan');continue}
+    // hastalık
+    if(!f.sick){
+      let pr=.002;if(w.temp<SPECIES[f.sp].temp[0]-2)pr+=.05;if(w.clar<50)pr+=.04;if(f.stress>55)pr+=.05;
+      if(t.fish.some(o=>o.sick))pr+=.03;
+      if(chance(pr)){f.sick={type:w.temp<24?'Beyaz Benek (Ich)':'Yüzgeç Çürümesi',days:0};toast(`🤒 ${f.name} hastalandı: ${f.sick.type}. İlaç ver ya da suyu düzelt.`,'bad')}
+    }else{f.sick.days++;f.health-=6;if(f.sick.days>9&&chance(.2)){f.sick=null;toast(`💪 ${f.name} kendiliğinden iyileşti.`)}}
+    // gebelik
+    if(f.preg){f.preg.left-=(w.temp>26?1.15:1);
+      if(f.preg.left<=0)giveBirth(t,f)}
+  }
+  // ölü yem çürümesi
+  t.food=t.food.filter(x=>!x.rot||(x.rotT++<2));
+  // orta gece vb. günlük
+}
+function kill(t,f,why){
+  f.dead=true;f.vy=0;f.vx=0;sfx('low');
+  toast(`💀 ${f.name} (${SPECIES[f.sp].name}) öldü${why?' — '+why:''}. Ölü balığı al, yoksa suyu kirletir.`,'bad');
+}
+function giveBirth(t,mom){
+  const S=SPECIES[mom.sp],dad=mom.sperm;
+  if(!dad){mom.preg=null;return}
+  const size=phenotype(mom).size;
+  let n=Math.round(rint(...S.litter)*size*(.6+mom.fresh*.6)*(mom.health/100)*(mom.inbredMate?.75:1));
+  n=clamp(n,1,45);
+  const room=tankCap(t)*3-t.fish.length;n=Math.min(n,Math.max(2,room));
+  const mut=t.mutT>0?2.2:1;
+  let nm=[],newVar=0;
+  for(let i=0;i<n;i++){
+    const c=breed(mom,dad.genes,mut);
+    const f=newFish(mom.sp,{x:mom.x+rnd(-14,14),y:mom.y+rnd(-8,8),age:0,gen:Math.max(mom.gen,dad.gen)+1,lin:[mom.id,dad.id,...(mom.lin||[]).slice(0,2),...(dad.lin||[]).slice(0,2)],iso:mom.iso});
+    f.g=c.g;f.stage='fry';f.inbred=related(mom,dad.ref);f.mother=mom.name;f.father=dad.name;
+    if(f.inbred){f.life*=.85}
+    f.iso=mom.iso;
+    t.fish.push(f);
+    if(discover(f)){newVar++}
+    for(const m of c.mutated)nm.push(m);
+    G.born++;
+  }
+  mom.preg=null;mom.cool=1;dad.uses--;if(dad.uses<=0)mom.sperm=null;
+  mom.health-=8;
+  for(let i=0;i<12;i++)t.bubbles.push({x:mom.x,y:mom.y,r:rnd(2,5),vy:-rnd(30,60),life:2});
+  sfx('birth');
+  toast(`🍼 <b>${mom.name}</b> ${n} yavru doğurdu!`+(mom.iso?'':' (Yetişkinler yavruları yiyebilir!)'),'');
+  if(nm.length){const [g,id]=nm[0];toast(`🧬 <b>MUTASYON!</b> ${GNAME[g]}: ${allele(mom.sp,g,id).name}`,'gold');sfx('win');addXP(10)}
+  if(newVar){toast(`📖 ${newVar} yeni varyasyon keşfettin! (Ansiklopedi)`,'gold');addXP(8*newVar)}
+  addXP(n);
+}
+function tryMate(t,m,f){
+  if(f.preg||f.cool>0||f.sex!=='F'||m.sex!=='M')return false;
+  if(f.stage!=='adult'&&f.stage!=='old')return false;if(m.stage==='fry'||m.stage==='juv')return false;
+  if(f.iso!==m.iso)return false;
+  // dişi tercihi: renkli, büyük erkek
+  const attract=.25+rarityScore(m)/60+m.fresh*.2;
+  if(!chance(attract*.5))return false;
+  f.sperm={genes:{sp:m.sp,g:JSON.parse(JSON.stringify(m.g)),id:m.id,lin:m.lin,vigor:m.vigor,_mut:[]},uses:3,gen:m.gen,name:m.name,ref:m};
+  f.sperm.genes.id=m.id;f.sperm.gen=m.gen;
+  f.inbredMate=related(f,m);
+  f.preg={left:SPECIES[f.sp].gest*(1+(f.health<50?.2:0))};
+  if(f.sperm){f.sperm.genes._mut=[];}
+  for(let i=0;i<5;i++)t.parts.push({heart:1,x:(f.x+m.x)/2+rnd(-10,10),y:f.y-14,vx:rnd(-10,10),vy:-rnd(14,30),life:1.4});
+  sfx('heart');
+  return true;
+}
+// sperm.genes breed için {sp,g,_mut} yeterli
+function fishAI(t,f,dt){
+  const S=SPECIES[f.sp],p=phenotype(f);
+  const sc=bodyScale(f);
+  if(f.dead){ // yüzeye çıkar
+    f.vy+=(-18-f.vy)*dt*.4;f.vx*=.97;f.y=Math.max(SURF+8,f.y+f.vy*dt);f.x+=f.vx*dt;return;
+  }
+  // hareket sınırı
+  let bx0=24,bx1=W-24,by0=SURF+14,by1=FLOOR-6;
+  if(f.iso&&t.eq.nursery){const b=t.box;bx0=b.x+10;bx1=b.x+b.w-10;by0=b.y+14;by1=b.y+b.h-8}
+  f.tt-=dt;
+  const night=!(G.time>=7&&G.time<21);
+  const food=t.food.filter(x=>!x.eaten&&!x.rot&&!(f.iso&&t.eq.nursery)&&FOODS[x.type]);
+  let target=null,speed=(f.stage==='fry'?44:62)*(night?.5:1)*(1.05-f.stress/220);
+  if(f.sick)speed*=.55;
+  const hungry=f.hunger>35;
+  if(hungry&&food.length){
+    let best=null,bd=1e9;
+    for(const x of food){if(f.eatsAlgae!==undefined&&0)continue;const d=(x.x-f.x)**2+(x.y-f.y)**2;if(d<bd){bd=d;best=x}}
+    if(best){target=best;speed*=1.7}
+  }
+  // yosun yeme (moli) ve algde yemek
+  if(!target&&f.hunger>50&&t.w.alg>12&&f.sp==='molly'&&!(f.iso&&t.eq.nursery)){target={x:f.x,y:FLOOR-30,alg:1};f.eatsAlgae=1}else f.eatsAlgae=undefined;
+  // kur yapma
+  if(!target&&f.sex==='M'&&(f.stage==='adult')&&!f.dead){
+    let best=null,bd=1e9;
+    for(const o of t.fish){if(o.sex==='F'&&!o.dead&&!o.preg&&o.cool<=0&&o.sp===f.sp&&o.iso===f.iso&&(o.stage==='adult'||o.stage==='old')){const d=(o.x-f.x)**2+(o.y-f.y)**2;if(d<bd){bd=d;best=o}}}
+    if(best&&bd<420*420){target=best;speed*=1.25;if(bd<38*38&&chance(dt*.8)){tryMate(t,f,best)}}
+  }
+  // yavru: bitkiye saklan
+  if(!target&&f.stage==='fry'&&t.plants.length&&!f.iso){
+    if(f.tt<=0){const pl=pick(t.plants);f.tx=pl.x+rnd(-30,30);f.ty=FLOOR-rnd(20,100);f.tt=rnd(3,8)}
+    target={x:f.tx,y:f.ty};
+  }
+  if(!target){
+    if(f.tt<=0){f.tx=rnd(bx0,bx1);f.ty=f.sick?by1-rnd(0,40):night?rnd(by1-160,by1):rnd(by0+20,by1-50);f.tt=rnd(2,6)}
+    target={x:f.tx,y:f.ty};speed*=.75;
+  }
+  const dx=target.x-f.x,dy=target.y-f.y,d=Math.hypot(dx,dy)||1;
+  const want=Math.min(speed,d*2.5);
+  f.vx+=((dx/d)*want-f.vx)*dt*2.2;f.vy+=((dy/d)*want-f.vy)*dt*2.2;
+  // ayrılma
+  for(const o of t.fish){if(o===f||o.dead||o.iso!==f.iso)continue;const ox=f.x-o.x,oy=f.y-o.y,od=Math.hypot(ox,oy);if(od<22*sc&&od>0){f.vx+=ox/od*18*dt;f.vy+=oy/od*18*dt}}
+  f.x=clamp(f.x+f.vx*dt,bx0,bx1);f.y=clamp(f.y+f.vy*dt,by0,by1);
+  if(Math.abs(f.vx)>6)f.dir=f.vx>0?1:-1;
+  f.ph+=dt*(3+Math.hypot(f.vx,f.vy)*.08);
+  // yem yeme
+  if(target&&target.type&&d<12*sc+6&&!target.eaten){eatFood(t,f,target)}
+  if(target&&target.alg&&f.y>FLOOR-60&&chance(dt*1.2)){t.w.alg=Math.max(0,t.w.alg-1.2);f.hunger=Math.max(0,f.hunger-4)}
+  // yavru yeme
+  if(f.hunger>65&&f.stage==='adult'&&!f.iso&&chance(dt*.5)){
+    for(const o of t.fish){if(o.stage==='fry'&&!o.dead&&!o.iso&&(o.x-f.x)**2+(o.y-f.y)**2<26*26){
+      const cover=t.plants.some(pl=>Math.abs(pl.x-o.x)<60&&o.y>FLOOR-170*pl.h)?.7:0;
+      if(!chance(cover)){o.dead=true;o.gone=true;f.hunger-=18;for(let i=0;i<4;i++)t.parts.push({x:o.x,y:o.y,vx:rnd(-14,14),vy:rnd(-14,4),life:.5,c:'#ff8a8a99'});break}}}
+  }
+}
+function bodyScale(f){
+  const S=SPECIES[f.sp],p=phenotype(f);
+  const mat=S.mature;
+  const grow=f.stage==='fry'?.25+f.age/(mat*.45)*.3:f.stage==='juv'?.55+(f.age-mat*.45)/(mat*.55)*.4:1;
+  const sx=f.sex==='M'?S.mscale:S.fscale;
+  return grow*sx*p.size*1.45;
+}
+function fishNeeds(t,f,dt){
+  if(f.dead){ // ölü balık suyu kirletir
+    t.w.nh3+=dt*.002;return}
+  f.hunger=clamp(f.hunger+dt*(f.stage==='fry'?1.1:.6)*(1/ (DAY/42)),0,100);
+  f.fresh=clamp(f.fresh-dt*.003,0,1);
+  f.stress+=(waterStress(t,f)-f.stress)*dt*.4;
+  let dh=0;
+  if(f.hunger>92)dh-=1.0;if(f.stress>60)dh-=(f.stress-60)*.025;
+  if(f.hunger<60&&f.stress<30&&!f.sick)dh+=.35;
+  f.health=clamp(f.health+dh*dt,0,100);
+  if(f.health<=0)kill(t,f,f.hunger>88?'açlıktan':f.sick?'hastalıktan':'kötü su koşullarından');
+  // büyüme: gün başına yaş artıyor (dayTick). Yavru tozu hız verir
+  if(f.growBoost>0){f.growBoost-=dt;f.ageAcc=(f.ageAcc||0)+dt;if(f.ageAcc>DAY/3){f.ageAcc=0;if(f.stage==='fry'||f.stage==='juv'){f.age+=1;f.stage=stageOf(f)}}}
+}
+
+/* ---- Ekonomi, siparişler, sergi ---- */
+function matches(f,o){
+  if(f.sp!==o.sp||f.dead)return false;
+  const p=phenotype(f);
+  for(const [g,id] of Object.entries(o.req))if(p[g].id!==id)return false;
+  if(o.sex&&f.sex!==o.sex)return false;
+  if(f.stage!=='adult'&&f.stage!=='old')return false;
+  if(o.minSize&&p.size<o.minSize)return false;
+  return f.health>=50;
+}
+function genOrders(){
+  while(G.orders.length<Math.min(5,2+Math.floor(G.lvl/2))){
+    const sps=Object.keys(G.unlocked).filter(s=>G.unlocked[s]);const sp=pick(sps);
+    const n=Math.min(1+Math.floor(G.lvl/2),3),genes=['color','pattern','tail','fin','dorsal','shine'].sort(()=>Math.random()-.5).slice(0,n);
+    const req={};let val=SPECIES[sp].price;
+    for(const g of genes){const pool=SPECIES[sp][g].filter(a=>!a.rare||G.lvl>=5);const a=pick(pool);req[g]=a.id;val*=1+(a.v-1)*.45}
+    const sex=chance(.4)?pick(['F','M']):null;
+    const o={id:G.orderN++,sp,req,sex,reward:Math.round(val*1.8+25),expires:G.day+rint(14,28),cust:pick(['Ahmet Bey','Ayşe Hanım','Akvaryum Kulübü','Zehra','Mert','Balıkçı Cemal','Dr. Elif','Pet Dünyası'])};
+    G.orders.push(o);
+  }
+}
+function judgeShow(fish){
+  const sc=f=>rarityScore(f)*3+phenotype(f).size*8+f.health/8+(f.stage==='adult'?6:0)+f.fresh*5;
+  const mine=sc(fish)+rnd(-3,3);
+  const rivals=Array.from({length:6},()=>20+rnd(0,22)+G.lvl*3+G.day*.12);
+  const rank=1+rivals.filter(r=>r>mine).length;
+  const prize=[0,400,220,120][rank]||30;
+  return{rank,prize,mine:Math.round(mine),best:Math.round(Math.max(...rivals))};
+}
+function hourly(){
+  G.time+=1;
+  if(G.time>=24){G.time=0;G.day++;onNewDay()}
+}
+function onNewDay(){
+  for(const t of G.tanks)dayTick(t);
+  G.orders=G.orders.filter(o=>{if(o.expires<G.day){toast(`⌛ Sipariş süresi doldu: ${o.cust}`,'bad');return false}return true});
+  genOrders();
+  G.stats.money.push(G.money);G.stats.pop.push(G.tanks.reduce((s,t)=>s+t.fish.filter(f=>!f.dead).length,0));
+  if(G.stats.money.length>80){G.stats.money.shift();G.stats.pop.shift()}
+  if(G.day>=G.show.next&&!G.show.active){G.show.active=true;toast('🏆 <b>Akvaryum Sergisi</b> başladı! En iyi balığını yarıştır (üst menü).','gold')}
+  checkAch();save();
+}
+const ACH=[
+ ['first','İlk Doğum','Bir doğum gerçekleştir',()=>G.born>0],['b50','Balık Çiftliği','50 yavru doğur',()=>G.born>=50],['b200','Nüfus Patlaması','200 yavru doğur',()=>G.born>=200],
+ ['var10','Koleksiyoncu','10 varyasyon keşfet',()=>Object.keys(G.seen).length>=10],['var30','Gen Ustası','30 varyasyon keşfet',()=>Object.keys(G.seen).length>=30],
+ ['rich','Zengin','1000₺ biriktir',()=>G.money>=1000],['rich2','Akvaryum Patronu','5000₺ biriktir',()=>G.money>=5000],
+ ['three','Çok Türlü','3 türü aç',()=>Object.keys(G.unlocked).length>=3],['ord5','Güvenilir Satıcı','5 sipariş tamamla',()=>G.ordersDone>=5],
+ ['rare','Nadir Bulgu','Nadir bir allel keşfet',()=>Object.keys(G.seenAllele).some(k=>{const [s,g,id]=k.split('.');return allele(s,g,id).rare})],
+ ['lvl5','Usta','İtibar seviye 5',()=>G.lvl>=5],['champ','Şampiyon','Sergide 1. ol',()=>G.champ>0]];
+function checkAch(){for(const [id,n,d,fn] of ACH){if(!G.ach[id]&&fn()){G.ach[id]=1;toast(`🏅 Başarım: <b>${n}</b> — ${d}`,'gold');addXP(25);sfx('win')}}}
+
+/* ---------- Ses ---------- */
+let AC=null;
+function sfx(k){
+  if(G&&G.muted)return;
+  try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);
+    const T=AC.currentTime,P={pop:[500,900,.05,'sine'],heart:[600,900,.18,'sine'],birth:[420,820,.35,'triangle'],win:[520,1040,.4,'triangle'],coin:[900,1300,.12,'square'],low:[220,110,.3,'sawtooth'],click:[400,500,.04,'sine']}[k]||[400,500,.05,'sine'];
+    o.type=P[3];o.frequency.setValueAtTime(P[0],T);o.frequency.exponentialRampToValueAtTime(P[1],T+P[2]);g.gain.setValueAtTime(.05,T);g.gain.exponentialRampToValueAtTime(.0001,T+P[2]+.02);o.start(T);o.stop(T+P[2]+.05)}catch(e){}
+}
+
+/* ---------- 6. Çizim ---------- */
+const cv=$('#c'),ctx=cv.getContext('2d');
+function resize(){const r=cv.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);cv.width=r.width*dpr;cv.height=r.height*dpr;cv._s=cv.width/W}
+window.addEventListener('resize',resize);
+function drawFish(c,f,x,y,sc,opts={}){
+  const S=SPECIES[f.sp],p=phenotype(f),col=p.color.x,bl=S.body.len*sc,bh=bl*S.body.hr*(f.sex==='F'&&f.stage!=='fry'?1.15+(f.preg?.18:0):1);
+  const ph=opts.ph??f.ph,wag=Math.sin(ph)*.22*(opts.still?0:1),dir=opts.dir??f.dir;
+  const night=!(G.time>=7&&G.time<21);
+  c.save();c.translate(x,y);c.scale(dir,1);
+  if(f.dead){c.scale(1,-1);c.globalAlpha=.8}
+  if(f.sick&&!opts.still){}
+  const rs=mulberry(f.seed);
+  // renk hesabı
+  const tint=f.sick?[0,-20,6]:[0,0,0];
+  const base=col.slice();if(f.dead){base[1]*=.2;base[2]*=1.05}
+  const fc=p.fin.x==='m'?base:(p.fin.x||[base[0],base[1]*.35,Math.min(90,base[2]+22)]);
+  const tp=TAILS[p.tail.x];
+  const male=f.sex==='M',tl=bl*tp.len*(male&&f.sp==='guppy'?1.25:.95);
+  const th=bl*tp.h*.48*(male&&f.sp==='guppy'?1.1:.9);
+  const px=-bl*.42;
+  // --- kuyruk
+  c.save();c.translate(px,0);c.rotate(wag);
+  const tipY=th*(1-tp.pt*.85),tx=-tl;
+  c.beginPath();c.moveTo(0,-bh*.1);
+  c.bezierCurveTo(-tl*.35,-th*(.45+tp.flow*.25),tx*.8,-th*(.85+tp.flow*.2),tx,-tipY);
+  if(tp.fork>0){c.lineTo(tx+tl*tp.fork*.65,0);c.lineTo(tx,tipY)}
+  else if(tp.pt>.5){c.lineTo(tx*(1+.15*tp.pt),0);c.lineTo(tx,tipY)}
+  else c.quadraticCurveTo(tx-tl*.18,0,tx,tipY);
+  c.bezierCurveTo(tx*.8,th*(.85+tp.flow*.2),-tl*.35,th*(.45+tp.flow*.25),0,bh*.1);c.closePath();
+  const gr=c.createLinearGradient(0,0,tx,0);gr.addColorStop(0,hsl(base,0,0,.95));gr.addColorStop(.35,hsl(fc,0,0,.8));gr.addColorStop(1,hsl(fc,6,0,.55));
+  c.fillStyle=gr;c.fill();
+  c.strokeStyle=p.fin.id==='black'?'#000a':hsl(fc,-12,0,.7);c.lineWidth=p.fin.id==='black'?2.4*sc:1;c.stroke();
+  c.save();c.clip();c.strokeStyle=hsl(fc,-16,0,.28);c.lineWidth=.8;
+  for(let i=-5;i<=5;i++){c.beginPath();c.moveTo(0,0);c.lineTo(tx*1.1,i*th*.14);c.stroke()}c.restore();
+  if(tp.sw){ // kılıçlar
+    c.strokeStyle=hsl(fc,0,0,.9);c.lineWidth=2.2*sc;c.lineCap='round';
+    const sl=tl*tp.sw*.55;
+    c.beginPath();c.moveTo(tx+tl*.1,-tipY);c.lineTo(tx-sl,-tipY-th*.05);c.stroke();
+    if(tp.fork>0||f.sp!=='platy'){c.beginPath();c.moveTo(tx+tl*.1,tipY);c.lineTo(tx-sl,tipY+th*.05);c.stroke()}
+  }
+  if(p.shine.id==='glow'&&night){c.shadowColor='#7fffe0';c.shadowBlur=14;c.strokeStyle='#7fffe0';c.stroke()}
+  c.restore();
+  // --- sırt yüzgeci
+  const dh=bh*.75*p.dorsal.x*(f.sp==='guppy'&&male?1:.8);
+  c.beginPath();c.moveTo(-bl*.05,-bh*.5);c.bezierCurveTo(-bl*.02,-bh*.5-dh,-bl*.3,-bh*.5-dh*1.1,-bl*.4,-bh*.25);c.closePath();
+  c.fillStyle=hsl(fc,0,0,.75);c.fill();c.strokeStyle=hsl(fc,-14,0,.6);c.lineWidth=1;c.stroke();
+  // --- gövde
+  const body=new Path2D();
+  body.moveTo(bl*.5,0);body.bezierCurveTo(bl*.46,-bh*.55,bl*.12,-bh*.62,-bl*.15,-bh*.42);body.bezierCurveTo(-bl*.3,-bh*.3,-bl*.4,-bh*.14,-bl*.45,-bh*.1);
+  body.lineTo(-bl*.45,bh*.1);body.bezierCurveTo(-bl*.35,bh*.2,-bl*.25,bh*.45,bl*.05,bh*.58);body.bezierCurveTo(bl*.3,bh*.62,bl*.48,bh*.35,bl*.5,0);
+  const bg=c.createLinearGradient(0,-bh*.6,0,bh*.6);
+  bg.addColorStop(0,hsl(base,p.shine.id==='mat'?4:10,0));bg.addColorStop(.55,hsl(base,0,0));bg.addColorStop(1,hsl(base,-14+(-f.fresh*0),-8));
+  c.fillStyle=bg;c.fill(body);
+  c.save();c.clip(body);
+  drawPattern(c,p.pattern.id,f,base,bl,bh,rs,ph);
+  // parlaklık
+  if(p.shine.id!=='mat'){
+    const sg=c.createLinearGradient(-bl*.4,-bh*.5,bl*.4,bh*.2);
+    const sc2=p.shine.id==='gold'?'rgba(255,215,90,':'rgba(255,255,255,';
+    sg.addColorStop(0,sc2+'0)');sg.addColorStop(.35,sc2+(p.shine.id==='gold'?'.5)':'.38)'));sg.addColorStop(.5,sc2+'0)');sg.addColorStop(.75,sc2+'.25)');sg.addColorStop(1,sc2+'0)');
+    c.fillStyle=sg;c.fillRect(-bl*.5,-bh,bl,bh*2);
+  }
+  // karın
+  const ag=c.createLinearGradient(0,0,0,bh*.6);ag.addColorStop(0,'rgba(255,255,255,0)');ag.addColorStop(1,'rgba(255,255,230,.3)');c.fillStyle=ag;c.fillRect(-bl*.5,0,bl,bh);
+  // hamile leke
+  if(f.preg&&!f.dead){c.fillStyle='rgba(40,10,0,.55)';c.beginPath();c.ellipse(-bl*.12,bh*.34,bl*.07,bh*.1,0,0,6.28);c.fill()}
+  // solungaç
+  c.strokeStyle=hsl(base,-22,0,.55);c.lineWidth=1;c.beginPath();c.moveTo(bl*.2,-bh*.32);c.quadraticCurveTo(bl*.12,0,bl*.2,bh*.32);c.stroke();
+  c.restore();
+  c.strokeStyle=hsl(base,-26,0,.8);c.lineWidth=1;c.stroke(body);
+  // göğüs yüzgeci
+  c.save();c.translate(bl*.16,bh*.15);c.rotate(Math.sin(ph*1.5)*.35-.3);
+  c.fillStyle=hsl(fc,6,0,.5);c.beginPath();c.moveTo(0,0);c.quadraticCurveTo(-bl*.1,bh*.25,-bl*.2,bh*.12);c.quadraticCurveTo(-bl*.1,0,0,0);c.fill();c.restore();
+  // göz
+  const ex=bl*.36,ey=-bh*.1,er=Math.max(1.8,bh*.17);
+  c.fillStyle=f.dead?'#ddd':'#f8f8f8';c.beginPath();c.arc(ex,ey,er*1.25,0,6.28);c.fill();
+  c.fillStyle=p.color.id==='albino'?'#c1121f':'#10121a';c.beginPath();c.arc(ex+er*.15,ey,er*.85,0,6.28);c.fill();
+  if(f.dead){c.strokeStyle='#222';c.beginPath();c.moveTo(ex-er,ey-er);c.lineTo(ex+er,ey+er);c.moveTo(ex-er,ey+er);c.lineTo(ex+er,ey-er);c.stroke()}
+  else{c.fillStyle='#fff';c.beginPath();c.arc(ex+er*.45,ey-er*.3,er*.28,0,6.28);c.fill()}
+  if(f.sick&&!f.dead){c.fillStyle='rgba(255,255,255,.9)';for(let i=0;i<7;i++){c.beginPath();c.arc(-bl*.3+rs()*bl*.6,-bh*.3+rs()*bh*.6,Math.max(.8,sc*.9),0,6.28);c.fill()}}
+  c.restore();
+}
+function drawPattern(c,id,f,base,bl,bh,rs,ph){
+  const dk=hsl(base,-28,5,.55),lt=hsl(base,28,-8,.6);
+  switch(id){
+   case 'spots':case 'dalm':{const n=id==='dalm'?9:14;c.fillStyle=id==='dalm'?'rgba(10,10,20,.8)':dk;for(let i=0;i<n;i++){c.beginPath();c.arc((rs()-.55)*bl*.9,(rs()-.5)*bh*.9,bl*(id==='dalm'?.03+rs()*.04:.018+rs()*.02),0,6.28);c.fill()}break}
+   case 'stripes':case 'tiger':{c.fillStyle=id==='tiger'?'rgba(10,10,10,.6)':dk;for(let i=0;i<6;i++){const x=-bl*.35+i*bl*.13;c.fillRect(x,-bh,bl*.04,bh*2)}break}
+   case 'mosaic':{for(let i=0;i<22;i++){const x=-bl*.45+rs()*bl*.7,y=(rs()-.5)*bh*1.1;c.fillStyle=rs()>.5?dk:lt;c.fillRect(x,y,bl*.06,bl*.05)}break}
+   case 'snake':{c.strokeStyle=dk;c.lineWidth=.8;const s=bl*.07;for(let x=-bl*.5;x<bl*.5;x+=s)for(let y=-bh*.7;y<bh*.7;y+=s){c.beginPath();c.moveTo(x,y);c.lineTo(x+s/2,y+s/2);c.lineTo(x,y+s);c.lineTo(x-s/2,y+s/2);c.closePath();c.stroke()}break}
+   case 'leopard':{c.strokeStyle='rgba(20,10,0,.7)';c.lineWidth=1.3;for(let i=0;i<10;i++){c.beginPath();c.arc((rs()-.55)*bl*.85,(rs()-.5)*bh*.8,bl*.035,0,6.28);c.stroke()}break}
+   case 'cobra':{c.strokeStyle='rgba(15,15,15,.75)';c.lineWidth=bl*.04;for(let i=0;i<6;i++){const x=-bl*.4+i*bl*.14;c.beginPath();c.moveTo(x-bh*.5,-bh*.6);c.lineTo(x+bh*.4,bh*.6);c.stroke()}break}
+   case 'glitter':case 'kaleido':case 'harlequin':{for(let i=0;i<26;i++){const a=.4+.6*Math.abs(Math.sin(ph*1.5+i));c.fillStyle=`hsla(${(i*43+ph*40)%360},90%,75%,${a*.8})`;c.fillRect((rs()-.55)*bl,(rs()-.5)*bh*1.1,2,2)}break}
+   case 'marble':case 'calico':{for(let i=0;i<7;i++){c.fillStyle=id==='calico'?`hsla(${[20,45,0,220][i%4]},70%,${i%2?25:60}%,.65)`:(i%2?'rgba(255,255,255,.55)':'rgba(10,10,20,.5)');c.beginPath();c.ellipse((rs()-.55)*bl*.8,(rs()-.5)*bh*.8,bl*(.04+rs()*.07),bh*(.12+rs()*.2),rs()*3,0,6.28);c.fill()}break}
+   case 'panda':{c.fillStyle='rgba(8,8,12,.85)';c.beginPath();c.ellipse(bl*.28,-bh*.05,bl*.12,bh*.45,0,0,6.28);c.fill();c.beginPath();c.ellipse(-bl*.32,0,bl*.16,bh*.5,0,0,6.28);c.fill();c.fillStyle='rgba(255,255,255,.35)';c.fillRect(-bl*.15,-bh,bl*.3,bh*2);break}
+   case 'tux':{c.fillStyle='rgba(8,8,16,.78)';c.fillRect(-bl*.5,0,bl,bh);c.fillRect(-bl*.5,-bh,bl*.35,bh*2);break}
+   case 'mickey':{c.fillStyle='rgba(8,8,16,.88)';c.beginPath();c.arc(-bl*.34,0,bh*.24,0,6.28);c.fill();c.beginPath();c.arc(-bl*.28,-bh*.28,bh*.14,0,6.28);c.fill();c.beginPath();c.arc(-bl*.28,bh*.28,bh*.14,0,6.28);c.fill();break}
+   case 'wag':{c.fillStyle='rgba(8,8,16,.7)';c.fillRect(-bl*.5,-bh,bl*.18,bh*2);break}
+  }
+}
+function plantDraw(c,pl,t,time){
+  const P=PLANTS[pl.type],rs=mulberry(pl.seed),g=pl.size,hh=(pl.type==='moss'?60:pl.type==='val'?190:pl.type==='sword'?130:pl.type==='cabomba'?160:150)*pl.h*Math.min(1,.25+g*.75);
+  const n=pl.type==='moss'?9:pl.type==='val'?7:pl.type==='sword'?5:6;
+  for(let i=0;i<n;i++){
+    const ox=(i-n/2)*(pl.type==='moss'?7:9)+rs()*5,len=hh*(.65+rs()*.4);
+    const sway=Math.sin(time*1.1+i*.8+pl.seed)*12*(len/150);
+    c.beginPath();c.moveTo(pl.x+ox,FLOOR+4);
+    if(pl.type==='cabomba'||pl.type==='ludwig'){
+      c.strokeStyle=hsl(P.col,rs()*10-5,0,.9);c.lineWidth=3;c.quadraticCurveTo(pl.x+ox+sway*.4,FLOOR-len*.5,pl.x+ox+sway,FLOOR-len);c.stroke();
+      for(let j=1;j<7;j++){const f=j/7,bx=pl.x+ox+sway*f*f,by=FLOOR-len*f;c.beginPath();c.moveTo(bx,by);c.lineTo(bx-12,by-6);c.moveTo(bx,by);c.lineTo(bx+12,by-6);c.lineWidth=1.8;c.stroke()}
+    }else if(pl.type==='moss'){
+      c.fillStyle=hsl(P.col,rs()*12,0,.95);c.arc(pl.x+ox,FLOOR-len*.4,8+rs()*7,0,6.28);c.fill();
+    }else{
+      const wd=pl.type==='sword'?14:5;
+      c.fillStyle=hsl(P.col,rs()*14-6,i*2,.92);
+      c.quadraticCurveTo(pl.x+ox+sway*.5-wd,FLOOR-len*.5,pl.x+ox+sway,FLOOR-len);c.quadraticCurveTo(pl.x+ox+sway*.5+wd,FLOOR-len*.5,pl.x+ox+wd*.3,FLOOR+4);c.fill();
+    }
+  }
+}
+function decorDraw(c,d,i){
+  const x=d.x,y=FLOOR+6;c.save();c.translate(x,y);
+  if(d.type==='rock'){c.fillStyle='#5b6573';c.beginPath();c.moveTo(-40,0);c.quadraticCurveTo(-34,-52,-4,-56);c.quadraticCurveTo(34,-48,44,0);c.fill();c.fillStyle='#7d8896';c.beginPath();c.moveTo(-20,-10);c.quadraticCurveTo(-8,-46,4,-50);c.quadraticCurveTo(-4,-20,-12,-6);c.fill()}
+  if(d.type==='wood'){c.strokeStyle='#5a3a22';c.lineWidth=14;c.lineCap='round';c.beginPath();c.moveTo(-50,-2);c.quadraticCurveTo(-10,-30,34,-14);c.stroke();c.lineWidth=8;c.beginPath();c.moveTo(0,-20);c.lineTo(10,-60);c.moveTo(24,-16);c.lineTo(48,-44);c.stroke();c.strokeStyle='#7a5636';c.lineWidth=3;c.beginPath();c.moveTo(-48,-6);c.quadraticCurveTo(-10,-34,30,-18);c.stroke()}
+  if(d.type==='cave'){c.fillStyle='#6a5a4a';c.beginPath();c.moveTo(-55,0);c.quadraticCurveTo(-55,-70,0,-72);c.quadraticCurveTo(55,-70,55,0);c.fill();c.fillStyle='#120c08';c.beginPath();c.moveTo(-24,0);c.quadraticCurveTo(-24,-40,0,-42);c.quadraticCurveTo(24,-40,24,0);c.fill()}
+  if(d.type==='castle'){c.fillStyle='#8a8f9c';c.fillRect(-38,-60,76,60);c.fillRect(-46,-84,22,84);c.fillRect(24,-84,22,84);for(const bx of [-46,-36,24,34]){c.fillRect(bx,-94,8,10)}c.fillStyle='#161a24';c.beginPath();c.moveTo(-12,0);c.lineTo(-12,-26);c.quadraticCurveTo(0,-40,12,-26);c.lineTo(12,0);c.fill();c.fillStyle='#c33';c.fillRect(-46,-110,2,16);c.fillRect(-44,-110,14,8)}
+  if(d.type==='chest'){c.fillStyle='#6b4423';c.fillRect(-26,-26,52,26);c.fillStyle='#8b5a2b';c.beginPath();c.moveTo(-26,-26);c.quadraticCurveTo(0,-56,26,-26);c.fill();c.fillStyle='gold';c.fillRect(-4,-30,8,12);c.strokeStyle='#d4af37';c.lineWidth=2;c.strokeRect(-26,-26,52,26);
+    if(G.time%2<1){c.fillStyle='gold';c.beginPath();c.arc(0,-36,4,0,6.28);c.fill()}}
+  if(d.type==='shell'){c.fillStyle='#f3c9b8';c.beginPath();c.moveTo(0,0);c.arc(0,0,22,Math.PI,0);c.fill();c.strokeStyle='#d99a86';c.lineWidth=1.5;for(let a=0;a<6;a++){c.beginPath();c.moveTo(0,0);c.lineTo(Math.cos(Math.PI+a*.52)*22,Math.sin(Math.PI+a*.52)*22);c.stroke()}}
+  c.restore();
+}
+let TIME=0;
+function render(dt){
+  const t=curTank(),c=ctx,s=cv._s||1;TIME+=dt;
+  c.setTransform(s,0,0,s,0,0);
+  const B=BACKS[t.back].c;
+  const night=!(G.time>=7&&G.time<21);
+  const dayAmt=night?0:Math.sin((G.time-7)/14*Math.PI);
+  // su
+  let g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,B[0]);g.addColorStop(.45,B[1]);g.addColorStop(1,B[2]);
+  c.fillStyle=g;c.fillRect(0,0,W,H);
+  // ışık hüzmeleri
+  if(t.light&&(t.eq.led||!night)){c.save();c.globalCompositeOperation='lighter';
+    for(let i=0;i<6;i++){const x=80+i*170+Math.sin(TIME*.3+i)*25;const lg=c.createLinearGradient(x,SURF,x+60,FLOOR);lg.addColorStop(0,`rgba(180,240,255,${.16+dayAmt*.06})`);lg.addColorStop(1,'rgba(180,240,255,0)');c.fillStyle=lg;c.beginPath();c.moveTo(x-20,SURF);c.lineTo(x+40,SURF);c.lineTo(x+150,FLOOR);c.lineTo(x+40,FLOOR);c.fill()}c.restore()}
+  // arka plan silueti
+  c.fillStyle='rgba(0,0,0,.14)';for(let i=0;i<5;i++){c.beginPath();c.moveTo(i*230-30,FLOOR);c.quadraticCurveTo(i*230+60,FLOOR-130-(i%2)*50,i*230+170,FLOOR);c.fill()}
+  // çakıl
+  const gg=c.createLinearGradient(0,FLOOR,0,H);gg.addColorStop(0,'#c9b48a');gg.addColorStop(1,'#6e5d3f');c.fillStyle=gg;
+  c.beginPath();c.moveTo(0,FLOOR+4);for(let x=0;x<=W;x+=40)c.lineTo(x,FLOOR+(Math.sin(x*.02)*4));c.lineTo(W,H);c.lineTo(0,H);c.fill();
+  const rs=mulberry(77);for(let i=0;i<160;i++){c.fillStyle=`hsla(${30+rs()*25},${30+rs()*30}%,${35+rs()*35}%,.7)`;c.beginPath();c.ellipse(rs()*W,FLOOR+10+rs()*(H-FLOOR-12),3+rs()*3,2+rs()*2,0,0,6.28);c.fill()}
+  // dekor & bitkiler
+  t.decor.forEach((d,i)=>decorDraw(c,d,i));
+  t.plants.forEach(pl=>plantDraw(c,pl,t,TIME));
+  // yosun
+  if(t.w.alg>8){c.fillStyle=`rgba(80,160,60,${Math.min(.55,t.w.alg/180)})`;c.fillRect(0,FLOOR-8,W,22);}
+  // yavru kutusu
+  if(t.eq.nursery){const b=t.box;c.fillStyle='rgba(255,255,255,.07)';c.fillRect(b.x,b.y,b.w,b.h);c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=2;c.strokeRect(b.x,b.y,b.w,b.h);c.fillStyle='#fffc';c.font='11px sans-serif';c.fillText('Yavru/Doğum Kutusu',b.x+6,b.y+b.h-6);
+    c.strokeStyle='rgba(255,255,255,.25)';for(let x=b.x+10;x<b.x+b.w;x+=12){c.beginPath();c.moveTo(x,b.y);c.lineTo(x,b.y+b.h);c.stroke()}}
+  // yemler
+  for(const f of t.food){c.fillStyle=f.rot?'#6b5a3a':FOODS[f.type].col;c.beginPath();c.arc(f.x,f.y,f.rot?2:3,0,6.28);c.fill()}
+  // balıklar (arkadan öne y sıralı)
+  const list=[...t.fish].sort((a,b)=>a.y-b.y);
+  for(const f of list){
+    const sc=bodyScale(f);
+    if(f.id===G.sel){c.strokeStyle='rgba(61,220,192,.8)';c.lineWidth=2;c.setLineDash([5,4]);c.beginPath();c.arc(f.x,f.y,34*sc+8,0,6.28);c.stroke();c.setLineDash([])}
+    drawFish(c,f,f.x,f.y,sc);
+    if(f.id===G.sel||f===hoverFish){c.fillStyle='#fff';c.font='12px sans-serif';c.textAlign='center';c.fillText((f.sex==='F'?'♀ ':'♂ ')+f.name+(f.preg?' 🤰':'')+(f.sick?' 🤒':''),f.x,f.y-30*sc-10);c.textAlign='left'}
+    else if(f.hunger>75&&!f.dead){c.fillStyle='#ffd166';c.font='13px sans-serif';c.fillText('🍽',f.x-6,f.y-22*sc-6)}
+  }
+  // baloncuklar & parçacıklar
+  c.strokeStyle='rgba(255,255,255,.6)';
+  for(const b of t.bubbles){c.globalAlpha=Math.min(1,b.life);c.beginPath();c.arc(b.x,b.y,b.r,0,6.28);c.stroke();c.fillStyle='rgba(255,255,255,.12)';c.fill()}c.globalAlpha=1;
+  for(const p of t.parts){c.globalAlpha=Math.min(1,p.life*1.5);if(p.heart){c.fillStyle='#ff6b9a';c.font='16px sans-serif';c.fillText('❤',p.x,p.y)}else{c.fillStyle=p.c||'#fff';c.beginPath();c.arc(p.x,p.y,2.2,0,6.28);c.fill()}}c.globalAlpha=1;
+  if(t.eq.air){c.fillStyle='#223';c.fillRect(960,FLOOR-2,18,8)}
+  if(t.eq.filter){c.fillStyle='#1b2430';c.fillRect(W-30,SURF-4,24,110);c.fillStyle='#364559';c.fillRect(W-26,SURF+100,16,8)}
+  // kirlilik / bulanıklık
+  const turb=1-t.w.clar/100;if(turb>.08){c.fillStyle=`rgba(120,140,70,${turb*.5})`;c.fillRect(0,0,W,H)}
+  // yüzey
+  const sg=c.createLinearGradient(0,SURF-4,0,SURF+16);sg.addColorStop(0,'rgba(220,250,255,.65)');sg.addColorStop(1,'rgba(220,250,255,0)');c.fillStyle=sg;
+  c.beginPath();c.moveTo(0,SURF);for(let x=0;x<=W;x+=20)c.lineTo(x,SURF+Math.sin(x*.03+TIME*1.6)*2.5);c.lineTo(W,SURF+18);c.lineTo(0,SURF+18);c.fill();
+  // gece
+  if(night||G.time<8||G.time>=20){const a=night?.5:G.time<8?(8-G.time)*.1:(G.time-19)*.12;const nl=t.light&&t.eq.led&&night?.7:1;c.fillStyle=`rgba(5,10,40,${clamp(a,0,.55)*nl})`;c.fillRect(0,0,W,H)}
+  // cam çerçeve parlaması
+  const vg=c.createRadialGradient(W/2,H/2,H*.4,W/2,H/2,H*.95);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.35)');c.fillStyle=vg;c.fillRect(0,0,W,H);
+  // cam kiri / yosun uyarısı
+  if(t.w.alg>55){c.fillStyle=`rgba(60,110,40,${(t.w.alg-55)/110})`;c.fillRect(0,0,W,H)}
+}
+let hoverFish=null;
+
+/* ---------- 7. Arayüz ---------- */
+function ui(){
+  const t=curTank();
+  $('#top').innerHTML=`<b style="font-size:17px">🐠 Akvaryum Ustası</b>
+   <span class="stat">💰 <b>${fmt(G.money)}₺</b></span>
+   <span class="stat">📅 Gün <b>${G.day}</b> · ${String(Math.floor(G.time)).padStart(2,'0')}:00 ${G.time>=7&&G.time<21?'☀️':'🌙'}</span>
+   <span class="stat">⭐ Seviye ${G.lvl}<span id="xpbar"><i style="width:${G.xp/(G.lvl*120)*100}%"></i></span></span>
+   <span class="stat">📖 ${Object.keys(G.seen).length} varyasyon</span>
+   <span class="grow"></span>
+   ${G.show.active?'<button class="pri" data-act="show">🏆 Sergi!</button>':''}
+   <button data-act="speed" data-v="0" class="${G.speed===0?'on':''}">⏸</button><button data-act="speed" data-v="1" class="${G.speed===1?'on':''}">1x</button><button data-act="speed" data-v="2" class="${G.speed===2?'on':''}">2x</button><button data-act="speed" data-v="4" class="${G.speed===4?'on':''}">4x</button>
+   <button data-act="mute">${G.muted?'🔇':'🔊'}</button><button data-act="menu">☰ Menü</button>`;
+  $('#tabs').innerHTML=G.tanks.map((x,i)=>`<button data-act="tank" data-i="${i}" class="${i===G.tank?'on':''}">${x.name} <small class="dim">(${x.fish.filter(f=>!f.dead).length}/${tankCap(x)})</small></button>`).join('')+(G.tanks.length<4?`<button data-act="newtank">➕ Yeni Akvaryum (${fmt([0,500,1200,2600][G.tanks.length])}₺)</button>`:'');
+  const fd=Object.entries(FOODS).map(([k,v])=>`<button data-act="food" data-k="${k}" class="${G.food===k?'on':''}" title="${v.desc}">${v.icon} ${G.stock[k]||0}</button>`).join('');
+  $('#bar').innerHTML=`<span class="dim" style="align-self:center">Yem (tıkla→suya at):</span>${fd}<span class="sep"></span>
+   <button data-act="wc">💧 Su Değiştir</button><button data-act="scrub">🧽 Camı Temizle</button><button data-act="light" class="${t.light?'on':''}">💡 Işık</button>
+   ${t.eq.heater?`<span style="align-self:center">🔥 <input type="range" min="20" max="32" value="${t.target}" data-act="heat" style="width:80px;vertical-align:middle"> ${t.target}°C</span>`:''}
+   <button data-act="med">💊 İlaç (${G.stock.med||0})</button><span class="sep"></span>
+   <button data-act="shop">🛒 Mağaza</button><button data-act="orders">📋 Siparişler (${G.orders.length})</button><button data-act="dex">📖 Ansiklopedi</button><button data-act="plan">🧬 Üreme Planlayıcı</button><button data-act="stats">📊 İstatistik</button><button data-act="ach">🏅 Başarımlar</button>`;
+  uiWater();uiFish();
+}
+function gauge(l,v,max,lo,hi,unit,dec=1){
+  const ok=v>=lo&&v<=hi,col=ok?'#4ade80':(Math.abs(v-(v<lo?lo:hi))<(hi-lo)*.5?'#fbbf24':'#f87171');
+  return `<div class="gauge"><span>${l}</span><div class="bar"><i style="width:${clamp(v/max*100,2,100)}%;background:${col}"></i></div><span>${v.toFixed(dec)}${unit}</span></div>`}
+function uiWater(){
+  const t=curTank(),w=t.w,sp=Object.keys(G.unlocked)[0];
+  $('#water').innerHTML=`<h3>Su Kalitesi — ${TANKS[t.lvl].name}</h3>
+   ${gauge('Amonyak',w.nh3,2,0,.25,'',2)}${gauge('Nitrat',w.no3,100,0,35,'',0)}${gauge('Oksijen',w.o2,10,5,10,'',1)}${gauge('Sıcaklık',w.temp,35,23,28,'°',1)}${gauge('pH',w.ph,10,6.6,7.8,'',1)}${gauge('Berraklık',w.clar,100,65,100,'%',0)}${gauge('Yosun',w.alg,100,0,25,'%',0)}
+   <canvas id="spark" width="300" height="44" style="width:100%;height:44px;margin-top:4px"></canvas>
+   <div class="dim" style="font-size:11px">Kapasite: ${t.fish.filter(f=>!f.dead).length}/${tankCap(t)} · Filtre: ${['yok','sünger','kutu','pro'][t.eq.filter]} · ${t.eq.heater?'Isıtıcı ':''}${t.eq.air?'Hava taşı ':''}${t.eq.led?'LED':''}</div>
+   <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap"><button data-act="tankup" ${t.lvl>=3?'disabled':''}>⬆️ Tankı büyüt${t.lvl<3?' ('+fmt(TANKS[t.lvl+1].price)+'₺)':''}</button><button data-act="rename">✏️</button></div>`;
+  spark();
+}
+function spark(){
+  const cs=$('#spark');if(!cs)return;const t=curTank(),c=cs.getContext('2d');c.clearRect(0,0,300,44);
+  const series=[['nh3','#ff6b6b',2],['no3','#fbbf24',100],['o2','#4ade80',10]];
+  for(const [k,col,mx] of series){c.strokeStyle=col;c.lineWidth=1.5;c.beginPath();t.hist.forEach((h,i)=>{const x=i/(Math.max(59,t.hist.length-1))*300,y=42-clamp(h[k]/mx,0,1)*40;i?c.lineTo(x,y):c.moveTo(x,y)});c.stroke()}
+  c.fillStyle='#8fb3d1';c.font='9px sans-serif';c.fillText('amonyak(kırmızı) nitrat(sarı) O₂(yeşil)',4,9);
+}
+function fishState(f){
+  return `${f.dead?'💀':''}${f.sick?'🤒':''}${f.preg?'🤰':''}${f.hunger>75?'🍽':''}${f.iso?'📦':''}${f.fav?'♥':''}`}
+function uiFish(){
+  const t=curTank();
+  $('#filters').innerHTML=[['all','Hepsi'],['F','♀'],['M','♂'],['fry','Yavru'],['adult','Yetişkin'],['guppy','🐟'],['molly','🐠'],['platy','🐡'],['sick','🤒']].map(([k,l])=>`<button data-act="flt" data-k="${k}" class="${G.filter===k?'on':''}">${l}</button>`).join('');
+  const L=t.fish.filter(f=>{const k=G.filter;return k==='all'||f.sex===k||f.stage===k||f.sp===k||(k==='sick'&&f.sick)||(k==='adult'&&f.stage==='old')}).sort((a,b)=>fishValue(b)-fishValue(a));
+  $('#flist').innerHTML=L.map(f=>`<div class="frow ${f.id===G.sel?'sel':''}" data-act="fish" data-id="${f.id}"><canvas width="84" height="52" data-fid="${f.id}"></canvas><span class="n">${f.sex==='F'?'♀':'♂'} ${f.name}<br><small class="dim">${SPECIES[f.sp].name} · ${STAGE[f.stage]}</small></span><span class="chip">${fishState(f)} ${fishValue(f)}₺</span></div>`).join('')||'<div class="dim">Bu filtrede balık yok.</div>';
+  document.querySelectorAll('#flist canvas').forEach(cn=>{
+    const f=t.fish.find(x=>x.id==+cn.dataset.fid);if(!f)return;const c=cn.getContext('2d');c.clearRect(0,0,84,52);
+    const sc=bodyScale(f)*.6;drawFish(c,f,56,27,sc*(34/SPECIES[f.sp].body.len),{dir:1,ph:0,still:true});
+  });
+}
+function openModal(title,html,wide){
+  $('#mbox').innerHTML=`<h2><span>${title}</span><button data-act="close">✖</button></h2>${html}`;$('#modal').classList.add('show');
+}
+function closeModal(){$('#modal').classList.remove('show');$('#mbox').innerHTML='';MODAL=null}
+let MODAL=null;
+function traitTags(f){const p=phenotype(f);return GENES.slice(0,6).map(g=>`<span class="tag ${p[g].rare?'rare':''}">${GNAME[g]}: ${p[g].name}</span>`).join('')+`<span class="tag">Boy: ${p.sizeName}</span>`}
+function bar(label,v,col){return `<div class="gauge" style="grid-template-columns:70px 1fr 40px"><span>${label}</span><div class="bar"><i style="width:${v}%;background:${col}"></i></div><span>${Math.round(v)}</span></div>`}
+function fishModal(f){
+  MODAL={type:'fish',id:f.id};
+  const p=phenotype(f),S=SPECIES[f.sp],t=curTank();
+  const geno=GENES.map(g=>{const [a,b]=f.g[g].map(id=>allele(f.sp,g,id));const dom=a.d>=b.d?a:b,rec=a.d>=b.d?b:a;
+    return `<tr><td>${GNAME[g]}</td><td>${a.name} / ${b.name}</td><td>${g==='size'?'ortalama':(a.id===b.id?'homozigot':`<b>${dom.name}</b> baskın · <span class="dim">taşıyıcı: ${rec.name}</span>`)}</td></tr>`}).join('');
+  const others=G.tanks.map((x,i)=>i!==G.tank?`<button data-act="move" data-id="${f.id}" data-i="${i}">→ ${x.name}</button>`:'').join('');
+  openModal(`${S.icon} ${f.name} <small class="dim">${S.name} ${f.sex==='F'?'♀ Dişi':'♂ Erkek'}</small>`,`
+   <div class="two"><div><canvas id="portrait" width="440" height="260" style="width:100%;background:linear-gradient(#1c6fa8,#06182c);border-radius:10px"></canvas>
+     <div style="margin-top:6px">${traitTags(f)}</div>
+     <p class="dim">${S.latin} · Nesil ${f.gen}${f.mother?` · Anne: ${f.mother}, Baba: ${f.father}`:' · Mağaza/yabani soy'}${f.inbred?' · <span style="color:var(--warn)">⚠ Akraba yavru (ömür ve verim düşük)</span>':''}</p></div>
+     <div>${bar('Sağlık',f.health,'#4ade80')}${bar('Açlık',f.hunger,'#fbbf24')}${bar('Stres',f.stress,'#f87171')}${bar('Renk',f.fresh*100,'#c084fc')}
+      <p>Yaş: <b>${f.age}</b> gün · ${STAGE[f.stage]} · Tahmini ömür ${Math.round(f.life)} gün<br>Değer: <b>${fishValue(f)}₺</b>${f.preg?`<br>🤰 Gebe — doğuma ~${Math.max(0,f.preg.left).toFixed(1)} gün`:''}${f.sperm?`<br>🧬 Depolanmış sperm: ${f.sperm.name} (${f.sperm.uses} doğum)`:''}${f.sick?`<br>🤒 ${f.sick.type}`:''}</p>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+       <button class="pri" data-act="sell" data-id="${f.id}" ${f.fav?'disabled':''}>💰 Sat (${Math.round(fishValue(f)*.9)}₺)</button>
+       <button data-act="fav" data-id="${f.id}">${f.fav?'♥ Favori':'♡ Favori'}</button>
+       <button data-act="rn" data-id="${f.id}">✏️ Ad</button>
+       ${t.eq.nursery?`<button data-act="iso" data-id="${f.id}">${f.iso?'📤 Kutudan çıkar':'📦 Kutuya al'}</button>`:''}
+       ${f.sick?`<button data-act="cure" data-id="${f.id}">💊 Tedavi</button>`:''}${f.dead?`<button class="dan" data-act="remove" data-id="${f.id}">🗑 Kaldır</button>`:''}${others}
+      </div></div></div>
+   <h3>🧬 Genotip</h3><table>${geno}</table>
+   <p class="dim" style="font-size:12px">Her gende iki allel bulunur; yavru her ebeveynden birini rastgele alır. Baskın allel görünür, çekinik allel gizli taşınır — iki taşıyıcıyı eşleştirince çekinik özellik %25 olasılıkla ortaya çıkar. Her doğumda küçük mutasyon şansı vardır!</p>`);
+  const pc=$('#portrait').getContext('2d');drawFish(pc,f,270,130,3.4*bodyScale(f)/1.45*(34/S.body.len)*(f.stage==='fry'?1.8:1),{dir:1,ph:0.4,still:true});
+}
+function shopModal(tab){
+  tab=tab||'fish';MODAL={type:'shop',tab};
+  const tabs=[['fish','🐟 Balıklar'],['food','🍂 Yem & İlaç'],['equip','⚙️ Ekipman'],['deco','🌿 Bitki & Dekor'],['back','🖼 Arka Plan']].map(([k,l])=>`<button data-act="shoptab" data-k="${k}" class="${tab===k?'on':''}">${l}</button>`).join(' ');
+  let body='';
+  const t=curTank();
+  if(tab==='fish'){
+    body='<div class="grid">'+Object.entries(SPECIES).map(([k,S])=>{
+      if(!G.unlocked[k])return `<div class="item"><b>${S.icon} ${S.name}</b><small>${S.latin}</small><small>Yeni türün kilidini aç: tüm özellikleri, kuyrukları ve renkleri ile yeni genetik havuzu.</small><button class="pri" data-act="unlock" data-k="${k}" ${G.money<S.shopCost?'disabled':''}>Kilidi aç ${fmt(S.shopCost)}₺</button></div>`;
+      const c1=Math.round(S.price*1.2),c2=Math.round(S.price*4.5);
+      return `<div class="item"><b>${S.icon} ${S.name}</b><small>${S.latin} · gebelik ~${S.gest} gün · yavru ${S.litter[0]}-${S.litter[1]} · ${S.temp[0]}-${S.temp[1]}°C</small>
+       <button data-act="buyfish" data-k="${k}" data-q="0">Genç çift (♂+♀) — ${c1*2}₺</button>
+       <button data-act="buyfish" data-k="${k}" data-q="1">⭐ Seçkin çift (nadir gen şansı) — ${c2*2}₺</button></div>`}).join('')+'</div>';
+  }else if(tab==='food'){
+    body='<div class="grid">'+Object.entries(FOODS).map(([k,F])=>`<div class="item"><b>${F.icon} ${F.name}</b><small>${F.desc}</small><small>Stok: ${G.stock[k]||0}</small><button data-act="buyfood" data-k="${k}">${F.pack} adet — ${F.price*F.pack}₺</button></div>`).join('')+
+     `<div class="item"><b>💊 İlaç</b><small>Hastalığı iyileştirir. Stok: ${G.stock.med||0}</small><button data-act="buymed">3 doz — 120₺</button></div>
+      <div class="item"><b>🧪 Mutasyon Serumu</b><small>3 gün boyunca doğan yavrularda mutasyon şansını ~2 katına çıkarır. Yeni varyasyon avı için!</small><button data-act="serum" ${G.money<200?'disabled':''}>Tanka dök — 200₺</button></div></div>`;
+  }else if(tab==='equip'){
+    body='<div class="grid">'+Object.entries(EQUIP).map(([k,E])=>{
+      const own=E.type==='filter'?t.eq.filter>=E.lvl:E.type==='heater'?t.eq.heater:E.type==='air'?t.eq.air:E.type==='led'?t.eq.led:t.eq.nursery;
+      return `<div class="item"><b>${E.icon} ${E.name}</b><small>${E.desc}</small><button data-act="buyeq" data-k="${k}" ${own||G.money<E.price?'disabled':''}>${own?'Sahipsin':E.price+'₺'}</button></div>`}).join('')+'</div>';
+  }else if(tab==='deco'){
+    body='<h3>Bitkiler</h3><div class="grid">'+Object.entries(PLANTS).map(([k,P])=>`<div class="item"><b>🌱 ${P.name}</b><small>Nitrat emer, oksijen verir, yavrulara saklanma yeri.</small><button data-act="buyplant" data-k="${k}" ${G.money<P.price?'disabled':''}>${P.price}₺</button></div>`).join('')+'</div><h3>Dekor</h3><div class="grid">'+Object.entries(DECOR).map(([k,P])=>`<div class="item"><b>🪨 ${P.name}</b><button data-act="buydecor" data-k="${k}" ${G.money<P.price?'disabled':''}>${P.price}₺</button></div>`).join('')+'</div>'+
+     `<p class="dim">Bu akvaryumda: ${t.plants.length} bitki, ${t.decor.length} dekor. <button data-act="clearpl">Hepsini kaldır</button></p>`;
+  }else{
+    body='<div class="grid">'+Object.entries(BACKS).map(([k,B])=>`<div class="item"><b>${B.name}</b><div style="height:40px;border-radius:6px;background:linear-gradient(${B.c.join(',')})"></div><button data-act="buyback" data-k="${k}" ${t.back===k?'disabled':''}>${G.back[k]?(t.back===k?'Seçili':'Uygula'):B.price+'₺'}</button></div>`).join('')+'</div>';
+  }
+  openModal('🛒 Mağaza — 💰 '+fmt(G.money)+'₺',`<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">${tabs}</div>${body}`);
+}
+function ordersModal(){
+  MODAL={type:'orders'};const t=curTank();
+  const rows=G.orders.map(o=>{
+    const S=SPECIES[o.sp],req=Object.entries(o.req).map(([g,id])=>`<span class="tag">${GNAME[g]}: ${allele(o.sp,g,id).name}</span>`).join('')+(o.sex?`<span class="tag">${o.sex==='F'?'♀ Dişi':'♂ Erkek'}</span>`:'');
+    const cands=G.tanks.flatMap((tk,i)=>tk.fish.filter(f=>matches(f,o)).map(f=>({f,i})));
+    return `<div class="item"><b>${S.icon} ${S.name} — ${o.cust}</b><div>${req}</div><small>Ödül: <b style="color:var(--good)">${o.reward}₺</b> · Son gün: ${o.expires} (${o.expires-G.day} gün kaldı)</small>
+     ${cands.length?cands.map(({f,i})=>`<button class="pri" data-act="deliver" data-o="${o.id}" data-id="${f.id}" data-i="${i}">Teslim: ${f.name} (${G.tanks[i].name})</button>`).join(''):'<small class="dim">Uygun yetişkin, sağlıklı balığın yok → üretmeye devam et!</small>'}</div>`}).join('');
+  openModal('📋 Müşteri Siparişleri',`<p class="dim">Belirtilen görünümde yetişkin ve sağlıklı (≥%50) balık teslim et. Gerekli genlere sahip olmayan balıkları eşleştirerek hedefe ulaş.</p><div class="grid">${rows||'<p>Şu an sipariş yok.</p>'}</div>`);
+}
+function dexModal(sp){
+  sp=sp||Object.keys(G.unlocked)[0];MODAL={type:'dex',sp};
+  const S=SPECIES[sp];
+  const tabs=Object.keys(SPECIES).map(k=>`<button data-act="dextab" data-k="${k}" class="${sp===k?'on':''}" ${G.unlocked[k]?'':'disabled'}>${SPECIES[k].icon} ${SPECIES[k].name}</button>`).join(' ');
+  let tot=0,got=0;
+  const sec=GENES.slice(0,6).map(g=>{
+    const items=S[g].map(a=>{const seen=G.seenAllele[sp+'.'+g+'.'+a.id];tot++;if(seen)got++;
+      const sw=g==='color'?`<i style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${seen?hsl(a.x):'#333'};vertical-align:middle"></i> `:'';
+      return `<span class="tag ${a.rare?'rare':''}" style="${seen?'':'opacity:.45'}">${seen?sw+a.name:(a.rare?'🔒 ???  (nadir)':'🔒 ???')}${seen?` · değer ${a.v}`:''}</span>`}).join('');
+    return `<h3>${GNAME[g]}</h3><div>${items}</div>`}).join('');
+  const seenVar=Object.keys(G.seen).filter(k=>k.startsWith(sp+'|')).length;
+  openModal('📖 Ansiklopedi',`<div style="display:flex;gap:6px;margin-bottom:8px">${tabs}</div><p><b>${S.name}</b> <span class="dim">${S.latin}</span> — keşfedilen allel: <b>${got}/${tot}</b> · keşfedilen varyasyon (fenotip): <b>${seenVar}</b></p>${sec}
+   <p class="dim">İpucu: Nadir alleller (altın etiketli) yalnızca mutasyonla veya seçkin balıklarla ortaya çıkar. Varyasyon sayısı: ${GENES.slice(0,6).reduce((p,g)=>p*S[g].length,1).toLocaleString('tr-TR')} kombinasyon!</p>`);
+}
+function planModal(mid,fid){
+  MODAL={type:'plan'};
+  const t=curTank(),adult=f=>!f.dead&&(f.stage==='adult'||f.stage==='old');
+  const fs=t.fish.filter(f=>adult(f)&&f.sex==='F'),ms=t.fish.filter(f=>adult(f)&&f.sex==='M');
+  const F=t.fish.find(f=>f.id==fid)||fs[0],M=t.fish.find(f=>f.id==mid&&f.sp===(F&&F.sp))||ms.find(m=>F&&m.sp===F.sp);
+  const sel=(arr,cur,act)=>`<select data-sel="${act}">${arr.map(f=>`<option value="${f.id}" ${cur&&cur.id===f.id?'selected':''}>${f.name} (${SPECIES[f.sp].name})</option>`).join('')}</select>`;
+  let body='<p class="dim">Akvaryumda yetişkin dişi ve erkek gerekli.</p>';
+  if(F&&M){
+    const rel=related(F,M);
+    body=`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px">♀ ${sel(fs,F,'pf')} ♂ ${sel(ms.filter(m=>m.sp===F.sp),M,'pm')}</div>
+     ${rel?'<p style="color:var(--warn)">⚠ Bu ikisi akraba! Yavrularda ömür/verim düşer, değeri %20 azalır.</p>':''}
+     <p>Beklenen: ~${SPECIES[F.sp].gest} gün gebelik · ${SPECIES[F.sp].litter.join('–')} yavru. <span class="dim">Mutasyon şansı ~%${(MUT_BASE*100).toFixed(0)}/gen.</span></p>`;
+    for(const g of GENES.slice(0,6)){
+      const dist={};
+      for(const a of F.g[g])for(const b of M.g[g]){const A=allele(F.sp,g,a),B=allele(F.sp,g,b),ph=(A.d>=B.d?A:B);dist[ph.id]=(dist[ph.id]||0)+.25}
+      const parts=Object.entries(dist).sort((x,y)=>y[1]-x[1]);
+      const cols=['#3ddcc0','#fbbf24','#c084fc','#f87171','#60a5fa'];
+      body+=`<div><b>${GNAME[g]}</b><div class="pbar">${parts.map(([id,p],i)=>`<i style="width:${p*100}%;background:${cols[i%5]}">${Math.round(p*100)}% ${allele(F.sp,g,id).name}</i>`).join('')}</div></div>`;
+    }
+    const comb=GENES.slice(0,6).reduce((n,g)=>{const s=new Set();for(const a of F.g[g])for(const b of M.g[g]){const A=allele(F.sp,g,a),B=allele(F.sp,g,b);s.add((A.d>=B.d?A:B).id)}return n*s.size},1);
+    body+=`<p class="dim">Bu çiftten çıkabilecek farklı görünüm sayısı: <b>${comb}</b></p>`;
+  }
+  openModal('🧬 Üreme Planlayıcı',body);
+}
+function statsModal(){
+  MODAL={type:'stats'};
+  openModal('📊 İstatistikler',`<div class="two"><div><h3>Para (gün gün)</h3><canvas id="g1" width="420" height="180" style="width:100%"></canvas></div><div><h3>Nüfus</h3><canvas id="g2" width="420" height="180" style="width:100%"></canvas></div></div>
+   <div class="two"><div><h3>Bu tankta tür dağılımı</h3><canvas id="g3" width="420" height="180" style="width:100%"></canvas></div><div><h3>Yaş dağılımı</h3><canvas id="g4" width="420" height="180" style="width:100%"></canvas></div></div>
+   <p class="dim">Toplam doğum: ${G.born} · Satış: ${G.sold} · Keşfedilen varyasyon: ${Object.keys(G.seen).length}</p>`);
+  line($('#g1'),G.stats.money,'#fbbf24');line($('#g2'),G.stats.pop,'#3ddcc0');
+  const t=curTank(),sp={};t.fish.forEach(f=>sp[SPECIES[f.sp].name]=(sp[SPECIES[f.sp].name]||0)+1);bars($('#g3'),sp);
+  const st={};t.fish.forEach(f=>st[STAGE[f.stage]]=(st[STAGE[f.stage]]||0)+1);bars($('#g4'),st);
+}
+function line(cn,d,col){const c=cn.getContext('2d'),w=cn.width,h=cn.height;c.fillStyle='#0a1a2a';c.fillRect(0,0,w,h);if(d.length<2){c.fillStyle='#8fb3d1';c.fillText('Veri için birkaç gün bekle…',10,20);return}
+  const mx=Math.max(...d)*1.1||1,mn=Math.min(...d,0);c.strokeStyle='#1d3d5c';for(let i=0;i<4;i++){c.beginPath();c.moveTo(0,h*i/4);c.lineTo(w,h*i/4);c.stroke()}
+  c.strokeStyle=col;c.lineWidth=2.5;c.beginPath();d.forEach((v,i)=>{const x=i/(d.length-1)*(w-20)+10,y=h-10-(v-mn)/(mx-mn||1)*(h-24);i?c.lineTo(x,y):c.moveTo(x,y)});c.stroke();
+  c.fillStyle='#8fb3d1';c.font='11px sans-serif';c.fillText(Math.round(mx),4,12);c.fillText(Math.round(d[d.length-1]),w-40,14)}
+function bars(cn,o){const c=cn.getContext('2d'),w=cn.width,h=cn.height;c.fillStyle='#0a1a2a';c.fillRect(0,0,w,h);const k=Object.keys(o);if(!k.length)return;const mx=Math.max(...Object.values(o));
+  k.forEach((n,i)=>{const bw=w/k.length,x=i*bw+12,bh=o[n]/mx*(h-50);c.fillStyle=['#3ddcc0','#fbbf24','#c084fc','#f87171'][i%4];c.fillRect(x,h-28-bh,bw-24,bh);c.fillStyle='#e6f4ff';c.font='12px sans-serif';c.fillText(n,x,h-12);c.fillText(o[n],x+4,h-32-bh)})}
+function achModal(){MODAL={type:'ach'};openModal('🏅 Başarımlar',`<div class="grid">${ACH.map(([id,n,d])=>`<div class="item" style="${G.ach[id]?'':'opacity:.4'}"><b>${G.ach[id]?'🏅':'🔒'} ${n}</b><small>${d}</small></div>`).join('')}</div>`)}
+function showModal(){
+  MODAL={type:'show'};const all=G.tanks.flatMap(t=>t.fish.filter(f=>!f.dead&&f.stage!=='fry'));
+  openModal('🏆 Akvaryum Sergisi',`<p>Bir balık seç. Jüri; gen nadirliği, boy, sağlık ve renk canlılığına bakar. 1.: 400₺, 2.: 220₺, 3.: 120₺.</p><div class="grid">${all.map(f=>`<div class="item"><b>${f.name}</b><small>${SPECIES[f.sp].name} · ${f.sex==='F'?'♀':'♂'}</small><button class="pri" data-act="enter" data-id="${f.id}">Yarıştır</button></div>`).join('')||'<p>Uygun balık yok.</p>'}</div>`);
+}
+function menuModal(){
+  MODAL={type:'menu'};
+  openModal('☰ Menü',`<div style="display:flex;gap:8px;flex-wrap:wrap"><button data-act="save">💾 Kaydet</button><button data-act="help">❓ Nasıl oynanır</button><button class="dan" data-act="reset">🗑 Yeni oyun (kaydı sil)</button></div>`);
+}
+function helpModal(){
+  MODAL={type:'help'};
+  openModal('❓ Nasıl Oynanır',`<ol style="line-height:1.7">
+   <li><b>Besle:</b> alttaki yem düğmesini seç, akvaryuma tıkla. Fazla yem çürüyüp suyu kirletir.</li>
+   <li><b>Suyu koru:</b> Amonyak ve nitrat yükselirse <i>Su Değiştir</i>; filtre, bitki ve hava taşı yardım eder. Camdaki yosunu temizle.</li>
+   <li><b>Ürüt:</b> Yetişkin erkek ve dişi aynı akvaryumdayken çiftleşir. Dişi gebe kalır, bir sperm depolayıp birkaç kez doğurabilir.</li>
+   <li><b>Yavruları koru:</b> Aç yetişkinler yavruları yer. Bitki dik, <i>Yavru Kutusu</i> al ve gebe dişiyi kutuya koy.</li>
+   <li><b>Genetik:</b> Her özellik 2 allel taşır. Baskın görünür, çekinik gizlenir. Balığa tıklayıp <i>genotipi</i> gör; <i>Üreme Planlayıcı</i> ile olasılıkları hesapla.</li>
+   <li><b>Varyasyon avı:</b> Mutasyonlar nadir aller getirir (Galaksi, Kobra, Floresan…). Ansiklopediyi doldur.</li>
+   <li><b>Kazan:</b> Balık sat, müşteri siparişlerini yerine getir, sergiye katıl. Yeni tür, ekipman ve akvaryum al.</li>
+   <li>Balığa <b>tek tık</b> seç, <b>çift tık</b> ayrıntı. Aynı soydan çiftleştirme (akrabalık) zayıf yavru üretir!</li></ol>`);
+}
+function toggleBar(){}
+
+/* ---------- Eylemler ---------- */
+function F_(id){for(const t of G.tanks){const f=t.fish.find(x=>x.id==id);if(f)return[f,t]}return[null,null]}
+function spend(n){if(G.money<n){toast('Yeterli paran yok!','bad');return false}G.money-=n;sfx('coin');return true}
+function giveFish(sp,q){
+  const t=curTank();
+  if(t.fish.length+2>tankCap(t)*1.4){toast('Akvaryum çok dolu!','bad');return false}
+  for(const sex of ['F','M']){
+    const f=newFish(sp,{sex,age:SPECIES[sp].mature+rint(0,3)});f.g=wildGenome(sp,q==1&&chance(.35));
+    if(q==1){for(const g of ['color','tail','pattern']){if(chance(.5)){const pool=SPECIES[sp][g].filter(a=>a.v>=2&&(!a.rare||chance(.2)));f.g[g]=[pick(pool).id,pick(SPECIES[sp][g]).id]}}}
+    f.stage=stageOf(f);f.x=rnd(100,900);f.y=rnd(100,300);t.fish.push(f);discover(f);
+  }
+  return true;
+}
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el)return;
+  const a=el.dataset.act,t=curTank();sfx('click');
+  const act={
+   close:closeModal,
+   speed:()=>{G.speed=+el.dataset.v;ui()},
+   mute:()=>{G.muted=!G.muted;ui()},
+   menu:menuModal,help:helpModal,save:()=>{save(true)},
+   reset:()=>{if(confirm('Tüm ilerleme silinecek. Emin misin?')){localStorage.removeItem('akvaryum');newGame();closeModal();ui();helpModal()}},
+   tank:()=>{G.tank=+el.dataset.i;G.sel=null;ui()},
+   newtank:()=>{const c=[0,500,1200,2600][G.tanks.length];if(spend(c)){const n=newTank(G.tanks.length);n.eq.filter=1;n.name='Akvaryum '+(G.tanks.length+1);G.tanks.push(n);G.tank=G.tanks.length-1;addPlant(n,'moss');ui()}},
+   tankup:()=>{const c=TANKS[t.lvl+1].price;if(spend(c)){t.lvl++;toast('Akvaryum büyütüldü: '+TANKS[t.lvl].name);ui()}},
+   rename:()=>{const n=prompt('Akvaryum adı',t.name);if(n){t.name=n.slice(0,20);ui()}},
+   food:()=>{G.food=el.dataset.k;ui()},
+   wc:()=>{t.w.nh3*=.5;t.w.no3*=.55;t.w.clar=Math.min(100,t.w.clar+25);t.w.temp+=(21-t.w.temp)*.12;for(let i=0;i<20;i++)t.bubbles.push({x:rnd(W),y:rnd(SURF,FLOOR),r:rnd(2,4),vy:-rnd(20,50),life:2});t.food=t.food.filter(f=>!f.rot);toast('💧 Su %45 değiştirildi.');sfx('pop');ui()},
+   scrub:()=>{t.w.alg=Math.max(0,t.w.alg-60);toast('🧽 Cam temizlendi.');ui()},
+   light:()=>{t.light=!t.light;ui()},
+   med:()=>{const s=t.fish.filter(f=>f.sick);if(!s.length)return toast('Hasta balık yok.');if(!(G.stock.med>0))return toast('İlaç yok! Mağazadan al.','bad');G.stock.med--;s.forEach(f=>f.sick=null);toast(`💊 ${s.length} balık tedavi edildi.`);ui()},
+   cure:()=>{const [f]=F_(el.dataset.id);if(f&&f.sick&&G.stock.med>0){G.stock.med--;f.sick=null;toast(f.name+' iyileşti!');fishModal(f);ui()}else toast('İlaç yok!','bad')},
+   flt:()=>{G.filter=el.dataset.k;uiFish()},
+   fish:()=>{const [f]=F_(el.dataset.id);G.sel=+el.dataset.id;fishModal(f);uiFish()},
+   shop:()=>shopModal(),shoptab:()=>shopModal(el.dataset.k),
+   orders:ordersModal,dex:()=>dexModal(),dextab:()=>dexModal(el.dataset.k),plan:()=>planModal(),stats:statsModal,ach:achModal,show:showModal,
+   unlock:()=>{const S=SPECIES[el.dataset.k];if(spend(S.shopCost)){G.unlocked[el.dataset.k]=true;toast(`🎉 ${S.name} türü açıldı!`,'gold');sfx('win');shopModal('fish');ui()}},
+   buyfish:()=>{const sp=el.dataset.k,q=+el.dataset.q,S=SPECIES[sp],c=Math.round(S.price*(q?4.5:1.2))*2;if(G.money>=c&&giveFish(sp,q)){G.money-=c;sfx('coin');toast(`${S.icon} Yeni ${S.name} çifti eklendi.`);shopModal('fish');ui()}else if(G.money<c)toast('Yeterli paran yok!','bad')},
+   buyfood:()=>{const F=FOODS[el.dataset.k];if(spend(F.price*F.pack)){G.stock[el.dataset.k]=(G.stock[el.dataset.k]||0)+F.pack;shopModal('food');ui()}},
+   buymed:()=>{if(spend(120)){G.stock.med+=3;shopModal('food');ui()}},
+   serum:()=>{if(spend(200)){t.mutT=3;toast('🧪 Mutasyon serumu aktif: 3 gün!','gold');shopModal('food')}},
+   buyeq:()=>{const E=EQUIP[el.dataset.k];if(spend(E.price)){if(E.type==='filter')t.eq.filter=E.lvl;else t.eq[E.type]=true;shopModal('equip');ui()}},
+   buyplant:()=>{const P=PLANTS[el.dataset.k];if(t.plants.length>=14)return toast('Yer kalmadı!','bad');if(spend(P.price)){addPlant(t,el.dataset.k);shopModal('deco');ui()}},
+   buydecor:()=>{const P=DECOR[el.dataset.k];if(t.decor.length>=6)return toast('Yer kalmadı!','bad');if(spend(P.price)){t.decor.push({type:el.dataset.k,x:rnd(120,880)});shopModal('deco')}},
+   clearpl:()=>{t.plants=[];t.decor=[];shopModal('deco')},
+   buyback:()=>{const k=el.dataset.k;if(G.back[k]||spend(BACKS[k].price)){G.back[k]=true;t.back=k;shopModal('back')}},
+   sell:()=>{const [f,tk]=F_(el.dataset.id);if(!f)return;const v=Math.round(fishValue(f)*.9);G.money+=v;G.sold++;tk.fish=tk.fish.filter(x=>x!==f);if(G.sel===f.id)G.sel=null;sfx('coin');toast(`💰 ${f.name} satıldı: +${v}₺`);addXP(Math.ceil(v/20));closeModal();ui()},
+   fav:()=>{const [f]=F_(el.dataset.id);f.fav=!f.fav;fishModal(f)},
+   rn:()=>{const [f]=F_(el.dataset.id);const n=prompt('Yeni ad',f.name);if(n){f.name=n.slice(0,16);fishModal(f);uiFish()}},
+   iso:()=>{const [f]=F_(el.dataset.id);f.iso=!f.iso;if(f.iso){f.x=t.box.x+60;f.y=t.box.y+60}else{f.x=rnd(300,800);f.y=rnd(150,350)}fishModal(f);uiFish()},
+   remove:()=>{const [f,tk]=F_(el.dataset.id);tk.fish=tk.fish.filter(x=>x!==f);closeModal();ui()},
+   move:()=>{const [f,tk]=F_(el.dataset.id),dest=G.tanks[+el.dataset.i];if(dest.fish.length>=tankCap(dest)*1.4)return toast('Hedef dolu!','bad');tk.fish=tk.fish.filter(x=>x!==f);f.iso=false;dest.fish.push(f);closeModal();ui()},
+   deliver:()=>{const o=G.orders.find(x=>x.id==el.dataset.o),tk=G.tanks[+el.dataset.i],f=tk.fish.find(x=>x.id==el.dataset.id);if(!o||!f)return;
+     G.money+=o.reward;G.ordersDone=(G.ordersDone||0)+1;tk.fish=tk.fish.filter(x=>x!==f);G.orders=G.orders.filter(x=>x!==o);addXP(30+Object.keys(o.req).length*10);sfx('win');toast(`✅ Sipariş tamamlandı! +${o.reward}₺`,'gold');genOrders();ordersModal();ui()},
+   enter:()=>{const [f]=F_(el.dataset.id);const r=judgeShow(f);G.money+=r.prize;G.show.active=false;G.show.next=G.day+10;if(r.rank===1){G.champ=(G.champ||0)+1;addXP(60)}else addXP(15);sfx(r.rank<=3?'win':'low');
+     openModal('🏆 Sonuç',`<h2>${r.rank}. oldun!</h2><p>${f.name} puanı: <b>${r.mine}</b> · en iyi rakip: ${r.best}<br>Ödül: <b>${r.prize}₺</b></p>`);ui()},
+  }[a];
+  if(act)act();
+});
+document.addEventListener('input',e=>{
+  if(e.target.dataset.act==='heat'){curTank().target=+e.target.value;e.target.parentNode.lastChild.textContent=' '+e.target.value+'°C'}
+});
+document.addEventListener('change',e=>{
+  const s=e.target.dataset.sel;if(!s)return;
+  const fs=document.querySelectorAll('[data-sel]');const pf=document.querySelector('[data-sel=pf]').value,pm=document.querySelector('[data-sel=pm]').value;
+  planModal(s==='pm'?pm:null,pf);
+});
+$('#modal').addEventListener('mousedown',e=>{if(e.target.id==='modal')closeModal()});
+// akvaryum üzerinde tıklama
+function cpos(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
+function fishAt(p){const t=curTank();let best=null,bd=1e9;for(const f of t.fish){const d=Math.hypot(f.x-p.x,f.y-p.y),rad=26*bodyScale(f)+8;if(d<rad&&d<bd){bd=d;best=f}}return best}
+cv.addEventListener('mousemove',e=>{hoverFish=fishAt(cpos(e))});
+cv.addEventListener('click',e=>{
+  const p=cpos(e),f=fishAt(p),t=curTank();
+  if(f){G.sel=f.id;uiFish();if(e.detail>=2)fishModal(f);return}
+  // yem at
+  if(p.y>SURF-10&&p.y<FLOOR){
+    const k=G.food;if(!(G.stock[k]>0)){toast('Bu yemden kalmadı! Mağazadan al.','bad');return}
+    const n=Math.min(G.stock[k],k==='flake'?4:3);G.stock[k]-=n;
+    for(let i=0;i<n;i++)t.food.push({type:k,x:clamp(p.x+rnd(-24,24),10,W-10),y:SURF+8+rnd(0,6),vy:rnd(18,28),rotT:0,rot:false,age:0});
+    sfx('pop');ui();
+  }
+});
+cv.addEventListener('dblclick',e=>{const f=fishAt(cpos(e));if(f)fishModal(f)});
+
+/* ---------- Kayıt ---------- */
+function save(manual){
+  try{
+    const copy=JSON.stringify(G,(k,v)=>{if(k==='ref')return undefined;return v});
+    localStorage.setItem('akvaryum',copy);if(manual)toast('💾 Kaydedildi.');
+  }catch(e){if(manual)toast('Kayıt başarısız','bad')}
+}
+function load(){
+  try{
+    const s=localStorage.getItem('akvaryum');if(!s)return false;
+    const d=JSON.parse(s);if(d.v!==2)return false;G=d;
+    UID=1+Math.max(1,...G.tanks.flatMap(t=>t.fish.map(f=>f.id)));
+    for(const t of G.tanks)for(const f of t.fish){if(f.sperm&&!f.sperm.ref){f.sperm.ref={id:f.sperm.genes.id,lin:f.sperm.genes.lin||[]}}t.bubbles=[];t.parts=[];t.food=t.food||[]}
+    return true;
+  }catch(e){return false}
+}
+
+/* ---------- 8. Ana döngü ---------- */
+let last=performance.now(),hourAcc=0,uiAcc=0,wAcc=0;
+function tickWorld(dt){
+  hourAcc+=dt;const hl=DAY/24;
+  while(hourAcc>=hl){hourAcc-=hl;hourly()}
+  for(const t of G.tanks){
+    stepWater(t,dt);
+    for(const f of t.fish){fishNeeds(t,f,dt);fishAI(t,f,dt)}
+    t.fish=t.fish.filter(f=>!f.gone);
+    // bitki büyümesi
+    for(const p of t.plants)p.size=Math.min(1,p.size+dt*(t.w.no3>3?.004:.0008)*(t.light?1.3:.5));
+    // yemler
+    for(const f of t.food){f.y+=f.vy*dt;f.vy*=.995;if(f.y>FLOOR-4){f.y=FLOOR-4;f.vy=0;f.age+=dt;if(f.age>8){if(!f.rot){f.rot=true;t.w.nh3+=.04}}}f.x+=Math.sin(f.y*.1)*.2}
+    t.food=t.food.filter(f=>!f.eaten&&!(f.rot&&f.age>16));
+    // baloncuk
+    if(t.eq.air&&chance(dt*8))t.bubbles.push({x:969+rnd(-3,3),y:FLOOR-4,r:rnd(1.5,4),vy:-rnd(60,110),life:3});
+    if(t.eq.filter&&chance(dt*3))t.bubbles.push({x:W-18,y:SURF+110,r:rnd(1,3),vy:-rnd(30,60),life:1.5});
+    for(const b of t.bubbles){b.y+=b.vy*dt;b.x+=Math.sin(b.y*.05)*.3;b.life-=dt*.3;if(b.y<SURF)b.life=0}
+    t.bubbles=t.bubbles.filter(b=>b.life>0);
+    for(const p of t.parts){p.x+=(p.vx||0)*dt;p.y+=(p.vy||0)*dt;p.life-=dt}
+    t.parts=t.parts.filter(p=>p.life>0);
+  }
+}
+let samp=0;
+function frame(now){
+  let dt=Math.min(.1,(now-last)/1000);last=now;
+  const sp=G.speed;
+  if(sp>0){
+    const steps=sp;for(let i=0;i<steps;i++)tickWorld(dt);
+    samp+=dt*sp;if(samp>2){samp=0;for(const t of G.tanks){t.hist.push({nh3:t.w.nh3,no3:t.w.no3,o2:t.w.o2});if(t.hist.length>60)t.hist.shift()}}
+  }
+  render(dt*(sp?1:0));
+  uiAcc+=dt;if(uiAcc>.5){uiAcc=0;uiLight()}
+  requestAnimationFrame(frame);
+}
+let lastSave=0;
+function uiLight(){ // ağır olmayan sık güncelleme
+  uiWater();
+  const t=curTank();
+  const top=$('#top');if(top){const st=top.querySelectorAll('.stat');if(st[0])st[0].innerHTML=`💰 <b>${fmt(G.money)}₺</b>`;if(st[1])st[1].innerHTML=`📅 Gün <b>${G.day}</b> · ${String(Math.floor(G.time)).padStart(2,'0')}:00 ${G.time>=7&&G.time<21?'☀️':'🌙'}`;const xb=$('#xpbar i');if(xb)xb.style.width=G.xp/(G.lvl*120)*100+'%';if(st[3])st[3].innerHTML=`📖 ${Object.keys(G.seen).length} varyasyon`}
+  if(performance.now()-lastSave>25000){lastSave=performance.now();save()}
+  if(!MODAL)uiFishThrottle();
+}
+let ftick=0;function uiFishThrottle(){ftick++;if(ftick%4===0){uiFish();const b=$('#bar');}}
+if(!load())newGame();
+resize();ui();
+if(G.tutorial){G.tutorial=false;helpModal()}
+document.addEventListener('visibilitychange',()=>{last=performance.now()});
+window.addEventListener('beforeunload',()=>save());
+requestAnimationFrame(frame);
+window.G_=()=>G; // hata ayıklama
+</script>
+</body>
+</html>
