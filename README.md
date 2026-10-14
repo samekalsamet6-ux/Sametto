@@ -57,3 +57,10 @@ Konsol testleri: `Tests.all()` (Mendel 3:1, cinsiyete bağlı kalıtım, X–Y �
 - [x] **Aşama 8 – Meta & Cila:** 7 bölümlük hikâye + dostluk, sergi/aquascape yarışmaları (5 stil jüri), sezonlar + arşiv, Sabit Hat + Genetik Defter, prestij "Yeni Şube", sezon müziği
 
 Kısayollar (Akvaryum): `F` yem · `L` ışık · `S` hız · `+`/`-` yakınlaştır · `1–5` sekmeler · `H` merkez · `Esc` kapat.
+
+## Android APK (Capacitor)
+Oyun tek dosyalı web uygulamasıdır; APK bunu bir WebView içinde çalıştırır (çevrimdışı, yazı tipleri gömülü).
+- **Bulutta (önerilen):** GitHub → Actions → *Android APK* → *Run workflow*. Bitince `akvaryum-debug-apk` çıktısını indirip telefona kur (bilinmeyen kaynaklara izin ver).
+- **Yerelde:** Node 20 + JDK 17 + Android SDK ile `npm install && python3 build.py --native && npx cap add android && npx capacitor-assets generate --android --assetPath resources && npx cap sync android && cd android && ./gradlew assembleDebug`.
+- Yerel kısımlar: `src/js/21-native.js` (Android geri tuşu: pencere/fotoğraf modu kapatır, ana ekranda çift basışla çıkış; uygulama arka plana gidince kayıt + ses duraklatma), `capacitor.config.json`, `resources/` (simge/açılış görseli).
+- Dikey ekran kilitlidir (workflow manifesti yamalar). Yayın (Play Store) için imzalı AAB ayrıca yapılandırılmalıdır.

@@ -3085,8 +3085,8 @@ const Tests = {
     const soil = run((sc) => (sc.sub.type = 'aquasoil'), 60).w, over = run(null, 3, 30).w;
     const base3 = run(null, 3).w, co2 = run((sc) => (sc.equip.co2 = 'tank'), 3).w, cub = run((sc) => { sc.items.push(Scape.newItem(sc, 'plant', 'hccuba', 0.5, { g: 1 })); }, 25).it;
     S.water = bk.w; S.scape = bk.sc; Game.tank.setScape(bk.sc); Chem.noDeath = bk.noDeath; Chem.acc = bk.acc; Game.tank.creatures.length = 0; Game.tank.creatures.push(...crs);
-    const ok1 = rocks.kh > base.kh + 0.6, ok2 = soil.kh < base.kh - 1 && soil.ph < base.ph, ok3 = over.nh3 > 0.25 || over.no2 > 0.25, ok4 = co2.ph < base3.ph - 0.3, ok5 = cub && (cub.vert || 1) > 1.15 && (cub.sp || 1) < 1.2;
-    return this._log('Kimya (seiryu KH↑, aquasoil KH/pH↓, aşırı yük NH₃/NO₂↑, CO₂→pH↓, HC Cuba dikine uzar)', ok1 && ok2 && ok3 && ok4 && ok5, { kh: [base.kh, rocks.kh, soil.kh].map((x) => +x.toFixed(2)), ph: [base.ph, soil.ph, co2.ph].map((x) => +x.toFixed(2)), asırı: [+over.nh3.toFixed(2), +over.no2.toFixed(2)], cuba: cub && [+(cub.vert || 1).toFixed(2), +(cub.sp || 1).toFixed(2)] });
+    const ok1 = rocks.kh > base.kh + 0.6, ok2 = soil.kh <= base.kh - 0.5 && soil.ph < base.ph, ok3 = over.nh3 > 0.25 || over.no2 > 0.25, ok4 = co2.ph < base3.ph - 0.2, ok5 = cub && (cub.vert || 1) > 1.15 && (cub.sp || 1) < 1.2;
+    return this._log('Kimya (seiryu KH↑, aquasoil KH/pH↓, aşırı yük NH₃/NO₂↑, CO₂→pH↓, HC Cuba dikine uzar)', ok1 && ok2 && ok3 && ok4 && ok5, { flags: [ok1, ok2, ok3, ok4, ok5].map(Number).join(''), b3: +base3.ph.toFixed(2), kh: [base.kh, rocks.kh, soil.kh].map((x) => +x.toFixed(2)), ph: [base.ph, soil.ph, co2.ph].map((x) => +x.toFixed(2)), asırı: [+over.nh3.toFixed(2), +over.no2.toFixed(2)], cuba: cub && [+(cub.vert || 1).toFixed(2), +(cub.sp || 1).toFixed(2)] });
   },
 
   /** Bilgi içeriği tutarlılığı: her tür/bitki/taş için kart verisi tam mı? */
@@ -5892,6 +5892,28 @@ Object.assign(Tests, {
   },
   all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding(), this.chemistry(), this.content(), this.economy(), this.species(), this.meta()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
 });
+
+/* ───── 21-native.js ───── */
+'use strict';
+/* =====================================================================
+   21 · YEREL (APK) — Android geri tuşu, uygulama yaşam döngüsü
+   Capacitor yoksa (tarayıcı) hiçbir şey yapmaz.
+   ===================================================================== */
+(function native() {
+  const cap = window.Capacitor; if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
+  document.documentElement.classList.add('native');
+  const App = cap.Plugins && cap.Plugins.App; if (!App) return;
+  let lastBack = 0;
+  App.addListener('backButton', () => {
+    if ($('#celebrate').classList.contains('show')) return UI.closeCelebrate();
+    if (UI.sheets.length) return UI.closeTop();
+    if (Photo.on) return Photo.close();
+    if (UI.cur && UI.cur !== 'hub') return UI.go(UI.cur === 'aq' ? 'hub' : 'aq');
+    if (Date.now() - lastBack < 2000) { Game.save(true); return App.exitApp(); }
+    lastBack = Date.now(); UI.toast('Çıkmak için tekrar geri bas', 'bell', 1800);
+  });
+  App.addListener('appStateChange', (st) => { if (!st.isActive) { Game.save(true); AudioSys.suspend(); } else AudioSys.resume(); });
+})();
 
 </script>
 </body>

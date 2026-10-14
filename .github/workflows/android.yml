@@ -1,0 +1,46 @@
+name: Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/new-session-m0dtk5]
+    paths: ['src/**', 'build.py', 'package.json', 'capacitor.config.json', 'resources/**', '.github/workflows/android.yml']
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - uses: android-actions/setup-android@v3
+
+      - name: Bağımlılıklar
+        run: npm install
+
+      - name: Oyunu derle (çevrimdışı yazı tipleriyle)
+        run: python3 build.py --native
+
+      - name: Android projesini oluştur
+        run: |
+          npx cap add android
+          npx capacitor-assets generate --android --assetPath resources
+          npx cap sync android
+
+      - name: Manifest düzeltmeleri (dikey kilit, tam ekran, durum çubuğu)
+        run: |
+          M=android/app/src/main/AndroidManifest.xml
+          sed -i 's|<activity |<activity android:screenOrientation="portrait" |' "$M"
+          S=android/app/src/main/res/values/styles.xml
+          sed -i 's|</style>|    <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>\n    </style>|' "$S" || true
+
+      - name: Debug APK derle
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: akvaryum-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
