@@ -35,3 +35,6 @@ Not: iOS'ta ilk açılışta "yerel ağ" izni sorulur; Roku/Android TV'yi bulmak
 - Google/Android TV'de yazı gönderme yok (TV'nin ekran klavyesini yön tuşlarıyla kullanın).
 - Roku'da renkli tuşlar yok; Menü, Bilgi, Ayarlar ve Rehber aynı "Info" tuşuna gider.
 - Uygulama yalnızca yerel ağda çalışır (evin dışından kumanda yok).
+
+## Bilgisayarsız kurulum (yalnızca Android telefon)
+GitHub Actions her gönderimde APK derler. Telefonda: depo > **Releases** > "TCL Kumanda (son APK)" > `app-release.apk` indir > aç. "Bilinmeyen kaynaklardan yükleme" izni sorulursa tarayıcı için izin verin. Derleme sonucu **Actions** sekmesinde de görünür.

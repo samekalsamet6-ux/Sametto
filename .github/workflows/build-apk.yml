@@ -1,0 +1,39 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ccr-cb41779c-rfme32, main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.7
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tcl-kumanda-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+      # Public download link that always points to the newest build.
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: TCL Kumanda (son APK)
+          prerelease: true
+          files: build/app/outputs/flutter-apk/app-release.apk
