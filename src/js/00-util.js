@@ -58,3 +58,9 @@ const clockStr = (minutes) => { const m = Math.floor(minutes % 1440); return pad
 const dayOf = (minutes) => Math.floor(minutes / 1440) + 1;
 const todayKey = () => { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
 const prefersReduced = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** replaceChildren/append: null ve false "null" yazısı olarak görünmesin. */
+for (const m of ['replaceChildren', 'append']) {
+  const orig = Element.prototype[m];
+  Element.prototype[m] = function (...a) { return orig.apply(this, a.flat(2).filter((x) => x != null && x !== false)); };
+}

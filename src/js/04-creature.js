@@ -22,6 +22,9 @@ class Creature {
     this.pers = d.pers || { activity: R.float(0.25, 1), bold: R.float(0.1, 1), curious: R.float(0.1, 1), social: R.float(0.2, 1) };
     this.x = d.x; this.y = d.y;
     this.stress = 0;
+    this.preg = d.preg || null;                   // {start, due} gebelik (dakika)
+    this.sperm = d.sperm || [];                   // depolanan sperm: [{sire, name, g, left}]
+    this.lastBirth = d.lastBirth ?? -1e9; this.defect = !!d.defect; this.unrevealed = !!d.unrevealed;
     this.pheno = Genetics.phenotype(this.genome);
     this.sprite = null; this.sw = new Swimmer(this);
     this.now = 0;                                 // son bilinen oyun dakikası (yaş için)
@@ -34,18 +37,21 @@ class Creature {
   maturity(now = this.now) { return this.sex === 'M' ? smoothstep(14, 70, this.ageDays(now)) : 1; }
   stage(now = this.now) { const a = this.ageDays(now); return a < 10 ? 'Yavru' : a < 42 ? 'Genç' : 'Yetişkin'; }
   /** Dünya birimi cinsinden gövde uzunluğu. */
-  bodyLen() { return 58 * this.pheno.size * this.growth() * (this.sex === 'F' ? 1.2 : 0.86); }
+  /** Akrabalı yetiştirme katsayısı (soyağacı değişmediği için bir kez hesaplanır). */
+  get F() { return this._F ?? (this._F = Pedigree.F(this.id)); }
+  bodyLen() { return 58 * this.pheno.size * this.growth() * (this.sex === 'F' ? 1.2 : 0.86) * (1 - 0.3 * this.F); }
+  adult(now = this.now) { return this.ageDays(now) >= MATURE_DAYS; }
   breed() { return Genetics.breedOf(this.pheno); }
   rarity() { return this.breed().rarity; }
-  inbreeding() { return Pedigree.F(this.id); }
-  health() { return Genetics.health(this.genome, this.inbreeding()); }
+  inbreeding() { return this.F; }
+  health() { return Genetics.health(this.genome, this.inbreeding()) * (this.defect ? 0.6 : 1); }
   value() {
-    const r = RARITY[this.rarity()].value, size = 0.6 + 0.4 * this.growth();
+    const r = RARITY[this.rarity()].value * (this.defect ? 0.4 : 1), size = 0.6 + 0.4 * this.growth();
     const stageMul = this.ageDays() < 10 ? 0.4 : 1;
     return Math.max(5, Math.round(r * size * stageMul * clamp(this.health(), 0.5, 1.15) * (this.fav ? 1 : 1)));
   }
   toJSON() {
-    return { id: this.id, name: this.name, genome: this.genome, bornT: this.bornT, seed: this.seed, fav: this.fav, tested: this.tested, sire: this.sire, dam: this.dam, pers: this.pers, x: Math.round(this.sw.x), y: Math.round(this.sw.y) };
+    return { id: this.id, name: this.name, genome: this.genome, bornT: this.bornT, seed: this.seed, fav: this.fav, tested: this.tested, sire: this.sire, dam: this.dam, pers: this.pers, preg: this.preg, sperm: this.sperm, lastBirth: this.lastBirth, defect: this.defect, unrevealed: this.unrevealed, x: Math.round(this.sw.x), y: Math.round(this.sw.y) };
   }
 }
 
@@ -63,6 +69,7 @@ class Swimmer {
     this.court = 0; this.courtWith = null; this.startleT = 0; this.eaten = 0; this.foodSeen = -1;
     this.targetAmp = 0.5; this.courtAmp = 0;
     this.speedMul = lerp(0.8, 1.2, p.activity);
+    this.bendBase = c.defect ? 0.5 * (c.id % 2 ? 1 : -1) : 0;   // omurga kusuru: kalıcı eğrilik
   }
 
   /** Portre/kart modu: yerinde, sakin yüzüş (yüzgeçler çalışır, gövde hafifçe dalgalanır, dönüş yok). */
@@ -226,7 +233,7 @@ class Swimmer {
       // ilerleyen dalga: y = A(s) sin(k s − ωt); A(s) = a0 + a1 s + a2 s²  (carangiform)
       const A = 0.02 + 0.02 * s + 0.11 * s * s;
       let y = this.amp * A * TW * Math.sin(TAU * 1.0 * s - this.phase);
-      y += this.bend * (s * s) * TW * 0.16;                                 // C-dönüş
+      y += (this.bend + this.bendBase) * (s * s) * TW * 0.16;                                 // C-dönüş
       y += this.courtAmp * 0.028 * TW * Math.sin(TAU * 2.4 * s - this.phase * 2.6) * smoothstep(0.05, 0.5, s);  // S-titreşim
       if (s < 0.5) { this.joints[j] = y; this.jv[j] = 0; continue; }
       // kuyruk: gecikmeli sönümlü yay (kumaş gibi)

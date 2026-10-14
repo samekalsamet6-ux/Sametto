@@ -2,7 +2,7 @@
 /* =====================================================================
    07 · KAYIT — 3 yuva, sürüm/göç, yedek, JSON dışa/içe aktarma
    ===================================================================== */
-const SAVE_VERSION = 1;
+const SAVE_VERSION = 2;
 const SLOTS = 3;
 
 const Save = {
@@ -20,7 +20,7 @@ const Save = {
         theme: 'ocean', font: 1, reduce: false, cb: false, speed: 1, lamp: 'auto', bgMute: true, sessionReminder: false,
         audio: { master: 0.8, music: 0.5, amb: 0.5, sfx: 0.7, style: 'ambient' },
       },
-      onboarded: false, nextId: 1, lastSeen: Date.now(), savedAt: 0, createdAt: Date.now(),
+      onboarded: false, litters: [], nextId: 1, lastSeen: Date.now(), savedAt: 0, createdAt: Date.now(),
     };
   },
 
@@ -29,7 +29,14 @@ const Save = {
     if (!d || typeof d !== 'object') throw new Error('Geçersiz kayıt');
     d.v = d.v || 1;
     while (d.v < SAVE_VERSION) {
-      switch (d.v) { /* case 1: …1→2 dönüşümü buraya */ default: break; }
+      switch (d.v) {
+        case 1: // v1 → v2: soyağacına genom/cinsiyet kaydı, üreme alanları
+          d.pedigree = d.pedigree || {};
+          for (const c of d.creatures || []) { const r = d.pedigree[c.id] || (d.pedigree[c.id] = { s: c.sire || 0, d: c.dam || 0 }); Object.assign(r, { name: r.name || c.name, sex: c.genome.sex, g: c.genome, seed: c.seed, bornT: c.bornT }); }
+          d.litters = d.litters || [];
+          break;
+        default: break;
+      }
       d.v++;
     }
     // eksik alanları varsayılanla tamamla (ileriye dönük güvenlik)

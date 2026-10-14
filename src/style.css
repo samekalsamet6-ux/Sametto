@@ -176,3 +176,22 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 /* ====== Erişilebilirlik ====== */
 .reduce *,.reduce *::before,.reduce *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* ====== Aşama 2: laboratuvar, açılış, soyağacı ====== */
+.pickc{flex:none;width:112px;border-radius:14px;border:2px solid var(--panel-b);background:var(--panel);padding:6px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font-size:13px;transition:transform .18s var(--ease),border-color .2s}
+.pickc canvas{width:84px;height:auto}.pickc:active{transform:scale(.95)}
+.pickc.on{border-color:var(--accent);box-shadow:0 0 14px rgba(47,212,198,.4)}.pickc.dis{opacity:.45}
+.card.glow{border-color:var(--accent);animation:glowp 3s ease-in-out infinite}
+@keyframes glowp{0%,100%{box-shadow:0 0 10px rgba(47,212,198,.15)}50%{box-shadow:0 0 28px rgba(47,212,198,.45)}}
+.pgrid{display:grid;grid-template-columns:auto 1fr 1fr;gap:4px;max-width:340px;font-size:12.5px;text-align:center}
+.pgrid .pc{padding:8px 4px;border-radius:8px;background:rgba(255,255,255,.08);border:1px solid var(--panel-b)}
+.dex-tile.seal{border-style:dashed}.dex-tile.flip{animation:flipc .32s var(--ease)}
+@keyframes flipc{50%{transform:scaleX(0)}}
+.dex-tile.shown{border-color:var(--c);box-shadow:0 0 16px color-mix(in srgb,var(--c) 40%,transparent)}
+.tree-wrap{overflow:auto;max-height:68vh;padding:12px 4px;border-radius:14px;background:rgba(0,0,0,.15);border:1px solid var(--panel-b);margin-top:8px}
+.tree{display:inline-flex;min-width:100%;justify-content:center}
+.tsub{display:flex;flex-direction:column;align-items:center}
+.tpar{display:flex;gap:10px;align-items:flex-end}
+.tline{width:2px;height:14px;background:var(--panel-b)}
+.tn{width:84px;padding:5px;border-radius:12px;border:2px solid var(--c);background:var(--panel);text-align:center;display:flex;flex-direction:column;align-items:center;font-size:12px}
+.tn canvas{width:70px;height:auto}.tn.me{box-shadow:0 0 14px var(--c)}.tn.dup{border-style:dashed;border-color:#ffd36b}

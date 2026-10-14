@@ -136,3 +136,10 @@ const BREED_BY_ID = Object.fromEntries(BREEDS.map((b) => [b.id, b]));
 const TITLES = [[1, 'Çaylak Akvaryumcu'], [5, 'Meraklı Üretici'], [12, 'Hat Sabitleyici'], [25, 'Genetik Ustası'], [50, 'Aquascape Sanatçısı'], [80, 'Büyük Usta']];
 const NAMES_F = ['Ayşe', 'Elif', 'Defne', 'Zeynep', 'Mina', 'Selin', 'Nehir', 'Deniz', 'İnci', 'Lale', 'Pınar', 'Ela', 'Su', 'Ceren', 'Duru'];
 const NAMES_M = ['Kaan', 'Mavi', 'Poyraz', 'Efe', 'Atlas', 'Kerem', 'Yağız', 'Barış', 'Ege', 'Toprak', 'Rüzgar', 'Alp', 'Çınar', 'Umut', 'Bulut'];
+
+/* ---- Üreme sabitleri ---- */
+const MATURE_DAYS = 35;          // üreme olgunluğu (gün)
+const TANK_CAP = 60;             // tank kapasitesi (araştırma ağacıyla artacak)
+const GEST_DAYS = [21, 31];      // gebelik süresi aralığı (gün)
+const SPERM_BATCHES = 3;         // tek çiftleşmeyle kaç batın döllenebilir
+const FRY_SURVIVAL = 0.55;       // yetişkinler yavru yer: temel hayatta kalma

@@ -150,7 +150,8 @@ const UI = {
     const lampOn = t.lightTarget > 0.5;
     info.replaceChildren(
       h('div.chip', null, icon(lampOn ? 'sun' : 'moon'), `Gün ${dayOf(S.clockMin)} · ${clockStr(S.clockMin)}`),
-      h('div.chip', null, icon('fish'), String(t.creatures.length)),
+      h('div.chip', null, icon('fish'), `${t.creatures.length}/${TANK_CAP}`),
+      Game.unrevealed().length ? h('button.chip', { style: { border: '1px solid var(--accent)', cursor: 'pointer' }, onclick: () => UI.openReveal() }, '🍼 ' + Game.unrevealed().length + ' yeni yavru') : null,
       h('div.chip', { style: { marginLeft: 'auto' } }, icon('speed'), S.settings.speed + '×'));
     const mk = (ic, label, fn, on) => h('button.qbtn' + (on ? '.on' : ''), { onclick: fn, 'aria-label': label }, icon(ic), label);
     qa.replaceChildren(
@@ -164,7 +165,7 @@ const UI = {
   render_design(el) {
     el.replaceChildren(h('div.wrap', null, UI.emptyState('🪨', 'Tasarım Stüdyosu', 'Zemini şekillendir, taş ve kök yerleştir, bitki dik: aquascape stüdyosu Aşama 3\'te açılıyor. Şimdilik tankındaki sahne hazır bir dekorla geliyor.', h('button.btn.primary', { onclick: () => UI.go('aq') }, 'Akvaryuma dön'))));
   },
-  render_lab(el) {
+  render_lab_old(el) {
     const S = Game.S, males = Game.tank.creatures.filter((c) => c.sex === 'M').length, females = Game.tank.creatures.length - males;
     el.replaceChildren(h('div.wrap.stack', null,
       UI.emptyState('🧬', 'Üretim Laboratuvarı', 'Gebelik, sperm depolama, Punnett önizlemesi ve soyağacı Aşama 2\'de açılıyor. Genetik motoru hazır: şimdilik balıklarının kartında genotipini test ederek gen kombinasyonlarını inceleyebilirsin.', h('button.btn.primary', { onclick: () => UI.openFishList() }, 'Balıklarım')),
@@ -250,6 +251,7 @@ const UI = {
         h('div.small.muted', { style: { marginBottom: '8px' } }, 'Genetik motorunu denemek için. Konsol: Tests.all()'),
         h('div.row.wrap-r', null, h('button.btn.sm', { onclick: () => { const c = Game.addRandomFish(); UI.toast(c.name + ' tanka eklendi', 'fish'); } }, 'Rastgele balık ekle'),
           h('button.btn.sm', { onclick: () => { const c = Game.addRandomFish(true); UI.toast(c.name + ' (yüksek mutasyon) eklendi', 'dna'); } }, 'Mutant balık ekle'),
+          h('button.btn.sm', { onclick: () => { Game.skipDays(10); UI.toast('Zaman 10 gün ileri sarıldı', 'speed'); } }, '10 gün ileri sar'),
           h('button.btn.sm', { onclick: () => { const ok = Tests.all(); UI.toast(ok ? 'Tüm testler geçti (konsola bak)' : 'Başarısız test var (konsola bak)', ok ? 'check' : 'close'); } }, 'Testleri çalıştır'))),
     ));
   },
@@ -277,7 +279,7 @@ const UI = {
     const rec = UI.sheet(h('div', null, UI.sheetHead(`Balıklarım (${list.length})`, { close: () => rec.close() }),
       list.length ? list.map((c) => { const r = RARITY[c.rarity()], cv = h('canvas', { width: 168, height: 80 }); cv.getContext('2d').drawImage(FishArt.sprite(c).tex, 0, 0, 168, 80);
         return h('div.fish-row', { role: 'button', tabindex: 0, onclick: (e) => { const rect = cv.getBoundingClientRect(); rec.close(); setTimeout(() => UI.openCreature(c, rect), 60); } }, cv,
-          h('div.sp', null, h('b', null, (c.fav ? '★ ' : '') + c.name), h('div.small.muted', null, `${c.sex === 'M' ? '♂ Erkek' : '♀ Dişi'} · ${c.breed().name} · ${c.stage()}`)), UI.rarityPill(c.rarity())); })
+          h('div.sp', null, h('b', null, (c.fav ? '★ ' : '') + c.name + (c.preg ? ' 🤰' : '') + (c.unrevealed ? ' 🍼' : '')), h('div.small.muted', null, `${c.sex === 'M' ? '♂ Erkek' : '♀ Dişi'} · ${c.breed().name} · ${c.stage()}`)), UI.rarityPill(c.rarity())); })
         : UI.emptyState('🐟', 'Tank bomboş', 'Mağaza Aşama 6\'da açılacak; şimdilik Ayarlar > Geliştirici bölümünden balık ekleyebilirsin.')), { full: list.length > 6 });
   },
 
@@ -312,10 +314,13 @@ const UI = {
           : h('div.locked', null, icon('lock'), h('div.sp', null, 'Genotip gizli. Test, görünmeyen taşıyıcı genleri açığa çıkarır.'), h('button.btn.sm.primary', { onclick: () => { if (Game.testCreature(c)) build(); } }, '40 💰 Test et')),
         c.sex === 'F' && !c.tested ? null : (c.sex === 'F' && Genetics.carried(c.genome).length ? h('div.small.muted', { style: { marginTop: '6px' } }, 'Taşıdığı gizli genler: ' + Genetics.carried(c.genome).join(', ')) : null),
         h('h4', { style: { margin: '14px 0 6px' } }, 'Soy'),
+        c.sex === 'F' ? h('div.small.muted', { style: { marginBottom: '6px' } }, c.preg ? `🤰 Gebe · doğuma ${UI.daysLeft(c.preg.due - c.now)}` : 'Gebe değil', c.sperm.length ? ' · Depodaki sperm: ' + c.sperm.map((s) => `${s.name} ×${s.left}`).join(', ') : '') : null,
+        c.defect ? h('div.small', { style: { color: 'var(--warn)', marginBottom: '6px' } }, '🩹 Omurga kusuru: sağlık ve değer düşük.') : null,
         h('div.small.muted', null, parents && (parents.s || parents.d) ? `Anne: ${pn(parents.d)} · Baba: ${pn(parents.s)}` : 'Kurucu (ilk nesil)', ` · ${kids} yavru`),
         h('div.row.wrap-r', { style: { marginTop: '16px' } },
           h('button.btn' + (c.fav ? '.primary' : ''), { onclick: () => { c.fav = !c.fav; Game.save(); build(); } }, icon('star'), c.fav ? 'Favori' : 'Favorile'),
           h('button.btn.coral', { onclick: () => UI.confirm(`${c.name} satılsın mı?`, `${fmt(c.value())} Altın Pul kazanacaksın.`, () => { if (Game.sell(c)) rec.close(); }) }, icon('sell'), 'Sat · ' + fmt(c.value())),
+          h('button.btn', { onclick: () => UI.openTree(c) }, icon('dna'), 'Soyağacı'),
           h('button.btn.ghost', { onclick: () => nameIn.focus() }, icon('edit'), 'Adlandır'))].filter(Boolean));
     };
     build();
@@ -354,6 +359,7 @@ const UI = {
     const rec = UI.sheet(h('div.stack', null, UI.sheetHead('Sen yokken…', { close: () => rec.close() }),
       h('div.card', null, h('div', null, `Tankında ${info.days >= 1 ? info.days.toFixed(1) + ' gün' : Math.round(info.minutes / 60) + ' saat'} geçti.`),
         info.grown ? h('div.small.muted', null, `${info.grown} balık yeni bir büyüme evresine ulaştı.`) : null,
+        info.births ? h('div.small', null, `🍼 ${info.births} doğum oldu! Laboratuvar'dan yavruları aç.`) : null,
         h('div.small.muted', null, 'Balıkların güvende; geri dönmen için hiçbir ceza yok. 🌊')),
       h('button.btn.primary', { onclick: () => rec.close() }, 'Devam')));
   },

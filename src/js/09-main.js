@@ -58,7 +58,7 @@ const Game = {
   freshState() {
     this.S = Save.newState(); Pedigree.rec = {}; Pedigree._memo.clear(); _nextId = 1;
     const t = this.tank; t.creatures.length = 0; t.food.length = 0; t.setAspect(t.W / t.H);
-    createStarterFish(t, this.S.clockMin); for (const c of t.creatures) Pedigree.add(c.id, 0, 0, { name: c.name });
+    createStarterFish(t, this.S.clockMin); for (const c of t.creatures) Breeding.reg(c);
     this.checkDiscoveries(true); this.afterLoad(); this.save(true);
   },
 
@@ -80,7 +80,8 @@ const Game = {
     const minutes = Math.min(secs * 1, 8 * 1440), before = this.tank.creatures.map((c) => c.stage(S.clockMin));
     S.clockMin += minutes; const grown = this.tank.creatures.filter((c, i) => c.stage(S.clockMin) !== before[i]).length;
     this.tank.creatures.forEach((c) => (c.now = S.clockMin));
-    return { minutes, days: minutes / 1440, grown };
+    const births = this.tickBreeding(true);
+    return { minutes, days: minutes / 1440, grown, births };
   },
 
   pack() {
@@ -152,12 +153,50 @@ const Game = {
     if (mutant && ms.length && fs.length) { const a = R.pick(ms), b = R.pick(fs); genome = Genetics.breed(a.genome, b.genome, R, { mutMul: 80 }); sire = a.id; dam = b.id; }
     else genome = Genetics.randomFounder(R.chance(0.5) ? 'M' : 'F');
     const c = new Creature({ genome, bornT: now - 70 * 1440, sire, dam, x: R.float(100, t.W - 100), y: R.float(120, t.H - 200) });
-    c.now = now; Pedigree.add(c.id, sire, dam, { name: c.name }); t.addCreature(c); this.checkDiscoveries(false); UI.refreshAq(); this.save(); return c;
+    c.now = now; Breeding.reg(c); t.addCreature(c); this.checkDiscoveries(false); UI.refreshAq(); this.save(); return c;
+  },
+
+  /* ---------------- Üreme ---------------- */
+  /** Doğumları işler; bildirim/XP/istatistik üretir. quiet: çevrimdışı özet için sessiz. */
+  tickBreeding(quiet) {
+    const S = this.S, births = Breeding.tick(S.clockMin, this.tank), out = [];
+    for (const b of births) {
+      if (b.empty) { if (!quiet) UI.toast(`${b.dam.name} doğurdu ama yavru çıkmadı (sperm yoktu)`, 'bell'); continue; }
+      const kept = b.kept.length; S.stats.born += kept; this.addXp(5 + Math.min(40, kept * 2));
+      if (b.released) this.addCoins(b.released * 2);
+      S.litters.push({ t: S.clockMin, dam: b.dam.name, kept, lost: b.lost, released: b.released }); if (S.litters.length > 40) S.litters.shift();
+      this.notify('birth', `${b.dam.name} doğurdu: ${kept} yavru yaşıyor${b.lost ? `, ${b.lost} yavru yenildi` : ''}${b.released ? `, ${b.released} yavru tank dolu olduğu için dükkâna verildi` : ''}.`);
+      if (!quiet) { UI.toast(`🍼 ${b.dam.name} doğurdu! ${kept} yavru yaşıyor`, 'fish', 4500); AudioSys.SFX.born(); }
+      out.push(b);
+    }
+    if (births.length) { UI.refreshTop(); if (UI.cur === 'aq') UI.refreshAq(); if (UI.cur === 'lab') UI.render_lab($('#s-lab')); }
+    return out.length;
+  },
+  mate(m, f) {
+    const pr = Breeding.problems(m, f, this.S.clockMin); if (pr.length) { UI.toast(pr[0], 'bell'); return null; }
+    const r = Breeding.mate(m, f, this.S.clockMin); this.addXp(4); AudioSys.SFX.coin();
+    UI.toast(r.started ? `${f.name} gebe kaldı! Doğum ~${Math.round((r.due - this.S.clockMin) / 1440)} gün sonra` : `${f.name} sperm depoladı (zaten gebe)`, 'heart', 4200);
+    this.save(); return r;
+  },
+  skipDays(n) { this.S.clockMin += n * 1440; this.tank.creatures.forEach((c) => (c.now = this.S.clockMin)); this.tickBreeding(false); UI.refreshTop(); },
+  unrevealed() { return this.tank.creatures.filter((c) => c.unrevealed); },
+  /** Soyağacı kaydından (genom saklı) portre çizilebilen hafif canlı. */
+  creatureFromRec(id) {
+    const r = Pedigree.rec[id]; if (!r || !r.g) return null; let c = this._recCache && this._recCache.get(id);
+    if (!c) { c = new Creature({ id: -1000000 - id, genome: r.g, bornT: -500 * 1440, seed: r.seed || id * 31 }); c.now = 0; (this._recCache = this._recCache || new Map()).set(id, c); }
+    return c;
+  },
+  /** Yetişkin hali (açılış önizlemesi). */
+  adultPreview(c) {
+    this._adultCache = this._adultCache || new Map(); let a = this._adultCache.get(c.id);
+    if (!a) { a = new Creature({ id: -2000000 - c.id, genome: c.genome, bornT: -500 * 1440, seed: c.seed }); a.now = 0; this._adultCache.set(c.id, a); }
+    return a;
   },
 
   /* ---------------- Keşif ---------------- */
   checkDiscoveries(silent) {
     for (const c of this.tank.creatures) {
+      if (c.unrevealed) continue;   // yavrunun rengi açılana kadar keşif sayılmaz
       const b = c.breed(); if (this.S.discovered[b.id]) continue;
       this.S.discovered[b.id] = { t: this.S.clockMin, by: c.id };
       if (!silent) { this.celebQ.push([c, b]); this.addXp(30 * (b.rarity + 1)); this.notify('discovery', `Yeni varyasyon keşfedildi: ${b.name}`); }
@@ -188,7 +227,7 @@ const Game = {
     this.tank.update(dt, S.clockMin);
     this.topAcc += dt;
     if (this.topAcc > 1) {
-      this.topAcc = 0; UI.cur === 'aq' && UI.refreshAq();
+      this.topAcc = 0; this.tickBreeding(); UI.cur === 'aq' && UI.refreshAq();
       if (UI.cur === 'aq' || UI.cur === 'hub') AudioSys.setMood(this.tank.light < 0.4 ? 'night' : 'day');
       if (S.settings.sessionReminder && !this.sessionWarned && S.stats.playSec > 3600) { this.sessionWarned = true; UI.toast('1 saattir oynuyorsun — biraz mola vermeye ne dersin? ☕', 'bell', 6000); }
     }

@@ -55,10 +55,10 @@ const Tests = {
 
   /** Akrabalı yetiştirme: kardeş çiftleşmesi F≈0.25. */
   inbreeding() {
-    Pedigree.rec = {}; Pedigree._memo.clear();
+    const saved = Pedigree.rec; Pedigree.rec = {}; Pedigree._memo.clear();
     Pedigree.add(1, 0, 0); Pedigree.add(2, 0, 0); Pedigree.add(3, 1, 2); Pedigree.add(4, 1, 2); Pedigree.add(5, 3, 4);
     const f = Pedigree.F(5);
-    Pedigree.rec = {}; Pedigree._memo.clear();
+    Pedigree.rec = saved; Pedigree._memo.clear();
     return this._log('Akrabalık katsayısı (kardeş × kardeş = 0.25)', Math.abs(f - 0.25) < 1e-9, { F: f });
   },
 
@@ -74,5 +74,22 @@ const Tests = {
     return this._log('Her ırk kendi örnek genomunu tanır', bad.length === 0, bad.map((b) => b.id));
   },
 
-  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
+  /** Gebelik/doğum döngüsü: sperm depolama, batın, akrabalık, tank sınırı. */
+  breeding() {
+    const fake = { creatures: [], addCreature(c) { this.creatures.push(c); return c; } }, saved = Pedigree.rec; Pedigree.rec = {}; Pedigree._memo.clear();
+    const m = new Creature({ id: 9001, genome: Genetics.make({ tc: 'red' }, 'M'), bornT: -100 * 1440 }), f = new Creature({ id: 9002, genome: Genetics.make({}, 'F'), bornT: -100 * 1440 });
+    Breeding.reg(m); Breeding.reg(f); fake.creatures.push(m, f); m.now = f.now = 0;
+    const r = Breeding.mate(m, f, 0); const gd = (f.preg.due - f.preg.start) / 1440;
+    const early = Breeding.tick(1000, fake).length;                                   // erken doğum olmamalı
+    const out = Breeding.tick(f.preg.due + 1, fake); const b = out[0];
+    const kids = fake.creatures.filter((c) => c.dam === 9002);
+    const okSperm = f.sperm.length === 1 && f.sperm[0].left === SPERM_BATCHES - 1 && f.preg && true;   // 2. gebelik otomatik
+    const sibs = kids.length >= 2 ? Pedigree.kin(kids[0].id, kids[1].id) : 0.25;
+    const okKin = kids.every((k) => k.F === 0) && Math.abs(sibs - 0.25) < 0.3;
+    const okSex = kids.every((k) => k.sire === 9001 && (k.sex === 'M' ? k.pheno.tailColor === 'red' : true));
+    Pedigree.rec = saved; Pedigree._memo.clear();
+    return this._log('Üreme döngüsü', r.started && gd >= 21 && gd <= 31 && early === 0 && b && b.kept.length > 0 && okSperm && okKin && okSex, { gebelikGün: gd.toFixed(1), yavru: kids.length, yenen: b && b.lost, spermKalan: f.sperm[0] && f.sperm[0].left });
+  },
+
+  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
 };

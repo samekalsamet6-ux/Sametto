@@ -295,6 +295,11 @@ const FishArt = {
     ctx.translate(pp.x, pp.y + sp.H * 0.5); ctx.rotate(Math.PI - 0.55 + flap);
     ctx.beginPath(); ctx.ellipse(fr * 0.8, 0, fr, fr * 0.42, 0, 0, TAU); ctx.fillStyle = 'rgba(235,245,250,.38)'; ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 0.8; ctx.stroke();
+    // gebelik lekesi: gebelik ilerledikçe koyulaşır
+    if (cr.preg) {
+      const pr = clamp((cr.now - cr.preg.start) / (cr.preg.due - cr.preg.start), 0, 1);
+      if (pr > 0) { ctx.setTransform(Fa, Fb, Fc, Fd, Fe, Ff); const gp = P[Math.round(S * 0.5)]; ctx.beginPath(); ctx.ellipse(gp.x - 4, gp.y + sp.H * (0.62 - 0.1 * pr), sp.H * (0.28 + 0.34 * pr), sp.H * (0.2 + 0.26 * pr), 0, 0, TAU); ctx.fillStyle = `rgba(55,22,12,${0.12 + 0.5 * pr})`; ctx.fill(); }
+    }
     // ağız (yeme anı)
     if (sw.mouthT > 0) { ctx.setTransform(Fa, Fb, Fc, Fd, Fe, Ff); const n = P[0], o = Math.sin(clamp(sw.mouthT / 0.35, 0, 1) * Math.PI); ctx.beginPath(); ctx.moveTo(n.x + 1, n.y + 1); ctx.lineTo(n.x - 7, n.y - 4 * o); ctx.lineTo(n.x - 7, n.y + 5 * o); ctx.closePath(); ctx.fillStyle = 'rgba(20,10,10,.65)'; ctx.fill(); }
     ctx.globalAlpha = 1; ctx.setTransform(base[0], base[1], base[2], base[3], base[4], base[5]);

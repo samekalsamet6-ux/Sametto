@@ -187,6 +187,25 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 .reduce *,.reduce *::before,.reduce *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
+/* ====== Aşama 2: laboratuvar, açılış, soyağacı ====== */
+.pickc{flex:none;width:112px;border-radius:14px;border:2px solid var(--panel-b);background:var(--panel);padding:6px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font-size:13px;transition:transform .18s var(--ease),border-color .2s}
+.pickc canvas{width:84px;height:auto}.pickc:active{transform:scale(.95)}
+.pickc.on{border-color:var(--accent);box-shadow:0 0 14px rgba(47,212,198,.4)}.pickc.dis{opacity:.45}
+.card.glow{border-color:var(--accent);animation:glowp 3s ease-in-out infinite}
+@keyframes glowp{0%,100%{box-shadow:0 0 10px rgba(47,212,198,.15)}50%{box-shadow:0 0 28px rgba(47,212,198,.45)}}
+.pgrid{display:grid;grid-template-columns:auto 1fr 1fr;gap:4px;max-width:340px;font-size:12.5px;text-align:center}
+.pgrid .pc{padding:8px 4px;border-radius:8px;background:rgba(255,255,255,.08);border:1px solid var(--panel-b)}
+.dex-tile.seal{border-style:dashed}.dex-tile.flip{animation:flipc .32s var(--ease)}
+@keyframes flipc{50%{transform:scaleX(0)}}
+.dex-tile.shown{border-color:var(--c);box-shadow:0 0 16px color-mix(in srgb,var(--c) 40%,transparent)}
+.tree-wrap{overflow:auto;max-height:68vh;padding:12px 4px;border-radius:14px;background:rgba(0,0,0,.15);border:1px solid var(--panel-b);margin-top:8px}
+.tree{display:inline-flex;min-width:100%;justify-content:center}
+.tsub{display:flex;flex-direction:column;align-items:center}
+.tpar{display:flex;gap:10px;align-items:flex-end}
+.tline{width:2px;height:14px;background:var(--panel-b)}
+.tn{width:84px;padding:5px;border-radius:12px;border:2px solid var(--c);background:var(--panel);text-align:center;display:flex;flex-direction:column;align-items:center;font-size:12px}
+.tn canvas{width:70px;height:auto}.tn.me{box-shadow:0 0 14px var(--c)}.tn.dup{border-style:dashed;border-color:#ffd36b}
+
 </style>
 </head>
 <body>
@@ -322,6 +341,12 @@ const clockStr = (minutes) => { const m = Math.floor(minutes % 1440); return pad
 const dayOf = (minutes) => Math.floor(minutes / 1440) + 1;
 const todayKey = () => { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
 const prefersReduced = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** replaceChildren/append: null ve false "null" yazısı olarak görünmesin. */
+for (const m of ['replaceChildren', 'append']) {
+  const orig = Element.prototype[m];
+  Element.prototype[m] = function (...a) { return orig.apply(this, a.flat(2).filter((x) => x != null && x !== false)); };
+}
 
 /* ───── 01-data.js ───── */
 'use strict';
@@ -462,6 +487,13 @@ const BREED_BY_ID = Object.fromEntries(BREEDS.map((b) => [b.id, b]));
 const TITLES = [[1, 'Çaylak Akvaryumcu'], [5, 'Meraklı Üretici'], [12, 'Hat Sabitleyici'], [25, 'Genetik Ustası'], [50, 'Aquascape Sanatçısı'], [80, 'Büyük Usta']];
 const NAMES_F = ['Ayşe', 'Elif', 'Defne', 'Zeynep', 'Mina', 'Selin', 'Nehir', 'Deniz', 'İnci', 'Lale', 'Pınar', 'Ela', 'Su', 'Ceren', 'Duru'];
 const NAMES_M = ['Kaan', 'Mavi', 'Poyraz', 'Efe', 'Atlas', 'Kerem', 'Yağız', 'Barış', 'Ege', 'Toprak', 'Rüzgar', 'Alp', 'Çınar', 'Umut', 'Bulut'];
+
+/* ---- Üreme sabitleri ---- */
+const MATURE_DAYS = 35;          // üreme olgunluğu (gün)
+const TANK_CAP = 60;             // tank kapasitesi (araştırma ağacıyla artacak)
+const GEST_DAYS = [21, 31];      // gebelik süresi aralığı (gün)
+const SPERM_BATCHES = 3;         // tek çiftleşmeyle kaç batın döllenebilir
+const FRY_SURVIVAL = 0.55;       // yetişkinler yavru yer: temel hayatta kalma
 
 /* ───── 02-genetics.js ───── */
 'use strict';
@@ -938,6 +970,11 @@ const FishArt = {
     ctx.translate(pp.x, pp.y + sp.H * 0.5); ctx.rotate(Math.PI - 0.55 + flap);
     ctx.beginPath(); ctx.ellipse(fr * 0.8, 0, fr, fr * 0.42, 0, 0, TAU); ctx.fillStyle = 'rgba(235,245,250,.38)'; ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 0.8; ctx.stroke();
+    // gebelik lekesi: gebelik ilerledikçe koyulaşır
+    if (cr.preg) {
+      const pr = clamp((cr.now - cr.preg.start) / (cr.preg.due - cr.preg.start), 0, 1);
+      if (pr > 0) { ctx.setTransform(Fa, Fb, Fc, Fd, Fe, Ff); const gp = P[Math.round(S * 0.5)]; ctx.beginPath(); ctx.ellipse(gp.x - 4, gp.y + sp.H * (0.62 - 0.1 * pr), sp.H * (0.28 + 0.34 * pr), sp.H * (0.2 + 0.26 * pr), 0, 0, TAU); ctx.fillStyle = `rgba(55,22,12,${0.12 + 0.5 * pr})`; ctx.fill(); }
+    }
     // ağız (yeme anı)
     if (sw.mouthT > 0) { ctx.setTransform(Fa, Fb, Fc, Fd, Fe, Ff); const n = P[0], o = Math.sin(clamp(sw.mouthT / 0.35, 0, 1) * Math.PI); ctx.beginPath(); ctx.moveTo(n.x + 1, n.y + 1); ctx.lineTo(n.x - 7, n.y - 4 * o); ctx.lineTo(n.x - 7, n.y + 5 * o); ctx.closePath(); ctx.fillStyle = 'rgba(20,10,10,.65)'; ctx.fill(); }
     ctx.globalAlpha = 1; ctx.setTransform(base[0], base[1], base[2], base[3], base[4], base[5]);
@@ -969,6 +1006,9 @@ class Creature {
     this.pers = d.pers || { activity: R.float(0.25, 1), bold: R.float(0.1, 1), curious: R.float(0.1, 1), social: R.float(0.2, 1) };
     this.x = d.x; this.y = d.y;
     this.stress = 0;
+    this.preg = d.preg || null;                   // {start, due} gebelik (dakika)
+    this.sperm = d.sperm || [];                   // depolanan sperm: [{sire, name, g, left}]
+    this.lastBirth = d.lastBirth ?? -1e9; this.defect = !!d.defect; this.unrevealed = !!d.unrevealed;
     this.pheno = Genetics.phenotype(this.genome);
     this.sprite = null; this.sw = new Swimmer(this);
     this.now = 0;                                 // son bilinen oyun dakikası (yaş için)
@@ -981,18 +1021,21 @@ class Creature {
   maturity(now = this.now) { return this.sex === 'M' ? smoothstep(14, 70, this.ageDays(now)) : 1; }
   stage(now = this.now) { const a = this.ageDays(now); return a < 10 ? 'Yavru' : a < 42 ? 'Genç' : 'Yetişkin'; }
   /** Dünya birimi cinsinden gövde uzunluğu. */
-  bodyLen() { return 58 * this.pheno.size * this.growth() * (this.sex === 'F' ? 1.2 : 0.86); }
+  /** Akrabalı yetiştirme katsayısı (soyağacı değişmediği için bir kez hesaplanır). */
+  get F() { return this._F ?? (this._F = Pedigree.F(this.id)); }
+  bodyLen() { return 58 * this.pheno.size * this.growth() * (this.sex === 'F' ? 1.2 : 0.86) * (1 - 0.3 * this.F); }
+  adult(now = this.now) { return this.ageDays(now) >= MATURE_DAYS; }
   breed() { return Genetics.breedOf(this.pheno); }
   rarity() { return this.breed().rarity; }
-  inbreeding() { return Pedigree.F(this.id); }
-  health() { return Genetics.health(this.genome, this.inbreeding()); }
+  inbreeding() { return this.F; }
+  health() { return Genetics.health(this.genome, this.inbreeding()) * (this.defect ? 0.6 : 1); }
   value() {
-    const r = RARITY[this.rarity()].value, size = 0.6 + 0.4 * this.growth();
+    const r = RARITY[this.rarity()].value * (this.defect ? 0.4 : 1), size = 0.6 + 0.4 * this.growth();
     const stageMul = this.ageDays() < 10 ? 0.4 : 1;
     return Math.max(5, Math.round(r * size * stageMul * clamp(this.health(), 0.5, 1.15) * (this.fav ? 1 : 1)));
   }
   toJSON() {
-    return { id: this.id, name: this.name, genome: this.genome, bornT: this.bornT, seed: this.seed, fav: this.fav, tested: this.tested, sire: this.sire, dam: this.dam, pers: this.pers, x: Math.round(this.sw.x), y: Math.round(this.sw.y) };
+    return { id: this.id, name: this.name, genome: this.genome, bornT: this.bornT, seed: this.seed, fav: this.fav, tested: this.tested, sire: this.sire, dam: this.dam, pers: this.pers, preg: this.preg, sperm: this.sperm, lastBirth: this.lastBirth, defect: this.defect, unrevealed: this.unrevealed, x: Math.round(this.sw.x), y: Math.round(this.sw.y) };
   }
 }
 
@@ -1010,6 +1053,7 @@ class Swimmer {
     this.court = 0; this.courtWith = null; this.startleT = 0; this.eaten = 0; this.foodSeen = -1;
     this.targetAmp = 0.5; this.courtAmp = 0;
     this.speedMul = lerp(0.8, 1.2, p.activity);
+    this.bendBase = c.defect ? 0.5 * (c.id % 2 ? 1 : -1) : 0;   // omurga kusuru: kalıcı eğrilik
   }
 
   /** Portre/kart modu: yerinde, sakin yüzüş (yüzgeçler çalışır, gövde hafifçe dalgalanır, dönüş yok). */
@@ -1173,7 +1217,7 @@ class Swimmer {
       // ilerleyen dalga: y = A(s) sin(k s − ωt); A(s) = a0 + a1 s + a2 s²  (carangiform)
       const A = 0.02 + 0.02 * s + 0.11 * s * s;
       let y = this.amp * A * TW * Math.sin(TAU * 1.0 * s - this.phase);
-      y += this.bend * (s * s) * TW * 0.16;                                 // C-dönüş
+      y += (this.bend + this.bendBase) * (s * s) * TW * 0.16;                                 // C-dönüş
       y += this.courtAmp * 0.028 * TW * Math.sin(TAU * 2.4 * s - this.phase * 2.6) * smoothstep(0.05, 0.5, s);  // S-titreşim
       if (s < 0.5) { this.joints[j] = y; this.jv[j] = 0; continue; }
       // kuyruk: gecikmeli sönümlü yay (kumaş gibi)
@@ -1201,6 +1245,101 @@ class Swimmer {
 
 /** (yardımcı) hedef yönünü normalize eder. */
 function wantDir(dx, dy) { const m = Math.hypot(dx, dy) || 1; return { x: dx / m, y: dy / m }; }
+
+/* ───── 04b-breeding.js ───── */
+'use strict';
+/* =====================================================================
+   04b · ÜREME — çiftleştirme, sperm depolama, gebelik, doğum, önizleme
+   Lepistes canlı doğurur: dişi sperm depolar (tek çiftleşmeyle birkaç batın),
+   gebelik 21–31 gün, batın büyüklüğü dişinin boyuna/sağlığına bağlı,
+   yetişkinler yavru yer, akrabalı üreme batını küçültür ve kusur riski doğurur.
+   ===================================================================== */
+const Breeding = {
+  /** Soyağacı kaydı: ata ağacında portre çizebilmek için genom da saklanır. */
+  reg(c) { Pedigree.add(c.id, c.sire, c.dam, { name: c.name, sex: c.genome.sex, g: c.genome, seed: c.seed, bornT: c.bornT }); },
+
+  /** Çift seçimi uygun mu? Neden listesi döner (boşsa uygun). */
+  problems(m, f, now) {
+    const out = [];
+    if (!m || !f) return ['Bir erkek ve bir dişi seç'];
+    if (!m.adult(now)) out.push(`${m.name} henüz olgun değil`);
+    if (!f.adult(now)) out.push(`${f.name} henüz olgun değil`);
+    return out;
+  },
+  /** Yavruların beklenen akrabalık katsayısı. */
+  predictF(m, f) { return Pedigree.kin(m.id, f.id); },
+
+  gestDays(f) { return R.float(GEST_DAYS[0], GEST_DAYS[1]); },
+
+  /** Çiftleştirir. Dişi gebe değilse (ve dinlenmişse) gebelik başlar. */
+  mate(m, f, now) {
+    let rec = f.sperm.find((s) => s.sire === m.id);
+    if (rec) rec.left = SPERM_BATCHES; else { f.sperm.push({ sire: m.id, name: m.name, g: JSON.parse(JSON.stringify(m.genome)), left: SPERM_BATCHES }); }
+    while (f.sperm.length > 4) f.sperm.sort((a, b) => b.left - a.left).pop();
+    let started = false;
+    if (!f.preg) { const rest = Math.max(0, f.lastBirth + 2 * 1440 - now); const d = this.gestDays(f) * 1440; f.preg = { start: now + rest, due: now + rest + d }; started = true; }
+    return { started, due: f.preg.due };
+  },
+
+  progress(f, now) { return f.preg ? clamp((now - f.preg.start) / (f.preg.due - f.preg.start), 0, 1) : 0; },
+
+  litterSize(f) {
+    const p = f.pheno, base = 9 + 16 * (p.size - 0.75) + Math.min(6, f.ageDays() / 60);
+    let n = Math.round(R.gauss(base, 4)); n *= (1 - 1.4 * f.F) * (p.metalDouble ? 0.6 : 1) * clamp(p.vigor, 0.6, 1.2);
+    return clamp(Math.round(n), 2, 60);
+  },
+
+  /** Zamanı gelen doğumları işler. Doğan yavruları döndürür: [{dam, kept, lost, released}] */
+  tick(now, tank) {
+    const births = [];
+    for (const f of tank.creatures.slice()) {
+      let guard = 0;
+      while (f.preg && now >= f.preg.due && guard++ < 12) births.push(this.birth(f, f.preg.due, tank, now));
+    }
+    return births.filter(Boolean);
+  },
+
+  birth(f, t, tank, now) {
+    f.preg = null; f.lastBirth = t;
+    const sp = f.sperm.filter((s) => s.left > 0);
+    if (!sp.length) return { dam: f, kept: [], lost: 0, released: 0, empty: true };
+    const n = this.litterSize(f), kept = [], used = new Set(); let lost = 0, released = 0, dead = 0;
+    for (const _ of Array(n)) {
+      if (R.next() > FRY_SURVIVAL) { lost++; continue; }
+      const tot = sp.reduce((a, s) => a + s.left, 0); let r = R.next() * tot, rec = sp[0];
+      for (const s of sp) { r -= s.left; if (r <= 0) { rec = s; break; } }
+      used.add(rec);
+      if (tank.creatures.length + kept.length >= TANK_CAP) { released++; continue; }
+      const g = Genetics.breed(rec.g, f.genome, R), c = new Creature({ genome: g, bornT: t, sire: rec.sire, dam: f.id, x: f.sw.x, y: f.sw.y, unrevealed: true });
+      this.reg(c);
+      if (R.next() < Math.min(0.6, 1.8 * c.F)) { c.defect = true; c.sw.bendBase = 0.5 * (c.id % 2 ? 1 : -1); dead++; }
+      c.now = now; c.sw.x = f.sw.x + R.float(-12, 12); c.sw.y = f.sw.y + R.float(-8, 8); c.sw.speed = 20;
+      tank.addCreature(c); kept.push(c);
+    }
+    for (const s of used) s.left--;
+    f.sperm = f.sperm.filter((s) => s.left > 0);
+    // kalan sperm varsa 2 gün dinlenip yeni gebelik
+    if (f.sperm.length) f.preg = { start: t + 2 * 1440, due: t + 2 * 1440 + this.gestDays(f) * 1440 };
+    return { dam: f, kept, lost, released, defects: dead };
+  },
+
+  /** Ebeveyn genomlarından çıkarımla olasılıklar. Bilinmeyen genler için `known` false. */
+  preview(m, f, n = 1400) {
+    const rng = new RNG(((m.id * 73856093) ^ (f.id * 19349663)) >>> 0), known = m.tested && f.tested;
+    const body = {}, tailT = {}, breeds = {}, tc = {}; let males = 0, flags = {};
+    for (let i = 0; i < n; i++) {
+      const g = Genetics.breed(m.genome, f.genome, rng, { noMut: true }), p = Genetics.phenotype(g);
+      if (g.sex === 'M') { males++; tc[p.tailColor] = (tc[p.tailColor] || 0) + 1; for (const k of ['tux', 'sb', 'st', 'grass', 'mosaic', 'moscow']) if (p[k]) flags[k] = (flags[k] || 0) + 1; }
+      body[p.body] = (body[p.body] || 0) + 1; tailT[p.tail] = (tailT[p.tail] || 0) + 1;
+      const b = Genetics.breedOf(p).id; breeds[b] = (breeds[b] || 0) + 1;
+    }
+    const norm = (o, d) => Object.entries(o).map(([k, v]) => [k, v / d]).sort((a, b) => b[1] - a[1]);
+    return { known, F: this.predictF(m, f), male: males / n, body: norm(body, n), tail: norm(tailT, n), tc: norm(tc, Math.max(1, males)), flags: norm(flags, Math.max(1, males)), breeds: norm(breeds, n) };
+  },
+
+  /** Otozomal lokus için 2×2 Punnett karesi (hücre = allel çifti). */
+  punnett(a, b) { return [[0, 1].map((j) => [a[0], b[j]]), [0, 1].map((j) => [a[1], b[j]])]; },
+};
 
 /* ───── 05-scene.js ───── */
 'use strict';
@@ -1646,7 +1785,7 @@ const AudioSys = (() => {
 /* =====================================================================
    07 · KAYIT — 3 yuva, sürüm/göç, yedek, JSON dışa/içe aktarma
    ===================================================================== */
-const SAVE_VERSION = 1;
+const SAVE_VERSION = 2;
 const SLOTS = 3;
 
 const Save = {
@@ -1664,7 +1803,7 @@ const Save = {
         theme: 'ocean', font: 1, reduce: false, cb: false, speed: 1, lamp: 'auto', bgMute: true, sessionReminder: false,
         audio: { master: 0.8, music: 0.5, amb: 0.5, sfx: 0.7, style: 'ambient' },
       },
-      onboarded: false, nextId: 1, lastSeen: Date.now(), savedAt: 0, createdAt: Date.now(),
+      onboarded: false, litters: [], nextId: 1, lastSeen: Date.now(), savedAt: 0, createdAt: Date.now(),
     };
   },
 
@@ -1673,7 +1812,14 @@ const Save = {
     if (!d || typeof d !== 'object') throw new Error('Geçersiz kayıt');
     d.v = d.v || 1;
     while (d.v < SAVE_VERSION) {
-      switch (d.v) { /* case 1: …1→2 dönüşümü buraya */ default: break; }
+      switch (d.v) {
+        case 1: // v1 → v2: soyağacına genom/cinsiyet kaydı, üreme alanları
+          d.pedigree = d.pedigree || {};
+          for (const c of d.creatures || []) { const r = d.pedigree[c.id] || (d.pedigree[c.id] = { s: c.sire || 0, d: c.dam || 0 }); Object.assign(r, { name: r.name || c.name, sex: c.genome.sex, g: c.genome, seed: c.seed, bornT: c.bornT }); }
+          d.litters = d.litters || [];
+          break;
+        default: break;
+      }
       d.v++;
     }
     // eksik alanları varsayılanla tamamla (ileriye dönük güvenlik)
@@ -1875,7 +2021,8 @@ const UI = {
     const lampOn = t.lightTarget > 0.5;
     info.replaceChildren(
       h('div.chip', null, icon(lampOn ? 'sun' : 'moon'), `Gün ${dayOf(S.clockMin)} · ${clockStr(S.clockMin)}`),
-      h('div.chip', null, icon('fish'), String(t.creatures.length)),
+      h('div.chip', null, icon('fish'), `${t.creatures.length}/${TANK_CAP}`),
+      Game.unrevealed().length ? h('button.chip', { style: { border: '1px solid var(--accent)', cursor: 'pointer' }, onclick: () => UI.openReveal() }, '🍼 ' + Game.unrevealed().length + ' yeni yavru') : null,
       h('div.chip', { style: { marginLeft: 'auto' } }, icon('speed'), S.settings.speed + '×'));
     const mk = (ic, label, fn, on) => h('button.qbtn' + (on ? '.on' : ''), { onclick: fn, 'aria-label': label }, icon(ic), label);
     qa.replaceChildren(
@@ -1889,7 +2036,7 @@ const UI = {
   render_design(el) {
     el.replaceChildren(h('div.wrap', null, UI.emptyState('🪨', 'Tasarım Stüdyosu', 'Zemini şekillendir, taş ve kök yerleştir, bitki dik: aquascape stüdyosu Aşama 3\'te açılıyor. Şimdilik tankındaki sahne hazır bir dekorla geliyor.', h('button.btn.primary', { onclick: () => UI.go('aq') }, 'Akvaryuma dön'))));
   },
-  render_lab(el) {
+  render_lab_old(el) {
     const S = Game.S, males = Game.tank.creatures.filter((c) => c.sex === 'M').length, females = Game.tank.creatures.length - males;
     el.replaceChildren(h('div.wrap.stack', null,
       UI.emptyState('🧬', 'Üretim Laboratuvarı', 'Gebelik, sperm depolama, Punnett önizlemesi ve soyağacı Aşama 2\'de açılıyor. Genetik motoru hazır: şimdilik balıklarının kartında genotipini test ederek gen kombinasyonlarını inceleyebilirsin.', h('button.btn.primary', { onclick: () => UI.openFishList() }, 'Balıklarım')),
@@ -1975,6 +2122,7 @@ const UI = {
         h('div.small.muted', { style: { marginBottom: '8px' } }, 'Genetik motorunu denemek için. Konsol: Tests.all()'),
         h('div.row.wrap-r', null, h('button.btn.sm', { onclick: () => { const c = Game.addRandomFish(); UI.toast(c.name + ' tanka eklendi', 'fish'); } }, 'Rastgele balık ekle'),
           h('button.btn.sm', { onclick: () => { const c = Game.addRandomFish(true); UI.toast(c.name + ' (yüksek mutasyon) eklendi', 'dna'); } }, 'Mutant balık ekle'),
+          h('button.btn.sm', { onclick: () => { Game.skipDays(10); UI.toast('Zaman 10 gün ileri sarıldı', 'speed'); } }, '10 gün ileri sar'),
           h('button.btn.sm', { onclick: () => { const ok = Tests.all(); UI.toast(ok ? 'Tüm testler geçti (konsola bak)' : 'Başarısız test var (konsola bak)', ok ? 'check' : 'close'); } }, 'Testleri çalıştır'))),
     ));
   },
@@ -2002,7 +2150,7 @@ const UI = {
     const rec = UI.sheet(h('div', null, UI.sheetHead(`Balıklarım (${list.length})`, { close: () => rec.close() }),
       list.length ? list.map((c) => { const r = RARITY[c.rarity()], cv = h('canvas', { width: 168, height: 80 }); cv.getContext('2d').drawImage(FishArt.sprite(c).tex, 0, 0, 168, 80);
         return h('div.fish-row', { role: 'button', tabindex: 0, onclick: (e) => { const rect = cv.getBoundingClientRect(); rec.close(); setTimeout(() => UI.openCreature(c, rect), 60); } }, cv,
-          h('div.sp', null, h('b', null, (c.fav ? '★ ' : '') + c.name), h('div.small.muted', null, `${c.sex === 'M' ? '♂ Erkek' : '♀ Dişi'} · ${c.breed().name} · ${c.stage()}`)), UI.rarityPill(c.rarity())); })
+          h('div.sp', null, h('b', null, (c.fav ? '★ ' : '') + c.name + (c.preg ? ' 🤰' : '') + (c.unrevealed ? ' 🍼' : '')), h('div.small.muted', null, `${c.sex === 'M' ? '♂ Erkek' : '♀ Dişi'} · ${c.breed().name} · ${c.stage()}`)), UI.rarityPill(c.rarity())); })
         : UI.emptyState('🐟', 'Tank bomboş', 'Mağaza Aşama 6\'da açılacak; şimdilik Ayarlar > Geliştirici bölümünden balık ekleyebilirsin.')), { full: list.length > 6 });
   },
 
@@ -2037,10 +2185,13 @@ const UI = {
           : h('div.locked', null, icon('lock'), h('div.sp', null, 'Genotip gizli. Test, görünmeyen taşıyıcı genleri açığa çıkarır.'), h('button.btn.sm.primary', { onclick: () => { if (Game.testCreature(c)) build(); } }, '40 💰 Test et')),
         c.sex === 'F' && !c.tested ? null : (c.sex === 'F' && Genetics.carried(c.genome).length ? h('div.small.muted', { style: { marginTop: '6px' } }, 'Taşıdığı gizli genler: ' + Genetics.carried(c.genome).join(', ')) : null),
         h('h4', { style: { margin: '14px 0 6px' } }, 'Soy'),
+        c.sex === 'F' ? h('div.small.muted', { style: { marginBottom: '6px' } }, c.preg ? `🤰 Gebe · doğuma ${UI.daysLeft(c.preg.due - c.now)}` : 'Gebe değil', c.sperm.length ? ' · Depodaki sperm: ' + c.sperm.map((s) => `${s.name} ×${s.left}`).join(', ') : '') : null,
+        c.defect ? h('div.small', { style: { color: 'var(--warn)', marginBottom: '6px' } }, '🩹 Omurga kusuru: sağlık ve değer düşük.') : null,
         h('div.small.muted', null, parents && (parents.s || parents.d) ? `Anne: ${pn(parents.d)} · Baba: ${pn(parents.s)}` : 'Kurucu (ilk nesil)', ` · ${kids} yavru`),
         h('div.row.wrap-r', { style: { marginTop: '16px' } },
           h('button.btn' + (c.fav ? '.primary' : ''), { onclick: () => { c.fav = !c.fav; Game.save(); build(); } }, icon('star'), c.fav ? 'Favori' : 'Favorile'),
           h('button.btn.coral', { onclick: () => UI.confirm(`${c.name} satılsın mı?`, `${fmt(c.value())} Altın Pul kazanacaksın.`, () => { if (Game.sell(c)) rec.close(); }) }, icon('sell'), 'Sat · ' + fmt(c.value())),
+          h('button.btn', { onclick: () => UI.openTree(c) }, icon('dna'), 'Soyağacı'),
           h('button.btn.ghost', { onclick: () => nameIn.focus() }, icon('edit'), 'Adlandır'))].filter(Boolean));
     };
     build();
@@ -2079,10 +2230,138 @@ const UI = {
     const rec = UI.sheet(h('div.stack', null, UI.sheetHead('Sen yokken…', { close: () => rec.close() }),
       h('div.card', null, h('div', null, `Tankında ${info.days >= 1 ? info.days.toFixed(1) + ' gün' : Math.round(info.minutes / 60) + ' saat'} geçti.`),
         info.grown ? h('div.small.muted', null, `${info.grown} balık yeni bir büyüme evresine ulaştı.`) : null,
+        info.births ? h('div.small', null, `🍼 ${info.births} doğum oldu! Laboratuvar'dan yavruları aç.`) : null,
         h('div.small.muted', null, 'Balıkların güvende; geri dönmen için hiçbir ceza yok. 🌊')),
       h('button.btn.primary', { onclick: () => rec.close() }, 'Devam')));
   },
 };
+
+/* ───── 08b-lab.js ───── */
+'use strict';
+/* =====================================================================
+   08b · LABORATUVAR (çiftleştirme + Punnett önizleme), yavru açılışı, soyağacı
+   ===================================================================== */
+Object.assign(UI, {
+  labSel: { m: null, f: null },
+
+  /* ---------- yardımcılar ---------- */
+  daysLeft(min) { const d = Math.max(0, min); return d >= 1440 ? `${Math.floor(d / 1440)} gün ${Math.floor((d % 1440) / 60)} sa` : `${Math.floor(d / 60)} sa ${Math.floor(d % 60)} dk`; },
+  bar(label, p, color, extra) {
+    return h('div', { style: { margin: '5px 0' } }, h('div.row', { style: { fontSize: '13.5px' } }, h('span.sp', null, label), h('b', null, (p * 100 < 1 && p > 0 ? '<1' : Math.round(p * 100)) + '%')),
+      h('div.pbar', null, h('i', { style: { width: Math.max(2, p * 100) + '%', background: color || '' } })), extra);
+  },
+  thumbCv(cr, w = 90) { const cv = h('canvas', { width: w, height: Math.round(w * FishArt.TH / FishArt.TW) }); cv.getContext('2d').drawImage(FishArt.sprite(cr).tex, 0, 0, cv.width, cv.height); return cv; },
+  silhouette(cr, w = 90) { const cv = this.thumbCv(cr, w), c = cv.getContext('2d'); c.globalCompositeOperation = 'source-in'; c.fillStyle = 'rgba(0,0,0,.9)'; c.fillRect(0, 0, cv.width, cv.height); cv.style.opacity = '.35'; return cv; },
+
+  /* ---------- Laboratuvar ---------- */
+  render_lab(el) {
+    const S = Game.S, t = Game.tank, now = S.clockMin, sel = this.labSel;
+    if (sel.m && !t.creatures.includes(sel.m)) sel.m = null; if (sel.f && !t.creatures.includes(sel.f)) sel.f = null;
+    const males = t.creatures.filter((c) => c.sex === 'M'), females = t.creatures.filter((c) => c.sex === 'F');
+    const unrev = Game.unrevealed(), pregs = females.filter((f) => f.preg), stored = females.filter((f) => !f.preg && f.sperm.length);
+    const pick = (list, key) => h('div.chips', { style: { flexWrap: 'nowrap' } }, list.length ? list.map((c) => {
+      const ok = c.adult(now), r = RARITY[c.rarity()];
+      return h('button.pickc' + (sel[key] === c ? '.on' : '') + (ok ? '' : '.dis'), { style: { '--c': r.color }, onclick: () => { if (!ok) return UI.toast(`${c.name} henüz olgun değil (${Math.floor(c.ageDays())}/${MATURE_DAYS} gün)`, 'bell'); sel[key] = sel[key] === c ? null : c; UI.render_lab(el); } },
+        UI.thumbCv(c, 84), h('b', null, (c.fav ? '★ ' : '') + c.name), h('span.tiny.muted', null, c.preg ? `🤰 %${Math.round(100 * Breeding.progress(c, now))}` : !ok ? 'Yavru' : c.breed().name));
+    }) : h('div.muted.small', { style: { padding: '8px' } }, 'Bu cinsiyetten balığın yok.'));
+
+    const blocks = [];
+    blocks.push(h('div.row', { style: { margin: '4px 2px' } }, h('h2.sp', null, 'Üretim Laboratuvarı'), h('span.pill', null, icon('fish'), `${t.creatures.length}/${TANK_CAP}`)));
+    if (unrev.length) blocks.push(h('div.card.glow', null, h('div.row', null, h('div', { style: { fontSize: '34px' } }, '🍼'), h('div.sp', null, h('b', null, `${unrev.length} yeni yavru seni bekliyor`), h('div.small.muted', null, 'Renklerinin ilk kez ortaya çıkma anı!')), h('button.btn.primary', { onclick: () => UI.openReveal() }, 'Aç'))));
+    if (pregs.length || stored.length) blocks.push(h('div.card', null, h('h3', { style: { marginBottom: '6px' } }, 'Gebelikler'),
+      pregs.map((f) => { const pr = Breeding.progress(f, now), wait = f.preg.start > now;
+        return h('div', { style: { margin: '8px 0' } }, h('div.row', null, h('b.sp', null, f.name), h('span.small.muted', null, wait ? 'dinleniyor…' : 'doğuma ' + UI.daysLeft(f.preg.due - now))), h('div.pbar', null, h('i', { style: { width: (pr * 100) + '%' } })), h('div.tiny.muted', null, 'Depodaki sperm: ' + (f.sperm.map((s) => `${s.name} ×${s.left}`).join(', ') || '—'))); }),
+      stored.map((f) => h('div.tiny.muted', { style: { margin: '6px 0' } }, `${f.name}: depoda sperm var (${f.sperm.map((s) => `${s.name} ×${s.left}`).join(', ')}) · gebe değil`))));
+
+    blocks.push(h('div.card', null, h('h3', null, '♂ Baba adayı'), pick(males, 'm'), h('h3', { style: { marginTop: '4px' } }, '♀ Anne adayı'), pick(females, 'f')));
+
+    if (sel.m && sel.f) blocks.push(this.pairCard(sel.m, sel.f, el));
+    else blocks.push(h('div.card', null, UI.emptyState('🧬', 'Bir çift seç', 'Olgun bir erkek ve bir dişi seçince olası yavruların Punnett önizlemesi burada belirir. Gizli genleri görmek için balıklarını test et.')));
+    el.replaceChildren(h('div.wrap.stack', null, ...blocks));
+  },
+
+  pairCard(m, f, el) {
+    const now = Game.S.clockMin, P = Breeding.preview(m, f), F = P.F, probs = Breeding.problems(m, f, now);
+    const fcls = F > 0.125 ? 'bad' : F > 0.05 ? 'warn' : 'ok';
+    const out = [];
+    out.push(h('div.row', { style: { justifyContent: 'center', gap: '16px' } }, h('div', { style: { textAlign: 'center' } }, UI.thumbCv(m, 110), h('b', null, m.name)), h('div', { style: { fontSize: '26px' } }, '✕'), h('div', { style: { textAlign: 'center' } }, UI.thumbCv(f, 110), h('b', null, f.name))));
+    out.push(h('div.row.wrap-r', { style: { margin: '10px 0' } },
+      h('span.pill', { style: { borderColor: `var(--${fcls})`, color: `var(--${fcls})` } }, `Akrabalık: ${(F * 100).toFixed(1)}%`),
+      f.preg ? h('span.pill', null, '🤰 Dişi gebe: sperm depolar') : null,
+      f.sperm.some((s) => s.sire === m.id) ? h('span.pill', null, 'Daha önce eşleşmişler') : null,
+      m.pheno.metalDouble || f.pheno.metalDouble ? h('span.pill', { style: { color: 'var(--warn)' } }, '⚠ Çift Metal') : null));
+    if (F > 0.05) out.push(h('div.locked', { style: { color: F > 0.125 ? 'var(--bad)' : 'var(--warn)', marginBottom: '8px' } }, `Yakın akraba çiftleşmesi: yavrular daha küçük kalabilir, batın küçülür, omurga kusuru riski ≈ %${Math.min(60, Math.round(180 * F))}.`));
+    out.push(h('div.small.muted', { style: { marginBottom: '8px' } }, `Beklenen batın ≈ ${Math.max(2, Math.round(Breeding.litterSize(f) * 0.9))} yavru · yetişkinler yavruların ~%${Math.round((1 - FRY_SURVIVAL) * 100)}'ini yer.`));
+
+    out.push(h('h4', { style: { margin: '10px 0 4px' } }, 'Punnett önizleme'));
+    if (!P.known) {
+      const need = [m, f].filter((c) => !c.tested);
+      out.push(h('div.locked', null, icon('lock'), h('div.sp', null, 'Ebeveynlerin genotipi bilinmiyor; olasılıklar "?" olarak gizli.'), ...need.map((c) => h('button.btn.sm.primary', { onclick: () => { if (Game.testCreature(c)) UI.render_lab(el); } }, `${c.name} · 40 💰`))));
+      out.push(h('div.row.wrap-r', { style: { marginTop: '8px' } }, ...['Gövde ?', 'Kuyruk ?', 'Desen ?', 'Irk ?'].map((x) => h('span.pill', null, x))));
+    } else {
+      const grid = (title, loc, name) => {
+        const g = Breeding.punnett(m.genome.auto[loc], f.genome.auto[loc]);
+        return h('div', { style: { marginBottom: '10px' } }, h('div.small.muted', null, title),
+          h('div.pgrid', null, h('span'), ...m.genome.auto[loc].map((a) => h('b', null, name(a))), ...g.flatMap((row, i) => [h('b', null, f.genome.auto[loc][i] ? name(f.genome.auto[loc][i]) : ''), ...row.map(([a, b]) => h('span.pc', null, name(a) + '·' + name(b)))])));
+      };
+      out.push(grid('Gövde rengi (otozomal)', 'body', (a) => BODY[a].name.slice(0, 6)), grid('Kuyruk tipi (otozomal)', 'tail', (a) => TAILS[a].name.slice(0, 6)));
+      out.push(h('div.small.muted', null, 'Yavru dağılımı'), UI.bar('Erkek yavru', P.male, '#4aa8ff'), UI.bar('Dişi yavru', 1 - P.male, '#ff7ad9'));
+      out.push(h('h4', { style: { margin: '10px 0 2px' } }, 'Gövde rengi'), ...P.body.map(([k, p]) => UI.bar(BODY[k].name, p, `hsl(${BODY[k].h},${BODY[k].s}%,${BODY[k].l}%)`)));
+      out.push(h('h4', { style: { margin: '10px 0 2px' } }, 'Erkek yavrularda kuyruk rengi'), ...P.tc.map(([k, p]) => UI.bar(TAILCOL[k].name, p, `hsl(${TAILCOL[k].h},${TAILCOL[k].s}%,${TAILCOL[k].l}%)`)));
+      if (P.flags.length) out.push(h('div.small.muted', { style: { marginTop: '6px' } }, 'Erkeklerde desen: ' + P.flags.map(([k, p]) => `${({ tux: 'Tuxedo', sb: 'Snake gövde', st: 'Snake kuyruk', grass: 'Grass', mosaic: 'Mozaik', moscow: 'Moscow' })[k]} %${Math.round(p * 100)}`).join(' · ')));
+      out.push(h('h4', { style: { margin: '12px 0 6px' } }, 'Olası ırklar'));
+      out.push(h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(130px,1fr))' } }, ...P.breeds.slice(0, 8).map(([id, p]) => {
+        const b = BREED_BY_ID[id], disc = Game.S.discovered[id], cr = Game.sampleCreature(b.spec), r = RARITY[b.rarity];
+        return h('div.dex-tile', { style: { '--c': r.color, cursor: 'default' } }, disc ? UI.thumbCv(cr, 120) : UI.silhouette(cr, 120), h('div.nm', null, disc ? b.name : '???'), h('div.tiny.muted', null, `%${p * 100 < 1 ? '<1' : Math.round(p * 100)}${disc ? '' : ' · yeni olabilir'}`), h('div.rarbar'));
+      })));
+    }
+    out.push(h('button.btn.primary', { style: { width: '100%', marginTop: '14px' }, disabled: probs.length ? true : null, onclick: () => { if (Game.mate(m, f)) UI.render_lab(el); } }, icon('heart'), probs.length ? probs[0] : 'Çiftleştir'));
+    return h('div.card', null, ...out);
+  },
+
+  /* ---------- Yavru açılışı: renkler ilk kez ortaya çıkar ---------- */
+  openReveal() {
+    const kids = Game.unrevealed(); if (!kids.length) return UI.toast('Açılacak yavru yok', 'fish');
+    const seen = new Set(), tiles = [];
+    const open = (c, tile) => {
+      if (tile.dataset.open) return; tile.dataset.open = 1; const a = Game.adultPreview(c), b = a.breed(), isNew = !Game.S.discovered[b.id] && !seen.has(b.id); seen.add(b.id);
+      tile.classList.add('flip'); setTimeout(() => { tile.classList.add('shown'); tile.replaceChildren(...[UI.thumbCv(a, 110), h('div.nm', null, `${c.sex === 'M' ? '♂' : '♀'} ${c.name}`), h('div.tiny', { style: { color: RARITY[b.rarity].color } }, `${RARITY[b.rarity].icon} ${b.name}${isNew ? ' · ✨ Yeni!' : ''}`), c.defect ? h('div.tiny', { style: { color: 'var(--warn)' } }, '🩹 Omurga kusuru') : null].filter(Boolean)); tile.style.setProperty('--c', RARITY[b.rarity].color); AudioSys.SFX.discover(Math.min(2, b.rarity)); }, 160);
+    };
+    const grid = h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(112px,1fr))' } }, ...kids.map((c) => { const tl = h('div.dex-tile.seal', { role: 'button', tabindex: 0, onclick: () => open(c, tl) }, h('div', { style: { fontSize: '40px', padding: '14px 0' } }, '🫧'), h('div.tiny.muted', null, 'Dokun')); tiles.push([c, tl]); return tl; }));
+    const rec = UI.sheet(h('div.stack', null, UI.sheetHead(`Yeni yavrular (${kids.length})`, { close: () => rec.close() }), h('div.small.muted', null, `${kids[0].dam ? 'Anne: ' + ((Pedigree.rec[kids[0].dam] || {}).name || '—') : ''} · Her kabarcığı açıp yavrunun yetişkin rengini gör.`), grid,
+      h('div.row', null, h('button.btn.sp', { onclick: () => tiles.forEach(([c, t], i) => setTimeout(() => open(c, t), i * 110)) }, 'Hepsini aç'), h('button.btn.primary.sp', { onclick: () => rec.close() }, 'Bitir'))), {
+      full: kids.length > 6, onClose: () => { kids.forEach((c) => (c.unrevealed = false)); Game.save(); Game.checkDiscoveries(false); if (UI.cur === 'lab') UI.render_lab($('#s-lab')); UI.refreshAq && UI.refreshAq(); } });
+  },
+
+  /* ---------- Soyağacı ---------- */
+  treeDepth: 3, treeMode: 'up',
+  openTree(c) {
+    const rec = UI.sheet(h('div'), { full: true }); const box = rec.wrap.querySelector('.sheet'); let zoom = 1;
+    const render = () => {
+      const counts = {}; const walk = (id, d) => { if (!id || d > UI.treeDepth) return; counts[id] = (counts[id] || 0) + 1; const r = Pedigree.rec[id]; if (r) { walk(r.s, d + 1); walk(r.d, d + 1); } };
+      walk(c.id, 0);
+      const node = (id, d) => {
+        const r = Pedigree.rec[id], cr = Game.creatureFromRec(id) || (id === c.id ? c : null), col = cr ? RARITY[cr.breed().rarity].color : '#778';
+        const nd = h('div.tn' + (counts[id] > 1 ? '.dup' : '') + (id === c.id ? '.me' : ''), { style: { '--c': col }, title: counts[id] > 1 ? 'Ortak ata (akrabalık)' : '' }, cr ? UI.thumbCv(cr, 70) : h('div', { style: { height: '33px' } }, '?'), h('b', null, r ? r.name : '?'), h('span.tiny.muted', null, r ? (r.sex === 'M' ? '♂ ' : '♀ ') + (cr ? cr.breed().name : '') : ''));
+        const rr = r || {}; const kids = d < UI.treeDepth && (rr.s || rr.d) ? [rr.s, rr.d].filter(Boolean) : [];
+        return h('div.tsub', null, kids.length ? h('div.tpar', null, ...kids.map((k) => node(k, d + 1))) : null, kids.length ? h('div.tline') : null, nd);
+      };
+      let body;
+      if (UI.treeMode === 'up') body = h('div.tree', { style: { zoom } }, node(c.id, 0));
+      else {
+        const kids = Object.entries(Pedigree.rec).filter(([, r]) => r.s === c.id || r.d === c.id).map(([id, r]) => [+id, r]);
+        body = kids.length ? h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(110px,1fr))' } }, ...kids.map(([id, r]) => { const cr = Game.creatureFromRec(id); const mate = Pedigree.rec[r.s === c.id ? r.d : r.s]; return h('div.dex-tile', { style: { '--c': cr ? RARITY[cr.breed().rarity].color : '#778', cursor: 'default' } }, cr ? UI.thumbCv(cr, 100) : null, h('div.nm', null, r.name), h('div.tiny.muted', null, (r.sex === 'M' ? '♂ ' : '♀ ') + (cr ? cr.breed().name : '')), h('div.tiny.muted', null, 'Eş: ' + (mate ? mate.name : '—')), h('div.rarbar')); })) : UI.emptyState('🥚', 'Henüz yavrusu yok', 'Laboratuvar\'dan bir eşle çiftleştir.');
+      }
+      const seg = (opts, cur, fn) => h('div.seg', null, opts.map(([v, l]) => h('button' + (v === cur ? '.on' : ''), { onclick: () => { fn(v); render(); } }, l)));
+      box.replaceChildren(UI.sheetHead('Soyağacı · ' + c.name, rec), h('div.row.wrap-r', { style: { marginBottom: '8px' } }, seg([['up', 'Atalar'], ['down', 'Yavrular']], UI.treeMode, (v) => (UI.treeMode = v)),
+        UI.treeMode === 'up' ? seg([[2, '2 nesil'], [3, '3'], [4, '4']], UI.treeDepth, (v) => (UI.treeDepth = v)) : null,
+        UI.treeMode === 'up' ? h('div.row', null, h('button.icon-btn', { 'aria-label': 'Uzaklaştır', onclick: () => { zoom = Math.max(0.5, zoom - 0.15); render(); } }, '−'), h('button.icon-btn', { 'aria-label': 'Yakınlaştır', onclick: () => { zoom = Math.min(1.8, zoom + 0.15); render(); } }, '+')) : null),
+        h('div.small.muted', null, `Akrabalık katsayısı: ${(c.F * 100).toFixed(1)}% · kenar rengi = ırk nadirliği · altın kesik çizgi = ortak ata`),
+        h('div.tree-wrap', null, body));
+    };
+    render();
+  },
+});
 
 /* ───── 09-main.js ───── */
 'use strict';
@@ -2145,7 +2424,7 @@ const Game = {
   freshState() {
     this.S = Save.newState(); Pedigree.rec = {}; Pedigree._memo.clear(); _nextId = 1;
     const t = this.tank; t.creatures.length = 0; t.food.length = 0; t.setAspect(t.W / t.H);
-    createStarterFish(t, this.S.clockMin); for (const c of t.creatures) Pedigree.add(c.id, 0, 0, { name: c.name });
+    createStarterFish(t, this.S.clockMin); for (const c of t.creatures) Breeding.reg(c);
     this.checkDiscoveries(true); this.afterLoad(); this.save(true);
   },
 
@@ -2167,7 +2446,8 @@ const Game = {
     const minutes = Math.min(secs * 1, 8 * 1440), before = this.tank.creatures.map((c) => c.stage(S.clockMin));
     S.clockMin += minutes; const grown = this.tank.creatures.filter((c, i) => c.stage(S.clockMin) !== before[i]).length;
     this.tank.creatures.forEach((c) => (c.now = S.clockMin));
-    return { minutes, days: minutes / 1440, grown };
+    const births = this.tickBreeding(true);
+    return { minutes, days: minutes / 1440, grown, births };
   },
 
   pack() {
@@ -2239,12 +2519,50 @@ const Game = {
     if (mutant && ms.length && fs.length) { const a = R.pick(ms), b = R.pick(fs); genome = Genetics.breed(a.genome, b.genome, R, { mutMul: 80 }); sire = a.id; dam = b.id; }
     else genome = Genetics.randomFounder(R.chance(0.5) ? 'M' : 'F');
     const c = new Creature({ genome, bornT: now - 70 * 1440, sire, dam, x: R.float(100, t.W - 100), y: R.float(120, t.H - 200) });
-    c.now = now; Pedigree.add(c.id, sire, dam, { name: c.name }); t.addCreature(c); this.checkDiscoveries(false); UI.refreshAq(); this.save(); return c;
+    c.now = now; Breeding.reg(c); t.addCreature(c); this.checkDiscoveries(false); UI.refreshAq(); this.save(); return c;
+  },
+
+  /* ---------------- Üreme ---------------- */
+  /** Doğumları işler; bildirim/XP/istatistik üretir. quiet: çevrimdışı özet için sessiz. */
+  tickBreeding(quiet) {
+    const S = this.S, births = Breeding.tick(S.clockMin, this.tank), out = [];
+    for (const b of births) {
+      if (b.empty) { if (!quiet) UI.toast(`${b.dam.name} doğurdu ama yavru çıkmadı (sperm yoktu)`, 'bell'); continue; }
+      const kept = b.kept.length; S.stats.born += kept; this.addXp(5 + Math.min(40, kept * 2));
+      if (b.released) this.addCoins(b.released * 2);
+      S.litters.push({ t: S.clockMin, dam: b.dam.name, kept, lost: b.lost, released: b.released }); if (S.litters.length > 40) S.litters.shift();
+      this.notify('birth', `${b.dam.name} doğurdu: ${kept} yavru yaşıyor${b.lost ? `, ${b.lost} yavru yenildi` : ''}${b.released ? `, ${b.released} yavru tank dolu olduğu için dükkâna verildi` : ''}.`);
+      if (!quiet) { UI.toast(`🍼 ${b.dam.name} doğurdu! ${kept} yavru yaşıyor`, 'fish', 4500); AudioSys.SFX.born(); }
+      out.push(b);
+    }
+    if (births.length) { UI.refreshTop(); if (UI.cur === 'aq') UI.refreshAq(); if (UI.cur === 'lab') UI.render_lab($('#s-lab')); }
+    return out.length;
+  },
+  mate(m, f) {
+    const pr = Breeding.problems(m, f, this.S.clockMin); if (pr.length) { UI.toast(pr[0], 'bell'); return null; }
+    const r = Breeding.mate(m, f, this.S.clockMin); this.addXp(4); AudioSys.SFX.coin();
+    UI.toast(r.started ? `${f.name} gebe kaldı! Doğum ~${Math.round((r.due - this.S.clockMin) / 1440)} gün sonra` : `${f.name} sperm depoladı (zaten gebe)`, 'heart', 4200);
+    this.save(); return r;
+  },
+  skipDays(n) { this.S.clockMin += n * 1440; this.tank.creatures.forEach((c) => (c.now = this.S.clockMin)); this.tickBreeding(false); UI.refreshTop(); },
+  unrevealed() { return this.tank.creatures.filter((c) => c.unrevealed); },
+  /** Soyağacı kaydından (genom saklı) portre çizilebilen hafif canlı. */
+  creatureFromRec(id) {
+    const r = Pedigree.rec[id]; if (!r || !r.g) return null; let c = this._recCache && this._recCache.get(id);
+    if (!c) { c = new Creature({ id: -1000000 - id, genome: r.g, bornT: -500 * 1440, seed: r.seed || id * 31 }); c.now = 0; (this._recCache = this._recCache || new Map()).set(id, c); }
+    return c;
+  },
+  /** Yetişkin hali (açılış önizlemesi). */
+  adultPreview(c) {
+    this._adultCache = this._adultCache || new Map(); let a = this._adultCache.get(c.id);
+    if (!a) { a = new Creature({ id: -2000000 - c.id, genome: c.genome, bornT: -500 * 1440, seed: c.seed }); a.now = 0; this._adultCache.set(c.id, a); }
+    return a;
   },
 
   /* ---------------- Keşif ---------------- */
   checkDiscoveries(silent) {
     for (const c of this.tank.creatures) {
+      if (c.unrevealed) continue;   // yavrunun rengi açılana kadar keşif sayılmaz
       const b = c.breed(); if (this.S.discovered[b.id]) continue;
       this.S.discovered[b.id] = { t: this.S.clockMin, by: c.id };
       if (!silent) { this.celebQ.push([c, b]); this.addXp(30 * (b.rarity + 1)); this.notify('discovery', `Yeni varyasyon keşfedildi: ${b.name}`); }
@@ -2275,7 +2593,7 @@ const Game = {
     this.tank.update(dt, S.clockMin);
     this.topAcc += dt;
     if (this.topAcc > 1) {
-      this.topAcc = 0; UI.cur === 'aq' && UI.refreshAq();
+      this.topAcc = 0; this.tickBreeding(); UI.cur === 'aq' && UI.refreshAq();
       if (UI.cur === 'aq' || UI.cur === 'hub') AudioSys.setMood(this.tank.light < 0.4 ? 'night' : 'day');
       if (S.settings.sessionReminder && !this.sessionWarned && S.stats.playSec > 3600) { this.sessionWarned = true; UI.toast('1 saattir oynuyorsun — biraz mola vermeye ne dersin? ☕', 'bell', 6000); }
     }
@@ -2428,10 +2746,10 @@ const Tests = {
 
   /** Akrabalı yetiştirme: kardeş çiftleşmesi F≈0.25. */
   inbreeding() {
-    Pedigree.rec = {}; Pedigree._memo.clear();
+    const saved = Pedigree.rec; Pedigree.rec = {}; Pedigree._memo.clear();
     Pedigree.add(1, 0, 0); Pedigree.add(2, 0, 0); Pedigree.add(3, 1, 2); Pedigree.add(4, 1, 2); Pedigree.add(5, 3, 4);
     const f = Pedigree.F(5);
-    Pedigree.rec = {}; Pedigree._memo.clear();
+    Pedigree.rec = saved; Pedigree._memo.clear();
     return this._log('Akrabalık katsayısı (kardeş × kardeş = 0.25)', Math.abs(f - 0.25) < 1e-9, { F: f });
   },
 
@@ -2447,7 +2765,24 @@ const Tests = {
     return this._log('Her ırk kendi örnek genomunu tanır', bad.length === 0, bad.map((b) => b.id));
   },
 
-  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
+  /** Gebelik/doğum döngüsü: sperm depolama, batın, akrabalık, tank sınırı. */
+  breeding() {
+    const fake = { creatures: [], addCreature(c) { this.creatures.push(c); return c; } }, saved = Pedigree.rec; Pedigree.rec = {}; Pedigree._memo.clear();
+    const m = new Creature({ id: 9001, genome: Genetics.make({ tc: 'red' }, 'M'), bornT: -100 * 1440 }), f = new Creature({ id: 9002, genome: Genetics.make({}, 'F'), bornT: -100 * 1440 });
+    Breeding.reg(m); Breeding.reg(f); fake.creatures.push(m, f); m.now = f.now = 0;
+    const r = Breeding.mate(m, f, 0); const gd = (f.preg.due - f.preg.start) / 1440;
+    const early = Breeding.tick(1000, fake).length;                                   // erken doğum olmamalı
+    const out = Breeding.tick(f.preg.due + 1, fake); const b = out[0];
+    const kids = fake.creatures.filter((c) => c.dam === 9002);
+    const okSperm = f.sperm.length === 1 && f.sperm[0].left === SPERM_BATCHES - 1 && f.preg && true;   // 2. gebelik otomatik
+    const sibs = kids.length >= 2 ? Pedigree.kin(kids[0].id, kids[1].id) : 0.25;
+    const okKin = kids.every((k) => k.F === 0) && Math.abs(sibs - 0.25) < 0.3;
+    const okSex = kids.every((k) => k.sire === 9001 && (k.sex === 'M' ? k.pheno.tailColor === 'red' : true));
+    Pedigree.rec = saved; Pedigree._memo.clear();
+    return this._log('Üreme döngüsü', r.started && gd >= 21 && gd <= 31 && early === 0 && b && b.kept.length > 0 && okSperm && okKin && okSex, { gebelikGün: gd.toFixed(1), yavru: kids.length, yenen: b && b.lost, spermKalan: f.sperm[0] && f.sperm[0].left });
+  },
+
+  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
 };
 
 </script>
