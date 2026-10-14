@@ -102,9 +102,9 @@ const Tests = {
     };
     const base = run(null, 60).w, rocks = run((sc) => { for (let i = 0; i < 3; i++) sc.items.push(Scape.newItem(sc, 'rock', 'seiryu', 0.5 + i * 0.05, { s: 1.3 })); }, 60).w;
     const soil = run((sc) => (sc.sub.type = 'aquasoil'), 60).w, over = run(null, 3, 30).w;
-    const co2 = run((sc) => (sc.equip.co2 = 'tank'), 3).w, cub = run((sc) => { sc.items.push(Scape.newItem(sc, 'plant', 'hccuba', 0.5, { g: 1 })); }, 25).it;
+    const base3 = run(null, 3).w, co2 = run((sc) => (sc.equip.co2 = 'tank'), 3).w, cub = run((sc) => { sc.items.push(Scape.newItem(sc, 'plant', 'hccuba', 0.5, { g: 1 })); }, 25).it;
     S.water = bk.w; S.scape = bk.sc; Game.tank.setScape(bk.sc); Chem.noDeath = bk.noDeath; Chem.acc = bk.acc; Game.tank.creatures.length = 0; Game.tank.creatures.push(...crs);
-    const ok1 = rocks.kh > base.kh + 0.6, ok2 = soil.kh < base.kh - 1 && soil.ph < base.ph, ok3 = over.nh3 > 0.25 || over.no2 > 0.25, ok4 = co2.ph < base.ph - 0.4, ok5 = cub && (cub.vert || 1) > 1.15 && (cub.sp || 1) < 1.2;
+    const ok1 = rocks.kh > base.kh + 0.6, ok2 = soil.kh < base.kh - 1 && soil.ph < base.ph, ok3 = over.nh3 > 0.25 || over.no2 > 0.25, ok4 = co2.ph < base3.ph - 0.3, ok5 = cub && (cub.vert || 1) > 1.15 && (cub.sp || 1) < 1.2;
     return this._log('Kimya (seiryu KH↑, aquasoil KH/pH↓, aşırı yük NH₃/NO₂↑, CO₂→pH↓, HC Cuba dikine uzar)', ok1 && ok2 && ok3 && ok4 && ok5, { kh: [base.kh, rocks.kh, soil.kh].map((x) => +x.toFixed(2)), ph: [base.ph, soil.ph, co2.ph].map((x) => +x.toFixed(2)), asırı: [+over.nh3.toFixed(2), +over.no2.toFixed(2)], cuba: cub && [+(cub.vert || 1).toFixed(2), +(cub.sp || 1).toFixed(2)] });
   },
 

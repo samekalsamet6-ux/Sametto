@@ -2,7 +2,7 @@
 /* =====================================================================
    07 · KAYIT — 3 yuva, sürüm/göç, yedek, JSON dışa/içe aktarma
    ===================================================================== */
-const SAVE_VERSION = 4;
+const SAVE_VERSION = 5;
 const SLOTS = 3;
 
 const Save = {
@@ -20,7 +20,7 @@ const Save = {
         theme: 'ocean', font: 1, reduce: false, cb: false, speed: 1, lamp: 'auto', bgMute: true, sessionReminder: false,
         audio: { master: 0.8, music: 0.5, amb: 0.5, sfx: 0.7, style: 'ambient' },
       },
-      onboarded: false, litters: [], templates: [], gallery: [], av: { f: 0, a: 0, c: 0 }, cnt: {}, stone: 0, ach: {}, research: {}, shown: [], feedType: 'std', inv: { premium: 0, carotene: 0 }, owns: {}, nextId: 1, lastSeen: Date.now(), savedAt: 0, createdAt: Date.now(),
+      onboarded: false, litters: [], templates: [], gallery: [], av: { f: 0, a: 0, c: 0 }, cnt: {}, stone: 0, ach: {}, research: {}, shown: [], feedType: 'std', inv: { premium: 0, carotene: 0 }, owns: {}, meta: {}, nextId: 1, lastSeen: Date.now(), savedAt: 0, createdAt: Date.now(),
     };
   },
 
@@ -40,6 +40,9 @@ const Save = {
           break;
         case 3: // v3 → v4: ilerleme sistemi (avatar nesnesi, sayaçlar, itibar/yosun taşı)
           d.av = d.av || { f: typeof d.avatar === 'number' ? d.avatar : 0, a: 0, c: 0 }; d.cnt = d.cnt || { born: d.stats && d.stats.born || 0 }; d.stone = d.stone || 0; d.ach = d.ach || {}; d.research = d.research || {};
+          break;
+        case 4: // v4 → v5: meta (hikâye, yarışma, sezon, hatlar, prestij) — Meta.ensure doldurur
+          d.meta = d.meta || {};
           break;
         default: break;
       }

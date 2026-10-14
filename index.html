@@ -255,6 +255,16 @@ details.card summary{list-style:none}
 .qcard.done{opacity:.6}
 @keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
 
+/* ---- Aşama 8: meta ekranları ---- */
+.mt-bar{height:8px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:3px}
+.mt-bar i{display:block;height:100%;border-radius:6px;transition:width .7s var(--ease,ease)}
+.mt-say{min-height:84px;font-size:16px;line-height:1.5;padding:10px;border-radius:12px;background:rgba(255,255,255,.06)}
+.mt-sc.main b{color:var(--accent)}.mt-sc.main .mt-bar{height:11px}
+.mt-total{font-size:34px;font-weight:800;color:var(--accent)}
+.mt-me{background:rgba(255,255,255,.1);border-radius:8px;font-weight:700}
+.mt-season{border-left:5px solid var(--c)}
+.trophy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+
 </style>
 </head>
 <body>
@@ -333,6 +343,10 @@ details.card summary{list-style:none}
     <section class="screen" id="s-shop"></section>
     <section class="screen" id="s-market"></section>
     <section class="screen" id="s-research"></section>
+    <section class="screen" id="s-story"></section>
+    <section class="screen" id="s-contest"></section>
+    <section class="screen" id="s-season"></section>
+    <section class="screen" id="s-legacy"></section>
     <section class="screen" id="s-settings"></section>
   </main>
   <nav id="tabbar" aria-label="Ana gezinti">
@@ -1783,7 +1797,7 @@ function createStarterFish(tank, now) {
 const AudioSys = (() => {
   let ctx = null, started = false, timer = null, blopTimer = null, nextChordT = 0, chordIdx = 0, sleepAt = 0, sleepFading = false;
   const N = {}; // düğümler
-  const S = { master: 0.8, music: 0.5, amb: 0.5, sfx: 0.7, style: 'ambient', sleepMin: 0, bgMute: true, mood: 'day' };
+  const S = { master: 0.8, music: 0.5, amb: 0.5, sfx: 0.7, style: 'ambient', sleepMin: 0, bgMute: true, mood: 'day', tr: 0 };
   const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
   /* Ruh hali tablosu: root (MIDI), akorlar (yarım ton), melodi gamı, bpm, nota olasılığı */
@@ -1793,7 +1807,7 @@ const AudioSys = (() => {
     studio: { root: 60, bpm: 58, p: 0.12, bass: 0.2, chords: [[0, 7, 11, 14], [5, 9, 12, 16], [9, 12, 16, 19]], scale: [0, 2, 4, 7, 9, 12] },
     lab:    { root: 62, bpm: 70, p: 0.3, bass: 0.4, chords: [[0, 4, 7, 11, 14], [2, 6, 9, 12], [9, 12, 16, 19]], scale: [0, 2, 4, 6, 7, 9, 11, 14] },
   };
-  const mood = () => MOODS[S.mood] || MOODS.day;
+  const mood = () => { const m = MOODS[S.mood] || MOODS.day; return S.tr ? Object.assign({}, m, { root: m.root + S.tr }) : m; };
   const scaleNote = (i, oct = 12) => mood().root + oct + mood().scale[((i % mood().scale.length) + mood().scale.length) % mood().scale.length];
 
   function impulse(c, dur = 4, decay = 2.4) {
@@ -1924,6 +1938,8 @@ const AudioSys = (() => {
       try { init(); } catch (e) { console.warn('Ses başlatılamadı', e); ctx = null; return; }
       started = true; ctx.resume(); nextChordT = ctx.currentTime + 0.3; timer = setInterval(() => { try { tick(); sleepCheck(); } catch (e) { /* sessiz */ } }, 250); scheduleBlop(); applyVolumes();
     },
+    /** Sezon temasına göre ana ses perdesi kayar (yarım ton). */
+    setTune(tr) { S.tr = tr || 0; },
     setMood(m) { if (MOODS[m] && S.mood !== m) { S.mood = m; chordIdx = 0; } },
     set(key, v) { S[key] = v; if (key === 'sleepMin') { sleepFading = false; sleepAt = v > 0 ? Date.now() + v * 60000 : 0; } applyVolumes(); },
     /** Yakınlaşınca sesler daha "sualtı" (boğuk) duyulur. */
@@ -1943,7 +1959,7 @@ const AudioSys = (() => {
 /* =====================================================================
    07 · KAYIT — 3 yuva, sürüm/göç, yedek, JSON dışa/içe aktarma
    ===================================================================== */
-const SAVE_VERSION = 4;
+const SAVE_VERSION = 5;
 const SLOTS = 3;
 
 const Save = {
@@ -1961,7 +1977,7 @@ const Save = {
         theme: 'ocean', font: 1, reduce: false, cb: false, speed: 1, lamp: 'auto', bgMute: true, sessionReminder: false,
         audio: { master: 0.8, music: 0.5, amb: 0.5, sfx: 0.7, style: 'ambient' },
       },
-      onboarded: false, litters: [], templates: [], gallery: [], av: { f: 0, a: 0, c: 0 }, cnt: {}, stone: 0, ach: {}, research: {}, shown: [], feedType: 'std', inv: { premium: 0, carotene: 0 }, owns: {}, nextId: 1, lastSeen: Date.now(), savedAt: 0, createdAt: Date.now(),
+      onboarded: false, litters: [], templates: [], gallery: [], av: { f: 0, a: 0, c: 0 }, cnt: {}, stone: 0, ach: {}, research: {}, shown: [], feedType: 'std', inv: { premium: 0, carotene: 0 }, owns: {}, meta: {}, nextId: 1, lastSeen: Date.now(), savedAt: 0, createdAt: Date.now(),
     };
   },
 
@@ -1981,6 +1997,9 @@ const Save = {
           break;
         case 3: // v3 → v4: ilerleme sistemi (avatar nesnesi, sayaçlar, itibar/yosun taşı)
           d.av = d.av || { f: typeof d.avatar === 'number' ? d.avatar : 0, a: 0, c: 0 }; d.cnt = d.cnt || { born: d.stats && d.stats.born || 0 }; d.stone = d.stone || 0; d.ach = d.ach || {}; d.research = d.research || {};
+          break;
+        case 4: // v4 → v5: meta (hikâye, yarışma, sezon, hatlar, prestij) — Meta.ensure doldurur
+          d.meta = d.meta || {};
           break;
         default: break;
       }
@@ -2171,7 +2190,7 @@ const UI = {
             done ? h('button.btn.primary.sm', { onclick: () => { Game.claimTask(t); UI.render_hub(el); } }, 'Topla') : h('button.btn.sm', { onclick: () => UI.go(t.go) }, 'Git'));
         }) : UI.emptyState('🎉', 'Hepsi tamam!', 'Yeni hedefler sonraki aşamalarda açılacak.')),
       h('div.launch-grid', null,
-        ...[['dex', 'book', 'Ansiklopedi'], ['lab', 'flask', 'Laboratuvar'], ['design', 'brush', 'Tasarım'], ['profile', 'user', 'Profil'], ['help', 'book', 'Bilgi Merkezi'], ['settings', 'gear', 'Ayarlar']].map(([g, i, n]) => h('button', { onclick: () => UI.go(g) }, icon(i), n)),
+        ...[['dex', 'book', 'Ansiklopedi'], ['lab', 'flask', 'Laboratuvar'], ['design', 'brush', 'Tasarım'], ['profile', 'user', 'Profil'], ['story', 'book', 'Hikâye'], ['contest', 'star', 'Yarışma'], ['season', 'gift', 'Sezon'], ['legacy', 'dna', 'Miras'], ['help', 'book', 'Bilgi Merkezi'], ['settings', 'gear', 'Ayarlar']].map(([g, i, n]) => h('button', { onclick: () => UI.go(g) }, icon(i), n)),
         h('button', { onclick: () => UI.openFishList() }, icon('list'), 'Balıklarım')),
     ));
     this.hubCanvas = canvas; this.hubMeta = $('#hub-meta', el); this.startThumbs();
@@ -3064,9 +3083,9 @@ const Tests = {
     };
     const base = run(null, 60).w, rocks = run((sc) => { for (let i = 0; i < 3; i++) sc.items.push(Scape.newItem(sc, 'rock', 'seiryu', 0.5 + i * 0.05, { s: 1.3 })); }, 60).w;
     const soil = run((sc) => (sc.sub.type = 'aquasoil'), 60).w, over = run(null, 3, 30).w;
-    const co2 = run((sc) => (sc.equip.co2 = 'tank'), 3).w, cub = run((sc) => { sc.items.push(Scape.newItem(sc, 'plant', 'hccuba', 0.5, { g: 1 })); }, 25).it;
+    const base3 = run(null, 3).w, co2 = run((sc) => (sc.equip.co2 = 'tank'), 3).w, cub = run((sc) => { sc.items.push(Scape.newItem(sc, 'plant', 'hccuba', 0.5, { g: 1 })); }, 25).it;
     S.water = bk.w; S.scape = bk.sc; Game.tank.setScape(bk.sc); Chem.noDeath = bk.noDeath; Chem.acc = bk.acc; Game.tank.creatures.length = 0; Game.tank.creatures.push(...crs);
-    const ok1 = rocks.kh > base.kh + 0.6, ok2 = soil.kh < base.kh - 1 && soil.ph < base.ph, ok3 = over.nh3 > 0.25 || over.no2 > 0.25, ok4 = co2.ph < base.ph - 0.4, ok5 = cub && (cub.vert || 1) > 1.15 && (cub.sp || 1) < 1.2;
+    const ok1 = rocks.kh > base.kh + 0.6, ok2 = soil.kh < base.kh - 1 && soil.ph < base.ph, ok3 = over.nh3 > 0.25 || over.no2 > 0.25, ok4 = co2.ph < base3.ph - 0.3, ok5 = cub && (cub.vert || 1) > 1.15 && (cub.sp || 1) < 1.2;
     return this._log('Kimya (seiryu KH↑, aquasoil KH/pH↓, aşırı yük NH₃/NO₂↑, CO₂→pH↓, HC Cuba dikine uzar)', ok1 && ok2 && ok3 && ok4 && ok5, { kh: [base.kh, rocks.kh, soil.kh].map((x) => +x.toFixed(2)), ph: [base.ph, soil.ph, co2.ph].map((x) => +x.toFixed(2)), asırı: [+over.nh3.toFixed(2), +over.no2.toFixed(2)], cuba: cub && [+(cub.vert || 1).toFixed(2), +(cub.sp || 1).toFixed(2)] });
   },
 
@@ -5399,6 +5418,479 @@ Object.assign(UI, {
     if (sp === 'snail') out.push(h('div.card', null, h('b', null, '🥚 Yumurta kümeleri'), h('div.small.muted', null, 'Gizemli salyangoz yumurtalarını su üstüne bırakır; 14 günde açılır. Çok üremesin istersen kümeyi temizle.'), ...(t.clutches || []).map((cl) => h('div.row', { style: { margin: '6px 0' } }, h('div.sp.small', null, `${cl.damName} · ~${cl.n} yumurta · açılmaya ${UI.daysLeft(cl.due - S.clockMin)}`), h('button.btn.sm', { onclick: () => { t.clutches.splice(t.clutches.indexOf(cl), 1); UI.render_lab(el); } }, 'Temizle'))), (t.clutches || []).length ? null : h('div.small.muted', null, 'Şu an küme yok.')));
     return out;
   },
+});
+
+/* ───── 20-meta.js ───── */
+'use strict';
+/* =====================================================================
+   20 · META — hikâye, sergiler/yarışmalar, aquascape jürisi, sezonlar,
+        sabit hatlar, genetik defter, prestij ("Yeni Şube")
+   Oyuncuya saygı: kaçırılan şey yok (sezon arşivi), ceza yok, rakipler adil.
+   ===================================================================== */
+
+/* ---------- Aquascape stilleri ---------- */
+const STYLES = {
+  nature:  { name: 'Doğa (Nature)', emo: '🌿', desc: 'Taş ve kök birlikte, 3+ bitki türü, asimetrik denge, derinlik katmanları.' },
+  iwagumi: { name: 'Iwagumi', emo: '🪨', desc: 'Tek sayıda aynı cins taş (3-5-7), büyük taş (Oyaishi) üçler noktasında, baskın halı bitki, kök yok.' },
+  dutch:   { name: 'Hollanda', emo: '🌸', desc: 'Zeminin ≥%80\'i bitkili, 8+ tür, taş/kök az, renkli ve katmanlı "bitki bahçesi".' },
+  jungle:  { name: 'Orman (Jungle)', emo: '🌴', desc: 'Yoğun, uzun gövdeli bitkiler, yüzen bitkiler, serbest ve vahşi görünüm.' },
+  biotope: { name: 'Biyotop', emo: '🏞️', desc: 'Tek tür balık sürüsü (4+), kum/çakıl, kök ve yaprak çöpü, yüzen bitki — doğadan bir kesit.' },
+};
+const STYLE_W = { // [üçler, denge, derinlik] bileşim ağırlıkları
+  nature: [0.4, 0.25, 0.35], iwagumi: [0.55, 0.2, 0.25], dutch: [0.1, 0.3, 0.6], jungle: [0, 0.3, 0.7], biotope: [0.3, 0.3, 0.4],
+};
+
+const Judge = {
+  score(style, S = Game.S) {
+    const sc = S.scape, W = Game.tank.W, items = sc.items.filter((i) => !i.dead);
+    const plants = items.filter((i) => i.k === 'plant'), rocks = items.filter((i) => i.k === 'rock'), woods = items.filter((i) => i.k === 'wood'), leaves = items.filter((i) => i.k === 'leaf'), decor = items.filter((i) => i.k === 'decor');
+    const hard = [...rocks, ...woods], sp = new Set(plants.map((p) => p.d)), notes = [], cr = [];
+    const sz = (i) => { const d = Scape.defOf(i); return d.w * d.h * (i.s || 1) * (i.s || 1); };
+    const pass = (k, name, v, note) => { v = clamp(v, 0, 1); cr.push({ k, name, v: Math.round(v * 100), note }); return v; };
+    /* 1) Kompozisyon */
+    const foc = [...hard, ...plants.filter((p) => PLANTS[p.d].h > 150)]; let comp = 0;
+    if (foc.length) {
+      const tot = foc.reduce((a, i) => a + sz(i), 0), cx = foc.reduce((a, i) => a + i.fx * sz(i), 0) / tot;
+      const thirds = 1 - Math.min(Math.abs(cx - 1 / 3), Math.abs(cx - 2 / 3)) / 0.17;
+      const L = foc.filter((i) => i.fx < 0.5).reduce((a, i) => a + sz(i), 0), asym = Math.abs(2 * L - tot) / tot, bal = 1 - Math.abs(asym - 0.3) / 0.5;
+      const layers = new Set(plants.map((p) => (PLANTS[p.d].layer === 'epi' ? 'mid' : PLANTS[p.d].layer))); if (hard.length) layers.add('mid'); const depth = Math.min(1, layers.size / 3);
+      const w = STYLE_W[style]; comp = w[0] * clamp(thirds, 0, 1) + w[1] * clamp(bal, 0, 1) + w[2] * depth;
+      if (thirds < 0.4 && w[0] > 0.2) notes.push('Ana kütle üçler noktasına (1/3 veya 2/3) yakın olmalı.');
+      if (depth < 0.67) notes.push('Arka, orta ve ön katmanlarda bitki kullan: derinlik artar.');
+    } else notes.push('Kompozisyon için taş, kök veya uzun bitki yerleştir.');
+    pass('comp', 'Kompozisyon', comp);
+    /* 2) Bitki sağlığı */
+    const hp = plants.length ? (plants.reduce((a, p) => a + (p.hp ?? 1) * (1 - 0.5 * (p.melt || 0)), 0) / plants.length) * Math.min(1, plants.length / 3) : 0;
+    if (plants.length < 3) notes.push('En az 3 bitki dik; jüri bitkisiz tankı sevmez.'); else if (hp < 0.7) notes.push('Bitkiler zayıf: ışık, CO₂ ve besini kontrol et.');
+    pass('hp', 'Bitki sağlığı', hp);
+    /* 3) Yosunsuzluk */
+    const al = Chem.w.algae, algSum = al.green * 0.7 + al.hair + al.bba + al.cyano + al.gw;
+    if (algSum > 0.25) notes.push('Yosun görünüyor: su değişimi, ışık süresi ve yosun yiyenler yardımcı olur.');
+    pass('alg', 'Yosunsuzluk', 1 - clamp(algSum * 1.2, 0, 1));
+    /* 4) Stil uyumu */
+    let st = 0; const carp = plants.filter((p) => PLANTS[p.d].type === 'carpet'), tall = plants.filter((p) => PLANTS[p.d].h >= 150), flo = plants.filter((p) => PLANTS[p.d].type === 'float');
+    const cre = Game.tank.creatures, spc = new Set(cre.map((c) => c.species));
+    if (style === 'iwagumi') {
+      const sorted = rocks.slice().sort((a, b) => sz(b) - sz(a)), odd = rocks.length >= 3 && rocks.length % 2 === 1, same = rocks.length > 0 && rocks.every((r) => r.d === rocks[0].d);
+      const oy = sorted[0] && Math.min(Math.abs(sorted[0].fx - 1 / 3), Math.abs(sorted[0].fx - 2 / 3)) < 0.12, carpShare = plants.length ? carp.length / plants.length : 0;
+      st = (odd ? 0.3 : 0) + (same ? 0.2 : 0) + (woods.length === 0 ? 0.15 : 0) + (carpShare >= 0.6 && carp.length >= 2 ? 0.2 : carpShare * 0.2) + (oy ? 0.15 : 0);
+      if (!odd) notes.push('Iwagumi\'de taş sayısı tek olmalı (3, 5, 7).'); if (!same) notes.push('Aynı cins taşları kullan.'); if (woods.length) notes.push('Iwagumi\'de kök kullanılmaz.');
+      if (!oy && sorted[0]) notes.push('Oyaishi (en büyük taş) üçler noktasında olmalı.'); if (carpShare < 0.6) notes.push('Halı bitkiler baskın olmalı.');
+      const names = ['Oyaishi', 'Fukuishi', 'Soeishi']; if (sorted.length >= 3) notes.push('Taşların rolü: ' + sorted.slice(0, 4).map((r, i) => `${names[i] || 'Suteishi'} (${HARDSCAPE[r.d].name})`).join(', ') + '.');
+    } else if (style === 'nature') {
+      st = (hard.length >= 2 && hard.length <= 7 ? 0.3 : hard.length ? 0.12 : 0) + (rocks.length && woods.length ? 0.15 : 0.05) + Math.min(0.3, (sp.size / 4) * 0.3) + (sp.size <= 9 ? 0.15 : 0.05) + (decor.length === 0 ? 0.1 : 0);
+      if (!hard.length) notes.push('Doğa stilinde taş veya kök gerekir.'); if (sp.size < 3) notes.push('3+ bitki türü kullan.'); if (decor.length) notes.push('Yapay dekor doğal görünümü bozar.');
+    } else if (style === 'dutch') {
+      const cov = clamp(plants.reduce((a, p) => a + PLANTS[p.d].w * (p.s || 1) * (p.g ?? 1), 0) / (W * 1.6), 0, 1);
+      st = 0.5 * Math.min(1, cov / 0.8) + 0.3 * Math.min(1, sp.size / 8) + 0.2 * (hard.length <= 1 ? 1 : hard.length <= 3 ? 0.5 : 0);
+      if (cov < 0.8) notes.push(`Zemin %${Math.round(cov * 100)} bitkili; Hollanda stili için ≥%80 gerekir.`); if (sp.size < 8) notes.push('8+ farklı bitki türü kullan.');
+    } else if (style === 'jungle') {
+      st = Math.min(0.4, (tall.length / 6) * 0.4) + (flo.length ? 0.2 : 0) + Math.min(0.2, (sp.size / 5) * 0.2) + (hard.length ? 0.2 : 0);
+      if (tall.length < 6) notes.push('6+ uzun bitki ile yoğun bir orman kur.'); if (!flo.length) notes.push('Yüzen bitki ekle.');
+    } else {
+      const single = spc.size === 1 && cre.length >= 4, sandy = ['sand', 'gravel'].includes(sc.sub.type);
+      st = (single ? 0.35 : 0) + (sandy ? 0.15 : 0) + (woods.length + leaves.length >= 2 ? 0.25 : 0.1 * Math.min(2, woods.length + leaves.length)) + (flo.length || sp.size <= 3 ? 0.15 : 0) + (decor.length === 0 ? 0.1 : 0);
+      if (!single) notes.push('Biyotopta tek tür balıktan 4+ adet tut.'); if (!sandy) notes.push('Kum veya çakıl zemin kullan.'); if (leaves.length + woods.length < 2) notes.push('Kök ve yaprak çöpü (badem yaprağı) ekle.');
+    }
+    pass('style', 'Stil uyumu', st);
+    /* 5) Hayvan uyumu */
+    let an = 0.4;
+    if (cre.length) {
+      const ratio = (cre.length * 3) / sc.liters, stock = 1 - Math.max(0, ratio - 1) * 0.6, shelter = Math.min(1, (hard.length + plants.length) / Math.max(1, cre.length * 0.6));
+      const bettaOk = !cre.some((c) => c.species === 'betta') || flo.length > 0;
+      an = clamp(0.5 * stock + 0.3 * shelter + 0.2 * (Chem.overall() === 0 ? 1 : 0.4), 0, 1) * (bettaOk ? 1 : 0.8);
+      if (ratio > 1) notes.push('Tank kalabalık: jüri hayvan refahına bakar.'); if (!bettaOk) notes.push('Beta için yüzen bitki ve gölge gerekir.');
+    } else notes.push('Tankta canlı yok; hayvan puanı düşük.');
+    pass('an', 'Hayvan uyumu', an);
+    const v = cr.map((c) => c.v / 100), total = Math.round(100 * (0.25 * v[0] + 0.2 * v[1] + 0.2 * v[2] + 0.25 * v[3] + 0.1 * v[4]));
+    return { style, total, crit: cr, notes: notes.slice(0, 5) };
+  },
+};
+
+/* ---------- Canlı sergisi puanlaması ---------- */
+const SHOW_CATS = [{ id: 'color', name: 'Renk', emo: '🎨' }, { id: 'tail', name: 'Kuyruk & yüzgeç', emo: '🎏' }, { id: 'symm', name: 'Simetri & sağlık', emo: '⚖️' }, { id: 'pat', name: 'Desen & ırk', emo: '🔶' }];
+const ShowJudge = {
+  eligible(c) { return c.adult() && !c.dis && !c.quarantined && c.health() > 0.5; },
+  score(c, cat) {
+    const p = c.pheno, rar = c.rarity() / (RARITY.length - 1), health = clamp(c.health(), 0, 1.2), mat = c.maturity();
+    const color = 100 * clamp(0.4 * rar + 0.35 * clamp(((p.intensity ?? 1) - 0.6) / 0.8, 0, 1) + 0.25 * mat, 0, 1);
+    const tr = TAIL_RANK.indexOf(p.tail), tail = 100 * clamp(0.55 * clamp((p.tailLen ?? p.fin ?? 1) / 1.3, 0, 1) + 0.45 * (tr >= 0 ? tr / (TAIL_RANK.length - 1) : 0.5), 0, 1);
+    const symm = 100 * clamp(health * 0.7 + (1 - c.F) * 0.2 + (c.defect ? 0 : 0.1), 0, 1);
+    const extra = ['tux', 'sb', 'st', 'grass', 'mosaic', 'moscow', 'lace', 'mask'].reduce((a, k) => a + (p[k] ? 1 : 0), 0), pat = 100 * clamp(0.6 * rar + 0.08 * extra + 0.2 * clamp(health, 0, 1), 0, 1);
+    const all = { color, tail, symm, pat }, o = 0.4 / 3, total = Object.keys(all).reduce((a, k) => a + all[k] * (k === cat ? 0.6 : o), 0);
+    return { crit: SHOW_CATS.map((s) => ({ k: s.id, name: s.emo + ' ' + s.name, v: Math.round(all[s.id]), main: s.id === cat })), total: Math.round(total) };
+  },
+};
+
+/* ---------- Rakipler ve sıralama ---------- */
+const RIVALS = [{ id: 'pul', name: 'Bay Pul', emo: '🎩', b: 14 }, { id: 'selin', name: 'Selin', emo: '🧑‍🎨', b: 2 }, { id: 'hakki', name: 'Usta Hakkı', emo: '🧔', b: 8 }, { id: 'nehir', name: 'Nehir', emo: '🐟', b: 5 }, { id: 'koray', name: 'Koray', emo: '🧑‍🔬', b: 11 }];
+const Contest = {
+  edition(S = Game.S) { return Math.floor(S.clockMin / 1440 / 7); },
+  fishCat(ed) { return SHOW_CATS[ed % SHOW_CATS.length]; },
+  scapeStyle(ed) { return Object.keys(STYLES)[(ed + 2) % 5]; },
+  /** Rakip puanları: oyuncu seviyesine ve edisyona bağlı, deterministik. */
+  rivals(kind, ed, S = Game.S) {
+    const lvl = Progress.level(S.xp), rng = new RNG((ed * 7919 + (kind === 'f' ? 11 : 29)) >>> 0);
+    return RIVALS.map((r) => ({ ...r, score: Math.round(clamp(30 + lvl * 0.55 + r.b + rng.float(-9, 9) + (Meta.ensure(S).prestige.n || 0) * 4, 20, 94)) }));
+  },
+  place(score, rivals) { return 1 + rivals.filter((r) => r.score > score).length; },
+  reward(place, themed) {
+    const base = [null, { coins: 300, xp: 40, rep: 6 }, { coins: 180, xp: 25, rep: 3 }, { coins: 100, xp: 15, rep: 1 }][place] || { coins: 30, xp: 5, rep: 0 }, m = (themed ? 1.25 : 1) * Meta.mult('prize');
+    return { coins: Math.round(base.coins * m), xp: Math.round(base.xp * m), rep: Math.round(base.rep * m) };
+  },
+  entered(kind, S = Game.S) { return Meta.ensure(S).shows.entered[Contest.edition(S) + kind]; },
+  /** Sonucu kaydeder, ödülü verir. */
+  finish(kind, title, score, themed) {
+    const S = Game.S, M = Meta.ensure(S), ed = this.edition(S), rv = this.rivals(kind, ed), place = this.place(score, rv), rw = this.reward(place, themed);
+    M.shows.entered[ed + kind] = place; M.shows.count++; if (place <= 3) M.shows.podium++; if (place === 1) M.shows.wins++; if (kind === 's') M.shows.sc++;
+    Game.addCoins(rw.coins, true); Game.addXp(rw.xp); S.rep += rw.rep;
+    if (place <= 3) { M.trophies.push({ ed, kind, place, name: title, score, t: S.clockMin }); if (M.trophies.length > 60) M.trophies.shift(); }
+    Meta.friend('pul', place <= 3 ? 2 : 1); Season.points(10 + (4 - Math.min(place, 4)) * 5); Game.ev('contest'); Game.notify('contest', `${title}: ${place}. oldun (${score} puan)`); Game.save();
+    return { place, rw, rivals: rv };
+  },
+};
+
+/* ---------- Hikâye ---------- */
+const STORY_NPCS = {
+  dede: { name: 'Dede Rıza', emo: '👴', perk: 'Satış fiyatı +%2 / seviye', lv: 'sell' },
+  pul:  { name: 'Bay Pul', emo: '🎩', perk: 'Yarışma ödülü +%5 / seviye', lv: 'prize' },
+  ayse: { name: 'Ayşe', emo: '👩‍🔬', perk: 'Kazanılan XP +%3 / seviye', lv: 'xp' },
+};
+const FRIEND_AT = [0, 3, 8, 15, 25], FRIEND_NAMES = ['Tanıdık', 'Dost', 'Yakın dost', 'Sırdaş', 'Aile'];
+const CHAPTERS = [
+  { id: 1, title: 'Dedenin Dükkânı', npc: 'dede', lvl: 1, intro: ['Torunum, dükkân sana emanet. Ben artık yorgunum ama gözüm hep akvaryumlarda.', 'Önce temel işler: balıkları besle, suyu yenile, ilk satışını yap. Sonrası gelir.'],
+    goals: [{ t: 'Balıkları 3 kez besle', get: (S) => S.cnt.feed || 0, goal: 3 }, { t: 'Su değişimi yap', get: (S) => S.cnt.water || 0, goal: 1 }, { t: 'Bir balık sat', get: (S) => S.stats.sold, goal: 1 }],
+    outro: ['Güzel! Bir dükkân bir günde kurulmaz ama sen iyi başladın.'], reward: { coins: 200, xp: 60, rep: 2 }, friend: { dede: 3 } },
+  { id: 2, title: 'İlk Lepistes Hattı', npc: 'dede', lvl: 3, intro: ['Dedem hep derdi ki: "Her güzel balığın arkasında sabırlı bir üretici vardır."', 'Yavru getir, yeni bir varyasyon keşfet, bir balığın genotipini test et.'],
+    goals: [{ t: 'Yavru dünyaya getir', get: (S) => S.cnt.born || 0, goal: 10 }, { t: 'Lepistes varyasyonu keşfet', get: (S) => BREEDS.filter((b) => S.discovered[b.id]).length, goal: 4 }, { t: 'Genotip testi yap', get: (S) => S.cnt.test || 0, goal: 1 }],
+    outro: ['İşte bu! Genler artık sana tanıdık gelmeye başladı.'], reward: { coins: 300, xp: 100, rep: 4 }, friend: { dede: 3, ayse: 1 } },
+  { id: 3, title: 'Karides Çılgınlığı', npc: 'ayse', lvl: 6, intro: ['Merhaba, ben Ayşe, bir üniversite laboratuvarından. Neocaridina renk genetiği tezim için temiz hatlara ihtiyacım var.', 'Birkaç karides getir, suyunu dengede tut, siparişlerimi karşıla.'],
+    goals: [{ t: 'Tankta 5 karides bulundur', get: () => Game.tank.creatures.filter((c) => c.species === 'shrimp').length, goal: 5 }, { t: 'Sipariş teslim et', get: (S) => S.cnt.order || 0, goal: 2 }, { t: 'Su dengede gün', get: (S) => S.cnt.goodDays || 0, goal: 3 }],
+    outro: ['Harika veriler! Karideslerin renkleri tezime katkı yapacak.'], reward: { coins: 400, xp: 150, rep: 6 }, friend: { ayse: 5 } },
+  { id: 4, title: 'Bay Pul\'un Sergisi', npc: 'pul', lvl: 12, intro: ['Ah, dükkânın yeni sahibi! Ben Bay Pul. Şehirdeki her sergiyi ben kazanırım.', 'Gücünü görmek isterim: Sergi Salonu\'nu araştır (80 itibar), bir sergiye katıl ve podyuma çık.'],
+    goals: [{ t: 'Sergi Salonu araştırmasını aç', get: () => (Research.has('hall') ? 1 : 0), goal: 1 }, { t: 'Bir yarışmaya katıl', get: (S) => Meta.ensure(S).shows.count, goal: 1 }, { t: 'İlk 3\'e gir', get: (S) => Meta.ensure(S).shows.podium, goal: 1 }],
+    outro: ['Hm... Fena değilsin. Gelecek sefere sana rakip olmaya devam edeceğim.'], reward: { coins: 600, xp: 220, rep: 8 }, friend: { pul: 5 } },
+  { id: 5, title: 'Aquascape Dünyası', npc: 'ayse', lvl: 20, intro: ['Sualtı bahçeciliği bir sanat. Jüri kompozisyona, bitki sağlığına ve yosunsuzluğa bakar.', 'Tasarım Stüdyosu\'nda bir manzara kur; Yarışma ekranındaki jüri puanını 70\'in üstüne çıkar ve Aquascape Yarışması\'na katıl.'],
+    goals: [{ t: 'Stüdyoda öğe yerleştir', get: (S) => S.cnt.scape || 0, goal: 25 }, { t: 'Jüri puanı 70+ (herhangi bir stil)', get: (S) => Math.max(0, ...Object.values(Meta.ensure(S).best)), goal: 70 }, { t: 'Aquascape Yarışması\'na katıl', get: (S) => Meta.ensure(S).shows.sc, goal: 1 }],
+    outro: ['Su altında bir tablo gibi! Dedem görse çok gurur duyardı.'], reward: { coins: 800, xp: 300, rep: 10, stone: 1 }, friend: { ayse: 6, dede: 2 } },
+  { id: 6, title: 'Dedenin Kayıp Hattı', npc: 'dede', lvl: 30, intro: ['Dükkânın arka rafında eski bir defter buldum: "Altın Sabit Hat". Dedem yıllarca her yavruda aynı çıkan kusursuz bir hat geliştirmiş.', 'Bunu yeniden yaratabilir misin? 3 nesil boyunca aynı ırkı tutarlı biçimde üret ve bir Sabit Hat kaydet.'],
+    goals: [{ t: 'Sabit Hat kaydet', get: (S) => Meta.ensure(S).lines.length, goal: 1 }, { t: 'Lepistes varyasyonu keşfet', get: (S) => BREEDS.filter((b) => S.discovered[b.id]).length, goal: 14 }, { t: 'Genetik Okulu dersi bitir', get: (S) => Object.keys(S.lessons || {}).length, goal: 3 }],
+    outro: ['Evet! Tam o hat... Dedem bundan çok gurur duyardı.', 'Defteri senin kütüphanene bırakıyorum: bilgi paylaşıldıkça büyür.'], reward: { coins: 1200, xp: 500, rep: 15, stone: 2 }, friend: { dede: 8 } },
+  { id: 7, title: 'Ulusal Şampiyona', npc: 'pul', lvl: 40, intro: ['Büyük gün geldi. Ulusal Şampiyona\'da en iyilerle yarışacaksın.', 'Bir sergiyi kazan ve podyum sayını artır. Sonrasında dükkânı yeni bir şubeye taşıyabilirsin.'],
+    goals: [{ t: 'Bir sergiyi kazan (1.)', get: (S) => Meta.ensure(S).shows.wins, goal: 1 }, { t: 'Podyum toplamı', get: (S) => Meta.ensure(S).shows.podium, goal: 5 }, { t: 'Seviye', get: (S) => Progress.level(S.xp), goal: 40 }],
+    outro: ['Tebrikler şampiyon! Şimdi bir efsane olma vaktin: "Yeni Şube" açma hakkın doğdu.'], reward: { coins: 3000, xp: 800, rep: 25, stone: 5 }, friend: { pul: 10, dede: 5, ayse: 5 } },
+];
+
+/* ---------- Sezonlar ---------- */
+const SEASON_DAYS = 35;
+const SEASON_THEMES = [
+  { id: 'spring', name: 'İlkbahar Çiçeklenmesi', emo: '🌸', col: '#f58bb3', cat: 'color', tr: 2, badge: '🌸' },
+  { id: 'summer', name: 'Yaz Işıltısı', emo: '☀️', col: '#ffc24a', cat: 'tail', tr: 4, badge: '🌞' },
+  { id: 'autumn', name: 'Sonbahar Yaprakları', emo: '🍂', col: '#e0833a', cat: 'pat', tr: -2, badge: '🍂' },
+  { id: 'winter', name: 'Kış Sessizliği', emo: '❄️', col: '#8fd3ff', cat: 'symm', tr: -5, badge: '❄️' },
+];
+const SEASON_EV = { feed: 1, water: 3, born: 2, sold: 2, mate: 3, order: 8, prune: 2, photo: 3, scape: 1, discover: 15, test: 3, lesson: 20 };
+const SEASON_TIERS = 10, SEASON_PTS = 100;
+const Season = {
+  idx: (S = Game.S) => Math.floor(S.clockMin / 1440 / SEASON_DAYS),
+  theme: (S = Game.S) => SEASON_THEMES[Season.idx(S) % 4],
+  year: (S = Game.S) => 1 + Math.floor(Season.idx(S) / 4),
+  daysLeft: (S = Game.S) => SEASON_DAYS - (Math.floor(S.clockMin / 1440) % SEASON_DAYS),
+  /** Sezon değişince eskisi arşive taşınır (ceza yok). */
+  ensure(S = Game.S) {
+    const M = Meta.ensure(S), i = this.idx(S);
+    if (M.season.idx !== i) { if (M.season.idx >= 0) M.archive.push({ idx: M.season.idx, pts: M.season.pts, tiers: M.season.claimed.length }); M.season = { idx: i, pts: 0, claimed: [] }; }
+    return M.season;
+  },
+  points(n) { this.ensure().pts += n; },
+  reward(i) { return { coins: 60 + i * 25, rep: [2, 5, 8].includes(i) ? 2 : 0, stone: i === 4 || i === 9 ? 1 : 0, xp: 20 + i * 5, title: i === 9 }; },
+  claim(i) {
+    const S = Game.S, s = this.ensure(S); if (s.claimed.includes(i) || s.pts < (i + 1) * SEASON_PTS) return false;
+    const r = this.reward(i), M = Meta.ensure(S); s.claimed.push(i); Game.addCoins(r.coins, true); Game.addXp(r.xp); S.rep += r.rep; S.stone = (S.stone || 0) + r.stone;
+    if (r.title) { const t = `${this.theme(S).name} Üstadı`; if (!M.titles.includes(t)) M.titles.push(t); }
+    Game.save(); return true;
+  },
+  badgeCost: 4,
+};
+
+/* ---------- Sabit Hat ---------- */
+const Lines = {
+  ancestorsOk(id, breedId, depth) {
+    const r = Pedigree.rec[id]; if (!r || !r.g) return false;
+    const b = Genetics.breedOf(Genetics.phenotype(r.g)); if (!b || b.id !== breedId) return false;
+    return depth <= 1 || (!!r.s && this.ancestorsOk(r.s, breedId, depth - 1));
+  },
+  /** Erkek soyunda 3 nesil aynı ırk + 300 oğulda ≥%90 aynı ırk. */
+  check(m, f) {
+    if (!m || !f || m.species !== f.species || m.sex !== 'M' || f.sex !== 'F') return { ok: false, why: 'Aynı türden bir erkek ve bir dişi seç.' };
+    const b = m.breed(); if (!b || b.rarity < 1) return { ok: false, why: 'Sabit hat için nadir veya daha yüksek bir ırk gerekir.' };
+    if (!this.ancestorsOk(m.id, b.id, 3)) return { ok: false, why: `${m.name} erkeğinin soyunda 3 nesil (kendisi, babası, dedesi) aynı ırk (${b.name}) olmalı.` };
+    const rng = new RNG(12345 + m.id * 7 + f.id); let n = 0, ok = 0;
+    for (let i = 0; i < 700 && n < 300; i++) { const g = Genetics.breed(m.genome, f.genome, rng, { noMut: true }); if (g.sex !== 'M') continue; n++; const o = Genetics.breedOf(Genetics.phenotype(g)); if (o && o.id === b.id) ok++; }
+    const rate = ok / Math.max(1, n); if (rate < 0.9) return { ok: false, rate, why: `Bu çiftten oğulların yalnızca %${Math.round(rate * 100)}'i ${b.name} çıkıyor; ≥%90 gerekir. Daha saf bir dişi seç.` };
+    return { ok: true, rate, breed: b };
+  },
+  register(m, f, name) {
+    const S = Game.S, M = Meta.ensure(S), r = this.check(m, f); if (!r.ok) return r;
+    if (M.lines.length >= 3) return { ok: false, why: 'En fazla 3 sabit hat tutulabilir.' };
+    if (M.lines.some((l) => l.bid === r.breed.id && l.sp === m.species)) return { ok: false, why: 'Bu ırk için zaten bir sabit hat var.' };
+    const line = { id: M.nextLine++, name: (name || '').trim().slice(0, 24) || `${r.breed.name} Hattı`, bid: r.breed.id, bn: r.breed.name, sp: m.species, rate: Math.round(r.rate * 100), t: S.clockMin, mg: JSON.parse(JSON.stringify(m.genome)), fg: JSON.parse(JSON.stringify(f.genome)) };
+    M.lines.push(line); Game.ev('line'); Game.addXp(100); Season.points(30); Game.notify('line', `Sabit Hat kaydedildi: ${line.name}`); Game.save(); return { ok: true, line };
+  },
+};
+
+/* ---------- Meta durum ve çarpanlar ---------- */
+const Meta = {
+  ensure(S = Game.S) {
+    const M = S.meta || (S.meta = {});
+    if (!M.story) M.story = { claimed: {} }; if (!M.friend) M.friend = { dede: 0, pul: 0, ayse: 0 };
+    if (!M.shows) M.shows = { entered: {}, count: 0, podium: 0, wins: 0, sc: 0 }; if (!M.trophies) M.trophies = []; if (!M.best) M.best = {};
+    if (!M.season) M.season = { idx: -1, pts: 0, claimed: [] }; if (!M.archive) M.archive = []; if (!M.badges) M.badges = []; if (!M.titles) M.titles = [];
+    if (!M.lines) M.lines = []; if (!M.nextLine) M.nextLine = 1; if (!M.ledger) M.ledger = []; if (!M.prestige) M.prestige = { n: 0, branch: 'main' };
+    return M;
+  },
+  friendLv(pts) { let l = 0; FRIEND_AT.forEach((t, i) => { if (pts >= t) l = i; }); return l; },
+  friend(id, n) { const M = this.ensure(), was = this.friendLv(M.friend[id]); M.friend[id] += n; const now = this.friendLv(M.friend[id]); if (now > was && typeof UI !== 'undefined') UI.toast(`${STORY_NPCS[id].emo} ${STORY_NPCS[id].name} ile dostluk: ${FRIEND_NAMES[now]}!`, 'heart', 4000); },
+  /** Kalıcı küçük bonuslar: dostluk + prestij. */
+  mult(kind, S = Game.S) {
+    const M = this.ensure(S), p = M.prestige.n || 0, per = { sell: 0.02, prize: 0.05, xp: 0.03 }[kind] || 0; let m = 1;
+    for (const [id, np] of Object.entries(STORY_NPCS)) if (np.lv === kind) m += this.friendLv(M.friend[id]) * per;
+    if (kind === 'sell') m += Math.min(0.3, 0.03 * p); if (kind === 'xp') m += Math.min(0.5, 0.05 * p);
+    return m;
+  },
+  /** 'locked' | 'lvl' | 'open' | 'ready' | 'done' */
+  chapterState(ch, S = Game.S) {
+    const M = this.ensure(S); if (M.story.claimed[ch.id]) return 'done';
+    if (ch.id > 1 && !M.story.claimed[ch.id - 1]) return 'locked'; if (Progress.level(S.xp) < ch.lvl) return 'lvl';
+    return ch.goals.every((g) => g.get(S) >= g.goal) ? 'ready' : 'open';
+  },
+  claimChapter(ch) {
+    const S = Game.S, M = this.ensure(S); if (this.chapterState(ch, S) !== 'ready') return false; const r = ch.reward;
+    M.story.claimed[ch.id] = 1; Game.addCoins(r.coins, true); Game.addXp(r.xp); S.rep += r.rep || 0; S.stone = (S.stone || 0) + (r.stone || 0);
+    for (const [k, v] of Object.entries(ch.friend)) this.friend(k, v);
+    Game.notify('story', `Bölüm ${ch.id} tamamlandı: ${ch.title}`); Game.ev('chapter'); Game.save(); return true;
+  },
+  finale(S = Game.S) { return !!this.ensure(S).story.claimed[7]; },
+  logMate(m, f) { const M = this.ensure(), bm = m.breed(); M.ledger.push({ t: Game.S.clockMin, m: m.name, f: f.name, sp: m.species, b: bm ? bm.name : '?' }); if (M.ledger.length > 80) M.ledger.shift(); },
+};
+
+/* ---------- Prestij: Yeni Şube ---------- */
+const BRANCHES = [
+  { id: 'nano', name: 'Nano Şube', emo: '🫧', l: 20, coins: 300, lvl: 1, res: [], desc: '20 L nano tankla başla; +300 Altın Pul.' },
+  { id: 'shrimp', name: 'Karides Şubesi', emo: '🦐', l: 40, coins: 0, lvl: 5, res: ['ro'], desc: '40 L tank, seviye 5 (karides açık), RO sistemi hazır.' },
+  { id: 'salon', name: 'Büyük Salon', emo: '🏛️', l: 100, coins: 0, lvl: 3, res: ['quar', 'bigtank'], desc: '100 L tank, büyük karantina ve büyük tanklar açık.' },
+];
+const Prestige = {
+  can(S = Game.S) { return Meta.finale(S) || Progress.level(S.xp) >= 100; },
+  perform(branchId) {
+    const S = Game.S, M = Meta.ensure(S), br = BRANCHES.find((b) => b.id === branchId) || BRANCHES[0];
+    const keep = { name: S.name, avatar: S.avatar, av: S.av, discovered: S.discovered, lessons: S.lessons, ach: S.ach, owns: S.owns, settings: S.settings, stone: S.stone, gallery: S.gallery, templates: S.templates, once: S.once, meta: M };
+    const lines = M.lines.slice(0, 3); M.prestige = { n: (M.prestige.n || 0) + 1, branch: br.id }; M.shows.entered = {}; M.season = { idx: -1, pts: 0, claimed: [] };
+    Game.freshState(); const N = Game.S; Object.assign(N, keep); Meta.ensure(N);
+    N.coins = 500 + 250 * M.prestige.n + br.coins; N.xp = Progress.xpFor(br.lvl); N.research = {}; for (const r of br.res) N.research[r] = 1; N.scape.liters = br.l; N.rep = 0;
+    const t = Game.tank;
+    for (const l of lines) for (const g of [l.mg, l.fg]) { const c = new Creature({ genome: JSON.parse(JSON.stringify(g)), bornT: N.clockMin - 90 * 1440, x: R.float(160, t.W - 160), y: R.float(160, t.H - 220) }); t.addCreature(c); Breeding.reg(c); }
+    t.setScape(N.scape); Game.checkDiscoveries(true); Game.afterLoad(); Game.save(true); return br;
+  },
+};
+
+/* ---------- Ek başarımlar ---------- */
+ACHIEVEMENTS.push(
+  { id: 'iwagumi', name: 'Iwagumi Ruhu', ic: '🪨', desc: 'Iwagumi jüri puanı', tiers: [70, 80, 90], get: (S) => Meta.ensure(S).best.iwagumi || 0 },
+  { id: 'podium', name: 'Madalyacı', ic: '🏅', desc: 'Yarışmalarda ilk 3', tiers: [1, 6, 20], get: (S) => Meta.ensure(S).shows.podium },
+  { id: 'line', name: 'Hat Ustası', ic: '🧬', desc: 'Sabit Hat kaydet', tiers: [1, 2, 3], get: (S) => Meta.ensure(S).lines.length },
+);
+
+/* ---------- Oyuna bağlama (sarmalayıcılar) ---------- */
+(function hook() {
+  const ev = Game.ev; Game.ev = function (name, n = 1) {
+    ev.call(this, name, n); const S = this.S; if (!S) return; Meta.ensure(S); Season.ensure(S);
+    if (SEASON_EV[name]) Season.points(SEASON_EV[name] * n);
+    if (name === 'order') Meta.friend('ayse', n); if (name === 'sold' && (S.cnt.sold || 0) % 5 === 0) Meta.friend('dede', 1);
+  };
+  const mate = Game.mate; Game.mate = function (m, f, q) { const r = mate.call(this, m, f, q); try { Meta.logMate(m, f); } catch (e) { /* defter hatası oyunu durdurmasın */ } return r; };
+  const px = Market.price; Market.price = function (c) { return Math.max(3, Math.round(px.call(this, c) * Meta.mult('sell'))); };
+  const ax = Game.addXp; Game.addXp = function (n, once) { return ax.call(this, once ? n : Math.round(n * Meta.mult('xp')), once); };
+  const al = Game.afterLoad; Game.afterLoad = function () { const r = al.apply(this, arguments); Meta.ensure(this.S); Season.ensure(this.S); AudioSys.setTune(Season.theme(this.S).tr); return r; };
+})();
+
+/* ───── 20b-meta-ui.js ───── */
+'use strict';
+/* =====================================================================
+   20b · META EKRANLARI — Hikâye, Yarışma, Sezon, Miras (hatlar/defter/prestij)
+   ===================================================================== */
+const themedScape = (st) => ({ spring: 'dutch', summer: 'jungle', autumn: 'nature', winter: 'iwagumi' })[Season.theme().id] === st;
+
+Object.assign(UI, {
+  bar(v, goal, color) { return h('div.mt-bar', null, h('i', { style: { width: Math.round(clamp(v / goal, 0, 1) * 100) + '%', background: color || 'var(--accent)' } })); },
+
+  /** Konuşma penceresi: dokununca metin tamamlanır / sonraki sayfa. */
+  dialog(npcId, pages, done) {
+    const np = STORY_NPCS[npcId], txt = h('div.mt-say', null, ''), hint = h('div.tiny.muted', { style: { textAlign: 'right' } }, 'Dokun ▸'); let i = 0, tm = 0, full = '';
+    const show = () => { full = pages[i]; let k = 0; clearInterval(tm); txt.textContent = ''; tm = setInterval(() => { k += 2; txt.textContent = full.slice(0, k); if (k >= full.length) clearInterval(tm); }, 22); };
+    const rec = UI.sheet(h('div.stack', { onclick: () => { if (txt.textContent.length < full.length) { clearInterval(tm); txt.textContent = full; return; } i++; if (i >= pages.length) { clearInterval(tm); rec.close(); done && done(); } else { AudioSys.SFX.tick(); show(); } } },
+      h('div.row', null, h('div', { style: { fontSize: '44px' } }, np.emo), h('b', null, np.name)), txt, hint));
+    show();
+  },
+
+  /* ---------- Hikâye ---------- */
+  render_story(el) {
+    const S = Game.S, M = Meta.ensure(S);
+    const npcCards = Object.entries(STORY_NPCS).map(([id, np]) => { const pts = M.friend[id], lv = Meta.friendLv(pts), nxt = FRIEND_AT[lv + 1];
+      return h('div.card.row', null, h('div', { style: { fontSize: '34px' } }, np.emo), h('div.sp', null, h('b', null, np.name, ' ', h('span.pill', null, FRIEND_NAMES[lv])), h('div.tiny.muted', null, np.perk + ` (şu an +${Math.round((Meta.mult(np.lv) - 1) * 100 - (np.lv === 'sell' ? Math.min(30, 3 * (M.prestige.n || 0)) : np.lv === 'xp' ? Math.min(50, 5 * (M.prestige.n || 0)) : 0))}%)`), UI.bar(pts, nxt || pts || 1, '#ff9eb5'))); });
+    const chs = CHAPTERS.map((ch) => { const st = Meta.chapterState(ch), np = STORY_NPCS[ch.npc];
+      const goals = ch.goals.map((g) => { const v = Math.min(g.goal, g.get(S)); return h('div', { style: { margin: '4px 0' } }, h('div.small', null, (v >= g.goal ? '✔ ' : '• ') + g.t + ` (${v}/${g.goal})`), UI.bar(v, g.goal)); });
+      const act = st === 'ready' ? h('button.btn.primary', { onclick: () => UI.dialog(ch.npc, ch.outro, () => { if (Meta.claimChapter(ch)) { AudioSys.SFX.discover(2); UI.toast(`Bölüm tamamlandı! +${ch.reward.coins} 💰`, 'star', 4000); UI.render_story(el); } }) }, 'Bölümü bitir')
+        : st === 'open' ? h('button.btn.sm', { onclick: () => UI.dialog(ch.npc, ch.intro) }, 'Konuşmayı oku') : null;
+      return h('div.card' + (st === 'done' ? '.done' : ''), { style: { opacity: st === 'locked' || st === 'lvl' ? 0.55 : 1 } }, h('div.row', null, h('div', { style: { fontSize: '30px' } }, np.emo), h('div.sp', null, h('b', null, `Bölüm ${ch.id}: ${ch.title}`), h('div.tiny.muted', null, st === 'locked' ? 'Önceki bölümü bitir.' : st === 'lvl' ? `Seviye ${ch.lvl} gerekir.` : st === 'done' ? 'Tamamlandı ✔' : `Ödül: ${ch.reward.coins} 💰 · ${ch.reward.xp} XP`))),
+        st === 'open' || st === 'ready' ? h('div', { style: { marginTop: '6px' } }, ...goals, act) : null); });
+    el.replaceChildren(h('div.wrap.stack', null, h('h2', { style: { margin: '6px 2px 2px' } }, 'Hikâye'), h('div.small.muted', null, 'Dedenin dükkânından ulusal şampiyonluğa. Acele yok; kendi hızında ilerle.'), ...npcCards, h('h3', { style: { margin: '8px 2px 0' } }, 'Bölümler'), ...chs));
+  },
+
+  /* ---------- Karne animasyonu ---------- */
+  scorecard(title, sub, crit, total, res, onClose) {
+    const rows = crit.map((c) => ({ c, fill: h('i', { style: { width: '0%' } }), num: h('b', null, '–') })), tot = h('div.mt-total', null, '0'), rank = h('div.stack', { style: { opacity: 0, transition: 'opacity .6s' } });
+    const rec = UI.sheet(h('div.stack', null, UI.sheetHead(title, { close: () => { rec.close(); onClose && onClose(); } }), h('div.small.muted', null, sub),
+      ...rows.map((r) => h('div.mt-sc' + (r.c.main ? '.main' : ''), null, h('div.row', null, h('span.sp', null, r.c.name), r.num), h('div.mt-bar', null, r.fill))), h('div.row', { style: { justifyContent: 'center', gap: '8px' } }, h('span.muted', null, 'Toplam'), tot), rank));
+    rows.forEach((r, i) => setTimeout(() => { if (rec.closed) return; r.fill.style.width = r.c.v + '%'; r.num.textContent = r.c.v; AudioSys.SFX.tick(); }, 500 + i * 650));
+    setTimeout(() => { let n = 0; const step = Math.max(1, Math.round(total / 18)), iv = setInterval(() => { n = Math.min(total, n + step); tot.textContent = n; if (n >= total) clearInterval(iv); }, 40); }, 500 + rows.length * 650);
+    if (res) setTimeout(() => {
+      const list = [...res.rivals.map((r) => ({ name: r.emo + ' ' + r.name, score: r.score })), { name: '⭐ Sen', score: total, me: true }].sort((a, b) => b.score - a.score);
+      rank.replaceChildren(h('b', null, 'Sıralama'), ...list.map((r, i) => h('div.row.small' + (r.me ? '.mt-me' : ''), null, h('span', { style: { width: '24px' } }, i + 1 + '.'), h('span.sp', null, r.name), h('b', null, r.score))),
+        h('div.card', { style: { textAlign: 'center' } }, h('div', { style: { fontSize: '40px' } }, ['', '🥇', '🥈', '🥉'][res.place] || '🎗️'), h('b', null, `${res.place}. oldun!`), h('div.small', null, `+${res.rw.coins} 💰 · +${res.rw.xp} XP${res.rw.rep ? ` · +${res.rw.rep} itibar` : ''}`)));
+      rank.style.opacity = 1; res.place <= 3 ? AudioSys.SFX.discover(res.place === 1 ? 3 : 2) : AudioSys.SFX.coin();
+    }, 1100 + rows.length * 650);
+  },
+
+  /* ---------- Yarışma ---------- */
+  contestTab: 'fish', judgeStyle: 'nature',
+  render_contest(el) {
+    const S = Game.S, M = Meta.ensure(S), ed = Contest.edition(S), cat = Contest.fishCat(ed), sty = Contest.scapeStyle(ed), th = Season.theme(), hall = Research.has('hall'), daysLeft = 7 - (Math.floor(S.clockMin / 1440) % 7);
+    let body;
+    const locked = h('div.card', null, h('b', null, '🔒 Sergi Salonu gerekli'), h('div.small.muted', null, 'Yarışmalara katılmak için Araştırma ağacından "Sergi salonu"nu aç (80 itibar). Jüri puanını yine de deneyebilirsin.'), h('button.btn.sm', { onclick: () => UI.go('research') }, 'Araştırmaya git'));
+    if (this.contestTab === 'fish') {
+      const done = Contest.entered('f'), themed = th.cat === cat.id;
+      body = h('div.stack', null, h('div.card', null, h('div.row', null, h('div', { style: { fontSize: '38px' } }, cat.emo), h('div.sp', null, h('b', null, `Bu haftanın sergisi: ${cat.name}`), h('div.small.muted', null, `${daysLeft} gün kaldı · ana kategori puanın %60'ı${themed ? ' · ' + th.emo + ' sezon bonusu +%25' : ''}`)))),
+        hall ? (done ? h('div.card', null, h('b', null, `Bu hafta katıldın: ${done}. oldun`), h('div.small.muted', null, 'Yeni sergi her hafta açılır.')) : h('button.btn.primary', { onclick: () => UI.pickShowFish(cat, themed, el) }, 'Balık kaydet')) : locked,
+        h('div.small.muted', null, 'Rakipler seviyene göre güçlenir. Sergi puanı: seçili kategori %60, diğerleri %40. Yetişkin ve sağlıklı balıklar katılabilir.'));
+    } else if (this.contestTab === 'scape') {
+      const J = Judge.score(this.judgeStyle, S); M.best[this.judgeStyle] = Math.max(M.best[this.judgeStyle] || 0, J.total);
+      const done = Contest.entered('s'), canEnter = hall && !done && this.judgeStyle === sty;
+      body = h('div.stack', null, h('div.card', null, h('div.row', null, h('div', { style: { fontSize: '38px' } }, STYLES[sty].emo), h('div.sp', null, h('b', null, `Bu haftanın teması: ${STYLES[sty].name}`), h('div.small.muted', null, `${daysLeft} gün kaldı${themedScape(sty) ? ' · ' + th.emo + ' sezon bonusu +%25' : ''}`)))),
+        UI.tabs(Object.entries(STYLES).map(([k, s]) => [k, s.emo + ' ' + s.name]), this.judgeStyle, (k) => { this.judgeStyle = k; UI.render_contest(el); }),
+        h('div.card', null, h('b', null, `Jüri ön izleme: ${STYLES[this.judgeStyle].name} — ${J.total}/100`), h('div.small.muted', null, STYLES[this.judgeStyle].desc),
+          ...J.crit.map((c) => h('div', { style: { margin: '5px 0' } }, h('div.row.small', null, h('span.sp', null, c.name), h('b', null, c.v)), UI.bar(c.v, 100))),
+          J.notes.length ? h('div.small', { style: { marginTop: '6px' } }, h('b', null, 'Jüri notları'), ...J.notes.map((n) => h('div', null, '• ' + n))) : h('div.small', { style: { color: 'var(--ok)' } }, 'Jüri notu yok: harika!')),
+        hall ? (done ? h('div.card', null, h('b', null, `Bu hafta katıldın: ${done}. oldun`)) : h('button.btn.primary', { disabled: canEnter ? null : true, onclick: () => UI.enterScape(el, sty) }, canEnter ? 'Yarışmaya gir' : 'Haftanın temasını seç')) : locked);
+    } else {
+      body = h('div.stack', null, h('div.small.muted', null, `Toplam katılım ${M.shows.count} · podyum ${M.shows.podium} · birincilik ${M.shows.wins}`),
+        M.trophies.length ? h('div.trophy-grid', null, ...M.trophies.slice().reverse().map((t) => h('div.card', { style: { textAlign: 'center' } }, h('div', { style: { fontSize: '34px' } }, ['', '🥇', '🥈', '🥉'][t.place]), h('div.small', null, h('b', null, t.name)), h('div.tiny.muted', null, `${t.score} puan · gün ${Math.floor(t.t / 1440) + 1}`)))) : UI.emptyState('🏆', 'Kupa dolabı boş', 'Bir yarışmada ilk üçe girince kupan burada sergilenir.'));
+    }
+    el.replaceChildren(h('div.wrap.stack', null, h('h2', { style: { margin: '6px 2px 2px' } }, 'Yarışmalar'), UI.tabs([['fish', '🐟 Sergi'], ['scape', '🌿 Aquascape'], ['trophy', '🏆 Kupalar']], this.contestTab, (k) => { this.contestTab = k; UI.render_contest(el); }), body));
+  },
+  pickShowFish(cat, themed, el) {
+    const list = Game.tank.creatures.filter((c) => ShowJudge.eligible(c)).map((c) => ({ c, s: ShowJudge.score(c, cat.id) })).sort((a, b) => b.s.total - a.s.total);
+    const rec = UI.sheet(h('div', null, UI.sheetHead(`${cat.emo} ${cat.name} sergisi`, { close: () => rec.close() }), h('div.small.muted', null, 'Tahmini puana göre sıralı. Yalnızca yetişkin ve sağlıklı balıklar.'),
+      list.length ? list.map(({ c, s }) => h('div.fish-row', { role: 'button', onclick: () => UI.confirm(`${c.name} sergiye girsin mi?`, `Tahmini puan ${s.total}. Bu hafta yalnızca bir balık katılabilir.`, () => { rec.close(); const res = Contest.finish('f', `${cat.name} Sergisi`, s.total, themed); UI.scorecard(`${c.name}: ${cat.name}`, 'Jüri değerlendiriyor…', s.crit, s.total, res, () => UI.render_contest(el)); }) },
+        UI.thumbCv(c, 84), h('div', null, h('b', null, c.name), h('div.small.muted', null, `${c.breed() ? c.breed().name : '?'} · tahmin ${s.total}`))) ) : UI.emptyState('🐟', 'Uygun balık yok', 'Yetişkin, hasta olmayan ve karantinada olmayan bir balık gerekir.')));
+  },
+  enterScape(el, sty) {
+    const J = Judge.score(sty), M = Meta.ensure(Game.S); M.best[sty] = Math.max(M.best[sty] || 0, J.total); Ach.check();
+    const res = Contest.finish('s', `${STYLES[sty].name} Yarışması`, J.total, themedScape(sty));
+    UI.scorecard(`${STYLES[sty].emo} ${STYLES[sty].name} Yarışması`, 'Jüri tankı inceliyor…', J.crit, J.total, res, () => UI.render_contest(el));
+  },
+
+  /* ---------- Sezon ---------- */
+  render_season(el) {
+    const S = Game.S, M = Meta.ensure(S), s = Season.ensure(S), th = Season.theme(S), tiers = [];
+    for (let i = 0; i < SEASON_TIERS; i++) { const need = (i + 1) * SEASON_PTS, r = Season.reward(i), got = s.claimed.includes(i), can = !got && s.pts >= need;
+      tiers.push(h('div.card.row' + (got ? '.done' : ''), null, h('div', { style: { fontSize: '26px', width: '34px' } }, got ? '✔' : i + 1), h('div.sp', null, h('b', null, `${r.coins} 💰 · ${r.xp} XP${r.rep ? ' · ' + r.rep + ' itibar' : ''}${r.stone ? ' · ' + r.stone + ' 💎' : ''}`), h('div.tiny.muted', null, `${need} puan${r.title ? ' · unvan: ' + th.name + ' Üstadı' : ''}`)),
+        can ? h('button.btn.primary.sm', { onclick: () => { Season.claim(i); AudioSys.SFX.coin(); UI.refreshTop(); UI.render_season(el); } }, 'Al') : got ? h('span.pill', { style: { color: 'var(--ok)' } }, 'Alındı') : h('span.tiny.muted', null, `${Math.max(0, need - s.pts)} kaldı`))); }
+    const arch = M.archive.length ? M.archive.slice().reverse().map((a) => { const t = SEASON_THEMES[a.idx % 4], key = 's' + a.idx, own = M.badges.includes(key);
+      return h('div.card.row', null, h('div', { style: { fontSize: '28px' } }, t.badge), h('div.sp', null, h('b', null, `${t.name} (Yıl ${1 + Math.floor(a.idx / 4)})`), h('div.tiny.muted', null, `${a.pts} puan · ${a.tiers} kademe`)),
+        own ? h('span.pill', null, 'Sende') : h('button.btn.sm', { onclick: () => { if ((S.stone || 0) < Season.badgeCost) return UI.toast('Yeterli Yosun Taşı yok', 'bell'); S.stone -= Season.badgeCost; M.badges.push(key); Game.save(); UI.refreshTop(); UI.render_season(el); } }, `${Season.badgeCost} 💎`)); }) : [UI.emptyState('📚', 'Arşiv boş', 'Biten sezonların rozetleri burada her zaman satın alınabilir; hiçbir şey kaçmaz.')];
+    el.replaceChildren(h('div.wrap.stack', null,
+      h('div.card.mt-season', { style: { '--c': th.col } }, h('div.row', null, h('div', { style: { fontSize: '44px' } }, th.emo), h('div.sp', null, h('b', null, th.name), h('div.small.muted', null, `Yıl ${Season.year(S)} · ${Season.daysLeft(S)} gün kaldı · tema kategorisi: ${SHOW_CATS.find((c) => c.id === th.cat).name}`))), UI.bar(s.pts, SEASON_TIERS * SEASON_PTS, th.col), h('div.tiny.muted', null, `${s.pts} / ${SEASON_TIERS * SEASON_PTS} puan · ücretsiz sezon yolu, süre bitince arşive geçer.`)),
+      h('div.small.muted', null, 'Puan kaynakları: yem, su değişimi, çiftleştirme, doğum, satış, sipariş, keşif, ders ve yarışmalar.'), ...tiers,
+      h('h3', { style: { margin: '8px 2px 0' } }, 'Arşiv Mağazası'), ...arch,
+      M.titles.length ? h('div.small', null, '🎖️ Unvanların: ' + M.titles.join(', ')) : null));
+  },
+
+  /* ---------- Miras: sabit hatlar, defter, yeni şube ---------- */
+  legacyTab: 'lines',
+  render_legacy(el) {
+    const S = Game.S, M = Meta.ensure(S); let body;
+    if (this.legacyTab === 'lines') {
+      body = h('div.stack', null, h('div.small.muted', null, 'Sabit Hat: 3 nesil aynı ırkı koruyan erkek soyu ve oğulların ≥%90\'ı aynı ırk çıkan bir çift. En fazla 3 hat; "Yeni Şube"de korunur.'),
+        h('button.btn.primary', { onclick: () => UI.pickLine() }, 'Yeni Sabit Hat kaydet'),
+        h('h3', { style: { margin: '6px 2px 0' } }, 'Onur Listesi'),
+        ...(M.lines.length ? M.lines.map((l) => h('div.card.row', null, h('div', { style: { fontSize: '30px' } }, '🧬'), h('div.sp', null, h('b', null, l.name), h('div.small.muted', null, `${SPECIES.find((s) => s.id === l.sp).name} · ${l.bn} · %${l.rate} saf · gün ${Math.floor(l.t / 1440) + 1}`)))) : [UI.emptyState('🧬', 'Henüz hat yok', 'Aynı ırkı 3 nesil üret ve tutarlılığını kanıtla.')]),
+        M.badges.length ? h('div.small', null, '🏷️ Sezon rozetleri: ' + M.badges.map((k) => SEASON_THEMES[+k.slice(1) % 4].badge).join(' ')) : null);
+    } else if (this.legacyTab === 'ledger') {
+      body = h('div.stack', null, h('div.small.muted', null, 'Genetik Defter: yaptığın son çiftleştirmeler.'),
+        ...(M.ledger.length ? M.ledger.slice().reverse().map((e) => h('div.card.small', null, h('b', null, `${e.m} × ${e.f}`), h('span.muted', null, ` — ${e.b} · gün ${Math.floor(e.t / 1440) + 1}`))) : [UI.emptyState('📓', 'Defter boş', 'Laboratuvarda bir çift eşleştirince burada kayıt tutulur.')]));
+    } else {
+      const can = Prestige.can(S), n = M.prestige.n;
+      body = h('div.stack', null, h('div.card', null, h('b', null, `🏪 Yeni Şube (${n} kez açıldı)`), h('div.small.muted', null, `Şampiyona hikâyesini bitirince (veya 100. seviyede) açılır. Kalıcı bonus: satış +%${Math.min(30, 3 * n)}, XP +%${Math.min(50, 5 * n)}, başlangıç parası +${250 * n}. Korunanlar: ansiklopedi, başarımlar, unvanlar, kupalar, 3 Sabit Hat (çiftleriyle birlikte), Yosun Taşı. Sıfırlananlar: para, seviye, tank, araştırma.`)),
+        ...BRANCHES.map((b) => h('div.card.row', null, h('div', { style: { fontSize: '30px' } }, b.emo), h('div.sp', null, h('b', null, b.name), h('div.small.muted', null, b.desc)), h('button.btn.sm' + (can ? '.coral' : ''), { disabled: can ? null : true, onclick: () => UI.confirm(`${b.name} açılsın mı?`, 'Mevcut dükkân kapanır; ilerleme sıfırlanır (korunanlar hariç). Bu geri alınamaz — önce dışa aktararak yedek alabilirsin.', () => { Prestige.perform(b.id); UI.go('hub'); UI.toast('Yeni şube açıldı! 🎉', 'star', 4000); }) }, can ? 'Aç' : '🔒'))));
+    }
+    el.replaceChildren(h('div.wrap.stack', null, h('h2', { style: { margin: '6px 2px 2px' } }, 'Miras'), UI.tabs([['lines', '🧬 Hatlar'], ['ledger', '📓 Defter'], ['prestige', '🏪 Yeni Şube']], this.legacyTab, (k) => { this.legacyTab = k; UI.render_legacy(el); }), body));
+  },
+  pickLine() {
+    const sel = { m: null, f: null }, out = h('div.small'), nameIn = h('input', { type: 'text', placeholder: 'Hat adı (isteğe bağlı)', maxlength: 24, style: { width: '100%' } }), box = h('div');
+    const draw = () => { const cr = Game.tank.creatures.filter((c) => c.adult());
+      box.replaceChildren(...['M', 'F'].map((sx) => h('div', null, h('b', null, sx === 'M' ? 'Erkek' : 'Dişi'), h('div.chips', null, cr.filter((c) => c.sex === sx).map((c) => h('button.sp-chip' + (sel[sx.toLowerCase()] === c ? '.on' : ''), { onclick: () => { sel[sx.toLowerCase()] = c; draw(); } }, `${c.name} · ${c.breed() ? c.breed().name : '?'}`))))));
+      const r = sel.m && sel.f ? Lines.check(sel.m, sel.f) : null; out.textContent = r ? (r.ok ? `✔ Uygun: oğulların %${Math.round(r.rate * 100)}'i ${r.breed.name}.` : r.why) : 'Bir erkek ve bir dişi seç.'; out.style.color = r && r.ok ? 'var(--ok)' : ''; };
+    const rec = UI.sheet(h('div.stack', null, UI.sheetHead('Sabit Hat kaydet', { close: () => rec.close() }), box, out, nameIn, h('button.btn.primary', { onclick: () => { if (!sel.m || !sel.f) return; const r = Lines.register(sel.m, sel.f, nameIn.value); if (!r.ok) { out.textContent = r.why; return; } rec.close(); AudioSys.SFX.discover(3); UI.toast('Sabit Hat kaydedildi! 🧬', 'star', 3500); UI.render_legacy($('#s-legacy')); } }, 'Kaydet'))); draw();
+  },
+});
+
+/* ───── 20c-meta-tests.js ───── */
+'use strict';
+/* 20c · Aşama 8 testleri — Tests.meta() ve Tests.all() genişletmesi */
+Object.assign(Tests, {
+  meta() {
+    const ok = {}, fake = (tpl) => ({ scape: Scape.fromTemplate(tpl) });
+    // jüri: Iwagumi şablonu Iwagumi stilinde tam stil puanı almalı, Hollanda stilinde düşük
+    const iw = Judge.score('iwagumi', fake('iwagumi')), du = Judge.score('dutch', fake('iwagumi')), em = Judge.score('nature', { scape: Scape.blank() });
+    ok.judgeIwagumi = iw.crit.find((c) => c.k === 'style').v === 100 && iw.total >= 70 && iw.total > du.total;
+    ok.judgeEmpty = em.total < 45 && em.notes.length > 0;
+    ok.judgeRange = Object.keys(STYLES).every((k) => { const t = Judge.score(k, fake('start')).total; return t >= 0 && t <= 100; });
+    // yarışma: deterministik rakipler, sıralama, ödül tek yönlü
+    const r1 = Contest.rivals('f', 5), r2 = Contest.rivals('f', 5), r3 = Contest.rivals('f', 6);
+    ok.rivals = JSON.stringify(r1) === JSON.stringify(r2) && JSON.stringify(r1) !== JSON.stringify(r3) && r1.length === 5;
+    ok.place = Contest.place(100, r1) === 1 && Contest.place(0, r1) === 6;
+    const rw = [1, 2, 3, 4].map((p) => Contest.reward(p, false).coins); ok.reward = rw[0] > rw[1] && rw[1] > rw[2] && rw[2] > rw[3] && Contest.reward(1, true).coins > rw[0];
+    // sergi puanı: sağlıklı yetişkin balık için 0-100, kategori ana kategori ağırlığı
+    const c = new Creature({ genome: Genetics.make({ tc: 'red', tail: 'delta' }, 'M', new RNG(5)), bornT: -90 * 1440 }); c.now = 0; let sj = true; if (c) for (const k of SHOW_CATS) { const s = ShowJudge.score(c, k.id); sj = sj && s.total >= 0 && s.total <= 100 && s.crit.length === 4; } ok.show = sj && ShowJudge.eligible(c);
+    // hikâye: yeni oyunda 1. bölüm açık, 2. kilitli; hedef tamamlanınca ödül ve 2. bölüm açılır
+    const S = { clockMin: 0, xp: 0, cnt: {}, stats: { sold: 0 }, discovered: {}, meta: {} }; const g1 = CHAPTERS[0];
+    ok.storyInit = Meta.chapterState(g1, S) === 'open' && Meta.chapterState(CHAPTERS[1], S) === 'locked';
+    S.cnt.feed = 3; S.cnt.water = 1; S.stats.sold = 1; ok.storyReady = Meta.chapterState(g1, S) === 'ready';
+    ok.storyOrder = CHAPTERS.every((ch, i) => ch.id === i + 1 && ch.goals.length >= 2 && ch.intro.length && ch.outro.length) && CHAPTERS.length === 7;
+    // dostluk eşikleri
+    ok.friend = Meta.friendLv(0) === 0 && Meta.friendLv(3) === 1 && Meta.friendLv(25) === 4 && Meta.friendLv(999) === 4;
+    // sezon: indeks, arşive geçiş, ödül ücretsiz
+    const SS = { clockMin: 0, meta: {} }; Season.ensure(SS); SS.meta.season.pts = 250; SS.clockMin = SEASON_DAYS * 1440 * 1.2; Season.ensure(SS);
+    ok.season = Season.idx(SS) === 1 && SS.meta.archive.length === 1 && SS.meta.archive[0].pts === 250 && SS.meta.season.pts === 0 && Season.theme(SS).id === 'summer';
+    // kayıt göçü v4 → v5
+    const d = Save.newState(); d.v = 4; delete d.meta; const mg = Save.migrate(d); ok.migrate = mg.v === SAVE_VERSION && !!mg.meta && Meta.ensure({ meta: mg.meta }).lines.length === 0;
+    // sabit hat: soyağacı eksikse reddedilir; 3 nesil erkek soyu + saf çift kabul edilir
+    const saveRec = Pedigree.rec, gm = { M: null }; Pedigree.rec = {}; Pedigree._memo.clear();
+    let accepted = null;
+    for (const b of BREEDS.filter((x) => x.rarity >= 1 && x.spec)) {
+      Pedigree.rec = {}; Pedigree._memo.clear(); const rng = new RNG(77);
+      const gA = Genetics.make(b.spec, 'M', rng), gB = Genetics.make(b.spec, 'M', rng), gC = Genetics.make(b.spec, 'M', rng), gF = Genetics.make(b.spec, 'F', rng);
+      Pedigree.add(9101, 0, 0, { g: gA, sex: 'M' }); Pedigree.add(9102, 9101, 0, { g: gB, sex: 'M' }); Pedigree.add(9103, 9102, 0, { g: gC, sex: 'M' });
+      const m = new Creature({ id: 9103, genome: gC, bornT: -90 * 1440 }), f = new Creature({ id: 9104, genome: gF, bornT: -90 * 1440 }); m.now = 0; f.now = 0;
+      const r = Lines.check(m, f); if (r.ok) { accepted = { b: b.id, rate: r.rate }; Pedigree.rec = { 9103: { s: 0, d: 0, g: gC } }; ok.lineNoAncestors = !Lines.check(m, f).ok; break; }
+    }
+    Pedigree.rec = saveRec; Pedigree._memo.clear(); ok.lineAccept = !!accepted && accepted.rate >= 0.9; ok.lineNoAncestors = ok.lineNoAncestors !== false;
+    // bonus çarpanları: dostluk ve prestij
+    const MS = { meta: { friend: { dede: 8, pul: 0, ayse: 0 }, prestige: { n: 2 } } }; ok.mult = Math.abs(Meta.mult('sell', MS) - (1 + 0.02 * 2 + 0.06)) < 1e-9 && Meta.mult('xp', MS) > 1.09 && Meta.mult('prize', MS) === 1;
+    return this._log('Meta (jüri, yarışma, hikâye, sezon, göç, sabit hat, çarpanlar)', Object.values(ok).every(Boolean), ok);
+  },
+  all() { const r = [this.mendel(), this.sexLinked(), this.crossover(), this.sexRatio(), this.inbreeding(), this.mutation(), this.breeds(), this.breeding(), this.chemistry(), this.content(), this.economy(), this.species(), this.meta()]; console.log(r.every(Boolean) ? '🎉 Tüm testler geçti' : '⚠️ Başarısız test var'); return r.every(Boolean); },
 });
 
 </script>

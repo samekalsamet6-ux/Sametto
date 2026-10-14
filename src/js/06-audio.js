@@ -7,7 +7,7 @@
 const AudioSys = (() => {
   let ctx = null, started = false, timer = null, blopTimer = null, nextChordT = 0, chordIdx = 0, sleepAt = 0, sleepFading = false;
   const N = {}; // düğümler
-  const S = { master: 0.8, music: 0.5, amb: 0.5, sfx: 0.7, style: 'ambient', sleepMin: 0, bgMute: true, mood: 'day' };
+  const S = { master: 0.8, music: 0.5, amb: 0.5, sfx: 0.7, style: 'ambient', sleepMin: 0, bgMute: true, mood: 'day', tr: 0 };
   const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
   /* Ruh hali tablosu: root (MIDI), akorlar (yarım ton), melodi gamı, bpm, nota olasılığı */
@@ -17,7 +17,7 @@ const AudioSys = (() => {
     studio: { root: 60, bpm: 58, p: 0.12, bass: 0.2, chords: [[0, 7, 11, 14], [5, 9, 12, 16], [9, 12, 16, 19]], scale: [0, 2, 4, 7, 9, 12] },
     lab:    { root: 62, bpm: 70, p: 0.3, bass: 0.4, chords: [[0, 4, 7, 11, 14], [2, 6, 9, 12], [9, 12, 16, 19]], scale: [0, 2, 4, 6, 7, 9, 11, 14] },
   };
-  const mood = () => MOODS[S.mood] || MOODS.day;
+  const mood = () => { const m = MOODS[S.mood] || MOODS.day; return S.tr ? Object.assign({}, m, { root: m.root + S.tr }) : m; };
   const scaleNote = (i, oct = 12) => mood().root + oct + mood().scale[((i % mood().scale.length) + mood().scale.length) % mood().scale.length];
 
   function impulse(c, dur = 4, decay = 2.4) {
@@ -148,6 +148,8 @@ const AudioSys = (() => {
       try { init(); } catch (e) { console.warn('Ses başlatılamadı', e); ctx = null; return; }
       started = true; ctx.resume(); nextChordT = ctx.currentTime + 0.3; timer = setInterval(() => { try { tick(); sleepCheck(); } catch (e) { /* sessiz */ } }, 250); scheduleBlop(); applyVolumes();
     },
+    /** Sezon temasına göre ana ses perdesi kayar (yarım ton). */
+    setTune(tr) { S.tr = tr || 0; },
     setMood(m) { if (MOODS[m] && S.mood !== m) { S.mood = m; chordIdx = 0; } },
     set(key, v) { S[key] = v; if (key === 'sleepMin') { sleepFading = false; sleepAt = v > 0 ? Date.now() + v * 60000 : 0; } applyVolumes(); },
     /** Yakınlaşınca sesler daha "sualtı" (boğuk) duyulur. */

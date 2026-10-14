@@ -244,3 +244,13 @@ details.card summary{list-style:none}
 /* ====== Aşama 6: ilerleme ====== */
 .qcard.done{opacity:.6}
 @keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+
+/* ---- Aşama 8: meta ekranları ---- */
+.mt-bar{height:8px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:3px}
+.mt-bar i{display:block;height:100%;border-radius:6px;transition:width .7s var(--ease,ease)}
+.mt-say{min-height:84px;font-size:16px;line-height:1.5;padding:10px;border-radius:12px;background:rgba(255,255,255,.06)}
+.mt-sc.main b{color:var(--accent)}.mt-sc.main .mt-bar{height:11px}
+.mt-total{font-size:34px;font-weight:800;color:var(--accent)}
+.mt-me{background:rgba(255,255,255,.1);border-radius:8px;font-weight:700}
+.mt-season{border-left:5px solid var(--c)}
+.trophy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}

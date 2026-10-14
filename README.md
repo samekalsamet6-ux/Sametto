@@ -23,6 +23,9 @@ src/js/12b-scape-art.js taş/kök/dekor sprite + bitki çizicileri
 src/js/17-species.js   7 tür: şema, fenotip, ırk tabloları
 src/js/18-crawlers.js  karides/salyangoz davranışı + çizim
 src/js/19-species-ui.js türe özel Laboratuvar arayüzü
+src/js/20-meta.js hikâye, yarışma/jüri, sezon, sabit hat, prestij (mantık)
+src/js/20b-meta-ui.js hikâye, yarışma, sezon, miras ekranları
+src/js/20c-meta-tests.js Tests.meta()
 src/js/16-economy.js   görev/başarım/pazar/mağaza/sipariş/araştırma mantığı
 src/js/16b-economy-ui.js ilerleme ekranları
 src/js/15-info-data.js tür kartı verileri, sözlük, rehberler, dersler
@@ -47,6 +50,10 @@ Konsol testleri: `Tests.all()` (Mendel 3:1, cinsiyete bağlı kalıtım, X–Y �
 - [x] **Aşama 1 – Çekirdek:** tasarım dili + gezinti, kayıt, lepistes genetiği, balık çizici, omurga tabanlı yüzme + durum makinesi, ekran geçişleri, tek tank, Canlı Kartı, üretken müzik + ambiyans
 - [x] **Aşama 2 – Üreme:** sperm depolama, gebelik (21–31 gün), batın/yavru yeme, akrabalı üreme cezaları, Laboratuvar + Punnett önizleme, yavru "açılış" anı, soyağacı, keşif kutlaması, kayıt göçü v1→v2
 - [x] **Aşama 3 – Tasarım Stüdyosu:** zemin fırçası, 10 taş/kök, 30 bitki, ekipman, dekor, geri al/yinele, ızgara + altın oran/üçler kılavuzu, şablonlar, fotoğraf modu
-- [ ] [ ] 4 – Kimya & Biyoloji · [ ] 5 – Ansiklopedi & Bilgi · [ ] 6 – İlerleme · [ ] 7 – Türler · [ ] 8 – Meta & Cila
+- [x] **Aşama 4 – Kimya & Biyoloji:** azot döngüsü, KH–CO₂–pH, zemin/taş etkileri, bitki büyüme/erime, 5 yosun, hastalık/ilaç/karantina
+- [x] **Aşama 5 – Ansiklopedi & Bilgi:** tür/bitki/taş kartları, sözlük, rehberler, Genetik Okulu, Bilgi Merkezi
+- [x] **Aşama 6 – İlerleme:** görevler, başarımlar, pazar, mağaza, siparişler, araştırma ağacı, profil
+- [x] **Aşama 7 – Türler:** endler, molly, platy, kılıç kuyruk, beta, karides, salyangoz; melezler
+- [x] **Aşama 8 – Meta & Cila:** 7 bölümlük hikâye + dostluk, sergi/aquascape yarışmaları (5 stil jüri), sezonlar + arşiv, Sabit Hat + Genetik Defter, prestij "Yeni Şube", sezon müziği
 
 Kısayollar (Akvaryum): `F` yem · `L` ışık · `S` hız · `+`/`-` yakınlaştır · `1–5` sekmeler · `H` merkez · `Esc` kapat.
