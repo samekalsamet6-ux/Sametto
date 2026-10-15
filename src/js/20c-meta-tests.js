@@ -139,3 +139,19 @@ Object.assign(Tests, {
   },
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.compat(); return a && b; })(Tests.all);
+
+/* Habitatlar: saf puanlama + şablonlar */
+Object.assign(Tests, {
+  habitats() {
+    const ok = {}, mk = (tpl) => Scape.fromTemplate(tpl), water = { tannin: 3, ph: 6.8, temp: 27 };
+    const good = Habitat.styleScore('amazon', { items: mk('blackwater').items, subType: 'sand', creatures: Array.from({ length: 6 }, () => ({ species: 'guppy' })), water, flow: 0.3 });
+    const wrongSp = Habitat.styleScore('amazon', { items: mk('blackwater').items, subType: 'sand', creatures: Array.from({ length: 6 }, () => ({ species: 'shrimp' })), water, flow: 0.3 });
+    const empty = Habitat.styleScore('amazon', { items: [], subType: 'sand', creatures: [], water, flow: 0.3 });
+    ok.goodHigh = good.v > 0.8; ok.speciesMatters = wrongSp.v < good.v - 0.15; ok.emptyLow = empty.v < 0.4 && empty.notes.length > 0;
+    const th = Habitat.styleScore('thai', { items: mk('betta').items, subType: 'sand', creatures: [{ species: 'betta' }, { species: 'betta' }], water: { tannin: 2, ph: 6.9, temp: 27 }, flow: 0.2 }); ok.thai = th.v > 0.7;
+    const tw = Habitat.styleScore('taiwan', { items: mk('taiwan').items, subType: 'gravel', creatures: Array.from({ length: 8 }, () => ({ species: 'shrimp' })), water: { tannin: 0.5, ph: 7.2, temp: 22 }, flow: 0.8 }); ok.taiwan = tw.v > 0.7;
+    ok.templates = ['blackwater', 'taiwan', 'mexico'].every((k) => { const sc = mk(k); return sc.items.length >= 8 && Scape.dims(sc).W > 0; }); ok.defs = Object.values(HABITATS).every((x) => x.sp.length && x.plants.every((p) => PLANTS[p]) && TEMPLATES[x.tpl]);
+    return this._log('Biyotop habitatları (puanlama, şablonlar)', Object.values(ok).every(Boolean), { ...ok, good: +good.v.toFixed(2), th: +th.v.toFixed(2), tw: +tw.v.toFixed(2) });
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.habitats(); return a && b; })(Tests.all);
