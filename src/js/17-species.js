@@ -10,14 +10,14 @@ TAILS.double = { name: 'Çift kuyruk', bf: 0.56, soft: 0.6 }; TAILS.plakat = { n
 
 /** Tür tanımı: kind (çizim/davranış), boy [erkek,dişi] (dünya birimi), üreme tipi */
 const SPDEF = {
-  guppy:     { pm: 1, kind: 'fish',   len: [49.9, 69.6], breed: 'live',  adult: 35, fry: 'Yavru' },
-  endler:    { pm: 0.8, kind: 'fish',   len: [30, 41],     breed: 'live',  adult: 30 },
-  molly:     { pm: 1, kind: 'fish',   len: [62, 84],     breed: 'live',  adult: 45 },
-  platy:     { pm: 0.9, kind: 'fish',   len: [52, 66],     breed: 'live',  adult: 40 },
-  swordtail: { pm: 1, kind: 'fish',   len: [60, 76],     breed: 'live',  adult: 45 },
-  betta:     { pm: 1.2, kind: 'fish',   len: [62, 52],     breed: 'bubble', adult: 60, solitary: true },
-  shrimp:    { pm: 0.3, kind: 'shrimp', len: [24, 34],     breed: 'shrimp', adult: 50 },
-  snail:     { pm: 0.5, kind: 'snail',  len: [32, 32],     breed: 'snail', adult: 40 },
+  guppy:     { pm: 1, kind: 'fish',   len: [62, 86], breed: 'live',  adult: 35, fry: 'Yavru' },
+  endler:    { pm: 0.8, kind: 'fish',   len: [38, 52],     breed: 'live',  adult: 30 },
+  molly:     { pm: 1, kind: 'fish',   len: [78, 104],     breed: 'live',  adult: 45 },
+  platy:     { pm: 0.9, kind: 'fish',   len: [66, 82],     breed: 'live',  adult: 40 },
+  swordtail: { pm: 1, kind: 'fish',   len: [76, 96],     breed: 'live',  adult: 45 },
+  betta:     { pm: 1.2, kind: 'fish',   len: [78, 66],     breed: 'bubble', adult: 60, solitary: true },
+  shrimp:    { pm: 0.3, kind: 'shrimp', len: [30, 42],     breed: 'shrimp', adult: 50 },
+  snail:     { pm: 0.5, kind: 'snail',  len: [46, 46],     breed: 'snail', adult: 40 },
 };
 /** Melezlenebilen çiftler (diğerleri laboratuvarda reddedilir). */
 const HYBRIDS = [['guppy', 'endler'], ['platy', 'swordtail']];

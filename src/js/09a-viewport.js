@@ -8,22 +8,31 @@ class Viewport {
   constructor(canvas, tank, h = {}) {
     this.cv = canvas; this.tank = tank; this.h = h; this.cam = { cx: 500, cy: 350, zoom: 1 };
     this.cw = 0; this.ch = 0; this.dpr = 1; this.inset = 0; this.parX = 0; this.captured = false;
+    const prevDims = tank.onDims; tank.onDims = (d) => { prevDims && prevDims(d); this.fitDefault(); };
     new ResizeObserver(() => this.resize()).observe(canvas); this.bind();
   }
   /** inset: alttan kapanan piksel (ör. editör çekmecesi); tank kalan alana sığdırılır. */
-  cy0() { return (this.ch - this.inset) / 2; }
+  cy0() { return (this.ch - this.inset) * (this.cw < this.ch * 0.9 && !this.inset ? 0.44 : 0.5); }
   scale() { const t = this.tank; return Math.min(this.cw / t.W, (this.ch - this.inset) / t.H) * this.cam.zoom; }
   clamp() { const c = this.cam, t = this.tank, S = this.scale(), hw = this.cw / (2 * S), hh = this.cy0() / S; c.cx = hw >= t.W / 2 ? t.W / 2 : clamp(c.cx, hw, t.W - hw); c.cy = hh >= t.H / 2 ? t.H / 2 : clamp(c.cy, hh, t.H - hh); }
+  /** En fazla yakınlaştırma: tank yüksekliği ekrana sığana dek (+pay). Büyük tanklarda daha fazla. */
+  maxZoom() { const t = this.tank, base = Math.min(this.cw / t.W, (this.ch - this.inset) / t.H), fitH = (this.ch - this.inset) / t.H; return clamp(1.6 * fitH / base, 3.2, 10); }
+  /** Varsayılan kamera: yatayda tüm tank; dikeyde (telefon) tankın bir bölümü, balıklar okunabilir boyda. */
+  fitDefault() {
+    if (!this.cw) return; const t = this.tank, base = Math.min(this.cw / t.W, (this.ch - this.inset) / t.H); let z = 1;
+    if (this.cw < this.ch * 0.9) z = clamp((this.cw / Math.min(t.W, 760)) / base, 1, this.maxZoom());
+    this.cam.zoom = z; this.cam.cx = t.W / 2; this.cam.cy = t.H / 2; this.clamp();
+  }
   toWorld(sx, sy) { const S = this.scale(); return { x: (sx - this.cw / 2) / S + this.cam.cx, y: (sy - this.cy0()) / S + this.cam.cy, S }; }
   toScreen(wx, wy) { const S = this.scale(); return { x: (wx - this.cam.cx) * S + this.cw / 2, y: (wy - this.cam.cy) * S + this.cy0(), S }; }
   resize() {
     const r = this.cv.getBoundingClientRect(); if (r.width < 10 || r.height < 10) return;
     this.dpr = Math.min(2, devicePixelRatio || 1); this.cw = r.width; this.ch = r.height; this.cv.width = Math.round(r.width * this.dpr); this.cv.height = Math.round(r.height * this.dpr);
     const oldW = this.tank.W; this.tank.setAspect(r.width / r.height); if (this.tank.W !== oldW) this.cam.cx *= this.tank.W / oldW;
-    this.cam.zoom = Math.max(1, this.cam.zoom); this.clamp();
+    if (!this._fit) { this._fit = 1; this.fitDefault(); } this.cam.zoom = Math.max(1, this.cam.zoom); this.clamp();
   }
   setZoom(z, sx, sy) {
-    const cam = this.cam, w = this.toWorld(sx, sy); cam.zoom = clamp(z, 1, 3.2);
+    const cam = this.cam, w = this.toWorld(sx, sy); cam.zoom = clamp(z, 1, this.maxZoom());
     const S = this.scale(); cam.cx = w.x - (sx - this.cw / 2) / S; cam.cy = w.y - (sy - this.cy0()) / S; this.clamp();
     this.h.zoomed && this.h.zoomed(cam.zoom);
   }

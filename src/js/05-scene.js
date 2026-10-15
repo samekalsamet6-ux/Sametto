@@ -1,7 +1,7 @@
 'use strict';
 /* =====================================================================
    05 · SAHNE — tank, ışık/gün döngüsü, bitkiler, kabarcıklar, yem, çizim
-   Dünya birimi: yükseklik 700. Genişlik, ekranın en-boy oranına uyar.
+   Dünya birimi: 20 birim = 1 cm. Tank ölçüsü modele (litreye) bağlıdır; ekran oranından bağımsız.
    ===================================================================== */
 
 class Tank {
@@ -13,7 +13,7 @@ class Tank {
     for (let i = 0; i < 46; i++) this.motes.push({ x: R.next(), y: R.next(), r: R.float(0.6, 1.8), v: R.float(2, 7), ph: R.float(0, TAU), z: R.float(0.5, 1.3) });
   }
 
-  setScape(sc) { this.scape = sc; this.touch(); }
+  setScape(sc) { this.scape = sc; this.syncDims(); this.touch(); }
   /** Aquascape değişti: zemin dokusu yeniden çizilsin. */
   touch() { this.rev++; this.updateEquipment(); }
   ground(wx) { return Scape.ground(this.scape, this.W, wx); }
@@ -24,13 +24,14 @@ class Tank {
     this.flowPow = (f ? f.flow : 0) + (e.air ? 0.1 : 0) + 0.08; this.outX = e.filter === 'external' ? 0.93 : 0.06;
   }
 
-  /** Ekran oranına göre dünya genişliği. */
-  setAspect(aspect) {
-    const W = Math.round(clamp(700 * aspect, 440, 1700));
-    if (Math.abs(W - this.W) < 2 && this.bg) return;
-    const old = this.W; this.W = W;
-    for (const c of this.creatures) { c.sw.x *= W / old; c.sw.tx *= W / old; }
-    this.buildBG(); this.touch();
+  /** Tank modeline göre sabit dünya ölçüsü (ekran oranından bağımsız). */
+  setAspect() { this.syncDims(); }
+  syncDims() {
+    const d = Scape.dims(this.scape); if (d.W === this.W && d.H === this.H && this.bg) return;
+    const oW = this.W, oH = this.H; this.W = d.W; this.H = d.H;
+    if (this.bg) for (const c of this.creatures) { c.sw.x *= d.W / oW; c.sw.tx *= d.W / oW; c.sw.y = clamp(c.sw.y * d.H / oH, 60, d.H - 90); c.sw.ty = clamp(c.sw.ty * d.H / oH, 60, d.H - 90); }
+    for (const it of this.scape.items) if (it.gnd === false && it.y !== undefined) it.y = clamp(it.y, SURFACE + 90, Scape.ground(this.scape, d.W, it.fx * d.W));
+    this.buildBG(); this.touch(); if (this.onDims) this.onDims(d);
   }
 
   buildBG() {
@@ -71,7 +72,7 @@ class Tank {
     const S = SUBSTRATES[sc.sub.type], [hh, ss, ll] = S.colors[sc.sub.color] || S.colors.natural;
     c.beginPath(); c.moveTo(0, H); for (let x = 0; x <= W + 8; x += 8) c.lineTo(x, this.ground(Math.min(x, W)));
     c.lineTo(W, H); c.closePath();
-    const g = c.createLinearGradient(0, GROUND0 - SUB_MAX, 0, H); g.addColorStop(0, hsl(hh, ss, ll + 8)); g.addColorStop(0.5, hsl(hh, ss, ll - 6)); g.addColorStop(1, hsl(hh, ss, ll - 20));
+    const g = c.createLinearGradient(0, H - 74 - SUB_MAX, 0, H); g.addColorStop(0, hsl(hh, ss, ll + 8)); g.addColorStop(0.5, hsl(hh, ss, ll - 6)); g.addColorStop(1, hsl(hh, ss, ll - 20));
     c.fillStyle = g; c.fill(); c.save(); c.clip();
     const r = new RNG(77), n = Math.min(900, W / 2.2), dark = ll < 30;
     for (let i = 0; i < n; i++) {
@@ -108,6 +109,7 @@ class Tank {
   }
 
   update(dt, minute) {
+    if (this._dl !== this.scape.liters) { this._dl = this.scape.liters; this.syncDims(); }
     this.t += dt; this.minute = minute; this.foodAge += dt;
     this.lightTarget = this.lampTarget(minute);
     this.light = damp(this.light, this.lightTarget, 0.55, dt);
@@ -190,12 +192,39 @@ class Tank {
   /**
    * v: {cw, ch, dpr, cx, cy, zoom, par, low, reduce, design, dry, after(ctx), fishAlpha}
    */
+  /** Oda: duvar, tank sehpası (dolap), zemin gölgesi — tank letterbox'ta gerçek bir akvaryum gibi görünsün. */
+  drawRoom(ctx, v, tx, ty, S, dpr) {
+    const cw = v.cw, ch = v.ch, W = this.W, H = this.H, L = tx, T = ty, Rr = tx + W * S, B = ty + H * S;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const night = 1 - this.light, wall = ctx.createLinearGradient(0, 0, 0, ch); wall.addColorStop(0, '#16303d'); wall.addColorStop(0.6, '#0e222d'); wall.addColorStop(1, '#091820'); ctx.fillStyle = wall; ctx.fillRect(0, 0, cw, ch);
+    // duvarda hafif doku/ışık
+    const wl = ctx.createRadialGradient((L + Rr) / 2, T, 10, (L + Rr) / 2, T, Math.max(cw, ch)); wl.addColorStop(0, `rgba(120,200,210,${0.16 * (1 - night * 0.7)})`); wl.addColorStop(1, 'rgba(120,200,210,0)'); ctx.fillStyle = wl; ctx.fillRect(0, 0, cw, ch);
+    if (B < ch + 4) { // sehpa
+      const sw = 14 * S, x0 = L - 12 * S, x1 = Rr + 12 * S, y0 = B + 4 * S;
+      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(x0 + 6 * S, y0 - 2, x1 - x0, 10 * S + 6);                           // tank altı gölge
+      const wood = ctx.createLinearGradient(0, y0, 0, y0 + 40 * S); wood.addColorStop(0, '#7a5232'); wood.addColorStop(0.1, '#5e3e26'); wood.addColorStop(1, '#3a2617');
+      ctx.fillStyle = wood; ctx.fillRect(x0, y0, x1 - x0, Math.max(0, ch - y0));                                              // dolap gövdesi
+      ctx.fillStyle = '#8c6240'; ctx.fillRect(x0 - 4 * S, y0 - sw * 0.35, x1 - x0 + 8 * S, sw * 0.7); ctx.fillStyle = 'rgba(255,230,190,.25)'; ctx.fillRect(x0 - 4 * S, y0 - sw * 0.35, x1 - x0 + 8 * S, Math.max(1, 2 * S)); // üst tabla
+      const dw = (x1 - x0) / 2; ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = Math.max(1, 2 * S);
+      for (let i = 0; i < 2; i++) { const dx = x0 + i * dw + 8 * S; ctx.strokeRect(dx, y0 + 16 * S, dw - 16 * S, Math.max(10, 90 * S)); ctx.fillStyle = '#b6a58d'; ctx.beginPath(); ctx.arc(dx + (i ? 12 : dw - 28) * S, y0 + 60 * S, Math.max(2, 4 * S), 0, TAU); ctx.fill(); }
+    }
+  }
+  /** Cam kenarı: siyah silikon çerçeve, kalınlık vurguları, ince yansıma. */
+  drawFrame(ctx, W, H) {
+    const rim = 7, g = ctx.createLinearGradient(0, -rim, 0, 0); g.addColorStop(0, '#1c2a31'); g.addColorStop(1, '#0a1014');
+    ctx.fillStyle = g; ctx.fillRect(-rim, -rim, W + rim * 2, rim); ctx.fillStyle = '#0a1014'; ctx.fillRect(-rim, H, W + rim * 2, rim); ctx.fillStyle = '#10181d'; ctx.fillRect(-rim, 0, rim, H); ctx.fillRect(W, 0, rim, H);
+    ctx.fillStyle = 'rgba(200,235,240,.22)'; ctx.fillRect(0, 0, W, 2); ctx.fillRect(0, 0, 2, H); ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(W - 3, 0, 3, H); ctx.fillRect(0, H - 3, W, 3);
+    const gl = ctx.createLinearGradient(0, 0, W * 0.35, H * 0.5); gl.addColorStop(0, 'rgba(255,255,255,.07)'); gl.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = gl; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(W * 0.28, 0); ctx.lineTo(0, H * 0.45); ctx.fill();
+  }
+
   render(ctx, v) {
     if (this._builtRev !== this.rev) this.buildSub();
     const S = v.S ?? (v.cw / this.W) * v.zoom, dpr = v.dpr, t = this.t, W = this.W, H = this.H, reduce = v.reduce, sc = this.scape;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#06141d'; ctx.fillRect(0, 0, v.cw * dpr, v.ch * dpr);
     const tx = v.cw / 2 - v.cx * S, ty = (v.cy0 ?? v.ch / 2) - v.cy * S, base = [dpr * S, 0, 0, dpr * S, dpr * tx, dpr * ty];
+    this.drawRoom(ctx, v, tx, ty, S, dpr);
     ctx.setTransform(base[0], base[1], base[2], base[3], base[4], base[5]);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();       // sahne yalnızca cam içinde
     const px = v.cx - W / 2 + (v.par || 0), L = v.dry ? 0.6 : this.light * (0.35 + 0.65 * this.lightPower) + (1 - this.lightPower) * 0 + (this.light > 0.5 ? 0 : 0);
     const lightK = this.light;
     if (v.dry) { const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#dfe9ee'); g.addColorStop(1, '#a9bcc4'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
@@ -256,6 +285,7 @@ class Tank {
       ctx.strokeStyle = 'rgba(230,255,255,.5)'; ctx.lineWidth = 1.4; ctx.beginPath(); for (let x = -50; x <= W + 50; x += 12) { const y = 24 + Math.sin(x * 0.02 + t * 1.1) * 1.8 + Math.sin(x * 0.047 - t * 1.7) * 1.1; x === -50 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); } ctx.stroke();
     }
     ctx.restore();
+    ctx.restore();
     // armatür (hava boşluğunda)
     { const lp = sc.equip.light, lx0 = W * 0.14, lx1 = W * 0.86; ctx.fillStyle = '#1b262c'; ctx.beginPath(); ctx.roundRect(lx0, -14, lx1 - lx0, 16, 5); ctx.fill(); const on = this.light > 0.2; ctx.fillStyle = on ? `rgba(255,248,225,${0.5 + 0.4 * this.lightPower})` : 'rgba(80,90,95,.6)'; ctx.fillRect(lx0 + 10, -2, lx1 - lx0 - 20, 3); if (on && !v.dry) { const g = ctx.createLinearGradient(0, 2, 0, 40); g.addColorStop(0, `rgba(255,245,220,${0.18 * this.lightPower})`); g.addColorStop(1, 'rgba(255,245,220,0)'); ctx.fillStyle = g; ctx.fillRect(lx0, 2, lx1 - lx0, 38); } }
     if (!v.dry) {
@@ -272,6 +302,7 @@ class Tank {
       if (this.tint > 0.01) { ctx.fillStyle = `rgba(110,70,20,${0.32 * this.tint})`; ctx.fillRect(0, 24, W, H); }          // tanen: çay rengi
       if (this.greenWater > 0.01) { ctx.fillStyle = `rgba(60,150,40,${0.35 * this.greenWater})`; ctx.fillRect(0, 24, W, H); }
     }
+    if (!v.dry) this.drawFrame(ctx, W, H);
     if (v.after) v.after(ctx);
     // cam: ekran uzayında vinyet + yansıma
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

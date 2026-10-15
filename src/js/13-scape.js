@@ -1,9 +1,12 @@
 'use strict';
 /* =====================================================================
    13 · AQUASCAPE MODELİ — zemin yüksekliği, öğeler, bağlanma, şablonlar, geri alma
-   Dünya: yükseklik 700 sabit; x, ekran oranına göre genişleyen W'nin oranı (fx).
+   Dünya: 20 birim = 1 cm; x, tank genişliği W'nin oranı (fx).
    ===================================================================== */
 const GROUND0 = 626, SURFACE = 26, SUB_COLS = 48, SUB_MAX = 150;
+/* Gerçek tank ölçüleri (cm, en × boy). Dünya ölçeği sabit: 20 birim = 1 cm, böylece
+   balık/bitki/taş boyları her tankta aynı; büyük tank = büyük dünya (kamera uzaklaşır). */
+const WU_CM = 20, TANK_DIMS = { 20: [40, 25], 40: [50, 30], 60: [60, 35], 100: [80, 40], 200: [100, 50], 300: [120, 55] };
 
 const Scape = {
   blank() {
@@ -16,10 +19,16 @@ const Scape = {
     };
   },
 
+  /** Tank modelinin dünya ölçüsü {W,H} (litreye en yakın model). */
+  dims(sc) {
+    const keys = Object.keys(TANK_DIMS).map(Number); const l = keys.reduce((a, b) => (Math.abs(b - (sc.liters || 60)) < Math.abs(a - (sc.liters || 60)) ? b : a)); const d = TANK_DIMS[l];
+    return { W: d[0] * WU_CM, H: d[1] * WU_CM, wcm: d[0], hcm: d[1] };
+  },
+
   /** Zemin yüksekliği: dünya x'inden y (üstten aşağı). */
   ground(sc, W, wx) {
     const f = clamp(wx / W, 0, 1) * (SUB_COLS - 1), i = Math.min(SUB_COLS - 2, Math.floor(f)), t = f - i, h = sc.sub.h;
-    return GROUND0 - lerp(h[i], h[i + 1], t) * SUB_MAX;
+    return (this.dims(sc).H - 74) - lerp(h[i], h[i + 1], t) * SUB_MAX;
   },
 
   defOf(it) { return it.k === 'plant' ? PLANTS[it.d] : it.k === 'decor' ? DECOR[it.d] : HARDSCAPE[it.d]; },
@@ -98,4 +107,5 @@ class UndoStack {
 }
 
 /** Tank kapasitesi (litre ≈ balık sayısı, en çok 100). */
-function tankCap() { return clamp(Math.round(Game.tank.scape.liters), 15, 100); }
+/** Gerçekçi stok: ~1,6 L / balık, üst sınır performans için 100. */
+function tankCap() { return clamp(Math.round(Game.tank.scape.liters / 1.6), 10, 100); }
