@@ -15,12 +15,12 @@ import Base from '../../layouts/Base.astro';
     <p>Varsayılan örnekte S ve M kurucu çifttir. A ve B onların yavrusu, yani kardeştir. C de A ile B’nin yavrusudur, bu yüzden C’nin F değeri 0,25 çıkar.</p>
     <p class="muted">Ayraç olarak virgül, noktalı virgül veya sekme kullanabilirsiniz. <code>#</code> ile başlayan satırlar not sayılır. Aynı kodu iki kez yazarsanız veya biri kendi atası olursa araç hatayı gösterir.</p>
   </details>
+  <p><strong>Örnek yükle:</strong>
+    <button type="button" data-ex="kardes">Kardeşlerin yavrusu</button>
+    <button type="button" data-ex="akrabasiz">Akraba olmayan çift</button>
+    <button type="button" data-ex="ebeveyn">Baba × kızı</button>
+  </p>
   <form class="tool" id="f" style="max-width:560px">
-    <p style="margin:0"><strong>Örnek yükle:</strong>
-      <button type="button" data-ex="kardes">Kardeşlerin yavrusu</button>
-      <button type="button" data-ex="akrabasiz">Akraba olmayan çift</button>
-      <button type="button" data-ex="ebeveyn">Baba × kızı</button>
-    </p>
     <label>Soy ağacı (her satır: kod, baba, anne; boş bırakılabilir; # ile yorum)<textarea name="ped" rows="10" style="font:inherit">S
 M
 A,S,M
