@@ -1,10 +1,21 @@
 ---
 import Base from '../layouts/Base.astro';
+import { questions } from '../data/quiz';
 ---
 <Base title="Seviye testi" description="18 soruluk kısa testle size uygun rehber yolunu bulun.">
   <h1>Seviye testi</h1>
   <p class="muted">18 soru. Sonuçta size uygun rehber yolunu ve kaçırdığınız konuları göreceksiniz. Cevaplar tarayıcınızda değerlendirilir, kaydedilmez.</p>
-  <form id="f" class="tool" style="max-width:680px"></form>
+  <form id="f" class="tool" style="max-width:680px">
+    {questions.map((q, n) => (
+      <fieldset>
+        <legend>{n + 1}. {q.q}</legend>
+        {q.options.map((o, i) => (
+          <label style="display:flex;gap:8px;align-items:flex-start;font-weight:400"><input type="radio" name={q.id} value={i} /> {o}</label>
+        ))}
+      </fieldset>
+    ))}
+    <button>Sonucu gör</button>
+  </form>
   <div id="res" aria-live="polite"></div>
   <script>
     import { questions } from '../data/quiz';
@@ -15,11 +26,11 @@ import Base from '../layouts/Base.astro';
     const names = { baslangic: 'Başlangıç', orta: 'Orta', ileri: 'İleri' } as const;
     const shuffle = <T,>(a: T[]) => { const r = [...a]; for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; } return r; };
     const f = el<HTMLFormElement>('f');
-    f.innerHTML = questions.map((q, n) => `
-      <fieldset>
-        <legend>${n + 1}. ${esc(q.q)}</legend>
-        ${shuffle(q.options.map((o, i) => [o, i] as const)).map(([o, i]) => `<label style="display:flex;gap:8px;align-items:flex-start;font-weight:400"><input type="radio" name="${q.id}" value="${i}" /> ${esc(o)}</label>`).join('')}
-      </fieldset>`).join('') + '<button>Sonucu gör</button>';
+    // Sorular derleme sırasında sayfaya yazılır (düzen kayması olmaz); seçenek sırası burada karıştırılır.
+    // Bir sorunun seçenekleri aynı kutuda kaldığı için toplam yükseklik değişmez.
+    for (const fs of Array.from(f.querySelectorAll('fieldset'))) {
+      for (const l of shuffle(Array.from(fs.querySelectorAll('label')))) fs.appendChild(l);
+    }
     f.addEventListener('submit', (e) => {
       e.preventDefault();
       const d = new FormData(f);
