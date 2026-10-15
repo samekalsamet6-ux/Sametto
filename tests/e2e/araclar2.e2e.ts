@@ -116,19 +116,19 @@ test.describe('pedigri çizici', () => {
     await expect(page.locator('#out svg')).toHaveCount(1);
     await expect(page.locator('#msg')).toContainText('5 birey, 6 bağlantı');
     const row = (id: string) => page.locator('#tbl tr').filter({ has: page.locator('td', { hasText: new RegExp(`^${id}$`) }) });
-    await expect(row('C').locator('td').nth(2)).toHaveText('0.25');
-    await expect(row('A').locator('td').nth(2)).toHaveText('0');
+    await expect(row('Yavru').locator('td').nth(2)).toHaveText('0.25');
+    await expect(row('Kardeş1').locator('td').nth(2)).toHaveText('0');
     await expect(page.locator('#out svg')).toHaveAttribute('role', 'img');
   });
 
   test('örnek düğmeleri soy ağacını yükler ve düz dille özetler', async ({ page }) => {
     await page.goto('/araclar/pedigri/');
-    await expect(page.locator('#plain')).toContainText('C balığının ebeveynleri birbirine akraba (F = 0.25)');
+    await expect(page.locator('#plain')).toContainText('Yavru balığının ebeveynleri birbirine akraba (F = 0.25)');
     await page.click('[data-ex=akrabasiz]');
     await expect(page.locator('#msg')).toContainText('7 birey');
     await expect(page.locator('#plain')).toContainText('akraba değil');
     await page.click('[data-ex=ebeveyn]');
-    await expect(page.locator('#plain')).toContainText('B balığının ebeveynleri birbirine akraba (F = 0.25)');
+    await expect(page.locator('#plain')).toContainText('Yavru balığının ebeveynleri birbirine akraba (F = 0.25)');
   });
 
   test('döngü hatası gösterilir ve çizim temizlenir', async ({ page }) => {

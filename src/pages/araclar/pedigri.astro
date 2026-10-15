@@ -7,13 +7,13 @@ import Base from '../../layouts/Base.astro';
   <p>Balıklarınızın soy ağacını yazın; araç onu çizsin ve her balık için <a href="/wiki/inbreeding-katsayisi">inbreeding katsayısını (F)</a> hesaplasın. Her şey tarayıcınızda yapılır, yazdıklarınız sunucuya gitmez.</p>
   <details open><summary>Nasıl kullanılır?</summary>
     <ol>
-      <li><strong>Her balığa kısa bir kod verin</strong> (S, M, A1…). Aynı balığa her yerde aynı kodu yazın.</li>
-      <li><strong>Her balık için bir satır yazın:</strong> <code>kod, baba, anne</code>. Örneğin <code>A,S,M</code>, “A’nın babası S, annesi M” demektir.</li>
-      <li><strong>Atalar için</strong> (ebeveyni bilinmeyen balıklar) yalnızca kodu yazın: <code>S</code>. Ebeveynlerden birini bilmiyorsanız boş bırakın: <code>A,S,</code>.</li>
+      <li><strong>Her balığa bir ad verin</strong> (Baba, Anne, Mavi…). Aynı balığa her yerde aynı adı yazın.</li>
+      <li><strong>Her balık için bir satır yazın:</strong> <code>balığın adı, babası, annesi</code>. Örneğin <code>Yavru,Baba,Anne</code>, “Yavru’nun babası Baba, annesi Anne” demektir.</li>
+      <li><strong>Ebeveyni bilinmeyen balıkları</strong> yalnızca adıyla yazın: <code>Baba</code>. Ebeveynlerden birini bilmiyorsanız boş bırakın: <code>Yavru,Baba,</code>.</li>
       <li><strong>“Çiz” düğmesine basın.</strong> Aşağıdaki örneklerden birini yükleyip ne olduğunu da görebilirsiniz.</li>
     </ol>
-    <p>Varsayılan örnekte S ve M kurucu çifttir. A ve B onların yavrusu, yani kardeştir. C de A ile B’nin yavrusudur, bu yüzden C’nin F değeri 0,25 çıkar.</p>
-    <p class="muted">Ayraç olarak virgül, noktalı virgül veya sekme kullanabilirsiniz. <code>#</code> ile başlayan satırlar not sayılır. Aynı kodu iki kez yazarsanız veya biri kendi atası olursa araç hatayı gösterir.</p>
+    <p>Varsayılan örnekte Baba ve Anne’nin iki yavrusu var: Kardeş1 ve Kardeş2. “Yavru” ise bu iki kardeşin yavrusudur, bu yüzden Yavru’nun F değeri 0,25 çıkar.</p>
+    <p class="muted">Ayraç olarak virgül, noktalı virgül veya sekme kullanabilirsiniz. <code>#</code> ile başlayan satırlar not sayılır. Aynı adı iki kez yazarsanız veya biri kendi atası olursa araç hatayı gösterir.</p>
   </details>
   <p><strong>Örnek yükle:</strong>
     <button type="button" data-ex="kardes">Kardeşlerin yavrusu</button>
@@ -21,11 +21,11 @@ import Base from '../../layouts/Base.astro';
     <button type="button" data-ex="ebeveyn">Baba × kızı</button>
   </p>
   <form class="tool" id="f" style="max-width:560px">
-    <label>Soy ağacı (her satır: kod, baba, anne; boş bırakılabilir; # ile yorum)<textarea name="ped" rows="10" style="font:inherit">S
-M
-A,S,M
-B,S,M
-C,A,B</textarea></label>
+    <label>Soy ağacı (her satır: ad, baba, anne; boş bırakılabilir; # ile yorum)<textarea name="ped" rows="10" style="font:inherit">Baba
+Anne
+Kardeş1,Baba,Anne
+Kardeş2,Baba,Anne
+Yavru,Kardeş1,Kardeş2</textarea></label>
     <button>Çiz</button>
     <div class="result" id="msg" aria-live="polite"></div>
   </form>
@@ -75,9 +75,9 @@ C,A,B</textarea></label>
       }
     });
     const examples: Record<string, string> = {
-      kardes: 'S\nM\nA,S,M\nB,S,M\nC,A,B',
-      akrabasiz: 'S\nM\nT\nU\nA,S,M\nB,T,U\nC,A,B',
-      ebeveyn: 'S\nM\nA,S,M\nB,S,A',
+      kardes: 'Baba\nAnne\nKardeş1,Baba,Anne\nKardeş2,Baba,Anne\nYavru,Kardeş1,Kardeş2',
+      akrabasiz: 'Baba1\nAnne1\nBaba2\nAnne2\nDişi,Baba1,Anne1\nErkek,Baba2,Anne2\nYavru,Erkek,Dişi',
+      ebeveyn: 'Baba\nAnne\nKız,Baba,Anne\nYavru,Baba,Kız',
     };
     document.querySelectorAll<HTMLButtonElement>('[data-ex]').forEach((b) => b.addEventListener('click', () => {
       (f.elements.namedItem('ped') as HTMLTextAreaElement).value = examples[b.dataset.ex!];
