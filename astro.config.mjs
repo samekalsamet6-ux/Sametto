@@ -6,7 +6,7 @@ import rehypeTaskLabels from './src/lib/rehype-task-labels.mjs';
 
 export default defineConfig({
   // Yayın adresi (tek kaynak): sitemap, robots.txt ve canonical/OG bağlantıları buradan türetilir.
-  site: 'https://lepistes-rehberi.pages.dev',
+  site: 'https://lepistes-rehberi.samekalsamet6.workers.dev',
   markdown: { processor: unified({ rehypePlugins: [rehypeTaskLabels] }) },
   integrations: [mdx(), sitemap()],
 });
