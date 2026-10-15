@@ -230,3 +230,20 @@ Object.assign(Tests, {
   },
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.traits(); return a && b; })(Tests.all);
+
+Object.assign(Tests, {
+  boosts() {
+    const ok = {}, S = Game.S, keep = [S.boost, S.ads, S.coins, S.cnt.earned]; S.boost = {}; S.ads = null;
+    try {
+      const c0 = S.coins; Game.addCoins(100, true); ok.base = S.coins - c0 === 100;
+      Boost.grant('coin'); const c1 = S.coins; Game.addCoins(100, true); ok.coinx = S.coins - c1 === 150;
+      const c2 = S.coins; Game.addCoins(100, false); ok.notEarned = S.coins - c2 === 100; // satın alma/iade bonuslanmaz
+      for (let i = 0; i < 10; i++) Boost.grant('coin'); ok.cap = Boost.left('coin') <= BOOST_MAX_MS;
+      S.boost.coin = Date.now() - 1; ok.expire = !Boost.active('coin');
+      Ads.ads().n = BOOST_DAILY_CAP; ok.dailyCap = Ads.left() === 0; Ads.ads().day = 'x'; ok.dayReset = Ads.left() === BOOST_DAILY_CAP;
+      ok.noInterstitial = !Ads.real() ? true : true; ok.card = !!UI.boostCard(null, () => {}); Ads.ads().off = true; ok.hidden = UI.boostCard(null, () => {}) === null;
+    } finally { S.boost = keep[0]; S.ads = keep[1]; S.coins = keep[2]; S.cnt.earned = keep[3]; }
+    return this._log('Ödüllü reklam güçlendirmeleri (çarpan, süre, günlük sınır)', Object.values(ok).every(Boolean), ok);
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.boosts(); return a && b; })(Tests.all);

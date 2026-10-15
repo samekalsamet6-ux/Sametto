@@ -74,6 +74,7 @@ src/js/
   32-living.js         asistan, sezon dekorları/etkinlikleri, bildirimler
   33-plan.js           üst plan görünümü, dükkân haritası
   34-traits.js         Özellik Defteri: kuyruk/gövde şekli-rengi, desen, boy koleksiyonu (Ansiklopedi > Özellikler)
+  35-boosts.js         ödüllü reklam güçlendirmeleri (demo sağlayıcı + AdMob bağdaştırıcısı, günlük sınır)
   27-equip-art.js      ekipman çizimleri (filtre, ısıtıcı, difüzör, armatür…)
   24-depth.js         Genetik Defter tahminleri, gizli varyasyonlar, hat bonusu, ek başarımlar, koleksiyon ödülleri
 ```
