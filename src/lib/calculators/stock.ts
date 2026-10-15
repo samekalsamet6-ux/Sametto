@@ -5,7 +5,7 @@ export interface StockInput {
   plants: 'az' | 'orta' | 'yogun';
   waterChange: 'seyrek' | 'haftalik' | 'sik';
   fryPresent: boolean;
-  /** Balık başına temel litre (hobi sezgisi, kullanıcı ayarlayabilir). */
+  /** Balık başına temel litre (varsayılan 6; hobi kılavuzlarından türetildi, kullanıcı ayarlayabilir). */
   baseLitersPerFish?: number;
 }
 export interface StockResult {
@@ -20,11 +20,13 @@ const P = { az: 1.1, orta: 1, yogun: 0.9 } as const;
 const W = { seyrek: 1.2, haftalik: 1, sik: 0.9 } as const;
 
 /**
- * Sezgisel yetişkin balık kapasitesi. Bilimsel bir sabit DEĞİLDİR: temel litre değeri
- * ve çarpanlar hobi sezgisidir ve kaynakla doğrulanmalıdır.
+ * Sezgisel yetişkin balık kapasitesi. Bilimsel bir sabit DEĞİLDİR.
+ * Temel değer (6 L/balık), hobi kılavuzlarından türetildi: yalnızca guppi tutulan tank için
+ * ~40 L'de 6–8 balık önerilir (≈ 5–7 L/balık). Çarpanlar (filtre, bitki, su değişimi, yavru)
+ * bu sitenin sezgisel varsayımlarıdır; hakemli bir dayanakları yoktur.
  */
 export function stockRange(i: StockInput): StockResult {
-  const base = i.baseLitersPerFish ?? 4;
+  const base = i.baseLitersPerFish ?? 6;
   if (!(i.netLiters > 0) || !(base > 0)) throw new RangeError('Hacim ve temel litre pozitif olmalı');
   const lpf = base * F[i.filtration] * P[i.plants] * W[i.waterChange] * (i.fryPresent ? 1.25 : 1);
   const recommended = Math.floor(i.netLiters / lpf);

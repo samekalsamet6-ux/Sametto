@@ -1,8 +1,452 @@
 [
-  {"id":"paris2022","kind":"birincil","title":"A large and diverse autosomal haplotype is associated with sex-linked colour polymorphism in the guppy","authors":"Paris et al.","year":2022,"venue":"Nature Communications","url":"https://doi.org/10.1038/s41467-022-28895-4","note":"40 nesillik Iso-Y hatlarıyla; erkek renk polimorfizminin Y'ye ek olarak otozomal bir haplotiple de ilişkili olduğunu bildirir."},
-  {"id":"kottler2013","kind":"birincil","title":"Blue and golden loci in the guppy (csf1ra, kita)","authors":"Kottler et al.","year":2013,"venue":"Genetics","url":"https://pmc.ncbi.nlm.nih.gov/articles/PMC3697969","note":"Blue ve golden lokuslarının csf1ra ve kita ortologlarına karşılık geldiğini bildirir."},
-  {"id":"phang1999","kind":"birincil","title":"Interaction between the autosomal recessive bar gene and the Y-linked snakeskin body pattern gene in the guppy","authors":"Phang et al.","year":1999,"venue":"Zoological Science","url":"https://bioone.org/journals/zoological-science/volume-16/issue-6/zsj.16.905/Interaction-between-the-Autosomal-Recessive-bar-Gene-and-the-Y/10.2108/zsj.16.905.full","note":"Snakeskin desenini Y-bağlantılı Ssb geni, bar genini ise otozomal çekinik modifiye edici gen olarak tanımlar."},
-  {"id":"lindholm2002","kind":"ikincil","title":"Sex chromosomes and sexual selection in poeciliid fishes","authors":"Lindholm & Breden","year":2002,"venue":"The American Naturalist","url":"","note":"Başka makalelerin atıfları üzerinden doğrulandı (16 tam Y-bağlantılı, 24 X–Y arasında rekombine olan ve 2 X-bağlantılı erkek süs özelliği). Özgün makale tarafımızdan okunmadı; doğrulanmalı."},
-  {"id":"kirpichnikov1981","kind":"ikincil","title":"Genetic Bases of Fish Selection","authors":"Kirpichnikov","year":1981,"venue":"Springer","url":"","note":"Başka makalelerin atıflarıyla biliniyor (Y-bağlantılı genler ve cinsiyetle sınırlı genler). Özgün kitap okunmadı; doğrulanmalı."},
-  {"id":"wright-yol","kind":"egitim","title":"Wright katsayısı: yol (path) yöntemi — eğitim kaynakları","authors":"Çeşitli","year":null,"venue":"Çevrimiçi eğitim sayfaları","url":"https://conductscience.com/tools/coefficient-of-relatedness-calculator","note":"Referans değerler: tam kardeş F=0,25; yarım kardeş F=0,125; ilk kuzen F=0,0625. Ders kitabı kaynağıyla çapraz doğrulanmalı."}
+  {
+    "id": "paris2022",
+    "kind": "birincil",
+    "title": "A large and diverse autosomal haplotype is associated with sex-linked colour polymorphism in the guppy",
+    "authors": "Paris et al.",
+    "year": 2022,
+    "venue": "Nature Communications",
+    "url": "https://doi.org/10.1038/s41467-022-28895-4",
+    "note": "40 nesillik Iso-Y hatlarıyla; erkek renk polimorfizminin Y'ye ek olarak otozomal bir haplotiple de ilişkili olduğunu bildirir."
+  },
+  {
+    "id": "kottler2013",
+    "kind": "birincil",
+    "title": "Blue and golden loci in the guppy (csf1ra, kita)",
+    "authors": "Kottler et al.",
+    "year": 2013,
+    "venue": "Genetics",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3697969",
+    "note": "Blue ve golden lokuslarının csf1ra ve kita ortologlarına karşılık geldiğini bildirir."
+  },
+  {
+    "id": "phang1999",
+    "kind": "birincil",
+    "title": "Interaction between the autosomal recessive bar gene and the Y-linked snakeskin body pattern gene in the guppy",
+    "authors": "Phang et al.",
+    "year": 1999,
+    "venue": "Zoological Science",
+    "url": "https://bioone.org/journals/zoological-science/volume-16/issue-6/zsj.16.905/Interaction-between-the-Autosomal-Recessive-bar-Gene-and-the-Y/10.2108/zsj.16.905.full",
+    "note": "Snakeskin desenini Y-bağlantılı Ssb geni, bar genini ise otozomal çekinik modifiye edici gen olarak tanımlar."
+  },
+  {
+    "id": "lindholm2002",
+    "kind": "ikincil",
+    "title": "Sex chromosomes and sexual selection in poeciliid fishes",
+    "authors": "Lindholm & Breden",
+    "year": 2002,
+    "venue": "The American Naturalist",
+    "url": "",
+    "note": "Başka makalelerin atıfları üzerinden doğrulandı (Paris ve ark. 2022 ve derlemeler): 16 erkek süs özelliği tam Y-bağlantılı, 24'ü X–Y arasında rekombine, 2'si X-bağlantılı. Özgün makale okunamadı."
+  },
+  {
+    "id": "kirpichnikov1981",
+    "kind": "ikincil",
+    "title": "Genetic Bases of Fish Selection",
+    "authors": "Kirpichnikov",
+    "year": 1981,
+    "venue": "Springer",
+    "url": "",
+    "note": "Başka makalelerin atıflarıyla biliniyor (17 Y-bağlantılı gen, 15 cinsiyetle sınırlı X/Y geni, 1 otozomal baskın gen). Özgün kitap okunamadı."
+  },
+  {
+    "id": "wright-yol",
+    "kind": "egitim",
+    "title": "Wright katsayısı: yol (path) yöntemi — eğitim kaynakları",
+    "authors": "Çeşitli",
+    "year": null,
+    "venue": "Çevrimiçi eğitim sayfaları",
+    "url": "https://conductscience.com/tools/coefficient-of-relatedness-calculator",
+    "note": "Referans değerler: tam kardeş F=0,25; yarım kardeş F=0,125; ilk kuzen F=0,0625. Ders kitabı kaynağıyla çapraz doğrulanmalı."
+  },
+  {
+    "id": "fishbase",
+    "kind": "veri tabanı",
+    "title": "Poecilia reticulata, Guppy — FishBase tür özeti (id 3228)",
+    "authors": "FishBase",
+    "year": null,
+    "venue": "fishbase.se/summary/3228",
+    "url": "https://fishbase.se/summary/3228",
+    "note": "Arama özetinden okunan değerler: azami boy erkek/cinsiyetsiz 5,0 cm SL, dişi 6,0 cm SL; erkekler ~2, dişiler ~3 ayda olgunlaşır; gebelik 4–6 hafta; yavru 20–40; doğum aralığı ~4 hafta; doğal yayılış: Venezuela, Barbados, Trinidad, kuzey Brezilya, Guyanalar. Sayfanın tamamı okunamadı."
+  },
+  {
+    "id": "dhaka-lab",
+    "kind": "birincil",
+    "title": "Breeding biology of guppy fish, Poecilia reticulata (Peters, 1859) in the laboratory",
+    "authors": "Dhaka Üniversitesi araştırmacıları",
+    "year": null,
+    "venue": "Journal of Asiatic Society of Bangladesh, Science (JASBS)",
+    "url": "https://banglajol.info/index.php/JASBS/article/view/17866",
+    "note": "Laboratuvar: gebelik 25–35 gün (ortalama ~28), yavru sayısı 12–60, olgunluk 8–10 hafta. Özet düzeyinde okundu."
+  },
+  {
+    "id": "txstate",
+    "kind": "ikincil",
+    "title": "Poecilia reticulata — Fishes of Texas",
+    "authors": "Texas State Üniversitesi",
+    "year": null,
+    "venue": "txstate.fishesoftexas.org",
+    "url": "https://txstate.fishesoftexas.org/poecilia%20reticulata.htm",
+    "note": "Doğum aralığı 3–6 hafta."
+  },
+  {
+    "id": "sinop-sperm",
+    "kind": "birincil",
+    "title": "Sperm Storage and Sperm Reserve Usage in Female Guppy Poecilia reticulata",
+    "authors": "Sinop Üniversitesi araştırmacıları",
+    "year": 2015,
+    "venue": "Sinop Üniversitesi yayını",
+    "url": "https://unis.sinop.edu.tr/yayin-detay/2_DJSmDm_11/sperm-storage-and-sperm-reserve-usage-in-female-guppy-poecilia-reticulata",
+    "note": "Kontrollü deney: ilk doğumdan sonra erkekten ayrılan dişiler, depolanmış spermle yaklaşık 28 günlük aralıklarla dokuz kez doğurdu (toplam 9 ay)."
+  },
+  {
+    "id": "reznick2013",
+    "kind": "birincil",
+    "title": "Male guppies reproduce even after death (sperm storage in Trinidadian guppies)",
+    "authors": "Reznick ve ark. (UC Riverside)",
+    "year": 2013,
+    "venue": "Proceedings of the Royal Society B; basın bülteni",
+    "url": "https://www.universityofcalifornia.edu/news/male-guppies-reproduce-even-after-death",
+    "note": "Doğal Trinidad derelerinde dişilerin spermi en az 10 ay saklayabildiği bildirildi. Basın bülteni üzerinden okundu."
+  },
+  {
+    "id": "dzikowski2001",
+    "kind": "birincil",
+    "title": "Effect of temperature and dietary L-carnitine supplementation on reproductive performance of female guppy (Poecilia reticulata)",
+    "authors": "Dzikowski, Hulata, Karplus, Harpaz",
+    "year": 2001,
+    "venue": "Aquaculture 199(3–4): 323–332",
+    "url": "https://cris.huji.ac.il/en/publications/effect-of-temperature-and-dietary-l-carnitine-supplementation-on/",
+    "note": "20–32 °C denendi; doğum aralığı sıcaklıktan anlamlı etkilendi; en iyi yavru üretimi 25–27 °C; 32 °C'de dişi ve yavru ölümü arttı, yumurtalık dejenerasyonu, yavru sayısı azaldı. Özet düzeyinde okundu."
+  },
+  {
+    "id": "nakadate2003",
+    "kind": "birincil",
+    "title": "Inbreeding depression and heterosis in various quantitative traits of the guppy, Poecilia reticulata",
+    "authors": "Nakadate, Shikano, Taniguchi",
+    "year": 2003,
+    "venue": "Aquaculture/balıkçılık dergisi (özet AGRIS kaydı)",
+    "url": "https://agris.fao.org/search/fr/records/65dfd59d4c5aef494fe5dc78",
+    "note": "Tam kardeş çiftleşmeleri bazı özellikleri azalttı (inbreeding depresyonu %-1,0 ile %24,6 arası; 120. günde sağkalım ve tuzluluğa dayanıklılık anlamlı düştü). Farklı hatların çaprazlanması bu özellikleri artırdı (heterozis %-1,3 ile %42,2)."
+  },
+  {
+    "id": "vanoosterhout2003",
+    "kind": "birincil",
+    "title": "Inbreeding depression and genetic load of sexually selected traits: how the guppy lost its spots",
+    "authors": "van Oosterhout ve ark.",
+    "year": 2003,
+    "venue": "Journal of Evolutionary Biology",
+    "url": "https://research.bangor.ac.uk/en/publications/inbreeding-depression-and-genetic-load-of-sexually-selected-trait/",
+    "note": "Akraba çiftleşmesi, çiftleşme davranışı sıklığını ve renk lekelerini azalttı."
+  },
+  {
+    "id": "vanoosterhout2007",
+    "kind": "birincil",
+    "title": "The guppy as a conservation model: implications of parasitism and inbreeding on reintroduction success",
+    "authors": "van Oosterhout ve ark.",
+    "year": 2007,
+    "venue": "Conservation Biology",
+    "url": "https://ueaeprints.uea.ac.uk/id/eprint/24907/",
+    "note": "Yetiştirmede dört nesilde vücut boyutu ve doğurganlık akrabalık nedeniyle anlamlı azaldı; yetiştirilen balıkların Gyrodactylus enfeksiyonuna sağkalımı %58, doğal balıkların %96 idi."
+  },
+  {
+    "id": "pitcher2008",
+    "kind": "birincil",
+    "title": "Inbreeding costs in life-history traits of guppies and female paternity bias",
+    "authors": "Pitcher, Rodd, Rowe",
+    "year": 2008,
+    "venue": "Genetica",
+    "url": "https://rowe.eeb.utoronto.ca/wp-content/blogs.dir/8/files/sites/5/2012/10/Pitcher-et-al-2008-Genetica.pdf",
+    "note": "Akraba çiftleşmesi yavru sayısını ve kalitesini azalttı."
+  },
+  {
+    "id": "tripathi2009",
+    "kind": "birincil",
+    "title": "Genetic linkage map of the guppy, Poecilia reticulata, and quantitative trait loci analysis of male size and colour variation",
+    "authors": "Tripathi ve ark.",
+    "year": 2009,
+    "venue": "Proceedings of the Royal Society B",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2677598",
+    "note": "23 bağlantı grubundan oluşan harita (790 SNP). Cinsiyet kromozomunda X–Y rekombinasyonunun sınırlı bir bölgeyle kısıtlı olduğu bildirildi."
+  },
+  {
+    "id": "kirkpatrick2022",
+    "kind": "birincil",
+    "title": "Kirkpatrick ve ark. (G3, 2022) ve bioRxiv 2023: guppy cinsiyet kromozomu rekombinasyonu",
+    "authors": "Kirkpatrick ve ark.",
+    "year": 2022,
+    "venue": "G3; bioRxiv",
+    "url": "https://boris.unibe.ch/171452/1/Kirkpatrick_et_al_2022_G3.pdf",
+    "note": "Nanda ve ark. (2014) X ve Y'nin uzunluklarının çoğunda rekombine olduğunu savundu; bu yeniden değerlendirmeler cinsiyet belirleyen bölgenin rekombinasyonsuz olup olmadığını tartışıyor. Konu açıklığa kavuşmamıştır."
+  },
+  {
+    "id": "walstad",
+    "kind": "ikincil",
+    "title": "Breeding Guppies: Genetic Pitfalls and Successes",
+    "authors": "Diana Walstad",
+    "year": 2022,
+    "venue": "dianawalstad.com",
+    "url": "https://dianawalstad.com/wp-content/uploads/2022/03/guppy-genetics-2022.pdf",
+    "note": "Yetiştirici-yazar: çift kılıç geni (Ds) X veya Y üzerinde olabilir; Japan Blue (Ca) yalnızca babadan oğullara Y ile geçer; kendi çaprazlamalarında delta kuyruk geni çift kılıç genine baskındır. Tek yetiştiricinin deneyimidir; hakemli makale değildir."
+  },
+  {
+    "id": "srac476",
+    "kind": "birincil",
+    "title": "Ich (White Spot Disease)",
+    "authors": "SRAC (Southern Regional Aquaculture Center)",
+    "year": null,
+    "venue": "SRAC Publication 476",
+    "url": "https://www.srac.msstate.edu/pdfs/Fact Sheets/476 Ich (White Spot Disease).pdf",
+    "note": "Yaşam döngüsü: trofont–tomont–teront. Yalnızca serbest yüzen evreler su tedavisine duyarlıdır. Tomont evresi 24 °C üzerinde 4 günden kısa, 7 °C altında 5 haftadan uzun sürebilir; 30 °C üzerinde parazit düzgün üreyemez."
+  },
+  {
+    "id": "ufifas-fa006",
+    "kind": "birincil",
+    "title": "Ichthyophthirius multifiliis (White Spot) Infections in Fish",
+    "authors": "UF/IFAS Extension",
+    "year": null,
+    "venue": "EDIS FA006",
+    "url": "https://edis.ifas.ufl.edu/publication/FA006/pdf",
+    "note": "Yalnızca enfektif teront evresi tedaviye duyarlı olduğu için tekrarlı tedavi veya uzun süreli tuz gerekir; yeni balık, bitki, dekor yoluyla girer; karantina önerilir. Tuz/sıcaklık ayrıntıları okunamadı."
+  },
+  {
+    "id": "srac4603",
+    "kind": "birincil",
+    "title": "Managing Ammonia in Fish Ponds",
+    "authors": "SRAC",
+    "year": null,
+    "venue": "SRAC Publication 4603",
+    "url": "https://www.srac.msstate.edu/pdfs/Fact Sheets/4603 Managing Ammonia in Fish Ponds.pdf",
+    "note": "Toksik iyonlaşmamış amonyak: kronik hasar 0,06 mg/L civarından, birkaç günde ölüm ~0,6 mg/L'den başlar. pH 8,0'in altında toplam amonyağın %10'undan azı toksik formdadır (24 °C, pH 8,0'de ≈ %5). Havuz balıkçılığı bağlamıdır; akvaryum türleri farklı olabilir."
+  },
+  {
+    "id": "srac479",
+    "kind": "birincil",
+    "title": "Columnaris Disease: A Bacterial Infection Caused by Flavobacterium columnare",
+    "authors": "SRAC",
+    "year": 1998,
+    "venue": "SRAC Publication 479",
+    "url": "https://www.srac.msstate.edu/pdfs/Fact Sheets/479b Columnaris Disease- A Bacterial Infection Caused by Flavobacterium columnare.pdf",
+    "note": "Çoğu balık türü çevresel stresten sonra ve tercih ettiği sıcaklığın üst kısmında kolumnarise duyarlıdır. Akvaryumcular buna sık sık 'yüzgeç çürümesi' veya 'pamuk hastalığı' der (veteriner ders notu). Kötü su kalitesi, yüksek amonyak, düşük oksijen enfeksiyonu kolaylaştırır; giriş yeri deri yaralarıdır."
+  },
+  {
+    "id": "nitrite-extension",
+    "kind": "birincil",
+    "title": "Nitrite poisoning / brown blood disease (Texas A&M, UF/IFAS VM007, Kentucky, Mississippi State)",
+    "authors": "Çeşitli uzantı yayınları",
+    "year": null,
+    "venue": "Uzantı (extension) yayınları",
+    "url": "https://edis.ifas.ufl.edu/publication/VM007/pdf",
+    "note": "Nitrit hemoglobine bağlanıp methemoglobin oluşturur; balık boğularak ölür. Klorür, nitritle solungaç taşıyıcısı için yarışır ve koruyucudur (havuz balıkçılığında klorür:nitrit ≈ 9:1 oranı anılır)."
+  },
+  {
+    "id": "camargo2005",
+    "kind": "birincil",
+    "title": "Nitrate toxicity to aquatic animals: a review with new data for freshwater invertebrates",
+    "authors": "Camargo, Alonso, Salamanca",
+    "year": 2005,
+    "venue": "Chemosphere",
+    "url": "https://ebuah.uah.es/dspace/handle/10017/69241",
+    "note": "Birimler nitrat-azotu (NO3-N). 10 mg NO3-N/L üzerinde uzun süreli maruziyet tatlı su omurgasız, balık ve amfibileri olumsuz etkileyebilir; en duyarlı türler için 2 mg NO3-N/L önerilir. NO3-N × 4,43 ≈ NO3."
+  },
+  {
+    "id": "srac702",
+    "kind": "birincil",
+    "title": "Artemia Production for Marine Larval Fish Culture",
+    "authors": "SRAC",
+    "year": null,
+    "venue": "SRAC Publication 702",
+    "url": "https://www.srac.msstate.edu/pdfs/Fact Sheets/702 Artemia Production for Marine Larval Fish Culture.pdf",
+    "note": "28 °C'de deniz suyunda yumurtadan 15–20 saatte kabuk yırtılır; 25 °C üstü sıcaklık ve yakın bir ışık çıkışı artırır; yüksek kaliteli yumurtanın gramından ~200–300 bin nauplius çıkabilir. Tuzluluk türe (soya) göre değişir; çalışmalarda 15–35 g/L aralığı kullanılır."
+  },
+  {
+    "id": "avma2020",
+    "kind": "birincil",
+    "title": "AVMA Guidelines for the Euthanasia of Animals: 2020 Edition",
+    "authors": "American Veterinary Medical Association",
+    "year": 2020,
+    "venue": "AVMA",
+    "url": "https://di.facmed.unam.mx/comisiones/AVMA Guidelines for the Euthanasia of Animals 2020 Ed..pdf",
+    "note": "Balıklar için kabul edilebilir: tamponlu MS-222, benzokain, enjekte pentobarbital, küçük tropik balıklar için hızlı soğutma; koşullu kabul edilebilir: öjenol/karanfil yağı (bilinen konsantrasyon; solungaç hareketi durduktan sonra en az 10 dakika bekleme), karbondioksitle doymuş su. Özet tablo üzerinden okundu."
+  },
+  {
+    "id": "rspca-fish",
+    "kind": "ikincil",
+    "title": "What is the most humane way to euthanase aquarium fish?",
+    "authors": "RSPCA Avustralya",
+    "year": null,
+    "venue": "kb.rspca.org.au",
+    "url": "https://kb.rspca.org.au/knowledge-base/what-is-the-most-humane-way-to-euthanase-aquarium-fish/",
+    "note": "Tek bir yöntem tüm akvaryum balıkları için uygun değildir; anestezik aşırı dozu önerilir; MS-222 ve benzokain halka açık değildir, veteriner gerekir. Karanfil yağı için tüketici düzeyinde yaklaşık 0,4 mL/L bildirilir. OATA kılavuzu 10 damla/L der (damla boyutu değişir)."
+  },
+  {
+    "id": "sera-karantina",
+    "kind": "ikincil",
+    "title": "How do I carry out a proper quarantine?",
+    "authors": "sera",
+    "year": null,
+    "venue": "sera.de (üretici SSS)",
+    "url": "https://www.sera.de/en/service/faq/faq-detail/how-do-i-carry-out-a-proper-quarantine/",
+    "note": "Yaklaşık 4 hafta karantina önerilir; en önemli önlem düzenli, dikkatli gözlemdir."
+  },
+  {
+    "id": "vin-karantina",
+    "kind": "ikincil",
+    "title": "Aquarium Fish Health Management (Floyd ve ark.)",
+    "authors": "VIN / UF",
+    "year": null,
+    "venue": "vin.com",
+    "url": "https://www.vin.com/doc/?id=3981697",
+    "note": "Veteriner protokol: tatlı su balıkları için en az 14 gün karantina."
+  },
+  {
+    "id": "arlington-kloramin",
+    "kind": "ikincil",
+    "title": "Aquarium care (kloramin)",
+    "authors": "Arlington (Texas) Su İdaresi",
+    "year": null,
+    "venue": "arlingtontx.gov",
+    "url": "https://arlingtontx.gov/city_hall/departments/water_utilities/common_issues/aquarium_care",
+    "note": "Sodyum tiyosülfat klor–amonyak bağını koparır, klorun etkisini giderir ama amonyak suda kalır; amonyağı bağlayan ürün, zeolit veya biyolojik filtre gerekir."
+  },
+  {
+    "id": "tetra-tasima",
+    "kind": "ikincil",
+    "title": "Fish transport and acclimatisation",
+    "authors": "Tetra",
+    "year": null,
+    "venue": "blog.tetra.net",
+    "url": "https://blog.tetra.net/en-en/fish-transport-and-acclimatisation/",
+    "note": "Torbada 1/3 su, 2/3 oksijen; yalıtımlı kutuda karanlık taşıma; torba kapalıyken ısıyı eşitlemek için yaklaşık 10–15 dakika yüzdürme."
+  },
+  {
+    "id": "cardiff-gyro",
+    "kind": "birincil",
+    "title": "Gyrodactylus turnbulli ve G. bullatarudis: guppilerde tuz banyosu etkinliği",
+    "authors": "Schelkle, Doetjes, Cable (Cardiff Üniversitesi)",
+    "year": null,
+    "venue": "Cardiff Üniversitesi ORCA",
+    "url": "https://orca.cardiff.ac.uk/id/eprint/18899/",
+    "note": "Guppilerde 25 g/L tuzla 15 dakikalık banyo G. turnbulli'yi %100, G. bullatarudis'i %72 temizledi; tek bir rejim tüm türlere uymuyor. Araştırma bulgusudur, ev uygulaması önerisi değildir."
+  },
+  {
+    "id": "salinity-lk",
+    "kind": "birincil",
+    "title": "Salinity tolerance of wild Poecilia reticulata (guppy) under laboratory conditions",
+    "authors": "Sri Lanka araştırmacıları",
+    "year": 2019,
+    "venue": "Ceylon Journal of Science / IJMS",
+    "url": "https://journals.sjp.ac.lk/index.php/ijms/article/view/4338",
+    "note": "Ani maruziyette 10 ppt'den sonra ölümler başladı; 28 ppt'de 12. haftada %50 sağkalım; kademeli artışta daha yüksek tuzluluk tolere edildi; 20 ppt'ye kadar üreme görüldü. Küçük örneklem (her tuzlulukta 3 tank × 10 balık)."
+  },
+  {
+    "id": "turkiye-guppy",
+    "kind": "birincil",
+    "title": "First record of the Guppy in inland waters of Turkey / feral populations in Turkey",
+    "authors": "Türkmen (2019); Kırankaya & Ekmekçi (2021)",
+    "year": 2021,
+    "venue": "Hacettepe J. Biol. & Chem.",
+    "url": "https://hjbc.hacettepe.edu.tr/journal/volume-49/issue-4/first-record-of-a-feral-population-of-green-swordtail-xiphophorus-hellerii-with-an-additional-record-of-guppy-poecilia/",
+    "note": "Türkiye'de doğal sularda ilk kayıt (Çeşme-İldir, İzmir; muhtemelen akvaryumcular tarafından bırakıldı) ve doğu Türkiye'de bir sıcak su kaynağında yerleşik popülasyon."
+  },
+  {
+    "id": "pfk-su-degisimi",
+    "kind": "ikincil",
+    "title": "How often should I change my water?",
+    "authors": "Practical Fishkeeping",
+    "year": null,
+    "venue": "practicalfishkeeping.co.uk",
+    "url": "https://www.practicalfishkeeping.co.uk/features/how-often-should-i-change-my-water/",
+    "note": "Haftalık yaklaşık %25 sık kullanılan bir başlangıç noktasıdır; doğru program tanka bağlıdır. Rehberler birbirinden farklıdır (haftada %20 sınırından %50–70'e kadar). Bilimsel bir standart değildir."
+  },
+  {
+    "id": "aquariumcoop-shimmy",
+    "kind": "ikincil",
+    "title": "Livebearer disease (shimmies)",
+    "authors": "Aquarium Co-Op",
+    "year": null,
+    "venue": "aquariumcoop.com",
+    "url": "https://www.aquariumcoop.com/blogs/aquarium/livebearer-disease",
+    "note": "Sallanmanın çoğunlukla çevresel stres ve ozmotik dengesizlikle ilişkili olduğu, düşük mineral içeriğinin sık neden olduğu savunulur. Aquariumscience.org düşük pH iddiasının bilimsel dayanağı olmadığını belirtir. Hakemli kaynak yoktur."
+  },
+  {
+    "id": "ifga-ikincil",
+    "kind": "ikincil",
+    "title": "IFGA/Avrupa guppi yarışma standartları hakkında ikincil kaynaklar",
+    "authors": "Practical Fishkeeping; Gensou; hobi forumları",
+    "year": null,
+    "venue": "çeşitli",
+    "url": "https://www.practicalfishkeeping.co.uk/fishkeeping-news/guppy-success-in-yorkshire/",
+    "note": "Avrupa gösterilerinde erkekler 100 puan üzerinden yargılanır; kuyruk şekli ana sınıf ölçütüdür; sınıf sayısı kaynaklara göre değişir. Birincil kaynak: IFGA'nın kendi yargılama kitabı (okunamadı)."
+  },
+  {
+    "id": "hobi-sicaklik-ph",
+    "kind": "ikincil",
+    "title": "Guppy bakım rehberleri: sıcaklık, pH ve sertlik (PetMD, Fluval, Houston Fishbox, perakendeciler)",
+    "authors": "Çeşitli",
+    "year": null,
+    "venue": "çeşitli",
+    "url": "https://www.petmd.com/fish/guppy-fish-care-sheet",
+    "note": "Sıcaklık: 22–28 °C (PetMD 72–82 °F; Fluval 23–27 °C). pH: 6,8–7,8 (PetMD), 7,0–8,0 (Fluval). Sertlik: 8–12 dGH (perakendeci), 6–18 dGH (Fluval), 10–20 dGH (Houston Fishbox). Kaynaklar birbirinden farklıdır; hakemli değerler yoktur."
+  },
+  {
+    "id": "harassment",
+    "kind": "birincil",
+    "title": "Male harassment reduces short-term female fitness in guppies / sexual coercion in guppies",
+    "authors": "Magurran & Seghers (1994) ve devam çalışmaları",
+    "year": 1994,
+    "venue": "Functional Ecology / Evolution ve diğerleri",
+    "url": "https://research-portal.st-andrews.ac.uk/en/publications/male-harassment-reduces-short-term-female-fitness-in-guppies/",
+    "note": "Doğal Trinidad guppilerinde erkek tacizi yüksektir; taciz dişilerin yem bulma fırsatını azaltır ve onları riskli habitatlara iter; bir çalışmada artan ilgi gebelik süresini ve yavru boyutunu etkilemedi ama yavru sayısını anlamlı azalttı. Hobi akvaryumu için önerilen bir dişi:erkek oranı bu çalışmalarda verilmemiştir."
+  },
+  {
+    "id": "fry-temp",
+    "kind": "birincil",
+    "title": "Effect of temperature on some reproductive parameters of gravid females and growth of newly hatched fry in guppy (Poecilia reticulata Peters, 1860)",
+    "authors": "Sinop Üniversitesi araştırmacıları",
+    "year": null,
+    "venue": "Sinop Üniversitesi yayını",
+    "url": "https://unis.sinop.edu.tr/yayin-detay/2_CJSrDZO_75/effect-of-temperature-on-some-reproductive-parameters-of-gravid-females-and-growth-of-newly-hatched-fry-in-guppy-poecilia-reticulata-peters-1860",
+    "note": "Yeni doğan yavrularda en büyük boy 21 °C'de (16,48 mm), en küçük boy 29 °C'de (12,47 mm) ölçüldü (deney 19–22,5 °C ve 29–35 °C gruplarıyla yapıldı). İlgili bir çalışmada yavrular 22,5–26 °C'de daha iyi büyüdü; 29 °C ve üzerinde sağkalım düştü. Özet düzeyinde okundu."
+  },
+  {
+    "id": "yamyamlik",
+    "kind": "birincil",
+    "title": "Guppy yamyamlığı: popülasyon farkları, sığınak etkisi ve canlı doğuranlarda yavru yeme",
+    "authors": "Nilsson ve ark. (2011); Resource competition explains rare cannibalism in the wild in livebearing fishes; Barki ve ark. (2014); Baby Catchers çalışması",
+    "year": null,
+    "venue": "Çeşitli dergiler (PMC9109233 dahil)",
+    "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9109233/",
+    "note": "Sığınak etkisi guppi popülasyonuna göre değişir (yırtıcı baskısı yüksek/düşük); doğal popülasyonlarda yamyamlık yoğunlukla artar ve dişilerde daha sıktır; bir canlı doğuran türde ağ eklerinin çoğunlukla etkisiz olduğu bildirildi. Hobi akvaryumunda 'bitki her zaman korur' iddiasını doğrudan sınayan bir çalışma bulunamadı."
+  },
+  {
+    "id": "hobi-tank",
+    "kind": "ikincil",
+    "title": "Guppy tank boyutu ve grup büyüklüğü kılavuzları (Microcosm, perakendeciler)",
+    "authors": "Çeşitli",
+    "year": null,
+    "venue": "çeşitli",
+    "url": "https://fishyhub.com/sg/blogs/blog-detail/guppy-care-guide",
+    "note": "Yalnızca guppi tutulan tank için asgari ≈ 38–40 L; 6–8 balık için 40 L, 60 L daha fazla denge sağlar; bir Fransızca kaynak 1 erkek + 3 dişi için en az 30 L der. Dişi:erkek oranını artırmak çiftleşme stresini azaltır (perakendeci önerisi). Hakemli veri değildir."
+  },
+  {
+    "id": "microworm-tamu",
+    "kind": "birincil",
+    "title": "Culture of Microworms (Panagrellus sp.) as an Alternative to Brine Shrimp for Larval Fish Forage",
+    "authors": "Texas A&M AgriLife Extension (Wildlife & Fisheries)",
+    "year": null,
+    "venue": "extension.rwfm.tamu.edu",
+    "url": "https://extension.rwfm.tamu.edu/wp-content/uploads/sites/8/2013/09/Culture-O-Microworms-Panagrellus-sp.-As-An-Alternative-to-Brine-Shrimp-for-Larval-Fish-Forage.pdf",
+    "note": "18–20 °C'de P. redivivus nüfusu 10–11 günde zirveye ulaşır; kültür kabının kenarına tırmanan solucanlar kazınarak toplanır ve balığa doğrudan verilir; ortam sıvılaşıp koyulaşır ve kokuşursa yeni kültür başlatılır. Özet düzeyinde okundu."
+  },
+  {
+    "id": "moina-yeast",
+    "kind": "birincil",
+    "title": "Moina kültüründe maya bulanıklığı ve yeşil su (Chlorella) çalışmaları",
+    "authors": "Toi ve ark. (2025) ve ilgili Chlorella–Moina çalışmaları",
+    "year": 2025,
+    "venue": "hakemli dergiler (ejabf, ijab)",
+    "url": "https://ejabf.journals.ekb.eg/article_417449_fc9ab36e4c73388405c014591d9a9ec9.pdf",
+    "note": "Chlorella, Moina, rotifer ve Daphnia kültüründe yaygın yemdir; kuru fırın mayası 50 g/L çözeltisiyle günde iki kez verilen Moina kültüründe en yüksek biyokütle 35–40 cm Secchi bulanıklığında görüldü. Aşırı besleme kültürü çökertir; klorlu su toplu ölüme yol açar (hobi kaynakları)."
+  }
 ]

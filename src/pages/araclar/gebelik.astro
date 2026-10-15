@@ -6,12 +6,12 @@ import Base from '../../layouts/Base.astro';
   <h1>Gebelik ve doğum takvimi</h1>
   <form class="tool" id="f">
     <label>Başlangıç tarihi (çiftleşme / erkekle son temas)<input type="date" name="start" required /></label>
-    <label>En kısa süre (gün)<input name="min" inputmode="numeric" value="21" /></label>
-    <label>En uzun süre (gün)<input name="max" inputmode="numeric" value="30" /></label>
+    <label>En kısa süre (gün)<input name="min" inputmode="numeric" value="25" /></label>
+    <label>En uzun süre (gün)<input name="max" inputmode="numeric" value="35" /></label>
     <button>Hesapla</button>
     <div class="result" id="out" aria-live="polite"></div>
   </form>
-  <div class="callout callout-uyari"><strong>⚠ Aralığı doğrulayın.</strong> 21–30 gün yaygın hobi bilgisidir ve sıcaklığa, bireye göre değişir; kaynakla doğrulanmalıdır. Çiftleşme tarihi çoğu zaman bilinmez; <a href="/wiki/sperm-depolama">sperm depolama</a> nedeniyle doğum, erkekle temastan çok sonra da olabilir.</div>
+  <div class="callout callout-uyari"><strong>⚠ Süre kaynaklara göre değişir.</strong> Varsayılan 25–35 gündür: laboratuvar çalışması 25–35 gün (ort. ≈ 28), FishBase 4–6 hafta, hobi kılavuzları 21–30 gün bildirir. Sıcaklık süreyi etkiler; en iyi yavru üretimi 25–27 °C'de bildirilmiştir (<a href="/kaynaklar#dzikowski2001">kaynak</a>). Aralığı kendi gözleminize göre değiştirin. Çiftleşme tarihi çoğu zaman bilinmez; <a href="/wiki/sperm-depolama">sperm depolama</a> nedeniyle doğum, erkekle temastan çok sonra da olabilir.</div>
   <script>
     import { gestationWindow } from '../../lib/calculators/gestation';
     import { num, el } from '../../lib/dom';

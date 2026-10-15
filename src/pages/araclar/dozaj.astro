@@ -1,0 +1,47 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Etiket oranı ölçekleyici">
+  <p><a href="/araclar">← Araçlar</a></p>
+  <h1>Etiket oranı ölçekleyici</h1>
+  <div class="callout callout-hata"><strong>⛔ Bu araç doz önermez.</strong> Yalnızca ürün <em>etiketinde</em> (veya veteriner talimatında) yazan oranı tankınızın hacmine çevirir. Etiketteki kullanım koşullarına, hedef türlere, bekleme ve su değişimi talimatlarına uyun. Etiket yoksa veya emin değilseniz kullanmayın; bir akvaryum veteriner hekimine danışın. Balık, bitki, omurgasız ve faydalı bakteriler aşırı dozdan zarar görür.</div>
+  <form class="tool" id="f1">
+    <h2 style="margin:0">1) “X miktar / Y litre” biçiminde etiket</h2>
+    <label>Tankın NET su hacmi (L)<input name="net" inputmode="decimal" required /></label>
+    <label>Etiketteki miktar (etiketin birimiyle, örn. mL)<input name="amt" inputmode="decimal" required /></label>
+    <label>…şu kadar litre için (L)<input name="per" inputmode="decimal" required /></label>
+    <button>Ölçekle</button>
+    <div class="result" id="out1" aria-live="polite"></div>
+  </form>
+  <form class="tool" id="f2" style="margin-top:20px">
+    <h2 style="margin:0">2) Hedef derişim (mg/L) ve ürün derişimi (mg/mL)</h2>
+    <label>Tankın NET su hacmi (L)<input name="net" inputmode="decimal" required /></label>
+    <label>Etiket/veteriner hedef derişimi (mg/L)<input name="target" inputmode="decimal" required /></label>
+    <label>Ürünün derişimi (mg/mL, etiketten)<input name="stock" inputmode="decimal" required /></label>
+    <button>Hesapla</button>
+    <div class="result" id="out2" aria-live="polite"></div>
+  </form>
+  <details><summary>Dikkat edilecekler</summary>
+    <ul>
+      <li>Net hacmi kullanın: <a href="/araclar/hacim">hacim aracı</a> zemin ve dekor payını düşer. Brüt hacim kullanmak aşırı doza yol açar.</li>
+      <li>Etiketteki birimle sonuç aynı birimdedir (mL, damla, g…). Birimleri karıştırmayın.</li>
+      <li>Sonucu kesin kabul etmeyin; etiket başka bir hacim baz alıyorsa (galon vb.) önce litreye çevirin.</li>
+      <li>Aktif karbon, bazı ilaçları bağlar; karbon kullanımı için etiket talimatına bakın.</li>
+    </ul>
+  </details>
+  <script>
+    import { scaleLabelRate, fromTargetConcentration } from '../../lib/calculators/dosage';
+    import { num, el } from '../../lib/dom';
+    const f1 = el<HTMLFormElement>('f1'), f2 = el<HTMLFormElement>('f2');
+    f1.addEventListener('submit', (e) => {
+      e.preventDefault(); const d = new FormData(f1);
+      try { const r = scaleLabelRate({ netLiters: num(d.get('net')), labelAmount: num(d.get('amt')), labelPerLiters: num(d.get('per')) }); el('out1').innerHTML = `<b>${r.amount}</b> (etiket birimiyle)<br><span class="muted">${r.note}</span>`; }
+      catch (err) { el('out1').textContent = (err as Error).message; }
+    });
+    f2.addEventListener('submit', (e) => {
+      e.preventDefault(); const d = new FormData(f2);
+      try { const r = fromTargetConcentration({ netLiters: num(d.get('net')), targetMgPerL: num(d.get('target')), stockMgPerMl: num(d.get('stock')) }); el('out2').innerHTML = `<b>${r.amount} mL</b><br><span class="muted">${r.note}</span>`; }
+      catch (err) { el('out2').textContent = (err as Error).message; }
+    });
+  </script>
+</Base>

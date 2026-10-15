@@ -10,9 +10,9 @@ import { evaluateCycle, parseImport, serialize } from './storage/cycle';
 describe('stockRange', () => {
   it('100 L varsayılan', () => {
     const r = stockRange({ netLiters: 100, filtration: 'orta', plants: 'orta', waterChange: 'haftalik', fryPresent: false });
-    expect(r.litersPerFish).toBe(4);
-    expect(r.recommended).toBe(25);
-    expect(r.upperLimit).toBe(31);
+    expect(r.litersPerFish).toBe(6);
+    expect(r.recommended).toBe(16);
+    expect(r.upperLimit).toBe(20);
   });
   it('yavru ve zayıf filtre sayıyı düşürür', () => {
     const a = stockRange({ netLiters: 100, filtration: 'orta', plants: 'orta', waterChange: 'haftalik', fryPresent: false });
@@ -25,8 +25,11 @@ describe('stockRange', () => {
 });
 
 describe('gestation', () => {
-  it('21-30 gün', () => {
-    expect(gestationWindow({ startDate: '2026-01-01' })).toEqual({ earliest: '2026-01-22', middle: '2026-01-27', latest: '2026-01-31' });
+  it('25-35 gün (varsayılan)', () => {
+    expect(gestationWindow({ startDate: '2026-01-01' })).toEqual({ earliest: '2026-01-26', middle: '2026-01-31', latest: '2026-02-05' });
+  });
+  it('özel aralık', () => {
+    expect(gestationWindow({ startDate: '2026-01-01', minDays: 21, maxDays: 30 })).toEqual({ earliest: '2026-01-22', middle: '2026-01-27', latest: '2026-01-31' });
   });
   it('ay sınırı ve artık yıl', () => {
     expect(addDays('2024-02-28', 2)).toBe('2024-03-01');

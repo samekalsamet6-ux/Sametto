@@ -12,6 +12,7 @@ export interface Cause {
 export const symptoms: Symptom[] = [
   { id: 'yuzeyde-nefes', label: 'Yüzeyde nefes alıyor / solungaçlar hızlı', group: 'Yüzüş ve davranış' },
   { id: 'yuzgec-kapali', label: 'Yüzgeçlerini kapalı tutuyor, köşede duruyor', group: 'Yüzüş ve davranış' },
+  { id: 'surtunme', label: 'Eşyalara sürtünüyor / vücudunu sallıyor', group: 'Yüzüş ve davranış' },
   { id: 'sallanma', label: 'Yerinde sallanıyor', group: 'Yüzüş ve davranış' },
   { id: 'yem-yemiyor', label: 'Yem yemiyor', group: 'Yüzüş ve davranış' },
   { id: 'beyaz-noktalar', label: 'Tuz tanesi gibi beyaz noktalar', group: 'Görünüm' },
@@ -43,15 +44,21 @@ export const causes: Cause[] = [
   },
   {
     id: 'beyaz-benek', title: 'Beyaz benek hastalığı (ich) olasılığı', wiki: 'beyaz-benek',
-    weights: { 'beyaz-noktalar': 3, 'yuzgec-kapali': 1, sallanma: 1 },
+    weights: { 'beyaz-noktalar': 3, surtunme: 2, 'yuzgec-kapali': 1, sallanma: 1 },
     firstSteps: ['Hasta balıkları karantinaya almayı değerlendirin.', 'Su değerlerini kontrol edin ve sıcaklığı sabitleyin.', 'Tedavi için ürün etiketine veya uzman görüşüne başvurun; doz uydurmayın.'],
     tests: ['Su testi', 'Gözlem: noktalar yüzgeç ve gövdede mi?'],
   },
   {
     id: 'kadife', title: 'Kadife hastalığı (velvet) olasılığı', wiki: 'kadife-hastaligi',
-    weights: { 'ince-toz-ortu': 3, 'yuzeyde-nefes': 2, 'yuzgec-kapali': 1, 'ani-toplu-olum': 1 },
+    weights: { 'ince-toz-ortu': 3, 'yuzeyde-nefes': 2, surtunme: 2, 'yuzgec-kapali': 1, 'ani-toplu-olum': 1 },
     firstSteps: ['Karantinaya alın; ışıkla yandan bakarak ince örtüyü doğrulayın.', 'Teşhisi zor bir hastalıktır: güvenilir kaynak veya uzmana danışın.'],
     tests: ['Su testi', 'El feneriyle yan ışık gözlemi'],
+  },
+  {
+    id: 'gyrodactylus', title: 'Deri kurtçukları (Gyrodactylus) olasılığı', wiki: 'gyrodactylus',
+    weights: { 'yuzgec-kapali': 2, surtunme: 3, 'renk-soluyor': 1, yara: 1 },
+    firstSteps: ['Yeni balıkları ve hasta balığı ayırın; tüm tankın etkilenmiş olabileceğini düşünün.', 'Tedavi için ürün etiketine veya veteriner hekime başvurun; tuz banyoları türe göre farklı etki gösterir.', 'Su kalitesini düzeltin; stres bağışıklığı düşürür.'],
+    tests: ['Gözlem: yüzgeçler vücuda yapışık mı, deride bulanıklık var mı?', 'Su testi'],
   },
   {
     id: 'yuzgec-curumesi', title: 'Yüzgeç / kuyruk çürümesi', wiki: 'kuyruk-curumesi',

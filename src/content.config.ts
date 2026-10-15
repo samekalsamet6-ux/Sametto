@@ -14,6 +14,7 @@ const guide = defineCollection({
     readingMinutes: z.number().default(5),
     last_reviewed: z.coerce.date(),
     needs_verification: z.boolean().default(false),
+    evidence: z.enum(['kaynakli', 'karma', 'topluluk']).optional(),
   }),
 });
 
@@ -29,6 +30,7 @@ const wiki = defineCollection({
     last_reviewed: z.coerce.date(),
     confidence: z.enum(['yuksek', 'orta', 'dusuk']).default('orta'),
     needs_verification: z.boolean().default(false),
+    evidence: z.enum(['kaynakli', 'karma', 'topluluk']).optional(),
   }),
 });
 

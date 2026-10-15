@@ -48,7 +48,9 @@ test.describe('rehber', () => {
   });
 
   test('doğrulanmamış içerikte uyarı görünür', async ({ page }) => {
-    await page.goto('/rehber/baslangic/05-azot-dongusu-kurulum/');
+    await page.goto('/rehber/orta/03-cinsiyet-ayrimi-zamani/');
+    await expect(page.locator('.callout-uyari').first()).toContainText('doğrulanmayı bekliyor');
+    await page.goto('/wiki/sallanma-hastaligi/');
     await expect(page.locator('.callout-uyari').first()).toContainText('doğrulanmayı bekliyor');
     await page.goto('/rehber/baslangic/13-rutin-bakim-takvimi/');
     await expect(page.getByText('doğrulanmayı bekliyor')).toHaveCount(0);
@@ -59,7 +61,7 @@ test.describe('wiki', () => {
   test('liste kategorilere ayrılır', async ({ page }) => {
     await page.goto('/wiki/');
     expect(await page.locator('section h2').count()).toBeGreaterThanOrEqual(8);
-    expect(await page.locator('a.card').count()).toBe(62);
+    expect(await page.locator('a.card').count()).toBe(63);
   });
 
   test('madde: ilgili maddeler ve geri bağlantı', async ({ page }) => {
@@ -83,7 +85,7 @@ test('sözlük, SSS ve kaynaklar', async ({ page }) => {
   await expect(first).toHaveAttribute('open', '');
   await page.goto('/kaynaklar/');
   await expect(page.locator('li#paris2022')).toContainText('Nature Communications');
-  await expect(page.locator('li#lindholm2002')).toContainText('doğrulanmalı');
+  await expect(page.locator('li#lindholm2002')).toContainText('Özgün makale okunamadı');
 });
 
 test('olmayan sayfa 404 verir', async ({ request }) => {

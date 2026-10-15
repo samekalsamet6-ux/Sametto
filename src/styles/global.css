@@ -68,3 +68,6 @@ svg.dg{display:block;width:100%;max-width:640px;height:auto;margin:0 auto;color:
 .dg-gono{fill:var(--brand);stroke:currentColor;stroke-width:2}
 .dg-fin{fill:var(--bg);stroke:currentColor;stroke-width:2.5;stroke-linejoin:round}
 .dg-spot{fill:currentColor;fill-opacity:.55}
+
+.ev-kaynakli{color:var(--ok)}.ev-karma{color:var(--mid)}.ev-topluluk{color:var(--hard)}
+.badge.ev-kaynakli,.badge.ev-karma,.badge.ev-topluluk{margin-left:6px}

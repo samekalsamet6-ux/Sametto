@@ -36,16 +36,21 @@ test.describe('hesaplayıcılar', () => {
   test('balık sayısı planlayıcı', async ({ page }) => {
     await page.goto('/araclar/stok/');
     await submit(page);
-    await expect(page.locator('#out')).toContainText('Önerilen: 25');
+    await expect(page.locator('#out')).toContainText('Önerilen: 16');
     await page.check('[name=fry]');
     await submit(page);
-    await expect(page.locator('#out')).not.toContainText('Önerilen: 25');
+    await expect(page.locator('#out')).not.toContainText('Önerilen: 16');
     await expect(page.locator('#warn')).toContainText('Yavru yükü');
   });
 
   test('gebelik takvimi', async ({ page }) => {
     await page.goto('/araclar/gebelik/');
     await page.fill('[name=start]', '2026-01-01');
+    await submit(page);
+    await expect(page.locator('#out')).toContainText('2026-01-26');
+    await expect(page.locator('#out')).toContainText('2026-02-05');
+    await page.fill('[name=min]', '21');
+    await page.fill('[name=max]', '30');
     await submit(page);
     await expect(page.locator('#out')).toContainText('2026-01-22');
     await expect(page.locator('#out')).toContainText('2026-01-31');

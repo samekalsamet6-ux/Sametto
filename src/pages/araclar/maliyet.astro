@@ -1,0 +1,49 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Maliyet ve kârlılık">
+  <p><a href="/araclar">← Araçlar</a></p>
+  <h1>Maliyet ve kârlılık</h1>
+  <form class="tool" id="f" style="max-width:520px">
+    <fieldset><legend>Elektrik</legend>
+      <label>Toplam cihaz gücü (W: ısıtıcı, pompa, ışık…)<input name="watts" inputmode="decimal" value="150" /></label>
+      <label>Günlük çalışma saati (ortalama)<input name="hours" inputmode="decimal" value="12" /></label>
+      <label>Elektrik fiyatı (kWh başına)<input name="kwh" inputmode="decimal" value="3" /></label>
+    </fieldset>
+    <fieldset><legend>Aylık giderler</legend>
+      <label>Yem<input name="feed" inputmode="decimal" value="200" /></label>
+      <label>Su hazırlama (giderici, mineral)<input name="water" inputmode="decimal" value="50" /></label>
+      <label>İlaç / sağlık<input name="med" inputmode="decimal" value="0" /></label>
+      <label>Diğer<input name="other" inputmode="decimal" value="0" /></label>
+    </fieldset>
+    <fieldset><legend>Ekipman</legend>
+      <label>Toplam ekipman bedeli<input name="eq" inputmode="decimal" value="3000" /></label>
+      <label>Beklenen ömür (ay)<input name="life" inputmode="decimal" value="36" /></label>
+    </fieldset>
+    <fieldset><legend>Satış</legend>
+      <label>Aylık satılan balık<input name="sold" inputmode="decimal" value="20" /></label>
+      <label>Balık başı satış fiyatı<input name="price" inputmode="decimal" value="40" /></label>
+    </fieldset>
+    <button>Hesapla</button>
+    <div class="result" id="out" aria-live="polite"></div>
+  </form>
+  <div class="callout"><strong>Nasıl hesaplanır?</strong> Elektrik = W ÷ 1000 × saat × 30 gün × kWh fiyatı. Ekipman bedeli, ömrüne bölünerek aylığa yayılır. Zaman ve emek hesaba katılmaz; satılan balık sayısı yetiştirilen sayı değil, gerçekten satılan sayıdır. Para birimi size aittir. Bu bir muhasebe aracı değildir; yasal yükümlülükler için bkz. <a href="/rehber/ileri/12-ticari-yetistiricilik">Ticari yetiştiricilik</a>.</div>
+  <script>
+    import { costModel } from '../../lib/calculators/cost';
+    import { num, el } from '../../lib/dom';
+    const f = el<HTMLFormElement>('f');
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const d = new FormData(f);
+      try {
+        const r = costModel({ watts: num(d.get('watts')), hoursPerDay: num(d.get('hours')), pricePerKwh: num(d.get('kwh')), feedPerMonth: num(d.get('feed')), waterTreatmentPerMonth: num(d.get('water')), medicinePerMonth: num(d.get('med')), otherPerMonth: num(d.get('other')), equipmentCost: num(d.get('eq')), equipmentLifeMonths: num(d.get('life')), fishSoldPerMonth: num(d.get('sold')), pricePerFish: num(d.get('price')) });
+        el('out').innerHTML = [
+          `Aylık toplam gider: <b>${r.totalPerMonth}</b> (elektrik ${r.electricityPerMonth} · ekipman ${r.equipmentPerMonth})`,
+          `Balık başı maliyet: <b>${r.costPerFish ?? '—'}</b>`,
+          `Aylık gelir: <b>${r.revenuePerMonth}</b> · aylık kâr/zarar: <b>${r.profitPerMonth}</b>`,
+          `Başa baş: ayda <b>${r.breakEvenFishPerMonth ?? '—'}</b> balık`,
+        ].join('<br>');
+      } catch (err) { el('out').textContent = (err as Error).message; }
+    });
+  </script>
+</Base>

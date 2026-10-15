@@ -2,20 +2,20 @@
 
 Lepistes (guppy, *Poecilia reticulata*) üretimi için Türkçe **rehber**, **wiki** ve **yardımcı araçlar** sitesi. Yeni başlayanlar, orta seviye ve deneyimli yetiştiriciler için üç ayrı öğrenme yolu sunar.
 
-> Durum: içerik ilk taslaktır. Sayısal biyolojik değerlerin bir kısmı kaynakla doğrulanmayı bekliyor; bkz. [`docs/OPEN_QUESTIONS.md`](docs/OPEN_QUESTIONS.md).
+> Durum: içerik, kaynak araştırmasıyla gözden geçirildi; hangi bilginin neye dayandığı [`docs/DOGRULAMA.md`](docs/DOGRULAMA.md) içinde, hâlâ doğrulanamayanlar [`docs/OPEN_QUESTIONS.md`](docs/OPEN_QUESTIONS.md) içinde listelidir. Her sayfada “Kanıt” rozeti vardır (kaynaklı / karma / topluluk bilgisi). Konuya hâkim bir editör gözden geçirmesi yine de gereklidir.
 
 ## İçerik
 
 | Bölüm | Konum | Ne var? |
 |---|---|---|
 | Rehber | `src/content/guide/{baslangic,orta,ileri}` | 3 yol × 15 ders (MDX) |
-| Wiki | `src/content/wiki` | 62 madde: terimler, su kimyası, ekipman, hastalıklar, beslenme, genetik… |
-| Araçlar | `src/pages/araclar`, `src/lib` | 9 araç (aşağıda) |
+| Wiki | `src/content/wiki` | 63 madde: terimler, su kimyası, ekipman, hastalıklar, beslenme, genetik… |
+| Araçlar | `src/pages/araclar`, `src/lib` | 13 araç (aşağıda) |
 | Sorun giderme | `/sorun-giderme` | Belirtiden olası nedene karar aracı |
 | Seviye testi | `/seviye-testi` | 18 soruluk yönlendirme testi |
 | SSS, Sözlük, Kaynaklar | `/sss`, `/sozluk`, `/kaynaklar` | |
 
-**Araçlar:** akvaryum hacmi · su değişimi · balık sayısı planlayıcı · gebelik/doğum takvimi · yem planlayıcı · bakım takvimi (.ics) · azot döngüsü takipçisi · Punnett hesaplayıcı · inbreeding (Wright F).
+**Araçlar:** akvaryum hacmi · su değişimi · balık sayısı planlayıcı · gebelik/doğum takvimi · yem planlayıcı · bakım takvimi (.ics) · azot döngüsü takipçisi · yavru büyüme takipçisi · maliyet ve kârlılık · etiket oranı ölçekleyici (doz önermez) · pedigri çizici · Punnett hesaplayıcı · inbreeding (Wright F).
 
 Tüm hesaplar tarayıcıda yapılır; hesap/giriş yoktur, veriler sunucuya gönderilmez (takipçi verisi yalnızca `localStorage`'da tutulur).
 
@@ -39,7 +39,7 @@ npm run dev        # geliştirme sunucusu (arama dizini yalnızca build sonrası
 | `npm run build` | Siteyi `dist/` içine derler ve Pagefind dizinini oluşturur |
 | `npm run preview` | Derlenmiş siteyi yerelde açar |
 | `npm run check:links` | `dist/` içindeki dahili bağlantıları denetler (önce `build`) |
-| `npm run e2e` | Playwright E2E testleri (72 test = 36 senaryo × masaüstü/mobil): araçlar, sorun giderme, seviye testi, gezinti, arama (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
+| `npm run e2e` | Playwright E2E testleri (96 test = 48 senaryo × masaüstü/mobil): araçlar, sorun giderme, seviye testi, gezinti, arama (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
 | `npm run a11y` | Tüm sayfalarda axe taraması, açık ve koyu tema (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
 | `npm run pwa` | Manifest, simgeler, hizmet çalışanı ve **gerçek çevrimdışı** gezinti/arama/araç denetimi (önce `build`) |
 | `npm run lighthouse` | Seçili 7 sayfada Lighthouse (mobil); performans ≥ 85, erişilebilirlik/en iyi uygulamalar/SEO ≥ 95 |
@@ -100,7 +100,6 @@ Yayından önce:
 
 ## Yapılacaklar
 
-- Kalan araçlar: büyüme takipçisi, maliyet, ilaç dozajı, pedigri çizici
 - Lisans seçimi (henüz yok)
 
 ## Sorumluluk reddi

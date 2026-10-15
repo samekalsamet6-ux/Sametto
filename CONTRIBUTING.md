@@ -8,7 +8,8 @@
 
 ## İçerik kuralları
 - **Uydurma bilgi yok.** Her sayısal veya biyolojik iddia güvenilir bir kaynağa dayanmalı (hakemli makale, üniversite/uzantı yayını, FishBase benzeri veri tabanı, saygın dernek). Forum bilgisi tek başına kaynak değildir; "topluluk deneyimi" olarak belirtin.
-- Kaynağı yoksa kesin sayı yazmayın; "yaklaşık", "kaynakla doğrulanmalı" deyin ve `needs_verification: true` ekleyin.
+- Kaynağı yoksa kesin sayı yazmayın; "yaklaşık", "kaynakla doğrulanmalı" deyin ve `needs_verification: true` ekleyin. Sayfanın kanıt düzeyini `evidence: kaynakli | karma | topluluk` ile belirtin; hobi kaynaklarını kanıt gibi sunmayın.
+- Yeni bir kaynak eklerken `src/data/kaynaklar.json` içine **neyin okunduğunu** (özet mi, tam metin mi) yazın; yeni bir düzeltmeyi `docs/DOGRULAMA.md` tablosuna işleyin.
 - İlaç, tuz, kimyasal ve elektrik konusunda **doz vermeyin**; ürün etiketine ve uzmana yönlendirin.
 - Hayvan refahı önceliklidir. Zarar verici uygulamaları teşvik etmeyin; ayıklamada alternatifleri (satış, bağış) önce anlatın. Balıkların doğaya salınmaması uyarısını koruyun.
 - Dil sade ve saygılı olsun; başlangıç içeriğinde jargona ilk geçişte sözlük bağlantısı verin.

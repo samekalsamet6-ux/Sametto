@@ -1,0 +1,58 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Pedigri çizici">
+  <p><a href="/araclar">← Araçlar</a></p>
+  <h1>Pedigri çizici</h1>
+  <form class="tool" id="f" style="max-width:560px">
+    <label>Soy ağacı (her satır: kod, baba, anne; boş bırakılabilir; # ile yorum)<textarea name="ped" rows="10" style="font:inherit">S
+M
+A,S,M
+B,S,M
+C,A,B</textarea></label>
+    <button>Çiz</button>
+    <div class="result" id="msg" aria-live="polite"></div>
+  </form>
+  <div id="out" style="margin:16px 0"></div>
+  <p><button id="dl" type="button" hidden>SVG olarak indir</button></p>
+  <table id="tbl" style="width:100%"></table>
+  <div class="callout"><strong>Nasıl okunur?</strong> Atalar üstte, torunlar altta; düz çizgi babayı, kesikli çizgi anneyi gösterir. Her kutudaki F değeri, o bireyin <a href="/wiki/inbreeding-katsayisi">inbreeding katsayısıdır</a> (ebeveynleri akraba değilse 0). Satırda tanımlanmamış bir ata, soluk kutuyla gösterilir ve akraba olmadığı varsayılır.</div>
+  <script>
+    import { layoutPedigree } from '../../lib/calculators/pedigree-layout';
+    import { parsePedigree } from '../../lib/calculators/inbreeding';
+    import { el, download } from '../../lib/dom';
+    const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+    const f = el<HTMLFormElement>('f');
+    let lastSvg = '';
+    function svg(l: ReturnType<typeof layoutPedigree>, inline: boolean) {
+      const bw = 90, bh = 44;
+      const c = inline
+        ? { box: 'fill="#fff" stroke="#0b6e8a" stroke-width="2"', soft: 'fill="#fff" stroke="#0b6e8a" stroke-width="2" stroke-dasharray="4 3" opacity=".6"', t: 'font-family="sans-serif" font-size="16" font-weight="700" fill="#12263a"', s: 'font-family="sans-serif" font-size="13" fill="#12263a"', ln: 'stroke="#12263a" stroke-width="2" fill="none"', dash: 'stroke="#12263a" stroke-width="2" fill="none" stroke-dasharray="6 4"' }
+        : { box: 'class="dg-box"', soft: 'class="dg-box" stroke-dasharray="4 3" opacity=".6"', t: 'class="dg-t"', s: 'class="dg-s"', ln: 'class="dg-ln"', dash: 'class="dg-ln dg-dash"' };
+      const pos = new Map(l.nodes.map((n) => [n.id, n]));
+      const edges = l.edges.map((e) => { const a = pos.get(e.from)!, b = pos.get(e.to)!; const mid = (a.y + b.y) / 2; return `<path ${e.role === 'baba' ? c.ln : c.dash} d="M${a.x},${a.y + bh / 2} C${a.x},${mid} ${b.x},${mid} ${b.x},${b.y - bh / 2}"/>`; }).join('');
+      const nodes = l.nodes.map((n) => `<g><rect ${n.known ? c.box : c.soft} x="${n.x - bw / 2}" y="${n.y - bh / 2}" width="${bw}" height="${bh}" rx="8"/><text ${c.t} x="${n.x}" y="${n.y - 2}" text-anchor="middle">${esc(n.id)}</text><text ${c.s} x="${n.x}" y="${n.y + 15}" text-anchor="middle">${n.f === null ? 'bilinmiyor' : 'F = ' + Math.round(n.f * 10000) / 10000}</text></g>`).join('');
+      const W = Math.max(l.width + bw, 200), H = l.height + bh * 2;
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-bw / 2} ${-bh / 2} ${W} ${H}" ${inline ? `width="${W}" height="${H}"` : 'class="dg" style="max-width:100%;color:var(--fg)"'} role="img" aria-label="Pedigri soy ağacı, ${l.nodes.length} birey"><title>Pedigri soy ağacı</title>${edges}${nodes}</svg>`;
+    }
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      try {
+        const l = layoutPedigree(parsePedigree(String(new FormData(f).get('ped'))));
+        if (!l.nodes.length) { el('msg').textContent = 'En az bir birey girin.'; return; }
+        el('msg').textContent = `${l.nodes.length} birey, ${l.edges.length} bağlantı.`;
+        el('out').innerHTML = svg(l, false);
+        lastSvg = svg(l, true);
+        el<HTMLButtonElement>('dl').hidden = false;
+        el('tbl').innerHTML = '<tr><th>Birey</th><th>Kuşak</th><th>F</th></tr>' + l.nodes.map((n) => `<tr><td>${esc(n.id)}</td><td>${n.generation}</td><td>${n.f === null ? 'bilinmiyor' : Math.round(n.f * 10000) / 10000}</td></tr>`).join('');
+      } catch (err) {
+        el('msg').textContent = (err as Error).message;
+        el('out').innerHTML = '';
+        el('tbl').innerHTML = '';
+        el<HTMLButtonElement>('dl').hidden = true;
+      }
+    });
+    el('dl').addEventListener('click', () => download('pedigri.svg', 'image/svg+xml', lastSvg));
+    f.requestSubmit();
+  </script>
+</Base>

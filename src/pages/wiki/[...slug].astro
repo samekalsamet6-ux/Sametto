@@ -6,6 +6,7 @@ import Toc from '../../components/Toc.astro';
 import Terim from '../../components/Terim.astro';
 import Uyari from '../../components/Uyari.astro';
 import Diyagram from '../../components/Diyagram.astro';
+import EvidenceBadge from '../../components/EvidenceBadge.astro';
 export async function getStaticPaths() {
   const all = await getCollection('wiki');
   const ids = new Set(all.map((e) => e.id));
@@ -23,6 +24,7 @@ const { Content, headings } = await render(entry);
 <Base title={entry.data.title} description={entry.data.summary}>
   <p><a href="/wiki">← Wiki</a></p>
   <LevelBadge level={entry.data.level} /> <span class="muted meta">· {entry.data.category} · güven: {entry.data.confidence}</span>
+  <EvidenceBadge evidence={entry.data.evidence} />
   <h1>{entry.data.title}</h1>
   {entry.data.needs_verification && <div class="callout callout-uyari">⚠ Sayısal değerler kaynakla doğrulanmayı bekliyor.</div>}
   <Toc headings={headings} />

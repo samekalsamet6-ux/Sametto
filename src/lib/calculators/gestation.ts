@@ -20,10 +20,13 @@ function parse(d: string): number {
 }
 export const addDays = (d: string, n: number): string => new Date(parse(d) + n * MS).toISOString().slice(0, 10);
 
-/** Varsayılan aralık yaygın hobi bilgisidir (⚠ kaynakla doğrulanmalı) ve sıcaklığa göre değişir. */
+/**
+ * Varsayılan aralık 25–35 gündür: Dhaka laboratuvar çalışması 25–35 gün (ort. ≈ 28), FishBase 4–6 hafta
+ * bildirir; hobi kılavuzları 21–30 gün der. Gerçek süre sıcaklığa ve bireye göre değişir.
+ */
 export function gestationWindow(i: GestationInput): GestationResult {
-  const min = i.minDays ?? 21;
-  const max = i.maxDays ?? 30;
+  const min = i.minDays ?? 25;
+  const max = i.maxDays ?? 35;
   if (!(min > 0) || !(max >= min)) throw new RangeError('Gün aralığı geçersiz');
   return { earliest: addDays(i.startDate, min), middle: addDays(i.startDate, Math.round((min + max) / 2)), latest: addDays(i.startDate, max) };
 }

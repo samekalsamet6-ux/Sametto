@@ -42,6 +42,7 @@ Kaynak görev tanımı: `LEPISTES_SITE_PROMPT.md`
 - [x] SVG diyagramlar: 6 (azot akışı, azot grafiği, tank düzeni, gonopodium, Punnett, soy ağacı)
 - [x] PWA: manifest, simgeler, hizmet çalışanı (290 dosya önbellekte), gerçek çevrimdışı denetimi
 - [x] E2E: 36 senaryo × 2 görünüm = 72 test (araçlar, sorun giderme, quiz, gezinti, arama)
+- [x] Kaynak araştırması ve düzeltmeler: docs/DOGRULAMA.md; 13 araç; 96 E2E testi
 - [ ] Faz 10 kalan: kalan araçlar, lisans
 
 ## Doğrulama gerektiren konular (⚠)
