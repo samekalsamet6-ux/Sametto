@@ -73,7 +73,7 @@ src/js/
   31-habitats.js       biyotop habitatları + habitat bazlı jüri + şablonlar
   32-living.js         asistan, sezon dekorları/etkinlikleri, bildirimler
   33-plan.js           üst plan görünümü, dükkân haritası
-  34-traits.js         Özellik Defteri: kuyruk/gövde şekli-rengi, desen, boy koleksiyonu (Ansiklopedi > Özellikler)
+  34-traits.js         Özellik Defteri: tüm türler için kuyruk/renk/desen/şekil koleksiyonu (Ansiklopedi > Özellikler)
   35-boosts.js         ödüllü reklam güçlendirmeleri (AdMob + demo yedek, günlük sınır; ADS_CFG.test=false mağaza öncesi)
   36-cards.js          profil kartı paylaşımı: kod üret/yapıştır, arkadaş listesi (sunucusuz)
   27-equip-art.js      ekipman çizimleri (filtre, ısıtıcı, difüzör, armatür…)

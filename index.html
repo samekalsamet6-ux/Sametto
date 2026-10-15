@@ -6277,7 +6277,7 @@ Object.assign(Tests, {
   traits() {
     const ok = {}, S = Game.S, keep = [S.traits, S.traitDone, S.coins]; S.traits = {}; S.traitDone = {};
     try {
-      ok.cats = Traits.cats().length === 6;
+      ok.cats = Traits.cats().length === 6 && Traits.allCats().length > 20;
       // her öğenin örnek balığı kendi özelliğini gösteriyor mu?
       const miss = []; for (const c of Traits.cats()) for (const it of c.list) { const cr = Traits.sample(it); if (!Traits.of(cr.pheno).includes(`${c.id}:${it.id}`)) miss.push(`${c.id}:${it.id}`); }
       ok.samples = miss.length === 0; if (miss.length) console.warn('özellik örneği eşleşmiyor', miss);
@@ -6285,6 +6285,8 @@ Object.assign(Tests, {
       const before = S.coins, f = Traits.scan(true); ok.scanFinds = f.length > 0 && S.coins === before; // sessiz: ödül yok
       ok.stored = Object.keys(Traits.store(S)).length === f.length; ok.idempotent = Traits.scan(true).length === 0;
       const pg = Traits.progress(S); ok.progress = pg.every((p) => p.n <= p.total) && pg.reduce((a, p) => a + p.n, 0) === f.length;
+      const sps = Traits.species().slice(1); ok.otherSp = sps.every((sp) => { const cs = Traits.cats(sp); return cs.length > 0 && cs.every((c) => c.list.length > 0 && c.list.every((i) => Traits.ofSp(i.cr.pheno, sp).includes(`${c.id}:${i.id}`))); });
+      ok.scanOther = (() => { const t = Game.tank, sp = 'betta', cr = Traits.cats(sp)[0].list[0].cr; t.creatures.push(cr); try { const f = Traits.scan(true); return f.some((k) => k.startsWith('betta.')); } finally { t.creatures.pop(); } })();
       ok.ui = !!UI.traitDexBody().querySelector('.trait');
     } finally { S.traits = keep[0]; S.traitDone = keep[1]; S.coins = keep[2]; }
     return this._log('Özellik Defteri (kataloğ, tarama, ödül, arayüz)', Object.values(ok).every(Boolean), ok);
@@ -7644,8 +7646,29 @@ const TRAIT_CATS = [
     items: () => [['small', 'Minyon', { size: 0.8 }, 1], ['mid', 'Orta boy', {}, 0], ['big', 'İri', { size: 1.27 }, 1]].map(([id, name, sp, r]) => ({ id, name, spec: Object.assign({ tc: 'red', tail: 'fan' }, sp), r })) },
 ];
 
+/* Diğer türler: [kategori, ad, emoji, ipucu, fenotip alanı, [[değer, ad, nadirlik]]] — örnek balık, o özelliği gösteren ilk varyasyondan seçilir. */
+const SP_TRAITS = {
+  molly: [['tail', 'Kuyruk şekli', '🎏', 'Lir kuyruk nadir ve değerlidir.', 'tail', [['fan', 'Yelpaze', 0], ['lyre', 'Lir kuyruk', 2]]], ['col', 'Gövde rengi', '🎨', 'Renk lokusu: yabani, altın, beyaz, turuncu.', 'colId', [['W', 'Yabani', 0], ['gold', 'Altın', 1], ['white', 'Beyaz', 1], ['orange', 'Turuncu', 2]]], ['cls', 'Desen', '🔶', 'Siyah, mermer ve dalmaçyalı desenler.', 'cls', [['black', 'Siyah', 1], ['marble', 'Mermer', 2], ['dalm', 'Dalmaçyalı', 3]]], ['bal', 'Gövde şekli', '⚖️', 'Balon moli yuvarlak, kısa gövdelidir.', 'bal', [['true', 'Balon gövde', 2]]]],
+  endler: [['body', 'Gövde rengi', '🐟', 'Yabani, altın ve albino gövde.', 'body', [['W', 'Yabani', 0], ['gld', 'Golden', 1], ['alb', 'Albino', 2]]], ['tcol', 'Kuyruk rengi', '🎨', 'Turuncu ve yeşil kuyruk lekeleri.', 'tailColor', [['orange', 'Turuncu', 0], ['green', 'Yeşil', 1]]], ['pat', 'Desen', '🔶', 'Kaplan, kobra ve bar desenleri.', 'pat', [['tiger', 'Kaplan', 1], ['cobra', 'Kobra', 2], ['bar', 'Bar', 1]]], ['hyb', 'Melez', '🧬', 'Lepistes ile melez soy.', 'hybrid', [['true', 'Melez', 2]]]],
+  platy: [['body', 'Gövde rengi', '🐟', 'Yabani veya albino.', 'body', [['W', 'Yabani', 0], ['alb', 'Albino', 1]]], ['col', 'Renk', '🎨', 'Kırmızı, mavi ve sarı plati.', 'colId', [['red', 'Kırmızı', 0], ['blue', 'Mavi', 1], ['yellow', 'Sarı', 1]]], ['pat', 'Desen', '🔶', 'Nokta, Mickey, Comet, Moon ve İki Nokta.', 'patId', [['sp', 'Benekli', 0], ['mickey', 'Mickey', 2], ['comet', 'Comet', 2], ['moon', 'Moon', 2], ['twospot', 'İki nokta', 1]]], ['wag', 'Yüzgeç', '🌊', 'Wag platilerin yüzgeçleri siyahtır.', 'wag', [['true', 'Wag', 2]]]],
+  swordtail: [['tail', 'Kuyruk şekli', '🎏', 'Kılıç ya da lir.', 'tail', [['bottomsword', 'Kılıç', 0], ['lyre', 'Lir', 2]]], ['col', 'Renk', '🎨', 'Limon, kırmızı ve albino.', 'colId', [['lemon', 'Limon', 1], ['red', 'Kırmızı', 0], ['alb', 'Albino', 2]]], ['wag', 'Yüzgeç', '🌊', 'Siyah yüzgeçli wag.', 'wag', [['true', 'Wag', 2]]], ['pine', 'Pul', '🌲', 'Çam kozalağı pul dokusu.', 'pine', [['true', 'Çam kozalağı', 3]]]],
+  betta: [['tail', 'Kuyruk şekli', '🎏', 'Beta yüzgeç tipleri.', 'tail', [['veil', 'Veil', 0], ['plakat', 'Plakat', 0], ['halfmoon', 'Halfmoon', 2], ['crown', 'Crown', 2], ['double', 'Double', 3]]], ['col', 'Renk', '🎨', 'Ana vücut rengi.', 'colId', [['B', 'Mavi', 0], ['R', 'Kırmızı', 0], ['Y', 'Sarı', 1], ['K', 'Siyah', 2], ['Wh', 'Beyaz', 2]]], ['pat', 'Desen', '🔶', 'Ejder, koi, kelebek ve iki renkli.', 'patId', [['dragon', 'Ejder', 3], ['koi', 'Koi', 2], ['butterfly', 'Kelebek', 2], ['bi', 'İki renkli', 1]]], ['x', 'Özel', '✨', 'Metalik, dumbo ve mermer.', 'metal', [['true', 'Metalik', 3]]], ['dumbo', 'Kulak', '👂', 'Dumbo betaların göğüs yüzgeçleri büyüktür.', 'dumbo', [['true', 'Dumbo', 2]]], ['marble', 'Mermer', '🪨', 'Mermer renk deseni.', 'marble', [['true', 'Mermer', 3]]]],
+  shrimp: [['col', 'Renk', '🎨', 'Neocaridina renk formları.', 'shrimpCol', [['wild', 'Yabani', 0], ['red', 'Kırmızı', 0], ['orange', 'Turuncu', 1], ['yellow', 'Sarı', 1], ['green', 'Yeşil', 1], ['blue', 'Mavi', 2], ['bloody', 'Kanlı', 2], ['black', 'Siyah', 3]]], ['rili', 'Desen', '🔶', 'Rili: saydam bölgeli şık desen.', 'rili', [['true', 'Rili', 2]]], ['grade', 'Kalite', '⭐', 'C → A → B → S kalite sınıfı.', 'grade', [['C', 'C sınıfı', 0], ['A', 'A sınıfı', 1], ['B', 'B sınıfı', 2], ['S', 'S sınıfı', 3]]]],
+  snail: [['shell', 'Kabuk rengi', '🐚', 'Salyangoz kabuk renkleri.', 'shell', [['ivory', 'Fildişi', 0], ['choc', 'Çikolata', 1], ['gold', 'Altın', 1], ['blue', 'Mavi', 2], ['purple', 'Mor', 2], ['black', 'Siyah', 3]]], ['body', 'Vücut rengi', '🎨', 'Koyu, normal ve soluk vücut.', 'bodyT', [['normal', 'Normal', 0], ['dark', 'Koyu', 1], ['pale', 'Soluk', 1]]]],
+};
 const Traits = {
-  _s: new Map(), cats() { return this._cats || (this._cats = TRAIT_CATS.map((c) => ({ ...c, list: c.items() }))); },
+  _s: new Map(), _sp: {}, sp: 'guppy',
+  species() { return ['guppy', ...Object.keys(SP_TRAITS)]; },
+  /** Türün kategorileri; diğer türlerde örnek balık yoksa o öğe listeden düşer. */
+  cats(sp = 'guppy') {
+    if (sp === 'guppy') return this._cats || (this._cats = TRAIT_CATS.map((c) => ({ ...c, list: c.items() })));
+    if (this._sp[sp]) return this._sp[sp];
+    const bs = breedsOf(sp), found = {};
+    for (const b of bs) for (const sex of ['M', 'F']) { const c = Game.sampleCreature(Object.assign({ sex }, b.spec)); for (const k of this.ofSp(c.pheno, sp)) if (!found[k]) found[k] = c; }
+    return this._sp[sp] = SP_TRAITS[sp].map(([id, name, emo, hint, , vals]) => ({ id: sp + '.' + id, name, emo, hint, sp, list: vals.map(([v, nm, r]) => ({ id: v, name: nm, r, cr: found[`${sp}.${id}:${v}`] })).filter((i) => i.cr) })).filter((c) => c.list.length);
+  },
+  ofSp(p, sp) { const o = []; if (!p) return o; for (const [id, , , , f, vals] of SP_TRAITS[sp] || []) { const v = String(p[f]); if (vals.some(([x]) => x === v)) o.push(`${sp}.${id}:${v}`); } return o; },
+  allCats() { return this.species().flatMap((sp) => this.cats(sp)); },
   store(S = Game.S) { return S.traits || (S.traits = {}); },
   /** Bir fenotipin gösterdiği özellik kimlikleri ('cat:id'). */
   of(p) {
@@ -7655,12 +7678,12 @@ const Traits = {
     for (const k of ['tux', 'sb', 'st', 'grass', 'mosaic', 'moscow']) if (p[k]) o.push(`pat:${k}`); if (p.purple) o.push('pat:purple'); if (p.metal) o.push('pat:metal');
     return o;
   },
-  find(key) { const [c, id] = key.split(':'); const cat = this.cats().find((x) => x.id === c); return cat ? { cat, item: cat.list.find((i) => i.id === id) } : null; },
-  progress(S = Game.S) { const st = this.store(S); return this.cats().map((c) => ({ c, n: c.list.filter((i) => st[`${c.id}:${i.id}`]).length, total: c.list.length })); },
+  find(key) { const [c, id] = key.split(':'); const cat = this.allCats().find((x) => x.id === c); return cat ? { cat, item: cat.list.find((i) => i.id === id) } : null; },
+  progress(S = Game.S, sp) { const st = this.store(S); return (sp ? this.cats(sp) : this.allCats()).map((c) => ({ c, n: c.list.filter((i) => st[`${c.id}:${i.id}`]).length, total: c.list.length })); },
   /** Tüm canlıları tara; yeni özellik varsa ödül ver. quiet: toast/ses yok. */
   scan(quiet) {
     const S = Game.S, st = this.store(S), crs = [...Game.tank.creatures, ...(S.qFish || [])], found = [];
-    for (const c of crs) { if (c.species !== 'guppy') continue; for (const k of this.of(c.pheno)) if (!st[k]) { st[k] = { t: S.clockMin, by: c.name }; found.push(k); } }
+    for (const c of crs) { for (const k of c.species === 'guppy' ? this.of(c.pheno) : this.ofSp(c.pheno, c.species)) if (!st[k]) { st[k] = { t: S.clockMin, by: c.name }; found.push(k); } }
     if (!found.length) return found;
     for (const k of found) { const f = this.find(k); if (!f || !f.item) continue; const rw = [10, 25, 50, 90, 150][f.item.r] || 10;
       if (!quiet) { Game.addCoins(rw, true); Game.addXp(10 + f.item.r * 15); }
@@ -7671,18 +7694,19 @@ const Traits = {
     if (this.progress(S).every((p) => p.n === p.total) && !done.all) { done.all = 1; if (!quiet) { S.stone = (S.stone || 0) + 3; UI.toast('🌟 Tüm özellikler toplandı! +3 Yosun Taşı', 'star', 6000); } }
     Ach.check(); return found;
   },
-  sample(item) { let c = this._s.get(item.id + JSON.stringify(item.spec)); if (!c) { c = Game.sampleCreature(item.spec); this._s.set(item.id + JSON.stringify(item.spec), c); } return c; },
+  sample(item) { if (item.cr) return item.cr; let c = this._s.get(item.id + JSON.stringify(item.spec)); if (!c) { c = Game.sampleCreature(item.spec); this._s.set(item.id + JSON.stringify(item.spec), c); } return c; },
 };
 
 /* Keşif taraması: açılışta sessiz, sonrasında her canlı değişikliğinde */
 Game.checkDiscoveries = ((orig) => function (silent) { const r = orig.apply(this, arguments); try { Traits.scan(!!silent); } catch (e) { console.warn('Özellik taraması', e); } return r; })(Game.checkDiscoveries);
-ACHIEVEMENTS.push({ id: 'traits', name: 'Özellik Avcısı', ic: '🧬', desc: 'Özellik Defteri\'ni doldur', tiers: [8, 16, 28], get: (S) => Object.keys(Traits.store(S)).length });
+ACHIEVEMENTS.push({ id: 'traits', name: 'Özellik Avcısı', ic: '🧬', desc: 'Özellik Defteri\'ni doldur', tiers: [10, 30, 60], get: (S) => Object.keys(Traits.store(S)).length });
 
 /* Ansiklopedi > Özellikler */
 Object.assign(UI, {
   traitDexBody() {
-    const S = Game.S, st = Traits.store(S), pr = Traits.progress(S), tot = pr.reduce((a, p) => a + p.n, 0), all = pr.reduce((a, p) => a + p.total, 0);
-    return h('div.stack', null, h('div.card.small', null, h('b', null, `Özellik Defteri · ${tot}/${all}`), h('div.muted', null, 'Irk ismi olmasa da bir balıkta ilk kez görülen her özellik burada kaydedilir. Karışık özellikli yavrular da sayılır.')),
+    const S = Game.S, st = Traits.store(S), pa = Traits.progress(S), pr = Traits.progress(S, Traits.sp), tot = pa.reduce((a, p) => a + p.n, 0), all = pa.reduce((a, p) => a + p.total, 0);
+    const chips = h('div.chips', null, Traits.species().map((sp) => { const q = Traits.progress(S, sp), n = q.reduce((a, p) => a + p.n, 0), t = q.reduce((a, p) => a + p.total, 0); return h('button.sp-chip' + (Traits.sp === sp ? '.on' : ''), { onclick: () => { Traits.sp = sp; UI.render_dex($('#s-dex')); } }, `${SPECIES.find((x) => x.id === sp).name} ${n}/${t}`); }));
+    return h('div.stack', null, chips, h('div.card.small', null, h('b', null, `Özellik Defteri · ${tot}/${all}`), h('div.muted', null, 'Bir canlıda ilk kez görülen her özellik (ırk ismi olmasa da) burada kaydedilir. Üstteki simgelerle türler arasında geç.')),
       ...pr.map(({ c, n, total }) => h('div.card', null, h('div.row', null, h('div', { style: { fontSize: '26px' } }, c.emo), h('div.sp', null, h('b', null, c.name), h('div.tiny.muted', null, c.hint)), h('span.pill', { style: n === total ? { color: 'var(--ok)' } : null }, `${n}/${total}`)),
         h('div.trait-grid', null, ...c.list.map((it) => { const got = !!st[`${c.id}:${it.id}`], rr = RARITY[it.r || 0], cr = Traits.sample(it), cv = got ? UI.thumbCv(cr, 96) : UI.silhouette(cr, 96);
           return h('div.trait' + (got ? '' : '.lock'), { style: { '--c': rr.color }, title: got ? `${it.name} · ilk: ${st[`${c.id}:${it.id}`].by}` : 'Henüz keşfedilmedi' }, cv, h('b', null, got ? it.name : '???'), h('span.tiny', { style: { color: rr.color } }, got ? rr.icon + ' ' + rr.name : 'Keşfedilmedi')); })))));

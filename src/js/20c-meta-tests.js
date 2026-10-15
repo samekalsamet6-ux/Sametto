@@ -216,7 +216,7 @@ Object.assign(Tests, {
   traits() {
     const ok = {}, S = Game.S, keep = [S.traits, S.traitDone, S.coins]; S.traits = {}; S.traitDone = {};
     try {
-      ok.cats = Traits.cats().length === 6;
+      ok.cats = Traits.cats().length === 6 && Traits.allCats().length > 20;
       // her öğenin örnek balığı kendi özelliğini gösteriyor mu?
       const miss = []; for (const c of Traits.cats()) for (const it of c.list) { const cr = Traits.sample(it); if (!Traits.of(cr.pheno).includes(`${c.id}:${it.id}`)) miss.push(`${c.id}:${it.id}`); }
       ok.samples = miss.length === 0; if (miss.length) console.warn('özellik örneği eşleşmiyor', miss);
@@ -224,6 +224,8 @@ Object.assign(Tests, {
       const before = S.coins, f = Traits.scan(true); ok.scanFinds = f.length > 0 && S.coins === before; // sessiz: ödül yok
       ok.stored = Object.keys(Traits.store(S)).length === f.length; ok.idempotent = Traits.scan(true).length === 0;
       const pg = Traits.progress(S); ok.progress = pg.every((p) => p.n <= p.total) && pg.reduce((a, p) => a + p.n, 0) === f.length;
+      const sps = Traits.species().slice(1); ok.otherSp = sps.every((sp) => { const cs = Traits.cats(sp); return cs.length > 0 && cs.every((c) => c.list.length > 0 && c.list.every((i) => Traits.ofSp(i.cr.pheno, sp).includes(`${c.id}:${i.id}`))); });
+      ok.scanOther = (() => { const t = Game.tank, sp = 'betta', cr = Traits.cats(sp)[0].list[0].cr; t.creatures.push(cr); try { const f = Traits.scan(true); return f.some((k) => k.startsWith('betta.')); } finally { t.creatures.pop(); } })();
       ok.ui = !!UI.traitDexBody().querySelector('.trait');
     } finally { S.traits = keep[0]; S.traitDone = keep[1]; S.coins = keep[2]; }
     return this._log('Özellik Defteri (kataloğ, tarama, ödül, arayüz)', Object.values(ok).every(Boolean), ok);
