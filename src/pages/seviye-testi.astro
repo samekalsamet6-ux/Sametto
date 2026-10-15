@@ -1,0 +1,42 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Seviye testi" description="18 soruluk kısa testle size uygun rehber yolunu bulun.">
+  <h1>Seviye testi</h1>
+  <p class="muted">18 soru. Sonuçta size uygun rehber yolunu ve kaçırdığınız konuları göreceksiniz. Cevaplar tarayıcınızda değerlendirilir, kaydedilmez.</p>
+  <form id="f" class="tool" style="max-width:680px"></form>
+  <div id="res" aria-live="polite"></div>
+  <script>
+    import { questions } from '../data/quiz';
+    import { gradeQuiz } from '../lib/quiz';
+    import { el } from '../lib/dom';
+    const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+    const start = { baslangic: ['/rehber/baslangic/01-lepistes-nedir', '🟢 Başlangıç yolu'], orta: ['/rehber/orta/01-hedef-belirleme-ve-hat', '🟡 Orta seviye yolu'], ileri: ['/rehber/ileri/01-genetige-giris', '🔴 İleri seviye yolu'] } as const;
+    const names = { baslangic: 'Başlangıç', orta: 'Orta', ileri: 'İleri' } as const;
+    const shuffle = <T,>(a: T[]) => { const r = [...a]; for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; } return r; };
+    const f = el<HTMLFormElement>('f');
+    f.innerHTML = questions.map((q, n) => `
+      <fieldset>
+        <legend>${n + 1}. ${esc(q.q)}</legend>
+        ${shuffle(q.options.map((o, i) => [o, i] as const)).map(([o, i]) => `<label style="display:flex;gap:8px;align-items:flex-start;font-weight:400"><input type="radio" name="${q.id}" value="${i}" /> ${esc(o)}</label>`).join('')}
+      </fieldset>`).join('') + '<button>Sonucu gör</button>';
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const d = new FormData(f);
+      const answers: Record<string, number | undefined> = {};
+      for (const q of questions) { const v = d.get(q.id); answers[q.id] = v === null ? undefined : Number(v); }
+      const r = gradeQuiz(questions, answers);
+      const [href, label] = start[r.recommended];
+      const tierRows = (Object.keys(r.tiers) as (keyof typeof r.tiers)[]).map((t) => `<li>${names[t]}: ${r.tiers[t].correct}/${r.tiers[t].total}</li>`).join('');
+      el('res').innerHTML = `
+        <div class="card" style="margin:16px 0">
+          <h2>Önerilen başlangıç: ${label}</h2>
+          ${r.unanswered ? `<p class="muted">${r.unanswered} soru boş bırakıldı.</p>` : ''}
+          <ul>${tierRows}</ul>
+          <p><a href="${href}"><strong>Bu yola başla →</strong></a></p>
+        </div>
+        ${r.missed.length ? '<h3>Gözden geçirilecek sorular</h3>' + r.missed.map((q) => `<div class="callout"><strong>${esc(q.q)}</strong><div>Doğru cevap: ${esc(q.options[q.correct])}.</div><div class="muted">${esc(q.explain)}</div>${q.wiki ? `<a href="/wiki/${q.wiki}">İlgili madde →</a>` : ''}</div>`).join('') : '<p>Tüm soruları doğru cevapladınız. 🎉</p>'}`;
+      el('res').scrollIntoView({ behavior: 'smooth' });
+    });
+  </script>
+</Base>

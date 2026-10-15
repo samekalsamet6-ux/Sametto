@@ -1,0 +1,26 @@
+---
+import Base from '../layouts/Base.astro';
+const faq = [
+  ['Yeni aldığım balıkları hemen ana tanka koyabilir miyim?', 'Önerilmez. Önce ayrı bir tankta gözlemleyin (karantina). <a href="/wiki/karantina">Karantina</a> hastalığın sisteme girmesini engeller.'],
+  ['Tankı kurduktan ne zaman balık ekleyebilirim?', 'Azot döngüsü tamamlandığında: amonyak ve nitrit 0, nitrat görünür. Süre yöntem ve koşullara göre değişir. <a href="/rehber/baslangic/05-azot-dongusu-kurulum">Dersi okuyun</a> veya <a href="/araclar/azot-dongusu">takipçiyi kullanın</a>.'],
+  ['Neden yavrularım sürekli ölüyor?', 'En sık nedenler su kalitesi, yetişkinlerin yavru yemesi ve yetersiz beslenmedir. <a href="/sorun-giderme">Sorun giderme</a> aracını deneyin.'],
+  ['Kaç balık tutmalıyım?', 'Tek bir kural yoktur; hacim, filtre, bitki ve su değişimine bağlıdır. <a href="/araclar/stok">Planlayıcı</a> sezgisel bir aralık verir.'],
+  ['Dişi hamile görünüyor ama doğurmuyor, normal mi?', 'Gravid spot ve karın şekli kesin kanıt değildir ve süre sıcaklığa göre değişir. Bkz. <a href="/wiki/gravid-spot">Gravid spot</a>.'],
+  ['Erkekten ayırdığım dişi neden yavru doğurdu?', 'Dişiler spermi saklayabilir. Bkz. <a href="/wiki/sperm-depolama">Sperm depolama</a>.'],
+  ['Yavruları nasıl korurum?', 'Yoğun bitki, ayrı doğum tankı ve ince/sık yemleme. Bkz. <a href="/rehber/baslangic/11-dogum-ve-ilk-yavru-bakimi">Doğum ve ilk yavru bakımı</a>.'],
+  ['Hasta balığa hangi ilacı vermeliyim?', 'Burada ilaç veya doz önermiyoruz. Önce su değerlerini ölçün, hasta balığı ayırın ve ürün etiketine veya uzmana başvurun. Bkz. <a href="/rehber/orta/09-yaygin-hastaliklar-ve-tedavi">Yaygın hastalıklar</a>.'],
+  ['Hangi yemi vermeliyim?', 'Kaliteli bir temel yem ve ara sıra canlı/dondurulmuş yem. Bkz. <a href="/wiki/yem-cesitleri">Yem çeşitleri</a>.'],
+  ['Fazla yavrularım oldu, ne yapmalıyım?', 'Satış, bağış veya hobi grupları. <strong>Asla doğaya salmayın.</strong> Bkz. <a href="/rehber/baslangic/02-baslamadan-once-karar-listesi">Karar listesi</a>.'],
+  ['Akraba çiftleştirme zararlı mıdır?', 'Ölçüsüz yapıldığında inbreeding depresyonuna yol açabilir. Bkz. <a href="/wiki/akrabalik-inbreeding">Akraba çiftleştirme</a> ve <a href="/araclar/inbreeding">F hesaplayıcı</a>.'],
+  ['Hangi seviyeden başlamalıyım?', '<a href="/seviye-testi">Seviye testini</a> çözün.'],
+];
+---
+<Base title="Sık sorulan sorular">
+  <h1>Sık sorulan sorular</h1>
+  {faq.map(([q, a]) => (
+    <details style="margin:10px 0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 14px">
+      <summary><strong>{q}</strong></summary>
+      <p set:html={a} />
+    </details>
+  ))}
+</Base>

@@ -2,7 +2,7 @@
 import '../styles/global.css';
 interface Props { title: string; description?: string }
 const { title, description = 'Lepistes (guppy) üretimi için rehber, wiki ve yardımcı araçlar.' } = Astro.props;
-const nav = [['/rehber','Rehber'],['/wiki','Wiki'],['/araclar','Araçlar'],['/ara','🔍 Ara'],['/kaynaklar','Kaynaklar'],['/hakkinda','Hakkında']];
+const nav = [['/rehber','Rehber'],['/wiki','Wiki'],['/araclar','Araçlar'],['/sorun-giderme','Sorun giderme'],['/ara','🔍 Ara'],['/kaynaklar','Kaynaklar'],['/hakkinda','Hakkında']];
 ---
 <!doctype html>
 <html lang="tr">
@@ -19,6 +19,7 @@ const nav = [['/rehber','Rehber'],['/wiki','Wiki'],['/araclar','Araçlar'],['/ar
   </div></header>
   <main class="wrap" data-pagefind-body><slot /></main>
   <footer><div class="wrap">
+    <p><a href="/seviye-testi">Seviye testi</a> · <a href="/sss">SSS</a> · <a href="/sozluk">Sözlük</a> · <a href="/kaynaklar">Kaynaklar</a></p>
     Bilgiler eğitim amaçlıdır; ilaç ve tedavi için uzman görüşü alın. Lepistes asla doğaya salınmamalıdır.
   </div></footer>
 </body>

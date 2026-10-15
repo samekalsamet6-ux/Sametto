@@ -13,6 +13,7 @@ import { tools } from '../data/araclar';
     <a class="card" href="/rehber#orta"><span class="badge l-orta">🟡</span><h3>Biraz deneyimim var</h3><p class="muted">Seçilim, beslenme, hastalık önleme.</p></a>
     <a class="card" href="/rehber#ileri"><span class="badge l-ileri">🔴</span><h3>Hat geliştiriyorum</h3><p class="muted">Genetik, inbreeding, pedigri.</p></a>
   </div>
+  <p><a href="/seviye-testi"><strong>Seviyenizden emin değil misiniz? Kısa testi çözün →</strong></a> · <a href="/sorun-giderme">Balığımda sorun var →</a></p>
   <h2>Araçlar</h2>
   <div class="grid">
     {tools.slice(0, 6).map((t) => <a class="card" href={`/araclar/${t.slug}`}><h3>{t.title}</h3><p class="muted">{t.desc}</p></a>)}
