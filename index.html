@@ -3614,7 +3614,7 @@ const Editor = {
 
   down(p) {
     const w = this.world(p);
-    if (this.placing) return false;                                  // tıklayınca yerleştirilecek
+    if (this.placing) { this.hover = p; return true; }              // basılı tut + sürükle: hayalet parmağı izler, bırakınca yerleşir
     if (this.mode === 'sub') { this.commit(); this.stroke = true; this.paint(w); return true; }
     const it = Scape.hit(this.sc, this.tank.W, w.x, w.y);
     if (it) { this.sel = it.id; this.drag = { it, moved: false, snap: this.snap() }; this.refresh(); return true; }
@@ -3623,11 +3623,13 @@ const Editor = {
   },
   move(p) {
     const w = this.world(p);
+    if (this.placing) { this.hover = p; return; }
     if (this.stroke) { this.paint(w); return; }
     const d = this.drag; if (!d) return; if (!d.moved) { d.moved = true; this.undo.push(d.snap); }
     this.moveItem(d.it, w);
   },
-  up() { this.stroke = false; if (this.drag) { const it = this.drag.it; if (it.gnd === false && !it.att && Scape.isHard(it)) { const g = this.tank.ground(it.fx * this.tank.W); if (it.y > g - 6) { it.gnd = true; it.y = undefined; } } this.drag = null; this.changed(); this.updateSel(); } },
+  up(p) { if (this.placing && p) { this.hover = p; this.place(this.world(p)); return; }
+    this.stroke = false; if (this.drag) { const it = this.drag.it; if (it.gnd === false && !it.att && Scape.isHard(it)) { const g = this.tank.ground(it.fx * this.tank.W); if (it.y > g - 6) { it.gnd = true; it.y = undefined; } } this.drag = null; this.changed(); this.updateSel(); } },
   tap(p) {
     const w = this.world(p);
     if (this.placing) return this.place(w);
@@ -3769,7 +3771,7 @@ const Editor = {
     const dr = $('#ed-drawer'); if (!dr) return;
     const tabs = h('div.ed-tabs', null, ...this.tabs.map(([k, ic, l]) => h('button.ed-tab' + (this.mode === k ? '.on' : ''), { onclick: () => { if (this.mode === k) this.collapsed = !this.collapsed; else { this.mode = k; this.collapsed = false; } this.placing = null; this.refresh(); } }, icon(ic), h('span', null, l))));
     const body = h('div.ed-body');
-    if (this.placing) body.append(h('div.row', { style: { padding: '4px 2px' } }, h('div.sp', null, h('b', null, 'Yerleştiriliyor: ' + (this.placing.k === 'plant' ? PLANTS[this.placing.d] : this.placing.k === 'decor' ? DECOR[this.placing.d] : HARDSCAPE[this.placing.d]).name), h('div.small.muted', null, this.placing.k === 'plant' && PLANTS[this.placing.d].type === 'epi' ? 'Bir taşa veya köke dokun.' : 'Tankta dokunduğun yere konur. Birden fazla yerleştirebilirsin.')), h('button.btn.primary', { onclick: () => { this.placing = null; this.refresh(); } }, 'Bitti')));
+    if (this.placing) body.append(h('div.row', { style: { padding: '4px 2px' } }, h('div.sp', null, h('b', null, 'Yerleştiriliyor: ' + (this.placing.k === 'plant' ? PLANTS[this.placing.d] : this.placing.k === 'decor' ? DECOR[this.placing.d] : HARDSCAPE[this.placing.d]).name), h('div.small.muted', null, this.placing.k === 'plant' && PLANTS[this.placing.d].type === 'epi' ? 'Bir taşa veya köke dokun.' : 'Parmağını basılı tutup sürükle, bıraktığın yere konur. Birden fazla yerleştirebilirsin.')), h('button.btn.primary', { onclick: () => { this.placing = null; this.refresh(); } }, 'Bitti')));
     else if (!this.collapsed) this['tab_' + this.mode](body);
     dr.replaceChildren(...(this.collapsed && !this.placing ? [tabs] : [tabs, body]));
     requestAnimationFrame(() => { $('#s-design').style.setProperty('--drawer-h', dr.offsetHeight + 'px'); if (this.dvp) { this.dvp.inset = dr.offsetHeight + 48 + 6; this.dvp.clamp(); } });
