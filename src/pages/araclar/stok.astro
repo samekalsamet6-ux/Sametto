@@ -1,0 +1,36 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Balık sayısı planlayıcı">
+  <p><a href="/araclar">← Araçlar</a></p>
+  <h1>Balık sayısı planlayıcı</h1>
+  <form class="tool" id="f">
+    <label>Net hacim (L)<input name="liters" inputmode="decimal" required value="100" /></label>
+    <label>Filtrasyon<select name="filt"><option value="zayif">Zayıf / küçük</option><option value="orta" selected>Orta</option><option value="guclu">Güçlü / bol biyolojik malzeme</option></select></label>
+    <label>Bitki örtüsü<select name="plants"><option value="az">Az</option><option value="orta" selected>Orta</option><option value="yogun">Yoğun</option></select></label>
+    <label>Su değişimi<select name="wc"><option value="seyrek">Seyrek</option><option value="haftalik" selected>Haftalık</option><option value="sik">Sık (haftada birkaç)</option></select></label>
+    <label>Balık başına temel litre (ayarlanabilir)<input name="base" inputmode="decimal" value="4" /></label>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="fry" /> Tankta yavru var</label>
+    <button>Hesapla</button>
+    <div class="result" id="out" aria-live="polite"></div>
+    <ul id="warn"></ul>
+  </form>
+  <div class="callout callout-uyari"><strong>⚠ Sezgisel araç.</strong> “Balık başına litre” bilimsel bir sabit değildir. Başlangıç değeri (4 L) ve çarpanlar hobi sezgisidir ve kaynakla doğrulanmalıdır. Nitrat ve balık davranışını izleyerek ayarlayın.</div>
+  <details><summary>Nasıl hesaplandı?</summary>
+    <p>Balık başına litre = temel × filtrasyon (0,85–1,2) × bitki (0,9–1,1) × su değişimi (0,9–1,2) × yavru (1,25 varsa). Önerilen = hacim ÷ balık başına litre; üst sınır = önerilenin 1,25 katı.</p>
+  </details>
+  <script>
+    import { stockRange } from '../../lib/calculators/stock';
+    import { num, el } from '../../lib/dom';
+    const f = el<HTMLFormElement>('f');
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const d = new FormData(f);
+      try {
+        const r = stockRange({ netLiters: num(d.get('liters')), filtration: d.get('filt') as any, plants: d.get('plants') as any, waterChange: d.get('wc') as any, fryPresent: d.has('fry'), baseLitersPerFish: num(d.get('base')) });
+        el('out').textContent = `Önerilen: ${r.recommended} yetişkin · üst sınır: ${r.upperLimit} (balık başına ≈ ${r.litersPerFish} L)`;
+        el('warn').innerHTML = r.warnings.map((w) => `<li>${w}</li>`).join('');
+      } catch (err) { el('out').textContent = (err as Error).message; el('warn').innerHTML = ''; }
+    });
+  </script>
+</Base>

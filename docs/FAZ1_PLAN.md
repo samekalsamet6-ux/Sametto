@@ -30,7 +30,7 @@ Kaynak görev tanımı: `LEPISTES_SITE_PROMPT.md`
 ## Uygulama durumu
 - [x] Faz 1 plan
 - [x] Faz 2 iskelet: Astro projesi, tema, içerik şeması, ilk rehber/wiki sayfaları
-- [x] Araç örnekleri: akvaryum hacmi, su değişimi (testli)
+- [x] Faz 7-8 araçları (9): hacim, su değişimi, stok, gebelik, yem, bakım takvimi (.ics), azot döngüsü takipçisi, Punnett, Wright F — 40 birim testi, tarayıcıda duman testi
 - [x] Faz 3 arama (Pagefind), sözlük bağlantı/tooltip (Terim), TOC, geri bağlantılar, kırık link denetimi
 - [x] Faz 4 başlangıç içeriği: 15 ders + 29 wiki maddesi (sayısal değerler `needs_verification`)
 - [x] Faz 5 orta içerik: 15 ders + 16 yeni wiki maddesi (45 madde toplam)

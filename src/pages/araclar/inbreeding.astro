@@ -1,0 +1,33 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="İnbreeding (Wright F) hesaplayıcı">
+  <p><a href="/araclar">← Araçlar</a></p>
+  <h1>İnbreeding (Wright F) hesaplayıcı</h1>
+  <form class="tool" id="f" style="max-width:520px">
+    <label>Soy ağacı (her satır: kod, baba, anne; boş bırakılabilir)<textarea name="ped" rows="10" style="font:inherit">S
+M
+A,S,M
+B,S,M
+C,S,N</textarea></label>
+    <label>Baba (kod)<input name="sire" value="A" /></label>
+    <label>Anne (kod)<input name="dam" value="B" /></label>
+    <button>Hesapla</button>
+    <div class="result" id="out" aria-live="polite"></div>
+  </form>
+  <div class="callout"><strong>Nasıl okunur?</strong> Sonuç, planlanan çiftleşmeden doğacak yavrunun inbreeding katsayısıdır (0–1). Referans: tam kardeş 0,25 · yarım kardeş 0,125 · ilk kuzen 0,0625. Hobi için kesin bir “güvenli eşik” yoktur; bkz. <a href="/wiki/inbreeding-katsayisi">Wright katsayısı</a> ve <a href="/wiki/inbreeding-depresyonu">depresyon</a>. Bilinmeyen ataları boş bırakmak, akraba olmadıkları varsayımı anlamına gelir.</div>
+  <script>
+    import { Pedigree, parsePedigree } from '../../lib/calculators/inbreeding';
+    import { el } from '../../lib/dom';
+    const f = el<HTMLFormElement>('f');
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const d = new FormData(f);
+      try {
+        const ped = new Pedigree(parsePedigree(String(d.get('ped'))));
+        const v = ped.matingF(String(d.get('sire')).trim(), String(d.get('dam')).trim());
+        el('out').textContent = `F = ${Math.round(v * 10000) / 10000} (%${Math.round(v * 1000) / 10})`;
+      } catch (err) { el('out').textContent = (err as Error).message; }
+    });
+  </script>
+</Base>

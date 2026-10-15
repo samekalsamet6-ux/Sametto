@@ -1,0 +1,45 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Bakım takvimi">
+  <p><a href="/araclar">← Araçlar</a></p>
+  <h1>Bakım takvimi (.ics)</h1>
+  <form class="tool" id="f">
+    <label>Başlangıç tarihi<input type="date" name="start" required /></label>
+    <fieldset><legend>Görevler</legend>
+      <label style="display:flex;gap:8px"><input type="checkbox" name="t" value="0" checked /> Günlük: balıkları say, sıcaklığı kontrol et, yemle</label>
+      <label style="display:flex;gap:8px"><input type="checkbox" name="t" value="1" checked /> Haftalık: kısmi su değişimi</label>
+      <label style="display:flex;gap:8px"><input type="checkbox" name="t" value="2" checked /> Haftalık: su testi (amonyak, nitrit, nitrat)</label>
+      <label style="display:flex;gap:8px"><input type="checkbox" name="t" value="3" checked /> Aylık: filtre süngerini akvaryum suyunda temizle</label>
+      <label style="display:flex;gap:8px"><input type="checkbox" name="t" value="4" /> Aylık: ekipman kontrolü ve kayıt gözden geçirme</label>
+    </fieldset>
+    <label>Haftalık görevlerin günü<select name="day"><option value="MO">Pazartesi</option><option value="TU">Salı</option><option value="WE">Çarşamba</option><option value="TH">Perşembe</option><option value="FR">Cuma</option><option value="SA" selected>Cumartesi</option><option value="SU">Pazar</option></select></label>
+    <button>.ics indir</button>
+    <div class="result" id="out" aria-live="polite"></div>
+  </form>
+  <p class="muted">Dosya telefon ve bilgisayar takvimlerine aktarılır. Hatırlatma bildirimi takvim uygulamanızın ayarıdır; site bildirim göndermez.</p>
+  <script>
+    import { buildIcs, type IcsTask } from '../../lib/calculators/ics';
+    import { el, download } from '../../lib/dom';
+    const f = el<HTMLFormElement>('f');
+    (f.querySelector('[name=start]') as HTMLInputElement).valueAsDate = new Date();
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const d = new FormData(f);
+      const day = String(d.get('day'));
+      const all: IcsTask[] = [
+        { title: 'Lepistes: günlük kontrol ve yemleme', freq: 'DAILY' },
+        { title: 'Lepistes: kısmi su değişimi', freq: 'WEEKLY', byDay: day },
+        { title: 'Lepistes: su testi (NH3, NO2, NO3)', freq: 'WEEKLY', byDay: day },
+        { title: 'Lepistes: filtre süngeri temizliği', freq: 'MONTHLY' },
+        { title: 'Lepistes: ekipman kontrolü ve kayıt gözden geçirme', freq: 'MONTHLY' },
+      ];
+      const picked = d.getAll('t').map((i) => all[Number(i)]);
+      if (!picked.length) { el('out').textContent = 'En az bir görev seçin.'; return; }
+      try {
+        download('lepistes-bakim.ics', 'text/calendar', buildIcs(picked, String(d.get('start'))));
+        el('out').textContent = `${picked.length} görev içeren takvim dosyası indirildi.`;
+      } catch (err) { el('out').textContent = (err as Error).message; }
+    });
+  </script>
+</Base>

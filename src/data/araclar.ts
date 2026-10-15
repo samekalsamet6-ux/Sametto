@@ -1,0 +1,12 @@
+export interface Tool { slug: string; title: string; desc: string; group: 'Hesaplayıcı' | 'Planlayıcı' | 'Takip' | 'Genetik' }
+export const tools: Tool[] = [
+  { slug: 'hacim', title: 'Akvaryum hacmi', desc: 'Brüt ve net litre hesabı.', group: 'Hesaplayıcı' },
+  { slug: 'su-degisimi', title: 'Su değişimi', desc: 'Hedef nitrata göre değişim oranı.', group: 'Hesaplayıcı' },
+  { slug: 'stok', title: 'Balık sayısı planlayıcı', desc: 'Hacim, filtre ve bitkiye göre sezgisel kapasite aralığı.', group: 'Planlayıcı' },
+  { slug: 'gebelik', title: 'Gebelik ve doğum takvimi', desc: 'Beklenen doğum penceresi (aralık ayarlanabilir).', group: 'Planlayıcı' },
+  { slug: 'yem', title: 'Yem planlayıcı', desc: 'Yaş gruplarına göre öğün sayısı ve saatleri.', group: 'Planlayıcı' },
+  { slug: 'bakim-takvimi', title: 'Bakım takvimi (.ics)', desc: 'Rutin görevleri telefon takvimine ekleyin.', group: 'Planlayıcı' },
+  { slug: 'azot-dongusu', title: 'Azot döngüsü takipçisi', desc: 'Amonyak/nitrit/nitrat kaydı, grafik ve durum.', group: 'Takip' },
+  { slug: 'punnett', title: 'Punnett hesaplayıcı', desc: 'Otozomal, X- ve Y-bağlantılı olasılıklar.', group: 'Genetik' },
+  { slug: 'inbreeding', title: 'İnbreeding (Wright F)', desc: 'Soy ağacından planlanan çiftleşmenin F değeri.', group: 'Genetik' },
+];

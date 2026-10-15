@@ -1,0 +1,70 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Azot döngüsü takipçisi">
+  <p><a href="/araclar">← Araçlar</a></p>
+  <h1>Azot döngüsü takipçisi</h1>
+  <p class="muted">Ölçümlerinizi bu tarayıcıda saklar (sunucuya gönderilmez). Düzenli olarak dışa aktararak yedekleyin.</p>
+  <form class="tool" id="f">
+    <label>Tarih<input type="date" name="date" required /></label>
+    <label>Amonyak (mg/L)<input name="nh3" inputmode="decimal" required value="0" /></label>
+    <label>Nitrit (mg/L)<input name="no2" inputmode="decimal" required value="0" /></label>
+    <label>Nitrat (mg/L)<input name="no3" inputmode="decimal" required value="0" /></label>
+    <button>Kaydet</button>
+    <div class="result" id="status" aria-live="polite"></div>
+  </form>
+  <div id="chart" style="margin:16px 0"></div>
+  <table id="tbl" style="width:100%;border-collapse:collapse"></table>
+  <p>
+    <button id="exp" type="button">Dışa aktar (JSON)</button>
+    <label class="muted" style="display:inline-block;margin-left:8px">İçe aktar <input id="imp" type="file" accept="application/json" /></label>
+    <button id="clr" type="button" style="background:var(--hard)">Tümünü sil</button>
+  </p>
+  <script>
+    import { evaluateCycle, serialize, parseImport, type CycleEntry } from '../../lib/storage/cycle';
+    import { num, el, download } from '../../lib/dom';
+    const KEY = 'lepistes.cycle.v1';
+    let entries: CycleEntry[] = [];
+    try { const raw = localStorage.getItem(KEY); if (raw) entries = parseImport(raw); } catch { entries = []; }
+    const save = () => { try { localStorage.setItem(KEY, serialize(entries)); } catch { /* depolama kapalı */ } };
+
+    function chart() {
+      const s = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+      if (s.length < 2) { el('chart').innerHTML = '<p class="muted">Grafik için en az 2 ölçüm gerekir.</p>'; return; }
+      const W = 600, H = 200, pad = 28;
+      const max = Math.max(1, ...s.flatMap((e) => [e.nh3, e.no2, e.no3]));
+      const x = (i: number) => pad + (i * (W - 2 * pad)) / (s.length - 1);
+      const y = (v: number) => H - pad - (v / max) * (H - 2 * pad);
+      const line = (k: 'nh3' | 'no2' | 'no3', c: string) => `<polyline fill="none" stroke="${c}" stroke-width="2" points="${s.map((e, i) => `${x(i)},${y(e[k])}`).join(' ')}"/>`;
+      el('chart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Amonyak, nitrit ve nitrat grafiği" style="width:100%;max-width:640px"><line x1="${pad}" y1="${H - pad}" x2="${W - pad}" y2="${H - pad}" stroke="currentColor" opacity=".3"/>${line('nh3', '#c0392b')}${line('no2', '#c58a00')}${line('no3', '#0b6e8a')}<text x="${pad}" y="14" font-size="11" fill="currentColor">en yüksek: ${max} mg/L</text></svg><div class="muted meta"><span style="color:#c0392b">■</span> amonyak · <span style="color:#c58a00">■</span> nitrit · <span style="color:#0b6e8a">■</span> nitrat</div>`;
+    }
+    function render() {
+      el('status').textContent = evaluateCycle(entries).message;
+      const s = [...entries].sort((a, b) => b.date.localeCompare(a.date));
+      el('tbl').innerHTML = '<tr><th>Tarih</th><th>NH3</th><th>NO2</th><th>NO3</th><th></th></tr>' + s.map((e) => `<tr><td>${e.date}</td><td>${e.nh3}</td><td>${e.no2}</td><td>${e.no3}</td><td><button type="button" data-d="${e.date}" aria-label="${e.date} kaydını sil">✕</button></td></tr>`).join('');
+      chart();
+    }
+    const f = el<HTMLFormElement>('f');
+    (f.querySelector('[name=date]') as HTMLInputElement).valueAsDate = new Date();
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const d = new FormData(f);
+      const entry = { date: String(d.get('date')), nh3: num(d.get('nh3')), no2: num(d.get('no2')), no3: num(d.get('no3')) };
+      if (![entry.nh3, entry.no2, entry.no3].every((n) => Number.isFinite(n) && n >= 0)) { el('status').textContent = 'Değerler 0 veya pozitif sayı olmalı.'; return; }
+      entries = entries.filter((x) => x.date !== entry.date).concat(entry);
+      save(); render();
+    });
+    el('tbl').addEventListener('click', (e) => {
+      const d = (e.target as HTMLElement).getAttribute('data-d');
+      if (d) { entries = entries.filter((x) => x.date !== d); save(); render(); }
+    });
+    el('exp').addEventListener('click', () => download('azot-dongusu.json', 'application/json', serialize(entries)));
+    el<HTMLInputElement>('imp').addEventListener('change', async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try { entries = parseImport(await file.text()); save(); render(); } catch (err) { el('status').textContent = (err as Error).message; }
+    });
+    el('clr').addEventListener('click', () => { if (confirm('Tüm kayıtlar silinsin mi?')) { entries = []; save(); render(); } });
+    render();
+  </script>
+</Base>
