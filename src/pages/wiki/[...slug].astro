@@ -2,17 +2,33 @@
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import LevelBadge from '../../components/LevelBadge.astro';
+import Toc from '../../components/Toc.astro';
+import Terim from '../../components/Terim.astro';
+import Uyari from '../../components/Uyari.astro';
 export async function getStaticPaths() {
   const all = await getCollection('wiki');
-  return all.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+  const ids = new Set(all.map((e) => e.id));
+  return all.map((entry) => {
+    for (const r of entry.data.related) if (!ids.has(r)) throw new Error(`${entry.id}: related bulunamadı: ${r}`);
+    const backlinks = all.filter((o) => o.id !== entry.id && o.data.related.includes(entry.id));
+    return { params: { slug: entry.id }, props: { entry, backlinks } };
+  });
 }
-const { entry } = Astro.props;
-const { Content } = await render(entry);
+const { entry, backlinks } = Astro.props;
+const all = await getCollection('wiki');
+const related = [...new Map([...entry.data.related.map((id) => all.find((e) => e.id === id)!), ...backlinks].map((e) => [e.id, e])).values()];
+const { Content, headings } = await render(entry);
 ---
 <Base title={entry.data.title} description={entry.data.summary}>
   <p><a href="/wiki">← Wiki</a></p>
-  <LevelBadge level={entry.data.level} /> <span class="muted">· {entry.data.category}</span>
+  <LevelBadge level={entry.data.level} /> <span class="muted meta">· {entry.data.category} · güven: {entry.data.confidence}</span>
   <h1>{entry.data.title}</h1>
-  {entry.data.needs_verification && <div class="callout">⚠ Sayısal değerler kaynakla doğrulanmayı bekliyor.</div>}
-  <Content />
+  {entry.data.needs_verification && <div class="callout callout-uyari">⚠ Sayısal değerler kaynakla doğrulanmayı bekliyor.</div>}
+  <Toc headings={headings} />
+  <article><Content components={{ Terim, Uyari }} /></article>
+  {related.length > 0 && (
+    <section class="related"><h2>İlgili maddeler</h2>
+      <ul>{related.map((e) => <li><a href={`/wiki/${e.id}`}>{e.data.title}</a></li>)}</ul>
+    </section>
+  )}
 </Base>

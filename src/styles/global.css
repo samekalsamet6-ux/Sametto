@@ -28,3 +28,15 @@ input,select,button{font:inherit;padding:8px 10px;border-radius:8px;border:1px s
 button{background:var(--brand);color:#fff;border:0;font-weight:700;cursor:pointer}
 .result{margin-top:12px;font-weight:700;min-height:1.6em}
 footer{border-top:1px solid var(--line);padding:20px 0;color:var(--muted);font-size:.9rem}
+a.terim{text-decoration:underline dotted;text-underline-offset:3px;color:inherit;cursor:help}
+a.terim:hover{color:var(--brand)}
+.toc{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:10px 16px;margin:16px 0}
+.toc ul{margin:6px 0 0;padding-left:18px}.toc li.d3{margin-left:14px;font-size:.95em}
+.callout-uyari{border-color:var(--mid)}.callout-hata{border-color:var(--hard)}.callout-ipucu{border-color:var(--ok)}.callout-bilgi{border-color:var(--brand)}
+.lesson-nav{display:flex;justify-content:space-between;gap:12px;margin-top:40px;flex-wrap:wrap}
+.related{margin-top:32px;border-top:1px solid var(--line);padding-top:12px}
+article table{border-collapse:collapse;width:100%;margin:1em 0;display:block;overflow-x:auto}
+article th,article td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+article th{background:var(--card)}
+article li{margin:.2em 0}
+.meta{font-size:.9rem}

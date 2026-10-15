@@ -2,17 +2,27 @@
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import LevelBadge from '../../components/LevelBadge.astro';
+import Toc from '../../components/Toc.astro';
+import Terim from '../../components/Terim.astro';
+import Uyari from '../../components/Uyari.astro';
 export async function getStaticPaths() {
-  const all = await getCollection('guide');
-  return all.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+  const all = (await getCollection('guide')).sort((a, b) => a.data.order - b.data.order);
+  const order = ['baslangic', 'orta', 'ileri'];
+  const flat = all.sort((a, b) => order.indexOf(a.data.level) - order.indexOf(b.data.level) || a.data.order - b.data.order);
+  return flat.map((entry, i) => ({ params: { slug: entry.id }, props: { entry, prev: flat[i - 1], next: flat[i + 1] } }));
 }
-const { entry } = Astro.props;
-const { Content } = await render(entry);
+const { entry, prev, next } = Astro.props;
+const { Content, headings } = await render(entry);
 ---
 <Base title={entry.data.title} description={entry.data.summary}>
   <p><a href="/rehber">← Rehber</a></p>
-  <LevelBadge level={entry.data.level} /> <span class="muted">· ~{entry.data.readingMinutes} dk</span>
+  <LevelBadge level={entry.data.level} /> <span class="muted meta">· ~{entry.data.readingMinutes} dk · son gözden geçirme {entry.data.last_reviewed.toISOString().slice(0, 10)}</span>
   <h1>{entry.data.title}</h1>
-  {entry.data.needs_verification && <div class="callout">⚠ Bu sayfadaki sayısal değerler kaynakla doğrulanmayı bekliyor.</div>}
-  <Content />
+  {entry.data.needs_verification && <div class="callout callout-uyari">⚠ Bu sayfadaki sayısal değerler kaynakla doğrulanmayı bekliyor; tek başına kesin kabul etmeyin.</div>}
+  <Toc headings={headings} />
+  <article><Content components={{ Terim, Uyari }} /></article>
+  <div class="lesson-nav">
+    {prev ? <a href={`/rehber/${prev.id}`}>← {prev.data.title}</a> : <span />}
+    {next ? <a href={`/rehber/${next.id}`}>{next.data.title} →</a> : <span />}
+  </div>
 </Base>

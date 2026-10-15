@@ -5,19 +5,21 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && pagefind --site dist",
     "preview": "astro preview",
     "check": "astro check",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:links": "node scripts/check-links.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.1.0",
     "@astrojs/sitemap": "^3.7.4",
-    "astro": "^7.4.0"
+    "astro": "^7.4.0",
+    "pagefind": "^1.5.2"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
-    "typescript": "^7.0.2",
+    "typescript": "^6.0.3",
     "vitest": "^5.0.5"
   }
 }
