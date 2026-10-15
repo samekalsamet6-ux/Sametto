@@ -306,5 +306,10 @@ const Chem = {
   },
 
   /** Çevrimdışı ilerleme: ölüm yok, yumuşak. */
-  catchUp(minutes) { this.noDeath = true; try { const keep = Game.tank.lampMode; this.advance(minutes, true); } finally { this.noDeath = false; } },
+  catchUp(minutes) { this.noDeath = true; try { const keep = Game.tank.lampMode; this.advance(minutes, true); } finally { this.noDeath = false; } this.softenAfterAbsence(); },
+  /** Yokluk cezalandırıcı olmasın: dönüşte canlılar zayıf ama sağlıklı, bitkiler toparlanabilir durumda. */
+  softenAfterAbsence() {
+    for (const c of Game.tank.creatures) { c.vit = Math.max(c.vit ?? 1, 0.85); c.envStress = Math.min(c.envStress || 0, 0.3); if (c.dis) c.dis.sev = Math.min(c.dis.sev, 0.25); }
+    for (const it of Game.tank.scape.items) if (it.k === 'plant') { it.hp = Math.max(it.hp ?? 1, 0.7); it.melt = Math.min(it.melt || 0, 0.3); }
+  },
 };

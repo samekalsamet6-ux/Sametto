@@ -35,7 +35,7 @@ class Tank {
   }
 
   buildBG() {
-    const W = this.W, H = this.H, sc = Math.min(1.6, 2200 / W); this.bgScale = sc;
+    const W = this.W, H = this.H, maxK = Math.max(innerWidth, innerHeight) <= 900 ? 1.0 : 1.4, sc = Math.min(maxK, 2200 / W); this.bgScale = sc;   // dünya büyüdü: arka plan dokusu ekran sınıfına göre sınırlı
     const cv = this.bg || (this.bg = document.createElement('canvas'));
     cv.width = Math.round(W * sc); cv.height = Math.round(H * sc);
     const c = cv.getContext('2d'); c.setTransform(sc, 0, 0, sc, 0, 0); this.drawBackdrop(c);
@@ -196,9 +196,13 @@ class Tank {
   drawRoom(ctx, v, tx, ty, S, dpr) {
     const cw = v.cw, ch = v.ch, W = this.W, H = this.H, L = tx, T = ty, Rr = tx + W * S, B = ty + H * S;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const night = 1 - this.light, wall = ctx.createLinearGradient(0, 0, 0, ch); wall.addColorStop(0, '#16303d'); wall.addColorStop(0.6, '#0e222d'); wall.addColorStop(1, '#091820'); ctx.fillStyle = wall; ctx.fillRect(0, 0, cw, ch);
-    // duvarda hafif doku/ışık
-    const wl = ctx.createRadialGradient((L + Rr) / 2, T, 10, (L + Rr) / 2, T, Math.max(cw, ch)); wl.addColorStop(0, `rgba(120,200,210,${0.16 * (1 - night * 0.7)})`); wl.addColorStop(1, 'rgba(120,200,210,0)'); ctx.fillStyle = wl; ctx.fillRect(0, 0, cw, ch);
+    const night = 1 - this.light, rk = `${cw}|${ch}|${dpr}|${Math.round(night * 8)}`;
+    if (this._roomKey !== rk) {            // duvar katmanı bir kez çizilir (tam ekran gradyanlar her karede pahalı)
+      const rc = this._roomCv || (this._roomCv = document.createElement('canvas')); rc.width = Math.round(cw * dpr); rc.height = Math.round(ch * dpr); const r2 = rc.getContext('2d'); r2.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const wall = r2.createLinearGradient(0, 0, 0, ch); wall.addColorStop(0, '#16303d'); wall.addColorStop(0.6, '#0e222d'); wall.addColorStop(1, '#091820'); r2.fillStyle = wall; r2.fillRect(0, 0, cw, ch);
+      const wl = r2.createRadialGradient(cw / 2, ch * 0.3, 10, cw / 2, ch * 0.3, Math.max(cw, ch)); wl.addColorStop(0, `rgba(120,200,210,${0.16 * (1 - night * 0.7)})`); wl.addColorStop(1, 'rgba(120,200,210,0)'); r2.fillStyle = wl; r2.fillRect(0, 0, cw, ch); this._roomKey = rk;
+    }
+    ctx.drawImage(this._roomCv, 0, 0, cw, ch);
     if (B < ch + 4) { // sehpa
       const sw = 14 * S, x0 = L - 190 * S, x1 = Rr + 190 * S, y0 = B + 4 * S;
       ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(x0 + 6 * S, y0 - 2, x1 - x0, 10 * S + 6);                           // tank altı gölge

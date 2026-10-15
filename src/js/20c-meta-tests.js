@@ -183,3 +183,14 @@ Object.assign(Tests, {
   },
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.light(); return a && b; })(Tests.all);
+
+/* Yokluk cezalandırıcı değil: 8 gün çevrimdışı sonrası canlılar hayatta ve sağlıklı */
+Object.assign(Tests, {
+  offline() {
+    const S = Game.S, bak = JSON.stringify(Game.pack()), ok = {};
+    try { const n0 = Game.tank.creatures.length; Chem.catchUp(8 * 1440); ok.alive = Game.tank.creatures.length === n0; ok.vit = Game.tank.creatures.every((c) => c.vit >= 0.85); ok.stress = Game.tank.creatures.every((c) => (c.envStress || 0) <= 0.3); ok.plants = Game.tank.scape.items.filter((i) => i.k === 'plant').every((i) => (i.hp ?? 1) >= 0.7); }
+    finally { Game.loadState(Save.migrate(JSON.parse(bak))); UI.refreshTop(); }
+    return this._log('Çevrimdışı dönüş (canlılar ve bitkiler korunur)', Object.values(ok).every(Boolean), ok);
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.offline(); return a && b; })(Tests.all);
