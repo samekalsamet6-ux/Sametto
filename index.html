@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lepistasyon — Lepistes Üretim İstasyonu</title>
+<meta name="description" content="Lepistasyon: özenle seçilmiş lepistes (guppy) hatları, üretim bilgisi ve akvaryum rehberleri.">
+<style>
+:root{--bg:#04141c;--bg2:#072331;--ink:#e8f6f8;--mute:#8fb3bd;--acc:#2de2c8;--acc2:#ff7a59;--acc3:#7b6cff;--line:rgba(255,255,255,.09);--card:rgba(255,255,255,.04)}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1160px;margin:0 auto;padding:0 20px}
+h1,h2,h3{font-family:Georgia,"Times New Roman",serif;font-weight:500;letter-spacing:-.01em;line-height:1.1}
+nav{position:fixed;inset:0 0 auto 0;z-index:50;backdrop-filter:blur(14px);background:rgba(4,20,28,.6);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:66px}
+.logo{font-family:Georgia,serif;font-size:1.35rem;display:flex;align-items:center;gap:10px}
+.logo i{width:12px;height:12px;border-radius:50%;background:var(--acc);box-shadow:0 0 18px var(--acc)}
+nav ul{display:flex;gap:28px;list-style:none;font-size:.92rem;color:var(--mute)}
+nav ul a:hover{color:var(--ink)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;border-radius:99px;font-weight:600;font-size:.95rem;border:1px solid transparent;transition:.25s;cursor:pointer}
+.btn.p{background:linear-gradient(120deg,var(--acc),#7af0dd);color:#032026;box-shadow:0 8px 30px rgba(45,226,200,.28)}
+.btn.p:hover{transform:translateY(-2px);box-shadow:0 12px 38px rgba(45,226,200,.42)}
+.btn.g{border-color:var(--line);background:var(--card)}
+.btn.g:hover{border-color:var(--acc)}
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;padding-top:80px;background:radial-gradient(1000px 600px at 75% 30%,#0b4a5a55,transparent 60%),radial-gradient(800px 500px at 10% 90%,#2a1f7a33,transparent 60%),var(--bg)}
+.hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;position:relative;z-index:2}
+.tag{display:inline-block;font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:var(--acc);border:1px solid rgba(45,226,200,.35);padding:6px 14px;border-radius:99px;margin-bottom:24px}
+.hero h1{font-size:clamp(2.6rem,6vw,5rem);margin-bottom:22px}
+.hero h1 em{font-style:italic;background:linear-gradient(100deg,var(--acc),var(--acc3),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.lead{color:var(--mute);font-size:1.12rem;max-width:520px;margin-bottom:34px}
+.cta{display:flex;gap:14px;flex-wrap:wrap}
+.tank{position:relative;aspect-ratio:1/1.05;border-radius:32px;border:1px solid var(--line);background:linear-gradient(180deg,#0a3a4a55,#04141c);overflow:hidden;box-shadow:0 40px 90px rgba(0,0,0,.5),inset 0 0 80px rgba(45,226,200,.08)}
+.tank svg.fish{position:absolute;width:44%;filter:drop-shadow(0 8px 18px rgba(0,0,0,.4))}
+.f1{top:18%;left:-50%;animation:swim 16s linear infinite}
+.f2{top:48%;left:-50%;width:34%!important;animation:swim 22s linear infinite 4s}
+.f3{top:70%;left:-50%;width:28%!important;animation:swim 27s linear infinite 9s}
+@keyframes swim{0%{transform:translateX(0) translateY(0)}25%{transform:translateX(150%) translateY(-14px)}50%{transform:translateX(300%) translateY(8px)}100%{transform:translateX(560%) translateY(0)}}
+.bub{position:absolute;bottom:-20px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.35),transparent 60%);animation:up linear infinite}
+@keyframes up{to{transform:translateY(-120vh)}}
+.weed{position:absolute;bottom:0;width:14px;border-radius:14px 14px 0 0;background:linear-gradient(#1fae8a,#0b5d4b);transform-origin:bottom;animation:sway 5s ease-in-out infinite alternate}
+@keyframes sway{to{transform:rotate(7deg)}}
+section{padding:110px 0;position:relative}
+.eyebrow{color:var(--acc);font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;margin-bottom:14px}
+.sh{max-width:640px;margin-bottom:56px}
+.sh h2{font-size:clamp(2rem,4vw,3.2rem);margin-bottom:16px}
+.sh p{color:var(--mute)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:32px;transition:.3s;position:relative;overflow:hidden}
+.card:hover{transform:translateY(-6px);border-color:rgba(45,226,200,.4);background:rgba(45,226,200,.05)}
+.card .ic{width:50px;height:50px;border-radius:14px;display:grid;place-items:center;font-size:1.5rem;margin-bottom:20px;background:linear-gradient(135deg,rgba(45,226,200,.2),rgba(123,108,255,.2))}
+.card h3{font-size:1.4rem;margin-bottom:10px}
+.card p{color:var(--mute);font-size:.96rem}
+.alt{background:var(--bg2);border-block:1px solid var(--line)}
+.strains{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.strain{border-radius:22px;padding:22px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.05),transparent);text-align:center;transition:.3s}
+.strain:hover{transform:translateY(-6px)}
+.strain svg{width:100%;height:110px;margin-bottom:14px}
+.strain h3{font-size:1.15rem}
+.strain span{font-size:.85rem;color:var(--mute)}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;counter-reset:s}
+.step{padding-top:60px;position:relative;border-top:1px solid var(--line)}
+.step::before{counter-increment:s;content:"0" counter(s);position:absolute;top:14px;font-family:Georgia,serif;font-size:2.2rem;color:var(--acc);opacity:.85}
+.step h3{font-size:1.2rem;margin-bottom:8px}
+.step p{color:var(--mute);font-size:.94rem}
+.yt{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center}
+.player{aspect-ratio:16/10;border-radius:26px;border:1px solid var(--line);background:linear-gradient(135deg,#0a4a5a,#1b1459);display:grid;place-items:center;position:relative;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.45)}
+.player::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 70% 20%,rgba(45,226,200,.25),transparent 55%)}
+.play{width:86px;height:86px;border-radius:50%;background:rgba(255,255,255,.95);display:grid;place-items:center;z-index:2;transition:.3s}
+.player:hover .play{transform:scale(1.1)}
+.play::after{content:"";border-left:24px solid #04141c;border-block:15px solid transparent;margin-left:7px}
+.list{list-style:none;margin:24px 0 32px}
+.list li{padding:12px 0 12px 34px;border-bottom:1px solid var(--line);position:relative;color:var(--mute)}
+.list li::before{content:"✦";position:absolute;left:0;color:var(--acc)}
+.faq details{border-bottom:1px solid var(--line);padding:22px 0}
+.faq summary{cursor:pointer;font-family:Georgia,serif;font-size:1.25rem;list-style:none;display:flex;justify-content:space-between}
+.faq summary::after{content:"+";color:var(--acc);font-size:1.5rem;transition:.3s}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.faq p{color:var(--mute);margin-top:12px;max-width:760px}
+.final{text-align:center;background:radial-gradient(700px 400px at 50% 100%,rgba(45,226,200,.15),transparent 70%)}
+.final h2{font-size:clamp(2.2rem,5vw,4rem);margin-bottom:18px}
+.final p{color:var(--mute);margin-bottom:34px}
+footer{padding:34px 0;border-top:1px solid var(--line);color:var(--mute);font-size:.88rem}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.rv{opacity:0;transform:translateY(30px);transition:1s cubic-bezier(.2,.7,.2,1)}
+.rv.in{opacity:1;transform:none}
+@media(max-width:900px){nav ul{display:none}.hero .wrap,.yt{grid-template-columns:1fr}.grid3,.steps{grid-template-columns:1fr}.strains{grid-template-columns:1fr 1fr}.tank{max-width:420px}section{padding:80px 0}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <a href="#" class="logo"><i></i>Lepistasyon</a>
+  <ul><li><a href="#hakkinda">Hakkında</a></li><li><a href="#hatlar">Hatlar</a></li><li><a href="#surec">Süreç</a></li><li><a href="#video">Videolar</a></li><li><a href="#sss">SSS</a></li></ul>
+  <a class="btn p" href="https://youtube.com/@lepistasyon" target="_blank" rel="noopener">Abone Ol</a>
+</div></nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <span class="tag">Lepistes Üretim İstasyonu</span>
+      <h1>Suyun içindeki <em>renk</em> sanatı.</h1>
+      <p class="lead">Lepistes (guppy) yetiştiriciliğinde seçilim, genetik ve sabır. Her hat, ölçülü bir üretim programının ve akvaryum tutkusunun sonucu.</p>
+      <div class="cta">
+        <a class="btn p" href="#hatlar">Hatları Keşfet</a>
+        <a class="btn g" href="https://youtube.com/@lepistasyon" target="_blank" rel="noopener">▶ YouTube Kanalı</a>
+      </div>
+    </div>
+    <div class="tank" id="tank" aria-hidden="true">
+      <svg class="fish f1" viewBox="0 0 200 100"><use href="#gA"/></svg>
+      <svg class="fish f2" viewBox="0 0 200 100"><use href="#gB"/></svg>
+      <svg class="fish f3" viewBox="0 0 200 100"><use href="#gC"/></svg>
+      <div class="weed" style="left:8%;height:34%"></div><div class="weed" style="left:13%;height:22%;animation-delay:-2s"></div>
+      <div class="weed" style="right:9%;height:30%;animation-delay:-1s"></div><div class="weed" style="right:15%;height:18%;animation-delay:-3s"></div>
+    </div>
+  </div>
+</header>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="tA" x1="0" x2="1"><stop offset="0" stop-color="#ff7a59"/><stop offset="1" stop-color="#7b6cff"/></linearGradient>
+    <linearGradient id="tB" x1="0" x2="1"><stop offset="0" stop-color="#2de2c8"/><stop offset="1" stop-color="#3a7bff"/></linearGradient>
+    <linearGradient id="tC" x1="0" x2="1"><stop offset="0" stop-color="#ffd54a"/><stop offset="1" stop-color="#ff4f7b"/></linearGradient>
+    <linearGradient id="tD" x1="0" x2="1"><stop offset="0" stop-color="#e8f6f8"/><stop offset="1" stop-color="#7ad7ff"/></linearGradient>
+    <g id="gA"><path d="M70 50 C10 5 0 95 70 52Z" fill="url(#tA)" opacity=".9"/><ellipse cx="108" cy="50" rx="44" ry="20" fill="#3b4a6b"/><path d="M80 50c20-14 50-14 70 0" stroke="#fff" stroke-opacity=".2" fill="none"/><circle cx="140" cy="46" r="4" fill="#fff"/><circle cx="141" cy="46" r="2" fill="#000"/></g>
+    <g id="gB"><path d="M70 50 C0 0 -5 100 70 52Z" fill="url(#tB)" opacity=".9"/><ellipse cx="108" cy="50" rx="44" ry="20" fill="#1f6f78"/><circle cx="140" cy="46" r="4" fill="#fff"/><circle cx="141" cy="46" r="2" fill="#000"/></g>
+    <g id="gC"><path d="M70 50 C5 8 0 92 70 52Z" fill="url(#tC)" opacity=".9"/><ellipse cx="108" cy="50" rx="44" ry="20" fill="#c9a24a"/><circle cx="140" cy="46" r="4" fill="#fff"/><circle cx="141" cy="46" r="2" fill="#000"/></g>
+    <g id="gD"><path d="M70 50 C5 8 0 92 70 52Z" fill="url(#tD)" opacity=".9"/><ellipse cx="108" cy="50" rx="44" ry="20" fill="#dff4fa"/><circle cx="140" cy="46" r="4" fill="#fff"/><circle cx="141" cy="46" r="2" fill="#000"/></g>
+  </defs>
+</svg>
+
+<section id="hakkinda">
+  <div class="wrap">
+    <div class="sh rv"><div class="eyebrow">Hakkında</div><h2>Bir hobiden öte, bir istasyon.</h2><p>Lepistasyon; lepistes yetiştiriciliğini bilimsel merakla ve estetik bir gözle ele alan bir üretim ve paylaşım istasyonu. Amaç: sağlıklı, renkli ve karakterli hatlar yetiştirmek ve bu bilgiyi paylaşmak.</p></div>
+    <div class="grid3">
+      <div class="card rv"><div class="ic">🧬</div><h3>Seçilim & Genetik</h3><p>Renk, kuyruk formu ve vücut yapısı için planlı çiftleştirme ve nesiller boyu seçilim.</p></div>
+      <div class="card rv"><div class="ic">💧</div><h3>Su Kalitesi</h3><p>Stabil parametreler, düzenli bakım ve doğru filtrasyon ile sağlıklı bir yetiştirme ortamı.</p></div>
+      <div class="card rv"><div class="ic">🎥</div><h3>Bilgi Paylaşımı</h3><p>Yavru bakımı, doğum işaretleri, ayrım ve bakım teknikleri videolu anlatımla.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="hatlar" class="alt">
+  <div class="wrap">
+    <div class="sh rv"><div class="eyebrow">Hatlar</div><h2>Renk paletinden seçmeler.</h2><p>Lepistes dünyasının popüler hat örnekleri. Güncel stok ve hatlar için kanalı takip edin.</p></div>
+    <div class="strains">
+      <div class="strain rv"><svg viewBox="0 0 200 100"><use href="#gA"/></svg><h3>Mozaik</h3><span>Desenli kuyruk</span></div>
+      <div class="strain rv"><svg viewBox="0 0 200 100"><use href="#gB"/></svg><h3>Metal Blue</h3><span>Metalik parlaklık</span></div>
+      <div class="strain rv"><svg viewBox="0 0 200 100"><use href="#gC"/></svg><h3>Sarı Kobra</h3><span>Canlı sarı ton</span></div>
+      <div class="strain rv"><svg viewBox="0 0 200 100"><use href="#gD"/></svg><h3>Full Beyaz</h3><span>Saf beyaz hat</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="surec">
+  <div class="wrap">
+    <div class="sh rv"><div class="eyebrow">Süreç</div><h2>Üretimin dört adımı.</h2></div>
+    <div class="steps">
+      <div class="step rv"><h3>Seçim</h3><p>Sağlıklı ve hedefe uygun damızlıkların belirlenmesi.</p></div>
+      <div class="step rv"><h3>Eşleştirme</h3><p>Planlı çiftleştirme ve soy kayıtlarının tutulması.</p></div>
+      <div class="step rv"><h3>Yavru Bakımı</h3><p>Doğru yemleme, sık su değişimi ve güvenli ortam.</p></div>
+      <div class="step rv"><h3>Ayıklama</h3><p>Hedefe uymayan bireylerin ayrılması, en iyilerin devamı.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="video" class="alt">
+  <div class="wrap yt">
+    <a class="player rv" href="https://youtube.com/@lepistasyon" target="_blank" rel="noopener" aria-label="YouTube kanalına git"><span class="play"></span></a>
+    <div class="rv">
+      <div class="eyebrow">YouTube</div>
+      <h2 style="font-size:clamp(2rem,4vw,3rem)">Videolarla öğren.</h2>
+      <ul class="list"><li>Lepistes doğum işaretleri ve doğuma hazırlık</li><li>Düşük bütçeli üretim kutusu yapımı</li><li>Yavru bakımı ve beslenme</li><li>Hat geliştirme ve seçilim ipuçları</li></ul>
+      <a class="btn p" href="https://youtube.com/@lepistasyon" target="_blank" rel="noopener">Kanalı Ziyaret Et</a>
+    </div>
+  </div>
+</section>
+
+<section id="sss">
+  <div class="wrap faq" style="max-width:860px">
+    <div class="sh rv"><div class="eyebrow">SSS</div><h2>Sık sorulanlar</h2></div>
+    <details class="rv"><summary>Lepistes için ideal su sıcaklığı nedir?</summary><p>Genellikle 24–27 °C aralığı uygundur. Ani sıcaklık değişimlerinden kaçının.</p></details>
+    <details class="rv"><summary>Doğum yaklaştığını nasıl anlarım?</summary><p>Dişide karın genişlemesi, gravid noktanın koyulaşması ve huzursuzluk başlıca işaretlerdir. Ayrıntılar kanaldaki videoda.</p></details>
+    <details class="rv"><summary>Yavruları ne ile beslemeliyim?</summary><p>Günde birkaç kez, küçük porsiyon toz yem veya yeni çıkmış artemia idealdir.</p></details>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap rv"><h2>Akvaryumuna <em style="color:var(--acc)">renk</em> kat.</h2><p>Yeni videolar ve güncel hatlar için kanala abone ol.</p>
+  <a class="btn p" href="https://youtube.com/@lepistasyon" target="_blank" rel="noopener">▶ Abone Ol</a></div>
+</section>
+
+<footer><div class="wrap"><span>© <span id="y"></span> Lepistasyon</span><a href="https://youtube.com/@lepistasyon" target="_blank" rel="noopener">youtube.com/@lepistasyon</a></div></footer>
+
+<script>
+document.getElementById('y').textContent=new Date().getFullYear();
+const io=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('in');io.unobserve(x.target)}}),{threshold:.15});
+document.querySelectorAll('.rv').forEach((el,i)=>{el.style.transitionDelay=(i%4)*90+'ms';io.observe(el)});
+const t=document.getElementById('tank');
+for(let i=0;i<14;i++){const b=document.createElement('div');b.className='bub';const s=4+Math.random()*10;b.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}%;animation-duration:${6+Math.random()*9}s;animation-delay:-${Math.random()*10}s`;t.appendChild(b)}
+</script>
+</body>
+</html>
