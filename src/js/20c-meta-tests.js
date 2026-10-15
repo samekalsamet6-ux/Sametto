@@ -247,3 +247,23 @@ Object.assign(Tests, {
   },
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.boosts(); return a && b; })(Tests.all);
+
+Object.assign(Tests, {
+  cards() {
+    const ok = {}, S = Game.S, keep = S.friends; S.friends = [];
+    try {
+      const c = Cards.make(), code = Cards.encode(c), d = Cards.decode(code);
+      ok.roundtrip = d.ok && JSON.stringify(d.card) === JSON.stringify(Cards.decode(Cards.encode(d.card)).card) && d.card.n === c.n && d.card.lv === c.lv;
+      ok.fish = d.ok && d.card.fi.length > 0 && d.card.fi.length <= 3;
+      ok.tamper = !Cards.decode(code.slice(0, -1) + (code.slice(-1) === 'a' ? 'b' : 'a')).ok && !Cards.decode(code.slice(0, 30)).ok && !Cards.decode('merhaba').ok && !Cards.decode('x'.repeat(5000)).ok;
+      const evil = Object.assign({}, c, { n: '<img src=x onerror=alert(1)>Ali"', lv: 1e9, bd: [['yok', 3], ['born', 99]], fi: [{ nm: '<b>x</b>', sp: { body: 'zzz', tail: 'zzz', tc: 'zzz', size: 99, shp: ['q', 'q'], __proto__: { a: 1 } }, r: 99 }] }), e = Cards.decode(Cards.encode(evil));
+      ok.sanitize = e.ok && !/[<>"]/.test(e.card.n) && e.card.lv === 999 && e.card.bd.length === 1 && e.card.fi[0].sp.body === 'W' && e.card.fi[0].sp.size === 1.5 && !e.card.fi[0].sp.shp && e.card.fi[0].r === RARITY.length - 1 && !/[<>]/.test(e.card.fi[0].nm);
+      ok.view = !!UI.cardView(d.card).querySelector('canvas');
+      ok.add = Cards.add(d.card, S) === 'added' && Cards.add(d.card, S) === 'updated' && Cards.list(S).length === 1;
+      for (let i = 0; i < 40; i++) Cards.add(Object.assign({}, d.card, { n: 'K' + i }), S); ok.cap = Cards.list(S).length === FRIEND_MAX;
+      Cards.remove(Cards.list(S)[0].card, S); ok.remove = Cards.list(S).length === FRIEND_MAX - 1;
+    } finally { S.friends = keep; }
+    return this._log('Profil kartı paylaşımı (kod, doğrulama, temizleme, liste)', Object.values(ok).every(Boolean), ok);
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.cards(); return a && b; })(Tests.all);
