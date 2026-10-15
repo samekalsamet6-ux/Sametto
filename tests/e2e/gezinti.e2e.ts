@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
+// Yayın adresi tek yerde tanımlı: astro.config.mjs → site
+const SITE = /site:\s*'([^']+)'/.exec(readFileSync('astro.config.mjs', 'utf8'))![1].replace(/\/$/, '');
+
 test('ana sayfa: seviye kartları ve araç bağlantıları', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('h1')).toContainText('Lepistes');
@@ -140,23 +143,24 @@ test.describe('yayın adresi, robots.txt ve meta etiketler', () => {
     expect(res.status()).toBe(200);
     const text = await res.text();
     expect(text).toContain('User-agent: *');
-    expect(text).toContain('Sitemap: https://lepistes-rehberi.pages.dev/sitemap-index.xml');
+    expect(text).toContain(`Sitemap: ${SITE}/sitemap-index.xml`);
   });
 
   test('sitemap yayın adresini kullanır', async ({ request }) => {
     const idx = await (await request.get('/sitemap-index.xml')).text();
-    expect(idx).toContain('https://lepistes-rehberi.pages.dev/sitemap-0.xml');
+    expect(idx).toContain(`${SITE}/sitemap-0.xml`);
     const sm = await (await request.get('/sitemap-0.xml')).text();
-    expect(sm).toContain('https://lepistes-rehberi.pages.dev/rehber/');
+    expect(sm).toContain(`${SITE}/rehber/`);
     expect(sm).not.toContain('example.com');
+    expect(sm).not.toContain('pages.dev');
   });
 
   test('canonical ve Open Graph etiketleri doğru', async ({ page }) => {
     await page.goto('/rehber/baslangic/05-azot-dongusu-kurulum/');
-    await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', 'https://lepistes-rehberi.pages.dev/rehber/baslangic/05-azot-dongusu-kurulum/');
+    await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', `${SITE}/rehber/baslangic/05-azot-dongusu-kurulum/`);
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /Azot döngüsü: tankı hazırlamak · Lepistes Rehberi/);
     await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute('content', 'Lepistes Rehberi');
-    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', 'https://lepistes-rehberi.pages.dev/icons/icon-512.png');
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', `${SITE}/icons/icon-512.png`);
   });
 });
 
@@ -168,4 +172,6 @@ test('404 sayfası derlenir ve Cloudflare yapılandırması tutarlı', async ({ 
   expect(cfg).toContain('"name": "lepistes-rehberi"');
   expect(cfg).toContain('"directory": "./dist"');
   expect(cfg).toContain('"not_found_handling": "404-page"');
+  // Cloudflare önizleme derlemeleri (wrangler preview) bu bloğu zorunlu tutar
+  expect(cfg).toContain('"previews": {}');
 });

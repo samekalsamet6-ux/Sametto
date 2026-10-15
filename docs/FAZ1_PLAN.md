@@ -45,7 +45,7 @@ Kaynak görev tanımı: `LEPISTES_SITE_PROMPT.md`
 - [x] Kaynak araştırması ve düzeltmeler: docs/DOGRULAMA.md; 13 araç; 104 E2E testi
 - [x] Lisans: kod MIT, içerik CC BY-SA 4.0; site adı: Lepistes Rehberi; hak sahibi: Lepistes Rehberi katkıcıları
 - [x] CC BY-SA 4.0 lisans metni depoya eklendi
-- [x] Adres: https://lepistes-rehberi.pages.dev (Cloudflare Pages); robots.txt, canonical, Open Graph, _headers
+- [x] Adres: https://lepistes-rehberi.samekalsamet6.workers.dev (Cloudflare Workers); robots.txt, canonical, Open Graph, _headers
 - [x] wrangler.jsonc (Workers statik varlıklar) ve 404 sayfası
 - [ ] Faz 10 kalan: Cloudflare projesini oluşturup ilk dağıtımı yapmak; çıkan adresi `site` değerine yazmak
 

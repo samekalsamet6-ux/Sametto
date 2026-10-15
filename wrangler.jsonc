@@ -8,5 +8,8 @@
     "directory": "./dist",
     // Bulunamayan adreslerde dist/404.html gösterilir
     "not_found_handling": "404-page"
-  }
+  },
+  // Cloudflare'in dal/PR önizleme derlemeleri (`wrangler preview`, açık beta) bu bloğu ister.
+  // Boş olabilir; varlıklar ve uyumluluk ayarları yukarıdan devralınır.
+  "previews": {}
 }

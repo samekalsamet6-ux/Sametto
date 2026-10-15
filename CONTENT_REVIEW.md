@@ -25,7 +25,7 @@ Yapay zekâ ile üretilen içerik yayından önce konuya hâkim bir kişi taraf�
 ## Yayın öncesi
 - [ ] `docs/OPEN_QUESTIONS.md` listesi gözden geçirildi.
 - [x] Site adı: Lepistes Rehberi.
-- [x] `astro.config.mjs` `site` değeri: `https://lepistes-rehberi.pages.dev` (Cloudflare Pages).
+- [x] `astro.config.mjs` `site` değeri: `https://lepistes-rehberi.samekalsamet6.workers.dev` (Cloudflare Workers; hesap alt alan adı `samekalsamet6.workers.dev`).
 - [ ] Cloudflare projesi (Workers, statik varlıklar) oluşturuldu, ilk dağıtım yapıldı ve çıkan adres `site` ile aynı (README'deki adımlar).
 - [x] Lisans seçildi: kod MIT, içerik CC BY-SA 4.0 (`LICENSE`, `LICENSE-CONTENT.md`).
 - [x] CC BY-SA 4.0 lisans metni depoda (`LICENSE-CC-BY-SA-4.0.txt`, SPDX kaydından). İsteğe bağlı: resmî `legalcode` sayfasıyla karşılaştırın.
