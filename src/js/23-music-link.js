@@ -24,3 +24,11 @@ setInterval(() => { try { MusicLink.update(); } catch (e) { /* ses bağlamı oyu
 UI.go = ((orig) => function (name) { const r = orig.apply(this, arguments); if (name === 'contest') AudioSys.setMood('contest'); return r; })(UI.go);
 /* Akvaryum bilgi şeridinde yağmur rozeti */
 UI.refreshAq = ((orig) => function () { const r = orig.apply(this, arguments); const info = $('#aq-info'); if (info && Game.S && Weather.rainy(Game.S.clockMin)) info.append(h('div.chip', null, '🌧 Yağmurlu')); return r; })(UI.refreshAq);
+
+/* Ses kalitesi: yüksek / düşük güç (zayıf telefonlarda ağır yankıyı ve ses sayısını azaltır); yavaş çerçeveler görülünce otomatik düşer */
+UI.render_settings = ((orig) => function (el) {
+  const r = orig.apply(this, arguments), S = Game.S, card = [...el.querySelectorAll('.card')].find((c) => /Ses/.test((c.querySelector('h3') || {}).textContent || ''));
+  if (card) { const q = (S.settings.audio.q || 'high'); card.append(h('div.set-row', null, h('label', null, 'Ses kalitesi'), h('div.seg', null, [['high', 'Yüksek'], ['low', 'Düşük güç']].map(([v, l]) => h('button' + (v === q ? '.on' : ''), { onclick: () => { S.settings.audio.q = v; S.settings.audio.qUser = 1; AudioSys.set('q', v); Game.save(); UI.render_settings(el); } }, l))))); }
+  return r;
+})(UI.render_settings);
+setInterval(() => { try { const S = Game.S; if (!S || !AudioSys.set) return; const au = S.settings.audio; if (Game.low && !au.qUser && au.q !== 'low') { au.q = 'low'; AudioSys.set('q', 'low'); UI.toast('Ses "düşük güç" moduna alındı (Ayarlar > Ses)', 'bell', 3500); } else if (au.q && AudioSys.S.q !== au.q) AudioSys.set('q', au.q); } catch (e) { /* yoksay */ } }, 5000);
