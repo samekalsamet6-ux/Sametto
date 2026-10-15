@@ -34,6 +34,8 @@ jobs:
         run: |
           M=android/app/src/main/AndroidManifest.xml
           sed -i 's|<activity |<activity android:screenOrientation="portrait" |' "$M"
+          sed -i 's|<application |<application |; /<\/application>/i\        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-4685172291502564~7787920203"/>' "$M"
+          grep -c APPLICATION_ID "$M"
           S=android/app/src/main/res/values/styles.xml
           sed -i 's|</style>|    <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>\n    </style>|' "$S" || true
 

@@ -6,6 +6,9 @@
    Sağlayıcı: AdMob eklentisi (Capacitor) varsa gerçek; yoksa açıkça "Demo" etiketli simülasyon.
    ===================================================================== */
 const BOOST_DAILY_CAP = 5, BOOST_MAX_MS = 2 * 3600e3;
+/* AdMob: test=true iken Google'ın TEST reklamları gelir (geliştirme sırasında gerçek reklama tıklamak hesabı tehlikeye atar).
+   Mağazaya yüklemeden önce test:false yap. Çocuklara yönelik muamele + Genel (G) içerik sınırı her zaman açık. */
+const ADS_CFG = { test: true, unit: 'ca-app-pub-4685172291502564/1511031324' };
 const BOOSTS = {
   coin: { name: 'Altın Bereketi', ic: '💰', desc: 'Satış ve ödül gelirleri %50 artar', ms: 30 * 60e3, mult: 1.5 },
   xp: { name: 'Bilgi Işığı', ic: '✨', desc: 'Kazanılan XP iki katı olur', ms: 30 * 60e3, mult: 2 },
@@ -21,10 +24,19 @@ const Ads = {
   ads(S = Game.S) { const a = S.ads || (S.ads = { day: '', n: 0, off: false }); if (a.day !== todayKey()) { a.day = todayKey(); a.n = 0; } return a; },
   left() { return Math.max(0, BOOST_DAILY_CAP - this.ads().n); },
   enabled() { return !this.ads().off; },
-  real() { const P = window.Capacitor && Capacitor.Plugins; return !!(P && P.AdMob); },
+  real() { const c = window.Capacitor; return !!(c && c.isNativePlatform && c.isNativePlatform() && c.Plugins && c.Plugins.AdMob); },
+  _init: null,
+  init(A) { return this._init || (this._init = A.initialize({ initializeForTesting: ADS_CFG.test, tagForChildDirectedTreatment: true, tagForUnderAgeOfConsent: true, maxAdContentRating: 'General' }).catch(() => {})); },
   /** Sağlayıcıdan 'ödül kazanıldı mı' sözü döner. */
   show() {
-    if (this.real()) { const A = Capacitor.Plugins.AdMob; return Promise.resolve().then(() => A.prepareRewardVideoAd({ npa: true, isTesting: !!window.AKV_ADS_TEST })).then(() => A.showRewardVideoAd()).then((r) => !!r).catch(() => false); }
+    if (this.real()) { // gerçek AdMob: ödül yalnızca 'Rewarded' olayı gelirse sayılır
+      const A = Capacitor.Plugins.AdMob; let got = false, hs = [];
+      return new Promise((res) => {
+        const end = (v) => { hs.forEach((x) => x && x.remove && x.remove()); res(v); };
+        Promise.all([A.addListener('onRewardedVideoAdReward', () => { got = true; }), A.addListener('onRewardedVideoAdDismissed', () => end(got)), A.addListener('onRewardedVideoAdFailedToLoad', () => end(false)), A.addListener('onRewardedVideoAdFailedToShow', () => end(false))]).then((x) => { hs = x; })
+          .then(() => this.init(A)).then(() => A.prepareRewardVideoAd({ adId: ADS_CFG.unit, isTesting: ADS_CFG.test, npa: true })).then(() => A.showRewardVideoAd()).catch(() => end(false));
+      }).then((v) => { if (!v) UI.toast('Reklam şu an yüklenemedi, biraz sonra tekrar dene', 'bell', 3500); return v; });
+    }
     return new Promise((res) => { // demo: 5 sn geri sayım, erken kapatılırsa ödül yok
       let n = 5; const num = h('b', { style: { fontSize: '44px' } }, n), close = h('button.btn.sm', { disabled: true }, 'Kapat'), ov = h('div', { style: { position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(5,15,25,.96)', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', textAlign: 'center', padding: '24px' } },
         h('div.tiny.muted', null, 'DEMO REKLAM (gerçek reklam değil)'), num, h('div.small', null, 'Bitince ödülün hazır. Erken çıkarsan ödül verilmez.'), close, h('button.btn.sm.ghost', { onclick: () => { clearInterval(t); ov.remove(); res(false); } }, 'Vazgeç'));
