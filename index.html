@@ -1701,7 +1701,7 @@ class Tank {
     // duvarda hafif doku/ışık
     const wl = ctx.createRadialGradient((L + Rr) / 2, T, 10, (L + Rr) / 2, T, Math.max(cw, ch)); wl.addColorStop(0, `rgba(120,200,210,${0.16 * (1 - night * 0.7)})`); wl.addColorStop(1, 'rgba(120,200,210,0)'); ctx.fillStyle = wl; ctx.fillRect(0, 0, cw, ch);
     if (B < ch + 4) { // sehpa
-      const sw = 14 * S, x0 = L - 12 * S, x1 = Rr + 12 * S, y0 = B + 4 * S;
+      const sw = 14 * S, x0 = L - 190 * S, x1 = Rr + 190 * S, y0 = B + 4 * S;
       ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(x0 + 6 * S, y0 - 2, x1 - x0, 10 * S + 6);                           // tank altı gölge
       const wood = ctx.createLinearGradient(0, y0, 0, y0 + 40 * S); wood.addColorStop(0, '#7a5232'); wood.addColorStop(0.1, '#5e3e26'); wood.addColorStop(1, '#3a2617');
       ctx.fillStyle = wood; ctx.fillRect(x0, y0, x1 - x0, Math.max(0, ch - y0));                                              // dolap gövdesi
@@ -1787,8 +1787,7 @@ class Tank {
     }
     ctx.restore();
     ctx.restore();
-    // armatür (hava boşluğunda)
-    { const lp = sc.equip.light, lx0 = W * 0.14, lx1 = W * 0.86; ctx.fillStyle = '#1b262c'; ctx.beginPath(); ctx.roundRect(lx0, -14, lx1 - lx0, 16, 5); ctx.fill(); const on = this.light > 0.2; ctx.fillStyle = on ? `rgba(255,248,225,${0.5 + 0.4 * this.lightPower})` : 'rgba(80,90,95,.6)'; ctx.fillRect(lx0 + 10, -2, lx1 - lx0 - 20, 3); if (on && !v.dry) { const g = ctx.createLinearGradient(0, 2, 0, 40); g.addColorStop(0, `rgba(255,245,220,${0.18 * this.lightPower})`); g.addColorStop(1, 'rgba(255,245,220,0)'); ctx.fillStyle = g; ctx.fillRect(lx0, 2, lx1 - lx0, 38); } }
+    this.drawEquipOutside(ctx, v);                                         // armatür, hortumlar, tüp, pompa (cam dışı)
     if (!v.dry) {
       for (const cl of this.clutches || []) { const r = new RNG(Math.floor(cl.x) + cl.n); for (let i = 0, n = Math.min(26, 8 + cl.n / 5); i < n; i++) { ctx.fillStyle = `rgba(255,${120 + (i * 13) % 50},${160 + (i * 7) % 40},.92)`; ctx.beginPath(); ctx.arc(cl.x + r.float(-14, 14), 15 - r.float(0, 7) * 0.5, r.float(2, 3.4), 0, TAU); ctx.fill(); } }
       for (const c of this.creatures) if (c.nestUntil > this.minute && c.sex === 'M') { const r = new RNG(c.id); ctx.strokeStyle = 'rgba(240,250,255,.8)'; ctx.fillStyle = 'rgba(255,255,255,.35)'; for (let i = 0; i < 18; i++) { const bx = c.sw.x + r.float(-26, 26), br = r.float(2.5, 5); ctx.beginPath(); ctx.arc(bx, 29 + r.float(-2, 4), br, 0, TAU); ctx.fill(); ctx.stroke(); } }
@@ -3243,56 +3242,56 @@ const SUBSTRATES = {
 
 /** Taş ve kök. kind: rock | wood | leaf. w,h dünya birimi. */
 const HARDSCAPE = {
-  seiryu:   { name: 'Seiryu taşı',     kind: 'rock', w: 150, h: 90,  cost: 35, lvl: 1, col: [208, 14, 52], tex: 'vein',  eff: { kh: 0.05, gh: 0.04, ph: 0.02 }, info: 'Mavi-gri, keskin hatlı; kalsiyum karbonat içerir. Aylar içinde KH ve pH\'ı yükseltir. Iwagumi klasiği — karides tankında dikkat.' },
-  dragon:   { name: 'Dragon (Ohko) taşı', kind: 'rock', w: 140, h: 85, cost: 40, lvl: 2, col: [38, 20, 62], tex: 'honey', eff: {}, info: 'Bal peteği dokulu, kimyaya etkisiz. Karides ve yumuşak su için güvenli; kırılgandır.' },
-  lava:     { name: 'Lav taşı',        kind: 'rock', w: 120, h: 80,  cost: 25, lvl: 1, col: [12, 28, 30], tex: 'pore',  eff: { bio: 0.5 }, info: 'Gözenekli ve etkisiz; yüzeyi faydalı bakterilere ev olur, epifit bağlamaya uygundur.' },
-  elephant: { name: 'Fil derisi taşı', kind: 'rock', w: 135, h: 85,  cost: 38, lvl: 4, col: [30, 8, 56], tex: 'wrinkle', eff: { kh: 0.02, gh: 0.015 }, info: 'Kırışık, gri bir doku; KH\'yi yavaşça yükseltir.' },
-  manten:   { name: 'Manten taşı',     kind: 'rock', w: 130, h: 100, cost: 42, lvl: 5, col: [225, 10, 24], tex: 'plain', eff: {}, info: 'Koyu ve köşeli; kompozisyonda kontrast verir.' },
-  spider:   { name: 'Spider wood',     kind: 'wood', w: 210, h: 170, cost: 45, lvl: 1, col: [28, 38, 28], branches: 'many', eff: { tannin: 0.5, ph: -0.04 }, info: 'İnce dallı kök. Tanen salar: pH hafif düşer, su çay rengine döner (blackwater).' },
-  malaysian:{ name: 'Malezya kökü',    kind: 'wood', w: 190, h: 120, cost: 50, lvl: 3, col: [24, 32, 22], branches: 'log', eff: { tannin: 0.4, ph: -0.03 }, info: 'Kalın, bükülmüş gövde; ön plana güçlü bir odak noktası.' },
-  manzanita:{ name: 'Manzanita',       kind: 'wood', w: 200, h: 180, cost: 65, lvl: 6, col: [14, 45, 36], branches: 'smooth', eff: { tannin: 0.2, ph: -0.02 }, info: 'Pürüzsüz, kırmızımsı dallar; az tanen salar.' },
-  almond:   { name: 'Badem yaprağı',   kind: 'leaf', w: 52,  h: 18,  cost: 4,  lvl: 2, col: [28, 50, 34], eff: { tannin: 0.25, ph: -0.02, bio: 0.2 }, info: 'Tanen ve bakteri/yavru dostu bonus (biyotop puanı).' },
-  cone:     { name: 'Kızılağaç kozalağı', kind: 'leaf', w: 22, h: 26, cost: 3, lvl: 2, col: [20, 40, 24], eff: { tannin: 0.15, ph: -0.01 }, info: 'Hafif tanen salar; blackwater görünümünü destekler.' },
+  seiryu:   { name: 'Seiryu taşı',     kind: 'rock', w: 240, h: 144,  cost: 35, lvl: 1, col: [208, 14, 52], tex: 'vein',  eff: { kh: 0.05, gh: 0.04, ph: 0.02 }, info: 'Mavi-gri, keskin hatlı; kalsiyum karbonat içerir. Aylar içinde KH ve pH\'ı yükseltir. Iwagumi klasiği — karides tankında dikkat.' },
+  dragon:   { name: 'Dragon (Ohko) taşı', kind: 'rock', w: 224, h: 136, cost: 40, lvl: 2, col: [38, 20, 62], tex: 'honey', eff: {}, info: 'Bal peteği dokulu, kimyaya etkisiz. Karides ve yumuşak su için güvenli; kırılgandır.' },
+  lava:     { name: 'Lav taşı',        kind: 'rock', w: 192, h: 128,  cost: 25, lvl: 1, col: [12, 28, 30], tex: 'pore',  eff: { bio: 0.5 }, info: 'Gözenekli ve etkisiz; yüzeyi faydalı bakterilere ev olur, epifit bağlamaya uygundur.' },
+  elephant: { name: 'Fil derisi taşı', kind: 'rock', w: 216, h: 136,  cost: 38, lvl: 4, col: [30, 8, 56], tex: 'wrinkle', eff: { kh: 0.02, gh: 0.015 }, info: 'Kırışık, gri bir doku; KH\'yi yavaşça yükseltir.' },
+  manten:   { name: 'Manten taşı',     kind: 'rock', w: 208, h: 160, cost: 42, lvl: 5, col: [225, 10, 24], tex: 'plain', eff: {}, info: 'Koyu ve köşeli; kompozisyonda kontrast verir.' },
+  spider:   { name: 'Spider wood',     kind: 'wood', w: 399, h: 323, cost: 45, lvl: 1, col: [28, 38, 28], branches: 'many', eff: { tannin: 0.5, ph: -0.04 }, info: 'İnce dallı kök. Tanen salar: pH hafif düşer, su çay rengine döner (blackwater).' },
+  malaysian:{ name: 'Malezya kökü',    kind: 'wood', w: 361, h: 228, cost: 50, lvl: 3, col: [24, 32, 22], branches: 'log', eff: { tannin: 0.4, ph: -0.03 }, info: 'Kalın, bükülmüş gövde; ön plana güçlü bir odak noktası.' },
+  manzanita:{ name: 'Manzanita',       kind: 'wood', w: 380, h: 342, cost: 65, lvl: 6, col: [14, 45, 36], branches: 'smooth', eff: { tannin: 0.2, ph: -0.02 }, info: 'Pürüzsüz, kırmızımsı dallar; az tanen salar.' },
+  almond:   { name: 'Badem yaprağı',   kind: 'leaf', w: 156,  h: 54,  cost: 4,  lvl: 2, col: [28, 50, 34], eff: { tannin: 0.25, ph: -0.02, bio: 0.2 }, info: 'Tanen ve bakteri/yavru dostu bonus (biyotop puanı).' },
+  cone:     { name: 'Kızılağaç kozalağı', kind: 'leaf', w: 40, h: 47, cost: 3, lvl: 2, col: [20, 40, 24], eff: { tannin: 0.15, ph: -0.01 }, info: 'Hafif tanen salar; blackwater görünümünü destekler.' },
 };
 
 const DECOR = {
-  cave:    { name: 'Mağara',        w: 150, h: 90,  cost: 30, lvl: 1, col: [30, 14, 44], shape: 'cave' },
-  amphora: { name: 'Amfora',        w: 60,  h: 90,  cost: 22, lvl: 2, col: [18, 55, 45], shape: 'amphora' },
-  column:  { name: 'Antik sütun',   w: 54,  h: 130, cost: 35, lvl: 4, col: [40, 10, 70], shape: 'column' },
-  chest:   { name: 'Hazine sandığı', w: 80, h: 56,  cost: 40, lvl: 6, col: [28, 50, 30], shape: 'chest' },
-  pipe:    { name: 'Seramik boru',  w: 110, h: 50,  cost: 20, lvl: 1, col: [12, 45, 42], shape: 'pipe' },
+  cave:    { name: 'Mağara',        w: 240, h: 144,  cost: 30, lvl: 1, col: [30, 14, 44], shape: 'cave' },
+  amphora: { name: 'Amfora',        w: 96,  h: 144,  cost: 22, lvl: 2, col: [18, 55, 45], shape: 'amphora' },
+  column:  { name: 'Antik sütun',   w: 86,  h: 208, cost: 35, lvl: 4, col: [40, 10, 70], shape: 'column' },
+  chest:   { name: 'Hazine sandığı', w: 128, h: 90,  cost: 40, lvl: 6, col: [28, 50, 30], shape: 'chest' },
+  pipe:    { name: 'Seramik boru',  w: 176, h: 80,  cost: 20, lvl: 1, col: [12, 45, 42], shape: 'pipe' },
 };
 
 /* ---- Bitkiler. type: ribbon | rosette | stem | carpet | epi | moss | float
    light 1 düşük–3 yüksek, co2 0 gereksiz–2 şart, grow göreli hız, red: kırmızılaşabilir ---- */
 const PLANTS = {
-  anubias:     { name: 'Anubias',            sci: 'Anubias barteri var. nana', type: 'epi',    sub: 'broad', w: 60,  h: 60,  layer: 'mid',  light: 1, co2: 0, grow: 0.35, diff: 1, col: [118, 45, 30], cost: 14, lvl: 1, info: 'Çok dayanıklı, yavaş büyür. Rizomu gömülmemeli; taş veya köke bağlanır.', melt: 0 },
-  javafern:    { name: 'Java eğreltisi',     sci: 'Microsorum pteropus',      type: 'epi',    sub: 'fern',  w: 70,  h: 75,  layer: 'mid',  light: 1, co2: 0, grow: 0.4,  diff: 1, col: [108, 45, 28], cost: 12, lvl: 1, info: 'Düşük teknoloji klasiği; karanlık köşelerde bile yaşar.', melt: 0 },
-  buce:        { name: 'Bucephalandra',      sci: 'Bucephalandra sp.',        type: 'epi',    sub: 'wavy',  w: 40,  h: 36,  layer: 'mid',  light: 2, co2: 1, grow: 0.45, diff: 2, col: [150, 40, 28], cost: 28, lvl: 4, info: 'Küçük, dalgalı yapraklı; taş üzerinde mücevher gibi durur.', melt: 0 },
-  javamoss:    { name: 'Java yosunu',        sci: 'Taxiphyllum barbieri',     type: 'moss',   w: 60,  h: 26,  layer: 'mid',  light: 1, co2: 0, grow: 0.7,  diff: 1, col: [112, 50, 30], cost: 10, lvl: 1, info: 'Yumuşak yosun; karides ve yavrular için harika bir saklanma yeri.', melt: 0 },
-  wendtii:     { name: 'Cryptocoryne wendtii', sci: 'Cryptocoryne wendtii',   type: 'rosette',w: 70,  h: 70,  layer: 'mid',  light: 1, co2: 0, grow: 0.5,  diff: 2, col: [100, 38, 28], cost: 16, lvl: 1, info: 'Yeni dikilince birkaç gün yaprak döker ("crypt melt"); panik yok, toparlanır.', melt: 1 },
-  cryptparva:  { name: 'Cryptocoryne parva', sci: 'Cryptocoryne parva',       type: 'rosette',w: 44,  h: 32,  layer: 'fg',   light: 2, co2: 1, grow: 0.25, diff: 3, col: [105, 45, 32], cost: 24, lvl: 5, info: 'En küçük crypt; çok yavaş, ön plan halısı için.', melt: 1 },
-  sword:       { name: 'Amazon kılıç',       sci: 'Echinodorus bleheri',      type: 'rosette',w: 130, h: 190, layer: 'bg',   light: 2, co2: 0, grow: 0.6,  diff: 2, col: [112, 50, 30], cost: 30, lvl: 3, info: 'Büyük, gösterişli rozet; güçlü kökler için besinli zemin ister.', melt: 0 },
-  vallis:      { name: 'Vallisneria',        sci: 'Vallisneria spiralis',     type: 'ribbon', w: 90,  h: 270, layer: 'bg',   light: 1, co2: 0, grow: 1.0,  diff: 1, col: [118, 52, 34], cost: 10, lvl: 1, info: 'Uzun şerit yapraklar; koşucularla yayılır.', melt: 0 },
-  hairgrass:   { name: 'Cüce saç otu',       sci: 'Eleocharis parvula',       type: 'carpet', sub: 'grass', w: 90,  h: 60,  layer: 'fg',   light: 2, co2: 1, grow: 0.9,  diff: 3, col: [105, 55, 36], cost: 20, lvl: 4, info: 'İnce, çim gibi halı; CO₂ ile daha sık büyür.', melt: 0 },
-  dwarfsag:    { name: 'Cüce sagittaria',    sci: 'Sagittaria subulata',      type: 'carpet', sub: 'grass', w: 90,  h: 75,  layer: 'fg',   light: 1, co2: 0, grow: 0.9,  diff: 2, col: [115, 50, 32], cost: 14, lvl: 2, info: 'Kolay halı bitkisi; düşük ışıkta da yayılır.', melt: 0 },
-  monte:       { name: 'Monte Carlo',        sci: 'Micranthemum tweediei',    type: 'carpet', sub: 'leafy', w: 90,  h: 36,  layer: 'fg',   light: 2, co2: 1, grow: 0.7,  diff: 3, col: [105, 58, 38], cost: 26, lvl: 3, info: 'CO₂\'siz de halı yapar ama yavaş; CO₂ ile hızlanır.', melt: 0 },
-  marsilea:    { name: 'Marsilea',           sci: 'Marsilea hirsuta',         type: 'carpet', sub: 'clover',w: 90,  h: 30,  layer: 'fg',   light: 2, co2: 1, grow: 0.5,  diff: 3, col: [125, 50, 34], cost: 24, lvl: 4, info: 'Dört yapraklı yonca görünümlü halı.', melt: 0 },
-  hccuba:      { name: 'HC Cuba',            sci: 'Hemianthus callitrichoides', type: 'carpet', sub: 'tiny', w: 90, h: 24, layer: 'fg',   light: 3, co2: 2, grow: 0.6,  diff: 5, col: [100, 62, 40], cost: 48, lvl: 8, info: 'En küçük yapraklı halı. Basınçlı CO₂ şart: CO₂ yoksa yayılmak yerine dikine uzar.', melt: 0 },
-  glosso:      { name: 'Glossostigma',       sci: 'Glossostigma elatinoides', type: 'carpet', sub: 'clover',w: 90,  h: 26,  layer: 'fg',   light: 3, co2: 2, grow: 0.8,  diff: 5, col: [112, 60, 38], cost: 44, lvl: 8, info: 'Yüksek ışık ve CO₂ ister; sık, parlak bir halı oluşturur.', melt: 0 },
-  staurogyne:  { name: 'Staurogyne repens',  sci: 'Staurogyne repens',        type: 'carpet', sub: 'leafy', w: 80,  h: 40,  layer: 'fg',   light: 1, co2: 0, grow: 0.55, diff: 2, col: [108, 52, 32], cost: 18, lvl: 2, info: 'Düşük teknolojide halıya en yakın gövdeli bitki.', melt: 0 },
-  watersprite: { name: 'Su sprite',          sci: 'Ceratopteris thalictroides', type: 'stem', sub: 'fern',  w: 80,  h: 160, layer: 'mid',  light: 1, co2: 0, grow: 1.4,  diff: 1, col: [100, 55, 38], cost: 8,  lvl: 1, info: 'Çok hızlı büyür ve besin tüketir; yosunları dengeler.', melt: 0 },
-  hornwort:    { name: 'Hornwort',           sci: 'Ceratophyllum demersum',   type: 'stem',   sub: 'bushy', w: 70,  h: 200, layer: 'mid',  light: 1, co2: 0, grow: 1.5,  diff: 1, col: [110, 45, 28], cost: 6,  lvl: 1, info: 'Köksüz, çok hızlı; nitratı hızla tüketir.', melt: 0 },
-  guppygrass:  { name: 'Guppy otu',          sci: 'Najas guadalupensis',      type: 'stem',   sub: 'bushy', w: 70,  h: 190, layer: 'mid',  light: 1, co2: 0, grow: 1.6,  diff: 1, col: [96, 50, 34], cost: 6,  lvl: 1, info: 'Lepistes yavruları için en iyi saklanma yeri.', melt: 0 },
-  ludwigia:    { name: 'Ludwigia repens',    sci: 'Ludwigia repens',          type: 'stem',   sub: 'leafy', w: 70,  h: 190, layer: 'mid',  light: 2, co2: 1, grow: 1.0,  diff: 2, col: [95, 50, 38], cost: 14, lvl: 3, red: 1, info: 'Yüksek ışıkta üst yaprakları kırmızılaşır.', melt: 0 },
-  rotala:      { name: 'Rotala rotundifolia',sci: 'Rotala rotundifolia',      type: 'stem',   sub: 'leafy', w: 70,  h: 200, layer: 'mid',  light: 2, co2: 1, grow: 1.1,  diff: 3, col: [90, 52, 40], cost: 16, lvl: 3, red: 1, info: 'Işıkta turuncu-pembeye döner; grup halinde çok güzeldir.', melt: 0 },
-  hygro:       { name: 'Hygrophila polysperma', sci: 'Hygrophila polysperma', type: 'stem',   sub: 'leafy', w: 80,  h: 220, layer: 'bg',   light: 1, co2: 0, grow: 1.5,  diff: 1, col: [105, 48, 34], cost: 8,  lvl: 2, info: 'Dayanıklı ve hızlı; arka plan için idealdir.', melt: 0 },
-  cabomba:     { name: 'Cabomba',            sci: 'Cabomba caroliniana',      type: 'stem',   sub: 'fine',  w: 80,  h: 210, layer: 'bg',   light: 2, co2: 1, grow: 1.2,  diff: 3, col: [104, 48, 36], cost: 14, lvl: 4, info: 'Tüy gibi ince yapraklı; besin eksikliğinde çabuk erir.', melt: 1 },
-  pogostemon:  { name: 'Pogostemon stellatus', sci: 'Pogostemon stellatus',   type: 'stem',   sub: 'fine',  w: 80,  h: 180, layer: 'mid',  light: 2, co2: 1, grow: 1.0,  diff: 3, col: [92, 52, 40], cost: 18, lvl: 5, red: 1, info: 'Yıldız şeklinde yaprak halkaları.', melt: 0 },
-  alternanthera:{ name: 'Alternanthera reineckii', sci: 'Alternanthera reineckii', type: 'stem', sub: 'leafy', w: 70, h: 150, layer: 'mid', light: 3, co2: 2, grow: 0.8, diff: 5, col: [5, 55, 38], cost: 40, lvl: 9, red: 1, info: 'Kırmızı bitki: yüksek ışık + CO₂ + gübre ister.', melt: 0 },
-  macrandra:   { name: 'Rotala macrandra',   sci: 'Rotala macrandra',         type: 'stem',   sub: 'leafy', w: 70,  h: 170, layer: 'mid',  light: 3, co2: 2, grow: 0.7,  diff: 5, col: [350, 60, 44], cost: 46, lvl: 10, red: 1, info: 'Tankın en iddialı kırmızısı; zor ve titizdir.', melt: 0 },
-  salvinia:    { name: 'Salvinia',           sci: 'Salvinia natans',          type: 'float',  w: 80,  h: 20,  layer: 'float',light: 1, co2: 0, grow: 1.2,  diff: 1, col: [105, 45, 40], cost: 8,  lvl: 1, info: 'Yüzeyi kaplar: alttaki bitkilere ışığı azaltır, yavrulara saklanma sağlar.', melt: 0 },
-  limnobium:   { name: 'Limnobium',          sci: 'Limnobium laevigatum',     type: 'float',  w: 80,  h: 28,  layer: 'float',light: 1, co2: 0, grow: 1.0,  diff: 1, col: [110, 55, 36], cost: 9,  lvl: 2, info: 'Uzun kökleri yavrular için orman gibidir; fazlası hasat edilip satılır.', melt: 0 },
+  anubias:     { name: 'Anubias',            sci: 'Anubias barteri var. nana', type: 'epi',    sub: 'broad', w: 100,  h: 110,  layer: 'mid',  light: 1, co2: 0, grow: 0.35, diff: 1, col: [118, 45, 30], cost: 14, lvl: 1, info: 'Çok dayanıklı, yavaş büyür. Rizomu gömülmemeli; taş veya köke bağlanır.', melt: 0 },
+  javafern:    { name: 'Java eğreltisi',     sci: 'Microsorum pteropus',      type: 'epi',    sub: 'fern',  w: 160,  h: 280,  layer: 'mid',  light: 1, co2: 0, grow: 0.4,  diff: 1, col: [108, 45, 28], cost: 12, lvl: 1, info: 'Düşük teknoloji klasiği; karanlık köşelerde bile yaşar.', melt: 0 },
+  buce:        { name: 'Bucephalandra',      sci: 'Bucephalandra sp.',        type: 'epi',    sub: 'wavy',  w: 70,  h: 90,  layer: 'mid',  light: 2, co2: 1, grow: 0.45, diff: 2, col: [150, 40, 28], cost: 28, lvl: 4, info: 'Küçük, dalgalı yapraklı; taş üzerinde mücevher gibi durur.', melt: 0 },
+  javamoss:    { name: 'Java yosunu',        sci: 'Taxiphyllum barbieri',     type: 'moss',   w: 120,  h: 50,  layer: 'mid',  light: 1, co2: 0, grow: 0.7,  diff: 1, col: [112, 50, 30], cost: 10, lvl: 1, info: 'Yumuşak yosun; karides ve yavrular için harika bir saklanma yeri.', melt: 0 },
+  wendtii:     { name: 'Cryptocoryne wendtii', sci: 'Cryptocoryne wendtii',   type: 'rosette',w: 240,  h: 260,  layer: 'mid',  light: 1, co2: 0, grow: 0.5,  diff: 2, col: [100, 38, 28], cost: 16, lvl: 1, info: 'Yeni dikilince birkaç gün yaprak döker ("crypt melt"); panik yok, toparlanır.', melt: 1 },
+  cryptparva:  { name: 'Cryptocoryne parva', sci: 'Cryptocoryne parva',       type: 'rosette',w: 110,  h: 100,  layer: 'fg',   light: 2, co2: 1, grow: 0.25, diff: 3, col: [105, 45, 32], cost: 24, lvl: 5, info: 'En küçük crypt; çok yavaş, ön plan halısı için.', melt: 1 },
+  sword:       { name: 'Amazon kılıç',       sci: 'Echinodorus bleheri',      type: 'rosette',w: 360, h: 520, layer: 'bg',   light: 2, co2: 0, grow: 0.6,  diff: 2, col: [112, 50, 30], cost: 30, lvl: 3, info: 'Büyük, gösterişli rozet; güçlü kökler için besinli zemin ister.', melt: 0 },
+  vallis:      { name: 'Vallisneria',        sci: 'Vallisneria spiralis',     type: 'ribbon', w: 150,  h: 520, layer: 'bg',   light: 1, co2: 0, grow: 1.0,  diff: 1, col: [118, 52, 34], cost: 10, lvl: 1, info: 'Uzun şerit yapraklar; koşucularla yayılır.', melt: 0 },
+  hairgrass:   { name: 'Cüce saç otu',       sci: 'Eleocharis parvula',       type: 'carpet', sub: 'grass', w: 110,  h: 80,  layer: 'fg',   light: 2, co2: 1, grow: 0.9,  diff: 3, col: [105, 55, 36], cost: 20, lvl: 4, info: 'İnce, çim gibi halı; CO₂ ile daha sık büyür.', melt: 0 },
+  dwarfsag:    { name: 'Cüce sagittaria',    sci: 'Sagittaria subulata',      type: 'carpet', sub: 'grass', w: 110,  h: 110,  layer: 'fg',   light: 1, co2: 0, grow: 0.9,  diff: 2, col: [115, 50, 32], cost: 14, lvl: 2, info: 'Kolay halı bitkisi; düşük ışıkta da yayılır.', melt: 0 },
+  monte:       { name: 'Monte Carlo',        sci: 'Micranthemum tweediei',    type: 'carpet', sub: 'leafy', w: 110,  h: 60,  layer: 'fg',   light: 2, co2: 1, grow: 0.7,  diff: 3, col: [105, 58, 38], cost: 26, lvl: 3, info: 'CO₂\'siz de halı yapar ama yavaş; CO₂ ile hızlanır.', melt: 0 },
+  marsilea:    { name: 'Marsilea',           sci: 'Marsilea hirsuta',         type: 'carpet', sub: 'clover',w: 110,  h: 50,  layer: 'fg',   light: 2, co2: 1, grow: 0.5,  diff: 3, col: [125, 50, 34], cost: 24, lvl: 4, info: 'Dört yapraklı yonca görünümlü halı.', melt: 0 },
+  hccuba:      { name: 'HC Cuba',            sci: 'Hemianthus callitrichoides', type: 'carpet', sub: 'tiny', w: 100, h: 30, layer: 'fg',   light: 3, co2: 2, grow: 0.6,  diff: 5, col: [100, 62, 40], cost: 48, lvl: 8, info: 'En küçük yapraklı halı. Basınçlı CO₂ şart: CO₂ yoksa yayılmak yerine dikine uzar.', melt: 0 },
+  glosso:      { name: 'Glossostigma',       sci: 'Glossostigma elatinoides', type: 'carpet', sub: 'clover',w: 110,  h: 40,  layer: 'fg',   light: 3, co2: 2, grow: 0.8,  diff: 5, col: [112, 60, 38], cost: 44, lvl: 8, info: 'Yüksek ışık ve CO₂ ister; sık, parlak bir halı oluşturur.', melt: 0 },
+  staurogyne:  { name: 'Staurogyne repens',  sci: 'Staurogyne repens',        type: 'carpet', sub: 'leafy', w: 110,  h: 110,  layer: 'fg',   light: 1, co2: 0, grow: 0.55, diff: 2, col: [108, 52, 32], cost: 18, lvl: 2, info: 'Düşük teknolojide halıya en yakın gövdeli bitki.', melt: 0 },
+  watersprite: { name: 'Su sprite',          sci: 'Ceratopteris thalictroides', type: 'stem', sub: 'fern',  w: 150,  h: 380, layer: 'mid',  light: 1, co2: 0, grow: 1.4,  diff: 1, col: [100, 55, 38], cost: 8,  lvl: 1, info: 'Çok hızlı büyür ve besin tüketir; yosunları dengeler.', melt: 0 },
+  hornwort:    { name: 'Hornwort',           sci: 'Ceratophyllum demersum',   type: 'stem',   sub: 'bushy', w: 130,  h: 480, layer: 'mid',  light: 1, co2: 0, grow: 1.5,  diff: 1, col: [110, 45, 28], cost: 6,  lvl: 1, info: 'Köksüz, çok hızlı; nitratı hızla tüketir.', melt: 0 },
+  guppygrass:  { name: 'Guppy otu',          sci: 'Najas guadalupensis',      type: 'stem',   sub: 'bushy', w: 130,  h: 440, layer: 'mid',  light: 1, co2: 0, grow: 1.6,  diff: 1, col: [96, 50, 34], cost: 6,  lvl: 1, info: 'Lepistes yavruları için en iyi saklanma yeri.', melt: 0 },
+  ludwigia:    { name: 'Ludwigia repens',    sci: 'Ludwigia repens',          type: 'stem',   sub: 'leafy', w: 120,  h: 420, layer: 'mid',  light: 2, co2: 1, grow: 1.0,  diff: 2, col: [95, 50, 38], cost: 14, lvl: 3, red: 1, info: 'Yüksek ışıkta üst yaprakları kırmızılaşır.', melt: 0 },
+  rotala:      { name: 'Rotala rotundifolia',sci: 'Rotala rotundifolia',      type: 'stem',   sub: 'leafy', w: 120,  h: 440, layer: 'mid',  light: 2, co2: 1, grow: 1.1,  diff: 3, col: [90, 52, 40], cost: 16, lvl: 3, red: 1, info: 'Işıkta turuncu-pembeye döner; grup halinde çok güzeldir.', melt: 0 },
+  hygro:       { name: 'Hygrophila polysperma', sci: 'Hygrophila polysperma', type: 'stem',   sub: 'leafy', w: 150,  h: 520, layer: 'bg',   light: 1, co2: 0, grow: 1.5,  diff: 1, col: [105, 48, 34], cost: 8,  lvl: 2, info: 'Dayanıklı ve hızlı; arka plan için idealdir.', melt: 0 },
+  cabomba:     { name: 'Cabomba',            sci: 'Cabomba caroliniana',      type: 'stem',   sub: 'fine',  w: 150,  h: 500, layer: 'bg',   light: 2, co2: 1, grow: 1.2,  diff: 3, col: [104, 48, 36], cost: 14, lvl: 4, info: 'Tüy gibi ince yapraklı; besin eksikliğinde çabuk erir.', melt: 1 },
+  pogostemon:  { name: 'Pogostemon stellatus', sci: 'Pogostemon stellatus',   type: 'stem',   sub: 'fine',  w: 130,  h: 340, layer: 'mid',  light: 2, co2: 1, grow: 1.0,  diff: 3, col: [92, 52, 40], cost: 18, lvl: 5, red: 1, info: 'Yıldız şeklinde yaprak halkaları.', melt: 0 },
+  alternanthera:{ name: 'Alternanthera reineckii', sci: 'Alternanthera reineckii', type: 'stem', sub: 'leafy', w: 120, h: 330, layer: 'mid', light: 3, co2: 2, grow: 0.8, diff: 5, col: [5, 55, 38], cost: 40, lvl: 9, red: 1, info: 'Kırmızı bitki: yüksek ışık + CO₂ + gübre ister.', melt: 0 },
+  macrandra:   { name: 'Rotala macrandra',   sci: 'Rotala macrandra',         type: 'stem',   sub: 'leafy', w: 120,  h: 320, layer: 'mid',  light: 3, co2: 2, grow: 0.7,  diff: 5, col: [350, 60, 44], cost: 46, lvl: 10, red: 1, info: 'Tankın en iddialı kırmızısı; zor ve titizdir.', melt: 0 },
+  salvinia:    { name: 'Salvinia',           sci: 'Salvinia natans',          type: 'float',  w: 140,  h: 26,  layer: 'float',light: 1, co2: 0, grow: 1.2,  diff: 1, col: [105, 45, 40], cost: 8,  lvl: 1, info: 'Yüzeyi kaplar: alttaki bitkilere ışığı azaltır, yavrulara saklanma sağlar.', melt: 0 },
+  limnobium:   { name: 'Limnobium',          sci: 'Limnobium laevigatum',     type: 'float',  w: 150,  h: 36,  layer: 'float',light: 1, co2: 0, grow: 1.0,  diff: 1, col: [110, 55, 36], cost: 9,  lvl: 2, info: 'Uzun kökleri yavrular için orman gibidir; fazlası hasat edilip satılır.', melt: 0 },
 };
 const PLANT_LAYERS = { bg: 'Arka', mid: 'Orta', fg: 'Ön', epi: 'Epifit', float: 'Yüzen' };
 
@@ -3422,6 +3421,14 @@ const Art = {
 
   /* ---------------- Bitki çizimi ---------------- */
   /** env: {flow (0..1.5), ground(worldX)->y, t, light, fry} ; it.g büyüme, it.s ölçek, it.tint kırmızılaşma, it.vert uzama */
+  /** Yaprak bıçağı: tabandan uca, genişliği ortada en fazla; gradyan + orta damar + ince kenar + yan damarlar. */
+  blade(c, L, wd, col, bend = 0, veins = 0) {
+    const gr = c.createLinearGradient(0, 0, 0, -L); gr.addColorStop(0, col(-14)); gr.addColorStop(0.55, col(0)); gr.addColorStop(1, col(10));
+    c.fillStyle = gr; c.beginPath(); c.moveTo(0, 0); c.bezierCurveTo(-wd, -L * 0.25, -wd * 0.8 + bend, -L * 0.7, bend, -L); c.bezierCurveTo(wd * 0.8 + bend, -L * 0.7, wd, -L * 0.25, 0, 0); c.fill();
+    c.strokeStyle = col(-18, 0.55); c.lineWidth = 1; c.stroke();
+    c.strokeStyle = col(20, 0.5); c.lineWidth = Math.max(1, wd * 0.07); c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(bend * 0.3, -L * 0.5, bend, -L); c.stroke();
+    if (veins) { c.strokeStyle = col(10, 0.28); c.lineWidth = 0.8; for (let v = 1; v <= veins; v++) { const f = v / (veins + 1), yy = -L * f, xx = bend * f * f; c.beginPath(); c.moveTo(xx, yy); c.quadraticCurveTo(xx - wd * 0.4, yy - L * 0.06, xx - wd * 0.62 * Math.sin(Math.PI * f), yy - L * 0.12); c.moveTo(xx, yy); c.quadraticCurveTo(xx + wd * 0.4, yy - L * 0.06, xx + wd * 0.62 * Math.sin(Math.PI * f), yy - L * 0.12); c.stroke(); } }
+  },
   drawPlant(c, it, def, x, y, env) {
     const t = env.t, g = it.g ?? 1, hs = lerp(0.3, 1, clamp(g, 0, 1)) * (it.s || 1) * (it.vert || 1) * (def.type === 'stem' || def.type === 'ribbon' ? (it.ht || 1) : 1), seed = it.seed || 1, fl = 0.35 + 0.65 * env.flow;
     let [ph, ps, pl] = def.col; const tint = it.tint || 0; if (def.red && tint > 0) { ph = hueLerp(ph, def.col[0] < 60 ? 350 : 5, tint * 0.9); ps = lerp(ps, 62, tint); pl = lerp(pl, 40, tint * 0.4); }
@@ -3442,9 +3449,7 @@ const Art = {
       for (let i = 0; i < n; i++) {
         const a = -Math.PI / 2 + (i - (n - 1) / 2) * (1.9 / n) + sway(1, i), L = def.h * hs * (0.5 + 0.5 * hz(i + 3)), wd = Math.max(5, def.w * hs * 0.1);
         const tx = x + Math.cos(a) * L, ty = y + Math.sin(a) * L * 0.95, mx = x + Math.cos(a) * L * 0.55 + (i % 2 ? 5 : -5), my = y + Math.sin(a) * L * 0.55;
-        const gr = c.createLinearGradient(x, y, tx, ty); gr.addColorStop(0, col(-8)); gr.addColorStop(1, col(8));
-        c.fillStyle = gr; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(mx - wd, my, tx, ty); c.quadraticCurveTo(mx + wd, my, x, y); c.fill();
-        c.strokeStyle = col(18, 0.45); c.lineWidth = 1; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(mx, my, tx, ty); c.stroke();
+        c.save(); c.translate(x, y); c.rotate(Math.atan2(ty - y, tx - x) + Math.PI / 2); this.blade(c, Math.hypot(tx - x, ty - y), wd * 1.5, col, (i % 2 ? 1 : -1) * 4, 4); c.restore();
       }
     } else if (def.type === 'stem') {
       const stems = it.stems || 3;
@@ -3476,7 +3481,7 @@ const Art = {
       for (let i = 0; i < n; i++) {
         const a = -Math.PI / 2 + (i - (n - 1) / 2) * 0.46 + sway(1, i), L = def.h * hs * (0.62 + 0.38 * hz(i + 9));
         c.save(); c.translate(x, y); c.rotate(a + Math.PI / 2);
-        if (def.sub === 'fern') { c.strokeStyle = col(2 + (i % 3) * 3); c.lineWidth = 6 * Math.min(1, hs + 0.2); c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(5, -L * 0.5, 0, -L); c.stroke(); c.strokeStyle = col(14, 0.4); c.lineWidth = 1.2; c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(5, -L * 0.5, 0, -L); c.stroke(); }
+        if (def.sub === 'fern') { this.blade(c, L, Math.max(7, L * 0.085), col, (i % 2 ? 1 : -1) * L * 0.05, 5); }
         else { const gr = c.createLinearGradient(0, 0, 0, -L); gr.addColorStop(0, col(-10)); gr.addColorStop(1, col(8)); c.strokeStyle = col(-14); c.lineWidth = 2; c.beginPath(); c.moveTo(0, 0); c.lineTo(0, -L * 0.45); c.stroke(); c.fillStyle = gr; c.beginPath(); c.ellipse(0, -L * 0.72, L * (def.sub === 'wavy' ? 0.16 : 0.22), L * 0.3, 0, 0, TAU); c.fill(); c.strokeStyle = 'rgba(190,255,180,.25)'; c.lineWidth = 1; c.beginPath(); c.moveTo(0, -L * 0.42); c.lineTo(0, -L * 1.0); c.stroke(); }
         c.restore();
       }
@@ -6409,6 +6414,137 @@ UI.render_settings = ((orig) => function (el) {
   card.replaceChildren(h('h3', null, '🔒 Geliştirici'), h('div.small.muted', { style: { marginBottom: '8px' } }, 'Bu bölüm şifre ile korunur.'), inp, msg, h('button.btn.sm', { onclick: go }, 'Aç'));
   return r;
 })(UI.render_settings);
+
+/* ───── 27-equip-art.js ───── */
+'use strict';
+/* =====================================================================
+   27 · EKİPMAN ÇİZİMİ — sünger/iç/dış filtre, ısıtıcı, CO₂ difüzör, hava taşı,
+        LED armatür ve tank dışı parçalar (hortumlar, CO₂ tüpü, hava pompası).
+   Ölçek: 20 dünya birimi = 1 cm. Tümü gradyanlarla "gerçek ürün" görünümünde çizilir.
+   ===================================================================== */
+const EquipArt = {
+  /** Yarı saydam cam/akrilik boru: dış gövde + iç parlama + ince yansıma. */
+  tube(c, pts, w, tint = '190,230,240', a = 0.4) {
+    const path = () => { c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) { const p = pts[i]; if (p.length === 4) c.quadraticCurveTo(p[0], p[1], p[2], p[3]); else c.lineTo(p[0], p[1]); } };
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    c.strokeStyle = `rgba(${tint},${a * 0.7})`; c.lineWidth = w + 3; path(); c.stroke();
+    c.strokeStyle = `rgba(${tint},${a})`; c.lineWidth = w; path(); c.stroke();
+    c.strokeStyle = `rgba(255,255,255,${a * 0.9})`; c.lineWidth = Math.max(1, w * 0.18); c.save(); c.translate(-w * 0.22, -w * 0.12); path(); c.stroke(); c.restore();
+  },
+  metal(c, x, y, w, h, base = '#8f9aa0') {
+    const g = c.createLinearGradient(x, 0, x + w, 0); g.addColorStop(0, '#4b565c'); g.addColorStop(0.25, '#d6dde0'); g.addColorStop(0.5, base); g.addColorStop(1, '#3d474c'); c.fillStyle = g; c.fillRect(x, y, w, h);
+  },
+  suction(c, x, y, r = 7) { const g = c.createRadialGradient(x - r * 0.3, y - r * 0.3, 1, x, y, r); g.addColorStop(0, 'rgba(200,215,220,.85)'); g.addColorStop(1, 'rgba(90,110,118,.7)'); c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); },
+
+  sponge(c, x, y, t) { // y: zemin
+    const w = 104, h = 168, top = y - h;
+    c.fillStyle = '#16191b'; c.beginPath(); c.roundRect(x - w / 2 - 6, y - 20, w + 12, 24, 7); c.fill();                              // taban
+    c.fillStyle = '#2a3034'; for (let i = 0; i < 6; i++) c.fillRect(x - w / 2 + 6 + i * 16, y - 14, 9, 10);                                // süzgeç aralıkları
+    const g = c.createLinearGradient(x - w / 2, 0, x + w / 2, 0); g.addColorStop(0, '#5d6b36'); g.addColorStop(0.35, '#9aab5c'); g.addColorStop(0.7, '#7f8f46'); g.addColorStop(1, '#4b5829');
+    c.fillStyle = g; c.beginPath(); c.roundRect(x - w / 2, top, w, h - 18, 14); c.fill();
+    const r = new RNG(7); for (let i = 0; i < 110; i++) { const px = x - w / 2 + 6 + r.next() * (w - 12), py = top + 8 + r.next() * (h - 40), pr = 1.4 + r.next() * 3.4; c.fillStyle = r.next() < 0.6 ? 'rgba(40,50,18,.42)' : 'rgba(210,225,150,.28)'; c.beginPath(); c.ellipse(px, py, pr, pr * 0.8, 0, 0, TAU); c.fill(); }
+    c.fillStyle = '#16191b'; c.beginPath(); c.roundRect(x - 26, top - 12, 52, 20, 6); c.fill();                                          // üst başlık
+    this.tube(c, [[x, top - 8], [x, 30]], 11, '215,235,240', 0.5);                                                                          // hava borusu
+  },
+  internal(c, x, y, t) {
+    const bw = 62, bh = 188, top = y - bh;
+    const g = c.createLinearGradient(x - bw / 2, 0, x + bw / 2, 0); g.addColorStop(0, '#0d1316'); g.addColorStop(0.3, '#2b363c'); g.addColorStop(0.6, '#1a2328'); g.addColorStop(1, '#0a0f12');
+    c.fillStyle = g; c.beginPath(); c.roundRect(x - bw / 2, top, bw, bh, 9); c.fill(); c.strokeStyle = 'rgba(255,255,255,.1)'; c.lineWidth = 1.5; c.stroke();
+    c.fillStyle = '#7e8a52'; c.fillRect(x - bw / 2 + 8, top + 52, bw - 16, bh - 66);                                                      // içerideki sünger
+    c.strokeStyle = '#10171a'; c.lineWidth = 6; for (let i = 0; i < 10; i++) { const yy = top + 58 + i * 13; c.beginPath(); c.moveTo(x - bw / 2 + 5, yy); c.lineTo(x + bw / 2 - 5, yy); c.stroke(); } // emme ızgarası
+    const mg = c.createLinearGradient(0, top - 36, 0, top + 4); mg.addColorStop(0, '#34424a'); mg.addColorStop(1, '#161e22'); c.fillStyle = mg; c.beginPath(); c.roundRect(x - bw / 2 - 4, top - 34, bw + 8, 42, 10); c.fill(); // motor başı
+    c.fillStyle = '#10171a'; c.beginPath(); c.roundRect(x + bw / 2 - 2, top - 24, 62, 20, 6); c.fill();                                   // çıkış nozulu
+    c.strokeStyle = 'rgba(210,235,245,.25)'; c.lineWidth = 2; c.setLineDash([10, 12]); c.lineDashOffset = -t * 30; for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(x + bw / 2 + 62, top - 14 + (i - 1) * 8); c.quadraticCurveTo(x + bw / 2 + 130, top - 14 + (i - 1) * 14, x + bw / 2 + 190, top - 4 + (i - 1) * 26); c.stroke(); } c.setLineDash([]); // akıntı çizgileri
+    this.suction(c, x - bw / 2 + 4, top + 30, 6); this.suction(c, x - bw / 2 + 4, top + 140, 6); c.fillStyle = 'rgba(80,255,140,.9)'; c.beginPath(); c.arc(x + 4, top - 14, 3, 0, TAU); c.fill(); // vantuz + LED
+  },
+  external(c, W, y0, gyAt, t) {
+    // emme borusu (cam) süzgeçli uç
+    const xi = W - 34, yb = gyAt(xi) - 34; this.tube(c, [[xi, 0], [xi, yb]], 26, '200,236,244', 0.42);
+    c.fillStyle = 'rgba(190,230,240,.5)'; c.beginPath(); c.roundRect(xi - 20, yb - 6, 40, 54, 8); c.fill(); c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = 2; for (let i = 0; i < 6; i++) { c.beginPath(); c.moveTo(xi - 16, yb + 2 + i * 8); c.lineTo(xi + 16, yb + 2 + i * 8); c.stroke(); }
+    // lily pipe çıkış borusu: yukarıdan kıvrılıp genişleyerek biter
+    const xo = W - 110; this.tube(c, [[xo, 0], [xo, 44], [xo, 90, xo - 40, 96]], 22, '200,236,244', 0.42);
+    c.fillStyle = 'rgba(205,240,248,.5)'; c.beginPath(); c.ellipse(xo - 44, 96, 11, 26, 0.2, 0, TAU); c.fill(); c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1.6; c.stroke();
+    c.strokeStyle = 'rgba(220,245,255,.22)'; c.lineWidth = 2; c.setLineDash([8, 12]); c.lineDashOffset = -t * 34; for (let i = 0; i < 4; i++) { c.beginPath(); c.moveTo(xo - 56, 80 + i * 12); c.quadraticCurveTo(xo - 160, 80 + i * 18, xo - 260, 70 + i * 34); c.stroke(); } c.setLineDash([]);
+  },
+  heater(c, W, gyAt, t) {
+    const x1 = W - 52, y1 = 40, x2 = W - 26, y2 = gyAt(W - 26) - 90, ang = Math.atan2(y2 - y1, x2 - x1);
+    c.save(); c.translate(x1, y1); c.rotate(ang - Math.PI / 2 + Math.PI); // üst başlıktan aşağı doğru
+    const L = Math.hypot(x2 - x1, y2 - y1); c.rotate(Math.PI);
+    c.fillStyle = 'rgba(190,225,235,.22)'; c.strokeStyle = 'rgba(210,240,248,.5)'; c.lineWidth = 2; c.beginPath(); c.roundRect(-18, 0, 36, L, 16); c.fill(); c.stroke();                          // cam tüp
+    const glow = 0.45 + 0.25 * Math.sin(t * 2.2); const hg = c.createLinearGradient(0, 0, 0, L); hg.addColorStop(0, 'rgba(255,90,40,0)'); hg.addColorStop(0.3, `rgba(255,110,50,${glow})`); hg.addColorStop(1, `rgba(255,170,70,${glow + 0.1})`);
+    c.strokeStyle = hg; c.lineWidth = 5; c.beginPath(); for (let i = 0; i <= 28; i++) { const yy = 60 + (i / 28) * (L - 80); c.lineTo(Math.sin(i * 1.4) * 8, yy); } c.stroke();                                 // ısıtıcı bobin
+    c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(-12, 20, 3, L - 40);                                                                                                                      // yansıma
+    const cap = c.createLinearGradient(-20, 0, 20, 0); cap.addColorStop(0, '#12181b'); cap.addColorStop(0.5, '#3a464c'); cap.addColorStop(1, '#0d1214'); c.fillStyle = cap; c.beginPath(); c.roundRect(-21, -42, 42, 54, 8); c.fill(); // termostat başlığı
+    c.fillStyle = '#c33'; c.beginPath(); c.arc(0, -26, 4.5, 0, TAU); c.fill(); c.fillStyle = `rgba(255,60,50,${0.5 + 0.5 * Math.sin(t * 2.2)})`; c.beginPath(); c.arc(0, -26, 8, 0, TAU); c.fill(); c.restore();
+    this.suction(c, (x1 + x2) / 2 + 20, (y1 + y2) / 2, 7);
+  },
+  diffuser(c, x, y, tank, t) {
+    const x0 = x - 70; this.tube(c, [[x, y - 24], [x - 36, 140, x - 70, 30], [x - 72, 0]], 6, '230,240,245', 0.6);
+    c.save(); c.translate(x, y - 22);
+    const g = c.createRadialGradient(-10, -6, 3, 0, 0, 38); g.addColorStop(0, 'rgba(240,250,255,.85)'); g.addColorStop(0.6, 'rgba(170,205,220,.55)'); g.addColorStop(1, 'rgba(110,150,170,.5)');
+    c.fillStyle = g; c.beginPath(); c.ellipse(0, 0, 36, 13, 0, 0, TAU); c.fill(); c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 1.6; c.stroke();
+    c.strokeStyle = 'rgba(120,150,165,.6)'; c.lineWidth = 1; for (const k of [0.35, 0.65]) { c.beginPath(); c.ellipse(0, 0, 36 * k, 13 * k, 0, 0, TAU); c.stroke(); } c.fillStyle = '#2a3236'; c.beginPath(); c.arc(0, -2, 4, 0, TAU); c.fill();
+    c.restore();
+  },
+  airstone(c, x, y, t) {
+    this.tube(c, [[x, y - 8], [x, 0]], 6, '235,240,245', 0.55);
+    const g = c.createLinearGradient(0, y - 18, 0, y); g.addColorStop(0, '#9aa3a8'); g.addColorStop(1, '#4a5358'); c.fillStyle = g; c.beginPath(); c.roundRect(x - 22, y - 16, 44, 16, 8); c.fill(); c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(x - 15, y - 13, 24, 3);
+    c.fillStyle = 'rgba(0,0,0,.25)'; const r = new RNG(5); for (let i = 0; i < 9; i++) { c.beginPath(); c.arc(x - 18 + r.next() * 36, y - 12 + r.next() * 10, 1.2, 0, TAU); c.fill(); }
+  },
+
+  /** Tank içi ekipman (kırpılmış cam içinde çizilir). */
+  drawInside(c, e, W, H, gyAt, t) {
+    c.save(); c.lineCap = 'round';
+    if (e.filter === 'sponge') this.sponge(c, W * 0.07, gyAt(W * 0.07), t);
+    else if (e.filter === 'internal') this.internal(c, W * 0.045, gyAt(W * 0.045), t);
+    else if (e.filter === 'external') this.external(c, W, 0, gyAt, t);
+    if (e.heater) this.heater(c, W, gyAt, t);
+    if (e.co2 === 'tank') this.diffuser(c, W * 0.2, gyAt(W * 0.2), true, t);
+    if (e.air) this.airstone(c, W * 0.115, gyAt(W * 0.115), t);
+    c.restore();
+  },
+
+  /** Cam dışı: armatür, hortumlar, CO₂ tüpü, hava pompası. */
+  drawOutside(c, tank, v, t) {
+    const e = tank.scape.equip, W = tank.W, H = tank.H, on = tank.light > 0.2, pw = tank.lightPower;
+    // — LED armatür: iki çelik askı + alüminyum gövde + LED sırası + ışık hüzmesi
+    { const lx0 = W * 0.12, lx1 = W * 0.88, ly = -64, lw = lx1 - lx0;
+      c.strokeStyle = 'rgba(190,200,205,.55)'; c.lineWidth = 3; for (const hx of [lx0 + lw * 0.12, lx1 - lw * 0.12]) { c.beginPath(); c.moveTo(hx, ly); c.lineTo(hx, ly - 900); c.stroke(); }
+      const g = c.createLinearGradient(0, ly, 0, ly + 50); g.addColorStop(0, '#4d5a61'); g.addColorStop(0.3, '#cfd8dc'); g.addColorStop(0.55, '#7f8d94'); g.addColorStop(1, '#232d32');
+      c.fillStyle = g; c.beginPath(); c.roundRect(lx0, ly, lw, 50, 14); c.fill(); c.fillStyle = '#10171a'; c.beginPath(); c.roundRect(lx0 + 14, ly + 34, lw - 28, 12, 6); c.fill();
+      const n = Math.max(8, Math.floor(lw / 46)); for (let i = 0; i < n; i++) { const lx = lx0 + 26 + (i + 0.5) * (lw - 52) / n; c.fillStyle = on ? `rgba(255,248,225,${0.55 + 0.4 * pw})` : 'rgba(95,105,110,.8)'; c.fillRect(lx - 7, ly + 36, 14, 8); }
+      c.fillStyle = '#10171a'; c.beginPath(); c.roundRect(lx1 - 70, ly + 8, 46, 20, 6); c.fill(); c.fillStyle = on ? '#6ef2a0' : '#3a4a44'; c.beginPath(); c.arc(lx1 - 56, ly + 18, 4, 0, TAU); c.fill(); c.fillStyle = '#ffb04a'; c.beginPath(); c.arc(lx1 - 42, ly + 18, 4, 0, TAU); c.fill();
+      if (on && !v.dry) { const bg = c.createLinearGradient(0, ly + 50, 0, 70); bg.addColorStop(0, `rgba(255,245,220,${0.22 * pw})`); bg.addColorStop(1, 'rgba(255,245,220,0)'); c.fillStyle = bg; c.beginPath(); c.moveTo(lx0 + 20, ly + 46); c.lineTo(lx1 - 20, ly + 46); c.lineTo(lx1, 70); c.lineTo(lx0, 70); c.fill(); }
+    }
+    const base = H;                                                                                  // sehpa üstü
+    // — dış filtre: tank arkasından sehpaya inen iki hortum + sehpa üstünde kutu görünümü
+    if (e.filter === 'external') {
+      const hx1 = W + 34, hx2 = W + 66, hose = (x) => { c.strokeStyle = '#1b2327'; c.lineWidth = 14; c.beginPath(); c.moveTo(W - (x === hx1 ? 34 : 110), -6); c.lineTo(W - (x === hx1 ? 34 : 110), -26); c.quadraticCurveTo(x + 8, -34, x, 10); c.lineTo(x, base + 60); c.stroke(); c.strokeStyle = 'rgba(255,255,255,.14)'; c.lineWidth = 3; c.setLineDash([6, 8]); c.stroke(); c.setLineDash([]); };
+      hose(hx1); hose(hx2); c.fillStyle = '#10171a'; c.beginPath(); c.arc(hx1, base + 64, 8, 0, TAU); c.arc(hx2, base + 64, 8, 0, TAU); c.fill();
+    }
+    // — CO₂ tüpü + regülatör + kabarcık sayacı (tank solunda, sehpa üstünde)
+    if (e.co2 === 'tank') {
+      const cx = -112, cy = base;
+      const tg = c.createLinearGradient(cx - 34, 0, cx + 34, 0); tg.addColorStop(0, '#6a1717'); tg.addColorStop(0.35, '#d34040'); tg.addColorStop(1, '#4d1010'); c.fillStyle = tg; c.beginPath(); c.roundRect(cx - 34, cy - 330, 68, 330, [30, 30, 6, 6]); c.fill();
+      c.fillStyle = '#c9d0d3'; c.fillRect(cx - 14, cy - 352, 28, 24);
+      const rg = c.createLinearGradient(cx - 30, 0, cx + 30, 0); rg.addColorStop(0, '#8a6a1c'); rg.addColorStop(0.5, '#e7c34f'); rg.addColorStop(1, '#6c5314'); c.fillStyle = rg; c.beginPath(); c.roundRect(cx - 28, cy - 400, 56, 52, 8); c.fill();
+      c.fillStyle = '#10171a'; c.beginPath(); c.arc(cx - 40, cy - 372, 16, 0, TAU); c.fill(); c.fillStyle = '#f1f5f6'; c.beginPath(); c.arc(cx - 40, cy - 372, 13, 0, TAU); c.fill(); c.strokeStyle = '#c33'; c.lineWidth = 2; c.beginPath(); c.moveTo(cx - 40, cy - 372); c.lineTo(cx - 36, cy - 382); c.stroke();
+      c.strokeStyle = 'rgba(235,240,245,.65)'; c.lineWidth = 5; c.beginPath(); c.moveTo(cx + 28, cy - 378); c.lineTo(cx + 62, cy - 378); c.quadraticCurveTo(cx + 90, cy - 378, cx + 92, cy - 440); c.lineTo(cx + 92, -10); c.lineTo(W * 0.2 - 72, -10); c.stroke();      // CO₂ hortumu
+      c.fillStyle = 'rgba(200,235,245,.5)'; c.beginPath(); c.roundRect(cx + 82, cy - 330, 20, 46, 6); c.fill(); c.fillStyle = 'rgba(255,255,255,.8)'; for (let i = 0; i < 3; i++) { const by = cy - 296 - ((t * 24 + i * 13) % 34); c.beginPath(); c.arc(cx + 92, by, 2.4, 0, TAU); c.fill(); }   // sayaç
+    }
+    // — hava pompası (tankın sağında, sehpa üstünde)
+    if (e.air) {
+      const ax = W + 120, ay = base;
+      const g = c.createLinearGradient(0, ay - 70, 0, ay); g.addColorStop(0, '#2c383e'); g.addColorStop(1, '#10171a'); c.fillStyle = g; c.beginPath(); c.roundRect(ax - 52, ay - 70, 104, 70, 12); c.fill(); c.fillStyle = 'rgba(255,255,255,.15)'; c.fillRect(ax - 44, ay - 62, 88, 3);
+      c.fillStyle = '#10171a'; for (let i = 0; i < 5; i++) c.fillRect(ax - 36 + i * 16, ay - 38, 8, 22); c.fillStyle = '#6ef2a0'; c.beginPath(); c.arc(ax + 36, ay - 54, 3.2, 0, TAU); c.fill();
+      c.strokeStyle = 'rgba(235,240,245,.6)'; c.lineWidth = 4; c.beginPath(); c.moveTo(ax - 20, ay - 70); c.lineTo(ax - 20, -22); c.lineTo(W * 0.115, -22); c.lineTo(W * 0.115, -4); c.stroke();
+    }
+  },
+};
+
+/* Tank'a bağla: eski drawEquip yerine yenisi; armatür ve dış parçalar render sonrasında çizilir. */
+Tank.prototype.drawEquip = function (ctx, t) { EquipArt.drawInside(ctx, this.scape.equip, this.W, this.H, (x) => this.ground(x), t); };
+Tank.prototype.drawEquipOutside = function (ctx, v) { EquipArt.drawOutside(ctx, this, v, this.t); };
 
 </script>
 </body>

@@ -200,7 +200,7 @@ class Tank {
     // duvarda hafif doku/ışık
     const wl = ctx.createRadialGradient((L + Rr) / 2, T, 10, (L + Rr) / 2, T, Math.max(cw, ch)); wl.addColorStop(0, `rgba(120,200,210,${0.16 * (1 - night * 0.7)})`); wl.addColorStop(1, 'rgba(120,200,210,0)'); ctx.fillStyle = wl; ctx.fillRect(0, 0, cw, ch);
     if (B < ch + 4) { // sehpa
-      const sw = 14 * S, x0 = L - 12 * S, x1 = Rr + 12 * S, y0 = B + 4 * S;
+      const sw = 14 * S, x0 = L - 190 * S, x1 = Rr + 190 * S, y0 = B + 4 * S;
       ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(x0 + 6 * S, y0 - 2, x1 - x0, 10 * S + 6);                           // tank altı gölge
       const wood = ctx.createLinearGradient(0, y0, 0, y0 + 40 * S); wood.addColorStop(0, '#7a5232'); wood.addColorStop(0.1, '#5e3e26'); wood.addColorStop(1, '#3a2617');
       ctx.fillStyle = wood; ctx.fillRect(x0, y0, x1 - x0, Math.max(0, ch - y0));                                              // dolap gövdesi
@@ -286,8 +286,7 @@ class Tank {
     }
     ctx.restore();
     ctx.restore();
-    // armatür (hava boşluğunda)
-    { const lp = sc.equip.light, lx0 = W * 0.14, lx1 = W * 0.86; ctx.fillStyle = '#1b262c'; ctx.beginPath(); ctx.roundRect(lx0, -14, lx1 - lx0, 16, 5); ctx.fill(); const on = this.light > 0.2; ctx.fillStyle = on ? `rgba(255,248,225,${0.5 + 0.4 * this.lightPower})` : 'rgba(80,90,95,.6)'; ctx.fillRect(lx0 + 10, -2, lx1 - lx0 - 20, 3); if (on && !v.dry) { const g = ctx.createLinearGradient(0, 2, 0, 40); g.addColorStop(0, `rgba(255,245,220,${0.18 * this.lightPower})`); g.addColorStop(1, 'rgba(255,245,220,0)'); ctx.fillStyle = g; ctx.fillRect(lx0, 2, lx1 - lx0, 38); } }
+    this.drawEquipOutside(ctx, v);                                         // armatür, hortumlar, tüp, pompa (cam dışı)
     if (!v.dry) {
       for (const cl of this.clutches || []) { const r = new RNG(Math.floor(cl.x) + cl.n); for (let i = 0, n = Math.min(26, 8 + cl.n / 5); i < n; i++) { ctx.fillStyle = `rgba(255,${120 + (i * 13) % 50},${160 + (i * 7) % 40},.92)`; ctx.beginPath(); ctx.arc(cl.x + r.float(-14, 14), 15 - r.float(0, 7) * 0.5, r.float(2, 3.4), 0, TAU); ctx.fill(); } }
       for (const c of this.creatures) if (c.nestUntil > this.minute && c.sex === 'M') { const r = new RNG(c.id); ctx.strokeStyle = 'rgba(240,250,255,.8)'; ctx.fillStyle = 'rgba(255,255,255,.35)'; for (let i = 0; i < 18; i++) { const bx = c.sw.x + r.float(-26, 26), br = r.float(2.5, 5); ctx.beginPath(); ctx.arc(bx, 29 + r.float(-2, 4), br, 0, TAU); ctx.fill(); ctx.stroke(); } }

@@ -100,6 +100,14 @@ const Art = {
 
   /* ---------------- Bitki çizimi ---------------- */
   /** env: {flow (0..1.5), ground(worldX)->y, t, light, fry} ; it.g büyüme, it.s ölçek, it.tint kırmızılaşma, it.vert uzama */
+  /** Yaprak bıçağı: tabandan uca, genişliği ortada en fazla; gradyan + orta damar + ince kenar + yan damarlar. */
+  blade(c, L, wd, col, bend = 0, veins = 0) {
+    const gr = c.createLinearGradient(0, 0, 0, -L); gr.addColorStop(0, col(-14)); gr.addColorStop(0.55, col(0)); gr.addColorStop(1, col(10));
+    c.fillStyle = gr; c.beginPath(); c.moveTo(0, 0); c.bezierCurveTo(-wd, -L * 0.25, -wd * 0.8 + bend, -L * 0.7, bend, -L); c.bezierCurveTo(wd * 0.8 + bend, -L * 0.7, wd, -L * 0.25, 0, 0); c.fill();
+    c.strokeStyle = col(-18, 0.55); c.lineWidth = 1; c.stroke();
+    c.strokeStyle = col(20, 0.5); c.lineWidth = Math.max(1, wd * 0.07); c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(bend * 0.3, -L * 0.5, bend, -L); c.stroke();
+    if (veins) { c.strokeStyle = col(10, 0.28); c.lineWidth = 0.8; for (let v = 1; v <= veins; v++) { const f = v / (veins + 1), yy = -L * f, xx = bend * f * f; c.beginPath(); c.moveTo(xx, yy); c.quadraticCurveTo(xx - wd * 0.4, yy - L * 0.06, xx - wd * 0.62 * Math.sin(Math.PI * f), yy - L * 0.12); c.moveTo(xx, yy); c.quadraticCurveTo(xx + wd * 0.4, yy - L * 0.06, xx + wd * 0.62 * Math.sin(Math.PI * f), yy - L * 0.12); c.stroke(); } }
+  },
   drawPlant(c, it, def, x, y, env) {
     const t = env.t, g = it.g ?? 1, hs = lerp(0.3, 1, clamp(g, 0, 1)) * (it.s || 1) * (it.vert || 1) * (def.type === 'stem' || def.type === 'ribbon' ? (it.ht || 1) : 1), seed = it.seed || 1, fl = 0.35 + 0.65 * env.flow;
     let [ph, ps, pl] = def.col; const tint = it.tint || 0; if (def.red && tint > 0) { ph = hueLerp(ph, def.col[0] < 60 ? 350 : 5, tint * 0.9); ps = lerp(ps, 62, tint); pl = lerp(pl, 40, tint * 0.4); }
@@ -120,9 +128,7 @@ const Art = {
       for (let i = 0; i < n; i++) {
         const a = -Math.PI / 2 + (i - (n - 1) / 2) * (1.9 / n) + sway(1, i), L = def.h * hs * (0.5 + 0.5 * hz(i + 3)), wd = Math.max(5, def.w * hs * 0.1);
         const tx = x + Math.cos(a) * L, ty = y + Math.sin(a) * L * 0.95, mx = x + Math.cos(a) * L * 0.55 + (i % 2 ? 5 : -5), my = y + Math.sin(a) * L * 0.55;
-        const gr = c.createLinearGradient(x, y, tx, ty); gr.addColorStop(0, col(-8)); gr.addColorStop(1, col(8));
-        c.fillStyle = gr; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(mx - wd, my, tx, ty); c.quadraticCurveTo(mx + wd, my, x, y); c.fill();
-        c.strokeStyle = col(18, 0.45); c.lineWidth = 1; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(mx, my, tx, ty); c.stroke();
+        c.save(); c.translate(x, y); c.rotate(Math.atan2(ty - y, tx - x) + Math.PI / 2); this.blade(c, Math.hypot(tx - x, ty - y), wd * 1.5, col, (i % 2 ? 1 : -1) * 4, 4); c.restore();
       }
     } else if (def.type === 'stem') {
       const stems = it.stems || 3;
@@ -154,7 +160,7 @@ const Art = {
       for (let i = 0; i < n; i++) {
         const a = -Math.PI / 2 + (i - (n - 1) / 2) * 0.46 + sway(1, i), L = def.h * hs * (0.62 + 0.38 * hz(i + 9));
         c.save(); c.translate(x, y); c.rotate(a + Math.PI / 2);
-        if (def.sub === 'fern') { c.strokeStyle = col(2 + (i % 3) * 3); c.lineWidth = 6 * Math.min(1, hs + 0.2); c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(5, -L * 0.5, 0, -L); c.stroke(); c.strokeStyle = col(14, 0.4); c.lineWidth = 1.2; c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(5, -L * 0.5, 0, -L); c.stroke(); }
+        if (def.sub === 'fern') { this.blade(c, L, Math.max(7, L * 0.085), col, (i % 2 ? 1 : -1) * L * 0.05, 5); }
         else { const gr = c.createLinearGradient(0, 0, 0, -L); gr.addColorStop(0, col(-10)); gr.addColorStop(1, col(8)); c.strokeStyle = col(-14); c.lineWidth = 2; c.beginPath(); c.moveTo(0, 0); c.lineTo(0, -L * 0.45); c.stroke(); c.fillStyle = gr; c.beginPath(); c.ellipse(0, -L * 0.72, L * (def.sub === 'wavy' ? 0.16 : 0.22), L * 0.3, 0, 0, TAU); c.fill(); c.strokeStyle = 'rgba(190,255,180,.25)'; c.lineWidth = 1; c.beginPath(); c.moveTo(0, -L * 0.42); c.lineTo(0, -L * 1.0); c.stroke(); }
         c.restore();
       }
