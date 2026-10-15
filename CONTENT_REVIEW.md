@@ -27,5 +27,5 @@ Yapay zekâ ile üretilen içerik yayından önce konuya hâkim bir kişi taraf�
 - [x] Site adı: Lepistes Rehberi.
 - [ ] Alan adı ve `astro.config.mjs` `site` değeri ayarlandı (şimdilik `https://example.com`).
 - [x] Lisans seçildi: kod MIT, içerik CC BY-SA 4.0 (`LICENSE`, `LICENSE-CONTENT.md`).
-- [ ] CC BY-SA 4.0 resmî `legalcode` metni depoya eklendi (creativecommons.org bu ortamda erişilemedi).
+- [x] CC BY-SA 4.0 lisans metni depoda (`LICENSE-CC-BY-SA-4.0.txt`, SPDX kaydından). İsteğe bağlı: resmî `legalcode` sayfasıyla karşılaştırın.
 - [ ] Görseller telifli değil; atıflar `credits` içinde.

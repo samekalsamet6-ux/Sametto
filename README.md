@@ -104,7 +104,7 @@ Yayından önce:
 ## Lisans
 
 - **Kaynak kod:** [MIT](LICENSE).
-- **İçerik** (rehber, wiki, diyagramlar, simgeler, veri dosyaları, belgeler): [CC BY-SA 4.0](LICENSE-CONTENT.md) — atıf verin, uyarlamayı aynı lisansla paylaşın.
+- **İçerik** (rehber, wiki, diyagramlar, simgeler, veri dosyaları, belgeler): [CC BY-SA 4.0](LICENSE-CONTENT.md) (tam metin: [`LICENSE-CC-BY-SA-4.0.txt`](LICENSE-CC-BY-SA-4.0.txt)) — atıf verin, uyarlamayı aynı lisansla paylaşın.
 - Telif hakkı sahibi: “Lepistes Rehberi katkıcıları”. Site adı: **Lepistes Rehberi**.
 - Üçüncü taraf kaynaklar bu lisansların dışındadır ([Kaynaklar](src/data/kaynaklar.json)). Lisans metinleri hukuki tavsiye değildir.
 

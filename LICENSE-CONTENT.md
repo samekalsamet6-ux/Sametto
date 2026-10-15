@@ -18,11 +18,12 @@ Kaynak kod için `LICENSE` (MIT) geçerlidir.
 - **Benzer şekilde paylaşmalısınız:** Uyarlamanızı aynı lisansla (CC BY-SA 4.0) yayımlamalısınız.
 - Lisans, içerikte **alıntılanan veya özetlenen üçüncü taraf kaynakların** (makaleler, veri tabanları, hobi siteleri) haklarını kapsamaz; onlar kendi sahiplerine aittir. Olgular ve bilimsel bulgular telif konusu değildir, ancak kaynakların metinleri ve görselleri öyledir.
 
-## Resmî lisans metni
-Lisansın tam ve bağlayıcı metni: <https://creativecommons.org/licenses/by-sa/4.0/legalcode>
+## Lisans metni
+Lisansın tam metni bu depoda: [`LICENSE-CC-BY-SA-4.0.txt`](LICENSE-CC-BY-SA-4.0.txt).
+Resmî adresi: <https://creativecommons.org/licenses/by-sa/4.0/legalcode>
 Okunaklı özet: <https://creativecommons.org/licenses/by-sa/4.0/deed.tr>
 
-> Not: Bu depoyu hazırlarken bulunulan ortamda creativecommons.org erişime kapalıydı; bu yüzden resmî lisans metni bu dosyaya gömülmedi. Yayından önce `legalcode` metnini bu dosyanın yanına kopyalamanız (örn. `LICENSE-CC-BY-SA-4.0.txt`) önerilir.
+> Kaynak notu: Metin, SPDX lisans listesindeki "CC-BY-SA-4.0" kaydından (npm paketi `spdx-license-list` 6.12.0) alınmıştır; çünkü yazılırken creativecommons.org'a erişilemiyordu. SPDX metni Creative Commons'ın yayımladığı lisans metnini izler, ancak resmî sayfayla birebir karşılaştırılmadı. Kesinlik gerekiyorsa yukarıdaki resmî adresle karşılaştırın.
 
 ## Önerilen atıf biçimi
 > "<Sayfa başlığı>", Lepistes Rehberi katkıcıları, CC BY-SA 4.0. <sayfa adresi>

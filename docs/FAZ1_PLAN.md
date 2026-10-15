@@ -44,7 +44,8 @@ Kaynak görev tanımı: `LEPISTES_SITE_PROMPT.md`
 - [x] E2E: 36 senaryo × 2 görünüm = 72 test (araçlar, sorun giderme, quiz, gezinti, arama)
 - [x] Kaynak araştırması ve düzeltmeler: docs/DOGRULAMA.md; 13 araç; 98 E2E testi
 - [x] Lisans: kod MIT, içerik CC BY-SA 4.0; site adı: Lepistes Rehberi; hak sahibi: Lepistes Rehberi katkıcıları
-- [ ] Faz 10 kalan: alan adı ve `site` değeri, CC legalcode metni
+- [x] CC BY-SA 4.0 lisans metni depoya eklendi
+- [ ] Faz 10 kalan: alan adı ve `site` değeri
 
 ## Doğrulama gerektiren konular (⚠)
 Sıcaklık/pH/GH/KH aralıkları, gebelik süresi–sıcaklık, doğum başına yavru sayısı, olgunlaşma yaşı, kalıtım tipleri (özellik bazında), tuz banyosu dozları. Bunlar kaynakla teyit edilmeden sayısal olarak yazılmayacak; mevcut sayfalarda `needs_verification: true` ile işaretlidir.
