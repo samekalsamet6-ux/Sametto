@@ -134,3 +134,9 @@ Bu bir **debug** APK'dır. Play Store için imzalı AAB ayrıca yapılandırılm
 1. **Actions → "Keystore üret (tek seferlik)" → Run workflow.** Biten çalıştırmadan `akvaryum-anahtar-GIZLI` dosyasını indir (3 gün saklanır; ilk çalıştırma dosya push edilince otomatik başlar); `anahtar-bilgileri.txt`, `akvaryum.jks.b64` ve `akvaryum.jks` içerir. **Güvenli bir yere yedekle.**
 2. **Settings → Secrets and variables → Actions** altında 4 gizli anahtar ekle: `KEYSTORE_B64` (b64 dosyasının içeriği), `KEYSTORE_PASSWORD`, `KEY_ALIAS` (`akvaryum`), `KEY_PASSWORD`.
 3. **Actions → "Android Release" → Run workflow.** Test modu otomatik kapanır (gerçek reklamlar); çıktı `akvaryum-release` içinde `.aab` (Play'e yüklenir) ve `.apk` (cihaza kurulabilir) olur. Sürüm kodu her çalıştırmada artar.
+
+## Mağaza dosyaları (`docs/`)
+- `docs/index.html`: gizlilik politikası sayfası (GitHub Pages ile yayınlanır: Settings → Pages → Branch `claude/new-session-m0dtk5`, klasör `/docs`).
+- `docs/store/`: Play Store listesi metinleri (TR/EN), 512 px simge, 1024×500 öne çıkan görsel, telefon ekran görüntüleri.
+- `resources/`: uygulama simgesi (ön/arka plan uyarlanabilir) ve açılış ekranı. Oyunun kendi balık çizimiyle üretildi.
+- Hedef API 36 gerektiği için proje Capacitor 8, Java 21 ve Node 22 kullanır.
