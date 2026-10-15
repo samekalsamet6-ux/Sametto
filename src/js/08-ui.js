@@ -335,6 +335,7 @@ const UI = {
           h('button.btn.coral', { onclick: () => UI.confirm(`${c.name} satılsın mı?`, `${fmt(c.value())} Altın Pul kazanacaksın.`, () => { if (Game.sell(c)) rec.close(); }) }, icon('sell'), 'Sat · ' + fmt(c.value())),
           h('button.btn', { onclick: () => UI.openTree(c) }, icon('dna'), 'Soyağacı'),
           h('button.btn', { onclick: () => { Chem.quarantine(c, true); rec.close(); UI.refreshAq(); } }, icon('heart'), 'Karantina'),
+          typeof Tanks !== 'undefined' && Tanks.count() > 1 ? h('button.btn', { onclick: () => UI.moveSheet(c, rec) }, icon('tank'), 'Tanka taşı') : null,
           h('button.btn.ghost', { onclick: () => nameIn.focus() }, icon('edit'), 'Adlandır'))].filter(Boolean));
     };
     build();

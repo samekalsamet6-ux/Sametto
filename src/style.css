@@ -269,3 +269,13 @@ details.card summary{list-style:none}
 .f3-row{display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap}
 .f3-btn{pointer-events:auto;min-width:34px;min-height:28px;padding:2px 8px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(4,22,32,.55);backdrop-filter:blur(6px);color:var(--text,#e6f7fa);font-size:12px;cursor:pointer}
 .f3-btn:active{transform:scale(.94)}
+
+/* ---- Çoklu tank ---- */
+.tank-slider{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 8px;-webkit-overflow-scrolling:touch;position:relative}
+.tank-slider .tank-card{flex:0 0 88%;scroll-snap-align:center;margin:0}
+.tank-slider .tank-card.alt{cursor:pointer;overflow:hidden;border-radius:18px;background:var(--panel,rgba(8,40,56,.7));border:1px solid var(--panel-b,rgba(255,255,255,.15))}
+.tank-slider .tank-card.alt .tc-img{height:150px;overflow:hidden}
+.tank-slider .tank-card.alt.add{flex:0 0 46%;display:flex;flex-direction:column;justify-content:center}
+.tank-mgr{position:absolute;right:10px;top:-34px}
+.tank-hint{position:absolute;left:4px;bottom:-4px;display:none}
+.tanks-sheet .card.row{gap:10px;align-items:center}

@@ -66,6 +66,8 @@ src/js/
   23-music-link.js     müzik bağlamı: sezon, tank içeriği, hava durumu, yarışma ruh hali
   25-fish3d.js         3D balık: WebGL, sprite'tan şişirilmiş ağ, omurga dalga animasyonu, poz makinesi, portrelerde
   26-devgate.js        Geliştirici paneli şifre kilidi
+  28-tanks.js          çoklu tank: raflar, tank geçişi, balık taşıma (su şoku), kayıt
+  28b-tanks-ui.js      Merkez tank kaydırıcısı, Tanklarım penceresi, taşıma penceresi
   27-equip-art.js      ekipman çizimleri (filtre, ısıtıcı, difüzör, armatür…)
   24-depth.js         Genetik Defter tahminleri, gizli varyasyonlar, hat bonusu, ek başarımlar, koleksiyon ödülleri
 ```

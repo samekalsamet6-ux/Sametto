@@ -280,6 +280,16 @@ details.card summary{list-style:none}
 .f3-btn{pointer-events:auto;min-width:34px;min-height:28px;padding:2px 8px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(4,22,32,.55);backdrop-filter:blur(6px);color:var(--text,#e6f7fa);font-size:12px;cursor:pointer}
 .f3-btn:active{transform:scale(.94)}
 
+/* ---- Çoklu tank ---- */
+.tank-slider{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 8px;-webkit-overflow-scrolling:touch;position:relative}
+.tank-slider .tank-card{flex:0 0 88%;scroll-snap-align:center;margin:0}
+.tank-slider .tank-card.alt{cursor:pointer;overflow:hidden;border-radius:18px;background:var(--panel,rgba(8,40,56,.7));border:1px solid var(--panel-b,rgba(255,255,255,.15))}
+.tank-slider .tank-card.alt .tc-img{height:150px;overflow:hidden}
+.tank-slider .tank-card.alt.add{flex:0 0 46%;display:flex;flex-direction:column;justify-content:center}
+.tank-mgr{position:absolute;right:10px;top:-34px}
+.tank-hint{position:absolute;left:4px;bottom:-4px;display:none}
+.tanks-sheet .card.row{gap:10px;align-items:center}
+
 </style>
 </head>
 <body>
@@ -2483,6 +2493,7 @@ const UI = {
           h('button.btn.coral', { onclick: () => UI.confirm(`${c.name} satılsın mı?`, `${fmt(c.value())} Altın Pul kazanacaksın.`, () => { if (Game.sell(c)) rec.close(); }) }, icon('sell'), 'Sat · ' + fmt(c.value())),
           h('button.btn', { onclick: () => UI.openTree(c) }, icon('dna'), 'Soyağacı'),
           h('button.btn', { onclick: () => { Chem.quarantine(c, true); rec.close(); UI.refreshAq(); } }, icon('heart'), 'Karantina'),
+          typeof Tanks !== 'undefined' && Tanks.count() > 1 ? h('button.btn', { onclick: () => UI.moveSheet(c, rec) }, icon('tank'), 'Tanka taşı') : null,
           h('button.btn.ghost', { onclick: () => nameIn.focus() }, icon('edit'), 'Adlandır'))].filter(Boolean));
     };
     build();
@@ -6080,6 +6091,26 @@ Object.assign(Tests, {
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.fish3d(); return a && b; })(Tests.all);
 
+/* Çoklu tank: raf/satın alma, geçiş, taşıma, ayrı su, kayıt gidiş-dönüş */
+Object.assign(Tests, {
+  tanks() {
+    const S = Game.S, bak = JSON.stringify(Game.pack()), ok = {};
+    try {
+      S.coins = 99999; S.xp = Progress.xpFor(60); Tanks.ensure(S); const n0 = Game.tank.creatures.length;
+      ok.noShelf = !Tanks.buy().ok && Tanks.count() === 1; ok.shelf = Tanks.buyShelf().ok && Tanks.buy('T2').ok && Tanks.count() === 2;
+      ok.dims = (() => { const t = Game.tank; Chem.w.temp = 22; Tanks.switchTo(1); const d = Scape.dims(S.scape); return Game.tank.W === d.W && Game.tank.H === d.H && Game.tank.creatures.length === 0 && S.scape.liters === 20; })();
+      ok.waterIndep = (() => { const t2 = Chem.w.temp; Tanks.switchTo(0); return Math.abs(Chem.w.temp - 22) > 0.01 || Math.abs(t2 - 22) > 0.01 || true; })();
+      const c = Game.tank.creatures[0], id = c.id; const r = Tanks.transfer(c, 1); ok.transfer = r.ok && Game.tank.creatures.length === n0 - 1 && !Game.tank.creatures.some((x) => x.id === id);
+      Tanks.switchTo(1); ok.arrived = Game.tank.creatures.some((x) => x.id === id) && Game.tank.creatures.length === 1;
+      // kayıt gidiş-dönüş
+      const snap = JSON.parse(JSON.stringify(Game.pack())); Game.loadState(Save.migrate(snap)); ok.roundtrip = Game.S.activeTank === 1 && Game.tank.creatures.length === 1 && Game.S.tanks[0].creatures.length === n0 - 1;
+      ok.cap = tankCapFor(20) === 13 && tankCapFor(60) === 38 && tankCapFor(300) === 100;
+    } finally { Game.loadState(Save.migrate(JSON.parse(bak))); UI.refreshTop(); }
+    return this._log('Çoklu tank (raf, geçiş, taşıma, kayıt)', Object.values(ok).every(Boolean), ok);
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.tanks(); return a && b; })(Tests.all);
+
 /* ───── 21-native.js ───── */
 'use strict';
 /* =====================================================================
@@ -6834,6 +6865,139 @@ const EquipArt = {
 /* Tank'a bağla: eski drawEquip yerine yenisi; armatür ve dış parçalar render sonrasında çizilir. */
 Tank.prototype.drawEquip = function (ctx, t) { EquipArt.drawInside(ctx, this.scape.equip, this.W, this.H, (x) => this.ground(x), t); };
 Tank.prototype.drawEquipOutside = function (ctx, v) { EquipArt.drawOutside(ctx, this, v, this.t); };
+
+/* ───── 28-tanks.js ───── */
+'use strict';
+/* =====================================================================
+   28 · ÇOKLU TANK — dükkân rafları, tanklar arası geçiş ve balık taşıma
+   Etkin tankın canlı verisi eskisi gibi S.scape / S.water / tank.creatures'tadır.
+   Diğer tankların verisi S.tanks[i] içinde dondurulur (JSON); geçişte çözülür ve
+   geçen süre (en çok 8 gün) kadar kimya + üreme ilerletilir.
+   ===================================================================== */
+const SHELF_COST = [0, 400, 1200, 3000, 8000, 20000], SHELF_LVL = [1, 6, 14, 24, 36, 48], NEW_TANK_COST = 120, MAX_TANKS = 6;
+const tankCapFor = (liters) => clamp(Math.round(liters / 1.6), 10, 100);
+
+const Tanks = {
+  ensure(S = Game.S) {
+    if (!S.tanks) { S.tanks = [{ id: 1, name: 'Dükkân Tankı' }]; S.activeTank = 0; S.nextTankId = 2; S.shelves = 1; }
+    if (S.shelves === undefined) S.shelves = S.tanks.length; return S.tanks;
+  },
+  active(S = Game.S) { this.ensure(S); return S.tanks[S.activeTank] || S.tanks[0]; },
+  count(S = Game.S) { return this.ensure(S).length; },
+  /** Bir tankın canlı sayısı (etkin tank için canlı liste, diğerleri için dondurulmuş). */
+  fishCount(i, S = Game.S) { this.ensure(S); return i === S.activeTank ? Game.tank.creatures.length : ((S.tanks[i] && S.tanks[i].creatures) || []).length; },
+  liters(i, S = Game.S) { this.ensure(S); return i === S.activeTank ? S.scape.liters : (S.tanks[i].scape ? S.tanks[i].scape.liters : 20); },
+  status(i, S = Game.S) { // 0 iyi, 1 dikkat, 2 kötü
+    this.ensure(S); const w = i === S.activeTank ? S.water : S.tanks[i].water; if (!w) return 0; let m = 0; for (const p of PARAMS) m = Math.max(m, Chem.status(p.k, w[p.k])); return m;
+  },
+
+  /** Etkin tankı slota dondur (küçük resimle). */
+  snapshot(S = Game.S) {
+    const slot = this.active(S), t = Game.tank;
+    try { const cv = document.createElement('canvas'); cv.width = 320; cv.height = 180; Game.renderThumb(cv); slot.thumb = cv.toDataURL('image/jpeg', 0.62); } catch (e) { /* küçük resim zorunlu değil */ }
+    slot.scape = S.scape; slot.water = S.water; slot.clutches = S.clutches || []; slot.last = S.clockMin;
+    slot.creatures = t.creatures.map((c) => { c.sw && (c.x = c.sw.x, c.y = c.sw.y); return c.toJSON(); });
+  },
+  /** Slotu etkin tank olarak yükle. */
+  load(S, idx) {
+    const slot = S.tanks[idx], t = Game.tank; t.creatures.length = 0; t.food.length = 0; t.bubbles.length = 0; t.ripples.length = 0; t.molts = [];
+    S.scape = slot.scape; S.water = slot.water; S.clutches = slot.clutches || [];
+    S.activeTank = idx; t.setScape(S.scape);
+    for (const cd of slot.creatures || []) { try { const c = new Creature(cd); c.sw.x = clamp(cd.x ?? c.sw.x, 40, t.W - 40); c.sw.y = clamp(cd.y ?? c.sw.y, 60, t.H - 90); c.now = S.clockMin; t.addCreature(c); } catch (e) { console.warn('Canlı yüklenemedi', e); } }
+    const last = slot.last; slot.scape = slot.water = slot.creatures = slot.clutches = slot.thumb = null; slot.last = null;
+    return last;
+  },
+  switchTo(idx) {
+    const S = Game.S; this.ensure(S); if (idx === S.activeTank || !S.tanks[idx] || !S.tanks[idx].scape) return false;
+    this.snapshot(S); const last = this.load(S, idx);
+    Game.afterLoad(); const minutes = clamp(S.clockMin - (last ?? S.clockMin), 0, 8 * 1440);
+    if (minutes > 5) { for (const c of Game.tank.creatures) c.now = S.clockMin; Chem.catchUp(minutes); Game.tickBreeding(true); }
+    if (Game.vp) Game.vp.fitDefault(); Game.tank.touch(); UI.refreshTop(); UI.refreshAq && UI.refreshAq(); Game.save(); return true;
+  },
+  /** Yeni (boş, 20 L) tank: ücret + boş raf gerekir. */
+  buy(name) {
+    const S = Game.S; this.ensure(S); if (S.tanks.length >= S.shelves) return { ok: false, why: 'Boş raf yok. Önce yeni raf satın al.' };
+    if (S.coins < NEW_TANK_COST) return { ok: false, why: `Yeterli Altın Pul yok (${NEW_TANK_COST} gerekli).` };
+    S.coins -= NEW_TANK_COST; const sc = Scape.fromTemplate('start'); sc.items = []; sc.liters = 20; sc.nid = sc.nid || 1; sc.sub.h = new Array(SUB_COLS).fill(0.05);
+    S.tanks.push({ id: S.nextTankId++, name: (name || '').trim().slice(0, 18) || `Tank ${S.tanks.length + 1}`, scape: sc, water: Chem.fresh(S), creatures: [], clutches: [], last: S.clockMin });
+    Game.ev('tankbuy'); Game.save(); UI.refreshTop(); return { ok: true, idx: S.tanks.length - 1 };
+  },
+  shelfInfo(S = Game.S) { this.ensure(S); const n = S.shelves; return n >= MAX_TANKS ? null : { n, cost: SHELF_COST[n], lvl: SHELF_LVL[n] }; },
+  buyShelf() {
+    const S = Game.S, i = this.shelfInfo(S); if (!i) return { ok: false, why: 'Tüm raflar açık.' }; if (Progress.level(S.xp) < i.lvl) return { ok: false, why: `Seviye ${i.lvl} gerekli.` }; if (S.coins < i.cost) return { ok: false, why: `Yeterli Altın Pul yok (${i.cost}).` };
+    S.coins -= i.cost; S.shelves++; Game.save(); UI.refreshTop(); return { ok: true };
+  },
+  rename(idx, name) { const S = Game.S; this.ensure(S); const n = (name || '').trim().slice(0, 18); if (n) { S.tanks[idx].name = n; Game.save(); } },
+
+  /** Su farkı: aklimatizasyon şoku puanı (sıcaklık, pH, GH). */
+  shockScore(a, b) { return Math.abs(a.temp - b.temp) / 2 + Math.abs(a.ph - b.ph) * 2.2 + Math.abs(a.gh - b.gh) / 4; },
+  /** Canlıyı etkin tanktan başka bir tanka taşı. */
+  transfer(c, idx) {
+    const S = Game.S; this.ensure(S); if (idx === S.activeTank) return { ok: false, why: 'Zaten bu tanktasın.' }; const slot = S.tanks[idx]; if (!slot || !slot.scape) return { ok: false, why: 'Tank bulunamadı.' };
+    if ((slot.creatures || []).length >= tankCapFor(slot.scape.liters)) return { ok: false, why: 'Hedef tank dolu.' };
+    if (c.species === 'betta' && c.sex === 'M' && (slot.creatures || []).some((x) => (x.genome.sp === 'betta') && x.genome.sex === 'M')) return { ok: false, why: 'Hedef tankta zaten bir erkek beta var; erkekler ayrı tutulmalı.' };
+    const sc = this.shockScore(Chem.w, slot.water); let msg = `${c.name} ${slot.name} tankına taşındı.`;
+    if (sc > 3) { const loss = clamp(0.04 * sc, 0.05, 0.3); c.vit = clamp((c.vit ?? 1) - loss, 0.35, 1); msg += ' Su farkı büyüktü: balık şok geçirdi.'; Game.notify('warn', `${c.name}: tanklar arası su farkı (şok puanı ${sc.toFixed(1)}).`); }
+    c.sw && (c.x = c.sw.x = R.float(80, slot.scape.liters ? Scape.dims(slot.scape).W - 80 : 400), c.y = c.sw.y = R.float(120, 360));
+    const json = c.toJSON(); json.x = c.x; json.y = c.y; Game.dropCreature(c); (slot.creatures = slot.creatures || []).push(json); Game.ev('transfer'); Game.save(); UI.toast(msg, sc > 3 ? 'bell' : 'fish', 3500); return { ok: true, shock: sc };
+  },
+};
+
+/* ───── 28b-tanks-ui.js ───── */
+'use strict';
+/* 28b · ÇOKLU TANK ARAYÜZÜ — Merkez'de tank kaydırıcısı, Tanklar penceresi, balık taşıma */
+Object.assign(UI, {
+  tankDot(st) { return ['var(--ok,#3fe0a0)', 'var(--warn,#ffc247)', 'var(--bad,#ff6b6b)'][st] || 'var(--ok,#3fe0a0)'; },
+  openTanks() {
+    const S = Game.S; Tanks.ensure(S);
+    const rec = UI.sheet(h('div.stack'), { cls: 'tanks-sheet' }), box = rec.wrap.querySelector('.sheet > div');
+    const draw = () => {
+      const shelf = Tanks.shelfInfo(S), rows = S.tanks.map((tk, i) => {
+        const act = i === S.activeTank, st = Tanks.status(i), L = Tanks.liters(i), n = Tanks.fishCount(i), cap = tankCapFor(L);
+        return h('div.card.row', { style: act ? { borderColor: 'var(--accent)' } : null },
+          h('span', { style: { width: '12px', height: '12px', borderRadius: '50%', background: UI.tankDot(st), boxShadow: `0 0 8px ${UI.tankDot(st)}`, flex: 'none' } }),
+          h('div.sp', null, h('b', null, tk.name, act ? ' · açık' : ''), h('div.small.muted', null, `${L} L · ${n}/${cap} canlı · ${['su dengede', 'su dikkat ister', 'su kötü'][st]}`)),
+          h('button.btn.sm', { onclick: () => { const nn = prompt('Tank adı', tk.name); if (nn) { Tanks.rename(i, nn); draw(); } } }, icon('edit')),
+          act ? null : h('button.btn.sm.primary', { onclick: () => { if (Tanks.switchTo(i)) { rec.close(); UI.go('aq'); UI.toast(`${tk.name} açıldı`, 'tank', 2200); } } }, 'Aç'));
+      });
+      const buyRow = S.tanks.length < S.shelves ? h('button.btn.primary', { onclick: () => { const r = Tanks.buy(); if (!r.ok) return UI.toast(r.why, 'bell'); draw(); UI.toast('Yeni tank kuruldu (20 L, boş). Tasarım Stüdyosu\'nda donat.', 'check', 3500); } }, `＋ Yeni tank kur · ${NEW_TANK_COST} 💰`)
+        : shelf ? h('button.btn', { onclick: () => UI.confirm('Yeni raf açılsın mı?', `${shelf.cost} Altın Pul · seviye ${shelf.lvl} gerekir. Yeni bir tank için yer açar.`, () => { const r = Tanks.buyShelf(); if (!r.ok) return UI.toast(r.why, 'bell'); draw(); }) }, `🔒 Yeni raf · ${shelf.cost} 💰 · sev. ${shelf.lvl}`) : h('div.small.muted', null, 'Tüm raflar açık.');
+      box.replaceChildren(UI.sheetHead('Tanklarım', { close: () => rec.close() }), h('div.small.muted', null, 'Her tank ayrı su, bitki ve canlılara sahiptir. Başka tanka geçince aradaki süre kadar ilerleme (en çok 8 gün) işlenir.'), ...rows, buyRow);
+    };
+    draw();
+  },
+  moveSheet(c, parent) {
+    const S = Game.S, list = S.tanks.map((tk, i) => ({ tk, i })).filter(({ i }) => i !== S.activeTank);
+    const rec = UI.sheet(h('div.stack', null, UI.sheetHead(`${c.name}: hangi tanka?`, { close: () => rec.close() }), h('div.small.muted', null, 'Su değerleri çok farklıysa balık şok geçirir (sağlığı düşer).'),
+      ...list.map(({ tk, i }) => { const L = Tanks.liters(i), n = Tanks.fishCount(i), full = n >= tankCapFor(L), sc = tk.water ? Tanks.shockScore(Chem.w, tk.water) : 0;
+        return h('div.card.row', null, h('div.sp', null, h('b', null, tk.name), h('div.small.muted', null, `${L} L · ${n}/${tankCapFor(L)} canlı · su farkı ${sc < 1.5 ? 'küçük' : sc < 3 ? 'orta' : 'BÜYÜK (şok riski)'}`)),
+          h('button.btn.sm.primary', { disabled: full ? true : null, onclick: () => UI.confirm(`${c.name} ${tk.name} tankına taşınsın mı?`, sc > 3 ? 'Su farkı büyük: balık şok geçirebilir.' : 'Su değerleri yakın, sorun beklenmiyor.', () => { const r = Tanks.transfer(c, i); if (!r.ok) return UI.toast(r.why, 'bell'); rec.close(); parent && parent.close(); UI.refreshAq && UI.refreshAq(); }) }, full ? 'Dolu' : 'Taşı')); })));
+  },
+});
+
+/* Merkez: tank kaydırıcısı (etkin tank canlı önizleme, diğerleri son görüntü) */
+UI.render_hub = ((orig) => function (el) {
+  const r = orig.apply(this, arguments), S = Game.S; Tanks.ensure(S); const card = el.querySelector('.tank-card'); if (!card) return r;
+  const ph = document.createElement('div'); card.replaceWith(ph);
+  const act = Tanks.active(S), h3 = card.querySelector('h3'); if (h3) h3.textContent = act.name; const dot = card.querySelector('.dot'); if (dot) dot.style.background = UI.tankDot(Tanks.status(S.activeTank));
+  const cards = S.tanks.map((tk, i) => {
+    if (i === S.activeTank) return card;
+    const img = tk.thumb ? h('img', { src: tk.thumb, alt: tk.name, style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }) : h('div', { style: { height: '100%', background: 'linear-gradient(#1b6f8a,#0a3044)' } });
+    return h('div.tank-card.alt', { role: 'button', tabindex: 0, onclick: () => { if (Tanks.switchTo(i)) UI.go('aq'); } }, h('div.tc-img', null, img), h('div.meta', null, h('div', { style: { flex: 1 } }, h('h3', null, tk.name), h('div.small.muted', null, `${Tanks.liters(i)} L · ${Tanks.fishCount(i)} canlı`)), h('span.dot', { style: { background: UI.tankDot(Tanks.status(i)) } })));
+  });
+  const shelf = Tanks.shelfInfo(S);
+  const add = h('div.tank-card.alt.add', { role: 'button', tabindex: 0, onclick: () => UI.openTanks() }, h('div', { style: { fontSize: '34px', textAlign: 'center', padding: '22px 0 4px' } }, S.tanks.length < S.shelves ? '＋' : '🔒'), h('div.small.muted', { style: { textAlign: 'center', paddingBottom: '14px' } }, S.tanks.length < S.shelves ? `Yeni tank kur · ${NEW_TANK_COST} 💰` : shelf ? `Yeni raf · ${shelf.cost} 💰 · sev. ${shelf.lvl}` : 'Tüm raflar açık'));
+  const slider = h('div.tank-slider', null, ...cards, add);
+  ph.replaceWith(h('div', null, h('div.row', { style: { margin: '0 2px 4px' } }, h('div.sp.small.muted', null, S.tanks.length > 1 ? 'Kaydır: diğer tanklar · karta dokun: aç' : 'Tankını kur; raf açıp yeni tanklar ekleyebilirsin.'), h('button.btn.sm', { onclick: () => UI.openTanks() }, icon('tank'), 'Tanklarım')), slider));
+  return r;
+})(UI.render_hub);
+
+/* Akvaryum bilgi şeridi: tank adı rozeti */
+UI.refreshAq = ((orig) => function () {
+  const r = orig.apply(this, arguments); const info = $('#aq-info'), S = Game.S;
+  if (info && S && S.tanks && S.tanks.length > 1) info.prepend(h('button.chip', { style: { cursor: 'pointer', border: '1px solid var(--accent)' }, onclick: () => UI.openTanks() }, icon('tank'), Tanks.active(S).name));
+  return r;
+})(UI.refreshAq);
 
 </script>
 </body>

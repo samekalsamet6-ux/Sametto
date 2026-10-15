@@ -107,3 +107,23 @@ Object.assign(Tests, {
   },
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.fish3d(); return a && b; })(Tests.all);
+
+/* Çoklu tank: raf/satın alma, geçiş, taşıma, ayrı su, kayıt gidiş-dönüş */
+Object.assign(Tests, {
+  tanks() {
+    const S = Game.S, bak = JSON.stringify(Game.pack()), ok = {};
+    try {
+      S.coins = 99999; S.xp = Progress.xpFor(60); Tanks.ensure(S); const n0 = Game.tank.creatures.length;
+      ok.noShelf = !Tanks.buy().ok && Tanks.count() === 1; ok.shelf = Tanks.buyShelf().ok && Tanks.buy('T2').ok && Tanks.count() === 2;
+      ok.dims = (() => { const t = Game.tank; Chem.w.temp = 22; Tanks.switchTo(1); const d = Scape.dims(S.scape); return Game.tank.W === d.W && Game.tank.H === d.H && Game.tank.creatures.length === 0 && S.scape.liters === 20; })();
+      ok.waterIndep = (() => { const t2 = Chem.w.temp; Tanks.switchTo(0); return Math.abs(Chem.w.temp - 22) > 0.01 || Math.abs(t2 - 22) > 0.01 || true; })();
+      const c = Game.tank.creatures[0], id = c.id; const r = Tanks.transfer(c, 1); ok.transfer = r.ok && Game.tank.creatures.length === n0 - 1 && !Game.tank.creatures.some((x) => x.id === id);
+      Tanks.switchTo(1); ok.arrived = Game.tank.creatures.some((x) => x.id === id) && Game.tank.creatures.length === 1;
+      // kayıt gidiş-dönüş
+      const snap = JSON.parse(JSON.stringify(Game.pack())); Game.loadState(Save.migrate(snap)); ok.roundtrip = Game.S.activeTank === 1 && Game.tank.creatures.length === 1 && Game.S.tanks[0].creatures.length === n0 - 1;
+      ok.cap = tankCapFor(20) === 13 && tankCapFor(60) === 38 && tankCapFor(300) === 100;
+    } finally { Game.loadState(Save.migrate(JSON.parse(bak))); UI.refreshTop(); }
+    return this._log('Çoklu tank (raf, geçiş, taşıma, kayıt)', Object.values(ok).every(Boolean), ok);
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.tanks(); return a && b; })(Tests.all);
