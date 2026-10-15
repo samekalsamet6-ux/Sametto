@@ -25,17 +25,18 @@ const Ads = {
   left() { return Math.max(0, BOOST_DAILY_CAP - this.ads().n); },
   enabled() { return !this.ads().off; },
   real() { const c = window.Capacitor; return !!(c && c.isNativePlatform && c.isNativePlatform() && c.Plugins && c.Plugins.AdMob); },
-  _init: null,
-  init(A) { return this._init || (this._init = A.initialize({ initializeForTesting: ADS_CFG.test, tagForChildDirectedTreatment: true, tagForUnderAgeOfConsent: true, maxAdContentRating: 'General' }).catch(() => {})); },
+  _init: null, lastErr: '',
+  err(e) { const m = e && (e.message || e.errorMessage || (e.code != null ? 'kod ' + e.code : '')) || (typeof e === 'string' ? e : ''); this.lastErr = String(m || 'bilinmeyen').slice(0, 90); return this.lastErr; },
+  init(A) { return this._init || (this._init = A.initialize({ initializeForTesting: ADS_CFG.test, tagForChildDirectedTreatment: true, tagForUnderAgeOfConsent: true, maxAdContentRating: 'General' }).catch((e) => { this.err(e); this._init = null; })); },
   /** Sağlayıcıdan 'ödül kazanıldı mı' sözü döner. */
   show() {
     if (this.real()) { // gerçek AdMob: ödül yalnızca 'Rewarded' olayı gelirse sayılır
       const A = Capacitor.Plugins.AdMob; let got = false, hs = [];
       return new Promise((res) => {
         const end = (v) => { hs.forEach((x) => x && x.remove && x.remove()); res(v); };
-        Promise.all([A.addListener('onRewardedVideoAdReward', () => { got = true; }), A.addListener('onRewardedVideoAdDismissed', () => end(got)), A.addListener('onRewardedVideoAdFailedToLoad', () => end(false)), A.addListener('onRewardedVideoAdFailedToShow', () => end(false))]).then((x) => { hs = x; })
-          .then(() => this.init(A)).then(() => A.prepareRewardVideoAd({ adId: ADS_CFG.unit, isTesting: ADS_CFG.test, npa: true })).then(() => A.showRewardVideoAd()).catch(() => end(false));
-      }).then((v) => { if (!v) UI.toast('Reklam şu an yüklenemedi, biraz sonra tekrar dene', 'bell', 3500); return v; });
+        Promise.all([A.addListener('onRewardedVideoAdReward', () => { got = true; }), A.addListener('onRewardedVideoAdDismissed', () => end(got)), A.addListener('onRewardedVideoAdFailedToLoad', (e) => { this.err(e); end(false); }), A.addListener('onRewardedVideoAdFailedToShow', (e) => { this.err(e); end(false); })]).then((x) => { hs = x; })
+          .then(() => this.init(A)).then(() => A.prepareRewardVideoAd({ adId: ADS_CFG.unit, isTesting: ADS_CFG.test, npa: true })).then(() => A.showRewardVideoAd()).catch((e) => { this.err(e); end(false); });
+      }).then((v) => { if (!v) UI.toast('Reklam yüklenemedi' + (this.lastErr ? ' (' + this.lastErr + ')' : '') + ' — biraz sonra tekrar dene', 'bell', 5500); return v; });
     }
     return new Promise((res) => { // demo: 5 sn geri sayım, erken kapatılırsa ödül yok
       let n = 5; const num = h('b', { style: { fontSize: '44px' } }, n), close = h('button.btn.sm', { disabled: true }, 'Kapat'), ov = h('div', { style: { position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(5,15,25,.96)', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', textAlign: 'center', padding: '24px' } },

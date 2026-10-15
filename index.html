@@ -409,6 +409,7 @@ input[type=range]{min-height:44px}
 <div id="celebrate" role="dialog" aria-modal="true"></div>
 
 <script>
+window.BUILD_ID = 'abeefae · 15.10 11:56 UTC';
 /* ───── 00-util.js ───── */
 'use strict';
 /* =====================================================================
@@ -2350,7 +2351,7 @@ const UI = {
     ));
     this.hubCanvas = canvas; this.hubMeta = $('#hub-meta', el); this.startThumbs();
   },
-  startThumbs() { this.stopThumbs(); const f = () => { if (this.cur === 'hub' && this.hubCanvas && this.hubCanvas.isConnected) { Game.renderThumb(this.hubCanvas); const S = Game.S; if (this.hubMeta) this.hubMeta.textContent = `Gün ${dayOf(S.clockMin)} · ${clockStr(S.clockMin)} · ${Game.tank.creatures.length} balık`; } }; f(); this.timers.push(setInterval(f, 250)); },
+  startThumbs() { this.stopThumbs(); const f = () => { if (this.cur === 'hub' && this.hubCanvas && this.hubCanvas.isConnected) { Game.renderThumb(this.hubCanvas); const S = Game.S; if (this.hubMeta) this.hubMeta.textContent = `Gün ${dayOf(S.clockMin)} · ${clockStr(S.clockMin)} · ${Game.tank.creatures.length} balık`; } }; f(); this.timers.push(setInterval(() => { if (!document.hidden) f(); }, 70)); },
   stopThumbs() { this.timers.forEach(clearInterval); this.timers = []; },
 
   /* ---------- Akvaryum: üst şerit + hızlı eylemler ---------- */
@@ -3030,7 +3031,7 @@ const Game = {
   GFX_DPR: [2, 1.5, 1.25, 1],
   gfxTarget() { const m = this.S.settings.gfx || 'auto'; return m === 'high' ? 0 : m === 'mid' ? 1 : m === 'low' ? 3 : (this.gfxTier ?? 0); },
   perfTick(dt) {
-    if (this.gfxTier === undefined) { let v = 0; try { v = +localStorage.getItem('akv.gfx') || 0; } catch (e) { /* yoksay */ } this.gfxTier = clamp(v | 0, 0, 3); this.applyGfx(); }
+    if (this.gfxTier === undefined) { let v = 0; try { v = +localStorage.getItem('akv.gfx') || 0; } catch (e) { /* yoksay */ } this.gfxTier = clamp(v | 0, 0, 3); if (!v && !localStorage.getItem('akv.gfx') && ((navigator.deviceMemory || 8) <= 4 || (navigator.hardwareConcurrency || 8) <= 4)) this.gfxTier = 1; this.applyGfx(); }
     this.perfT = (this.perfT || 0) + dt; if (this.perfT < 2.5) return; this.perfT = 0;
     const auto = (this.S.settings.gfx || 'auto') === 'auto', measuring = UI.cur === 'aq' || UI.cur === 'design';
     if (auto && measuring) {
@@ -3047,7 +3048,7 @@ const Game = {
   worldToScreen(x, y) { return this.vp.toScreen(x, y); }, screenToWorld(x, y) { return this.vp.toWorld(x, y); },
   setZoom(z, sx, sy) { this.vp.setZoom(z, sx, sy); },
   resizeCanvas() { this.vp.resize(); if (this.dvp) this.dvp.resize(); },
-  renderMain() { this.vp.render({ reduce: this.S.settings.reduce, showFav: true, low: this.low, dry: !!this.tank.scape.dry }); },
+  renderMain() { this.vp.render({ reduce: this.S.settings.reduce, showFav: true, low: this.low || this.gfxTarget() >= 1, dry: !!this.tank.scape.dry }); },
   renderThumb(cv) {
     const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1), w = Math.round(r.width || 320), hh = Math.round(r.height || 180), t = this.tank;
     if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = hh * dpr; }
@@ -7796,17 +7797,18 @@ const Ads = {
   left() { return Math.max(0, BOOST_DAILY_CAP - this.ads().n); },
   enabled() { return !this.ads().off; },
   real() { const c = window.Capacitor; return !!(c && c.isNativePlatform && c.isNativePlatform() && c.Plugins && c.Plugins.AdMob); },
-  _init: null,
-  init(A) { return this._init || (this._init = A.initialize({ initializeForTesting: ADS_CFG.test, tagForChildDirectedTreatment: true, tagForUnderAgeOfConsent: true, maxAdContentRating: 'General' }).catch(() => {})); },
+  _init: null, lastErr: '',
+  err(e) { const m = e && (e.message || e.errorMessage || (e.code != null ? 'kod ' + e.code : '')) || (typeof e === 'string' ? e : ''); this.lastErr = String(m || 'bilinmeyen').slice(0, 90); return this.lastErr; },
+  init(A) { return this._init || (this._init = A.initialize({ initializeForTesting: ADS_CFG.test, tagForChildDirectedTreatment: true, tagForUnderAgeOfConsent: true, maxAdContentRating: 'General' }).catch((e) => { this.err(e); this._init = null; })); },
   /** Sağlayıcıdan 'ödül kazanıldı mı' sözü döner. */
   show() {
     if (this.real()) { // gerçek AdMob: ödül yalnızca 'Rewarded' olayı gelirse sayılır
       const A = Capacitor.Plugins.AdMob; let got = false, hs = [];
       return new Promise((res) => {
         const end = (v) => { hs.forEach((x) => x && x.remove && x.remove()); res(v); };
-        Promise.all([A.addListener('onRewardedVideoAdReward', () => { got = true; }), A.addListener('onRewardedVideoAdDismissed', () => end(got)), A.addListener('onRewardedVideoAdFailedToLoad', () => end(false)), A.addListener('onRewardedVideoAdFailedToShow', () => end(false))]).then((x) => { hs = x; })
-          .then(() => this.init(A)).then(() => A.prepareRewardVideoAd({ adId: ADS_CFG.unit, isTesting: ADS_CFG.test, npa: true })).then(() => A.showRewardVideoAd()).catch(() => end(false));
-      }).then((v) => { if (!v) UI.toast('Reklam şu an yüklenemedi, biraz sonra tekrar dene', 'bell', 3500); return v; });
+        Promise.all([A.addListener('onRewardedVideoAdReward', () => { got = true; }), A.addListener('onRewardedVideoAdDismissed', () => end(got)), A.addListener('onRewardedVideoAdFailedToLoad', (e) => { this.err(e); end(false); }), A.addListener('onRewardedVideoAdFailedToShow', (e) => { this.err(e); end(false); })]).then((x) => { hs = x; })
+          .then(() => this.init(A)).then(() => A.prepareRewardVideoAd({ adId: ADS_CFG.unit, isTesting: ADS_CFG.test, npa: true })).then(() => A.showRewardVideoAd()).catch((e) => { this.err(e); end(false); });
+      }).then((v) => { if (!v) UI.toast('Reklam yüklenemedi' + (this.lastErr ? ' (' + this.lastErr + ')' : '') + ' — biraz sonra tekrar dene', 'bell', 5500); return v; });
     }
     return new Promise((res) => { // demo: 5 sn geri sayım, erken kapatılırsa ödül yok
       let n = 5; const num = h('b', { style: { fontSize: '44px' } }, n), close = h('button.btn.sm', { disabled: true }, 'Kapat'), ov = h('div', { style: { position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(5,15,25,.96)', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', textAlign: 'center', padding: '24px' } },
@@ -7944,6 +7946,36 @@ UI.render_settings = ((orig) => function (el) {
   const cur = S.settings.gfx || 'auto';
   w.append(h('div.card', null, h('div.sp', null, h('b', null, 'Grafik kalitesi'), h('div.small.muted', null, 'Oyun kasıyorsa Orta ya da Düşük seç. Otomatik, kare hızına göre kendi ayarlanır.')),
     h('div.seg', { style: { marginTop: '8px' } }, [['auto', 'Otomatik'], ['high', 'Yüksek'], ['mid', 'Orta'], ['low', 'Düşük']].map(([v, l]) => h('button' + (v === cur ? '.on' : ''), { onclick: () => { S.settings.gfx = v; if (v === 'auto') { Game.gfxTier = 0; Game.ema = 0.016; try { localStorage.removeItem('akv.gfx'); } catch (e) { /* yoksay */ } } Game.applyGfx(); Game.save(); UI.render_settings(el); } }, l)))));
+  return r;
+})(UI.render_settings);
+
+/* ───── 38-diag.js ───── */
+'use strict';
+/* =====================================================================
+   38 · TANILAMA — Ayarlar: sürüm bilgisi, "Performans bilgisi" (canlı kare hızı) ve son reklam hatası.
+   Sorun bildirirken oyuncu bu değerleri paylaşabilir.
+   ===================================================================== */
+const Diag = {
+  box: null, raf: 0, fr: [], t0: 0,
+  on() { return !!(Game.S && Game.S.settings && Game.S.settings.diag); },
+  start() {
+    if (this.box) return; this.box = h('div', { style: { position: 'fixed', left: '6px', top: 'calc(env(safe-area-inset-top) + 4px)', zIndex: 9990, background: 'rgba(0,0,0,.72)', color: '#7dffb0', font: '11px/1.35 monospace', padding: '4px 7px', borderRadius: '8px', pointerEvents: 'none', whiteSpace: 'pre' } }); document.body.append(this.box);
+    let last = performance.now(), acc = 0, n = 0, worst = 0; const loop = (now) => {
+      if (!this.box) return; const d = now - last; last = now; acc += d; n++; worst = Math.max(worst, d);
+      if (acc >= 1000) { const g = Game.vp, cv = g && g.cv; this.box.textContent = `${(n * 1000 / acc).toFixed(0)} fps · en kötü ${worst.toFixed(0)} ms\nkademe ${Game.gfxTier ?? '-'} (${Game.GFX_DPR[Game.gfxTarget()]}x) · ${cv ? cv.width + '×' + cv.height : '-'}\nekran ${UI.cur} · ${Game.tank.creatures.length} balık${Game.low ? ' · DÜŞÜK GÜÇ' : ''}`; acc = 0; n = 0; worst = 0; }
+      this.raf = requestAnimationFrame(loop);
+    }; this.raf = requestAnimationFrame(loop);
+  },
+  stop() { cancelAnimationFrame(this.raf); if (this.box) this.box.remove(); this.box = null; },
+  sync() { if (this.on()) this.start(); else this.stop(); },
+};
+setInterval(() => Diag.sync(), 1500);
+
+UI.render_settings = ((orig) => function (el) {
+  const r = orig.apply(this, arguments), w = el.querySelector('.wrap') || el.firstElementChild, S = Game.S; if (!w || !S) return r;
+  w.append(h('div.card', null, h('div.row', null, h('div.sp', null, h('b', null, 'Performans bilgisi'), h('div.small.muted', null, 'Ekranın köşesinde canlı kare hızını gösterir. Sorun bildirirken bu değerleri paylaş.')),
+    h('button.switch' + (S.settings.diag ? '.on' : ''), { role: 'switch', 'aria-checked': String(!!S.settings.diag), onclick: () => { S.settings.diag = !S.settings.diag; Game.save(); Diag.sync(); UI.render_settings(el); } })),
+    h('div.tiny.muted', { style: { marginTop: '8px' } }, `Sürüm: ${window.BUILD_ID || 'dev'}`), Ads.lastErr ? h('div.tiny', { style: { marginTop: '4px', color: 'var(--warn,#ffc247)' } }, 'Son reklam hatası: ' + Ads.lastErr) : null));
   return r;
 })(UI.render_settings);
 

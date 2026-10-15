@@ -141,7 +141,7 @@ const UI = {
     ));
     this.hubCanvas = canvas; this.hubMeta = $('#hub-meta', el); this.startThumbs();
   },
-  startThumbs() { this.stopThumbs(); const f = () => { if (this.cur === 'hub' && this.hubCanvas && this.hubCanvas.isConnected) { Game.renderThumb(this.hubCanvas); const S = Game.S; if (this.hubMeta) this.hubMeta.textContent = `Gün ${dayOf(S.clockMin)} · ${clockStr(S.clockMin)} · ${Game.tank.creatures.length} balık`; } }; f(); this.timers.push(setInterval(f, 250)); },
+  startThumbs() { this.stopThumbs(); const f = () => { if (this.cur === 'hub' && this.hubCanvas && this.hubCanvas.isConnected) { Game.renderThumb(this.hubCanvas); const S = Game.S; if (this.hubMeta) this.hubMeta.textContent = `Gün ${dayOf(S.clockMin)} · ${clockStr(S.clockMin)} · ${Game.tank.creatures.length} balık`; } }; f(); this.timers.push(setInterval(() => { if (!document.hidden) f(); }, 70)); },
   stopThumbs() { this.timers.forEach(clearInterval); this.timers = []; },
 
   /* ---------- Akvaryum: üst şerit + hızlı eylemler ---------- */

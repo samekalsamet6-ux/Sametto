@@ -293,7 +293,7 @@ const Game = {
   GFX_DPR: [2, 1.5, 1.25, 1],
   gfxTarget() { const m = this.S.settings.gfx || 'auto'; return m === 'high' ? 0 : m === 'mid' ? 1 : m === 'low' ? 3 : (this.gfxTier ?? 0); },
   perfTick(dt) {
-    if (this.gfxTier === undefined) { let v = 0; try { v = +localStorage.getItem('akv.gfx') || 0; } catch (e) { /* yoksay */ } this.gfxTier = clamp(v | 0, 0, 3); this.applyGfx(); }
+    if (this.gfxTier === undefined) { let v = 0; try { v = +localStorage.getItem('akv.gfx') || 0; } catch (e) { /* yoksay */ } this.gfxTier = clamp(v | 0, 0, 3); if (!v && !localStorage.getItem('akv.gfx') && ((navigator.deviceMemory || 8) <= 4 || (navigator.hardwareConcurrency || 8) <= 4)) this.gfxTier = 1; this.applyGfx(); }
     this.perfT = (this.perfT || 0) + dt; if (this.perfT < 2.5) return; this.perfT = 0;
     const auto = (this.S.settings.gfx || 'auto') === 'auto', measuring = UI.cur === 'aq' || UI.cur === 'design';
     if (auto && measuring) {
@@ -310,7 +310,7 @@ const Game = {
   worldToScreen(x, y) { return this.vp.toScreen(x, y); }, screenToWorld(x, y) { return this.vp.toWorld(x, y); },
   setZoom(z, sx, sy) { this.vp.setZoom(z, sx, sy); },
   resizeCanvas() { this.vp.resize(); if (this.dvp) this.dvp.resize(); },
-  renderMain() { this.vp.render({ reduce: this.S.settings.reduce, showFav: true, low: this.low, dry: !!this.tank.scape.dry }); },
+  renderMain() { this.vp.render({ reduce: this.S.settings.reduce, showFav: true, low: this.low || this.gfxTarget() >= 1, dry: !!this.tank.scape.dry }); },
   renderThumb(cv) {
     const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1), w = Math.round(r.width || 320), hh = Math.round(r.height || 180), t = this.tank;
     if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = hh * dpr; }

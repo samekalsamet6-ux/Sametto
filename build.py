@@ -36,6 +36,11 @@ def embedded_fonts():
 
 fonts_link = embedded_fonts() if native else WEB_FONTS
 
+import subprocess, datetime
+try: _sha = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], cwd=root, stderr=subprocess.DEVNULL).decode().strip()
+except Exception: _sha = 'dev'
+build_id = f"{_sha} · {datetime.datetime.utcnow().strftime('%d.%m %H:%M')} UTC" + (' · native' if native else '')
+
 html = f"""<!doctype html>
 <html lang="tr">
 <head>
@@ -50,6 +55,7 @@ html = f"""<!doctype html>
 <body>
 {body}
 <script>
+window.BUILD_ID = {build_id!r};
 {js}
 </script>
 </body>
