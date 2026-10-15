@@ -1,0 +1,78 @@
+name: Android Release (imzalı AAB + APK)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+    steps:
+      - name: Gizli anahtarlar tanımlı mı?
+        run: |
+          for v in KEYSTORE_B64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            [ -n "${!v}" ] || { echo "::error::$v gizli anahtarı eksik (Settings > Secrets and variables > Actions)"; exit 1; }
+          done
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - name: Android lisansları
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Gerçek reklamları aç (test modu kapalı)
+        run: |
+          sed -i 's/const ADS_CFG = { test: true,/const ADS_CFG = { test: false,/' src/js/35-boosts.js
+          grep -n "const ADS_CFG" src/js/35-boosts.js
+
+      - name: Bağımlılıklar
+        run: npm install
+      - name: Oyunu derle
+        run: python3 build.py --native
+      - name: Android projesini oluştur
+        run: |
+          npx cap add android
+          npx capacitor-assets generate --android --assetPath resources
+          npx cap sync android
+
+      - name: Manifest ve sürüm
+        run: |
+          M=android/app/src/main/AndroidManifest.xml
+          sed -i 's|<activity |<activity android:screenOrientation="portrait" |' "$M"
+          sed -i '/<\/application>/i\        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-4685172291502564~7787920203"/>' "$M"
+          S=android/app/src/main/res/values/styles.xml
+          sed -i 's|</style>|    <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>\n    </style>|' "$S" || true
+          G=android/app/build.gradle
+          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/; s/versionName \"1.0\"/versionName \"1.0.${{ github.run_number }}\"/" "$G"
+          grep -n "versionCode\|versionName" "$G"
+
+      - name: Release derle (imzasız)
+        working-directory: android
+        run: ./gradlew bundleRelease assembleRelease --no-daemon
+
+      - name: İmzala
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          OUT=android/app/build/outputs
+          AAB="$OUT/bundle/release/app-release.aab"
+          jarsigner -keystore "$RUNNER_TEMP/release.jks" -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" -sigalg SHA256withRSA -digestalg SHA-256 "$AAB" "$KEY_ALIAS"
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          UNS="$(ls "$OUT"/apk/release/*.apk | head -1)"
+          "$BT/zipalign" -p -f 4 "$UNS" "$OUT/app-aligned.apk"
+          "$BT/apksigner" sign --ks "$RUNNER_TEMP/release.jks" --ks-key-alias "$KEY_ALIAS" --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEY_PASSWORD --out "$OUT/akvaryum-release.apk" "$OUT/app-aligned.apk"
+          "$BT/apksigner" verify "$OUT/akvaryum-release.apk"
+          jarsigner -verify "$AAB" | tail -1
+          cp "$AAB" "$OUT/akvaryum-release.aab"
+          rm -f "$RUNNER_TEMP/release.jks"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: akvaryum-release
+          path: |
+            android/app/build/outputs/akvaryum-release.aab
+            android/app/build/outputs/akvaryum-release.apk

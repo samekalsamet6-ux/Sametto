@@ -129,3 +129,8 @@ Bu bir **debug** APK'dır. Play Store için imzalı AAB ayrıca yapılandırılm
 - Play Console: hedef kitleye çocukları ekle (Aileler politikası), veri güvenliği formunu doldur (yerel veri + AdMob), içerik derecelendirmesi.
 - AdMob: uygulamayı çocuklara yönelik olarak işaretle; reklam içeriğini G ile sınırla.
 - Release imzası (keystore) üret; debug APK mağazaya yüklenemez.
+
+## Mağaza sürümü (imzalı AAB/APK)
+1. **Actions → "Keystore üret (tek seferlik)" → Run workflow.** Biten çalıştırmadan `akvaryum-anahtar-GIZLI` dosyasını indir (1 gün saklanır); `anahtar-bilgileri.txt`, `akvaryum.jks.b64` ve `akvaryum.jks` içerir. **Güvenli bir yere yedekle.**
+2. **Settings → Secrets and variables → Actions** altında 4 gizli anahtar ekle: `KEYSTORE_B64` (b64 dosyasının içeriği), `KEYSTORE_PASSWORD`, `KEY_ALIAS` (`akvaryum`), `KEY_PASSWORD`.
+3. **Actions → "Android Release" → Run workflow.** Test modu otomatik kapanır (gerçek reklamlar); çıktı `akvaryum-release` içinde `.aab` (Play'e yüklenir) ve `.apk` (cihaza kurulabilir) olur. Sürüm kodu her çalıştırmada artar.
