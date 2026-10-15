@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#04161f">
-<title>Akvaryum Üreticisi</title>
+<title>Akvaryum Dünyam</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
@@ -359,7 +359,7 @@ input[type=range]{min-height:44px}
 
 <div id="splash" role="button" tabindex="0" aria-label="Dokun ve dal">
   <canvas id="splash-fx"></canvas>
-  <h1>🐟 Akvaryum Üreticisi</h1>
+  <h1>🐟 Akvaryum Dünyam</h1>
   <p>Büyükbabanın bakımsız küçük akvaryum dükkânı seni bekliyor. Yetiştir, tasarla, keşfet.</p>
   <div class="tap">Dokun ve dal</div>
   <p class="tiny" style="opacity:.7">Sesli deneyim için kulaklık önerilir 🎧</p>
@@ -4021,7 +4021,7 @@ const Photo = {
     if (this.dof) { c.filter = 'blur(' + Math.max(2, W / 220) + 'px) ' + f; c.drawImage(src, 0, 0); const sharp = document.createElement('canvas'); sharp.width = W; sharp.height = H; const s = sharp.getContext('2d'); s.filter = f || 'none'; s.drawImage(src, 0, 0); s.filter = 'none'; s.globalCompositeOperation = 'destination-in'; const g = s.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.12, W / 2, H / 2, Math.max(W, H) * 0.55); g.addColorStop(0, '#000'); g.addColorStop(0.55, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)'); s.fillStyle = g; s.fillRect(0, 0, W, H); c.filter = 'none'; c.drawImage(sharp, 0, 0); }
     else { c.filter = f || 'none'; c.drawImage(src, 0, 0); c.filter = 'none'; }
     if (this.filter === 'cine') { c.fillStyle = '#000'; const bar = H * 0.07; c.fillRect(0, 0, W, bar); c.fillRect(0, H - bar, W, bar); const g = c.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.9); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.45)'); c.fillStyle = g; c.fillRect(0, 0, W, H); }
-    if (this.frame) { const b = Math.round(W * 0.035); c.fillStyle = '#f4f1ea'; c.fillRect(0, 0, W, b); c.fillRect(0, H - b * 2.4, W, b * 2.4); c.fillRect(0, 0, b, H); c.fillRect(W - b, 0, b, H); c.fillStyle = '#556'; c.font = `${Math.round(b * 0.8)}px sans-serif`; c.textAlign = 'center'; c.fillText(`Akvaryum Üreticisi · Gün ${dayOf(Game.S.clockMin)}`, W / 2, H - b * 0.9); }
+    if (this.frame) { const b = Math.round(W * 0.035); c.fillStyle = '#f4f1ea'; c.fillRect(0, 0, W, b); c.fillRect(0, H - b * 2.4, W, b * 2.4); c.fillRect(0, 0, b, H); c.fillRect(W - b, 0, b, H); c.fillStyle = '#556'; c.font = `${Math.round(b * 0.8)}px sans-serif`; c.textAlign = 'center'; c.fillText(`Akvaryum Dünyam · Gün ${dayOf(Game.S.clockMin)}`, W / 2, H - b * 0.9); }
     return cv;
   },
 
@@ -7549,8 +7549,8 @@ const Notifier = {
   },
   async onHide() {
     const S = Game.S; if (!S || !S.settings.notify) return; const list = this.upcoming(S), LN = this.cap();
-    if (LN) { try { await LN.cancel({ notifications: Array.from({ length: 12 }, (_, i) => ({ id: 100 + i })) }); if (list.length) await LN.schedule({ notifications: list.map((n) => ({ id: n.id, title: 'Akvaryum Üreticisi', body: n.text, schedule: { at: new Date(n.at) } })) }); } catch (e) { console.warn('Bildirim', e); } return; }
-    if ('Notification' in window && Notification.permission === 'granted') { this._timers = (this._timers || []).filter((t) => { clearTimeout(t); return false; }); for (const n of list.slice(0, 4)) { const d = n.at - Date.now(); if (d > 0 && d < 2147483000) this._timers.push(setTimeout(() => { try { new Notification('Akvaryum Üreticisi', { body: n.text }); } catch (e) { /* yoksay */ } }, d)); } }
+    if (LN) { try { await LN.cancel({ notifications: Array.from({ length: 12 }, (_, i) => ({ id: 100 + i })) }); if (list.length) await LN.schedule({ notifications: list.map((n) => ({ id: n.id, title: 'Akvaryum Dünyam', body: n.text, schedule: { at: new Date(n.at) } })) }); } catch (e) { console.warn('Bildirim', e); } return; }
+    if ('Notification' in window && Notification.permission === 'granted') { this._timers = (this._timers || []).filter((t) => { clearTimeout(t); return false; }); for (const n of list.slice(0, 4)) { const d = n.at - Date.now(); if (d > 0 && d < 2147483000) this._timers.push(setTimeout(() => { try { new Notification('Akvaryum Dünyam', { body: n.text }); } catch (e) { /* yoksay */ } }, d)); } }
   },
   async onShow() { const LN = this.cap(); if (LN) { try { await LN.cancel({ notifications: Array.from({ length: 12 }, (_, i) => ({ id: 100 + i })) }); } catch (e) { /* yoksay */ } } for (const t of this._timers || []) clearTimeout(t); this._timers = []; },
   async enable() {
@@ -7854,7 +7854,7 @@ Object.assign(UI, {
     const ta = h('textarea', { readonly: true, rows: 4, style: { width: '100%', fontSize: '12px', borderRadius: '10px' } }); ta.value = code;
     const copy = () => (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(() => UI.toast('Kod kopyalandı', 'check'), () => { ta.select(); UI.toast('Kodu seçip kopyala', 'bell'); });
     box.replaceChildren(UI.sheetHead('Kartımı paylaş', { close: () => rec.close() }), UI.cardView(card), h('div.small.muted', null, 'Bu kodu arkadaşına gönder; o da "Arkadaş ekle" ile yapıştırsın. Kodda yalnızca bu kartta görünen bilgiler vardır.'), ta,
-      h('div.row', null, h('button.btn.primary.sp', { onclick: copy }, 'Kopyala'), navigator.share ? h('button.btn.sp', { onclick: () => navigator.share({ title: 'Akvaryum Üreticisi kartım', text: `Akvaryum Üreticisi'nde profilim! Arkadaş ekle → kodu yapıştır:\n${code}` }).catch(() => {}) }, 'Paylaş') : null));
+      h('div.row', null, h('button.btn.primary.sp', { onclick: copy }, 'Kopyala'), navigator.share ? h('button.btn.sp', { onclick: () => navigator.share({ title: 'Akvaryum Dünyam kartım', text: `Akvaryum Dünyam'nde profilim! Arkadaş ekle → kodu yapıştır:\n${code}` }).catch(() => {}) }, 'Paylaş') : null));
   },
   addFriend(prefill) {
     const rec = UI.sheet(h('div.stack'), {}), box = rec.wrap.querySelector('.sheet > div'), ta = h('textarea', { rows: 4, placeholder: 'AKV1.… kodunu buraya yapıştır', style: { width: '100%', fontSize: '12px', borderRadius: '10px' } }), out = h('div');

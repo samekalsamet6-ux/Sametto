@@ -1,4 +1,4 @@
-# 🐟 Akvaryum Üreticisi
+# 🐟 Akvaryum Dünyam
 
 Tarayıcıda ve Android'de (APK) çalışan, uzun soluklu akvaryum yetiştirme + aquascape oyunu. Arayüz Türkçe. Tek dosya: **`index.html`** (harici görsel/ses yok; her şey kodla üretilir).
 

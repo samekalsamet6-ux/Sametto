@@ -66,7 +66,7 @@ Object.assign(UI, {
     const ta = h('textarea', { readonly: true, rows: 4, style: { width: '100%', fontSize: '12px', borderRadius: '10px' } }); ta.value = code;
     const copy = () => (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(() => UI.toast('Kod kopyalandı', 'check'), () => { ta.select(); UI.toast('Kodu seçip kopyala', 'bell'); });
     box.replaceChildren(UI.sheetHead('Kartımı paylaş', { close: () => rec.close() }), UI.cardView(card), h('div.small.muted', null, 'Bu kodu arkadaşına gönder; o da "Arkadaş ekle" ile yapıştırsın. Kodda yalnızca bu kartta görünen bilgiler vardır.'), ta,
-      h('div.row', null, h('button.btn.primary.sp', { onclick: copy }, 'Kopyala'), navigator.share ? h('button.btn.sp', { onclick: () => navigator.share({ title: 'Akvaryum Üreticisi kartım', text: `Akvaryum Üreticisi'nde profilim! Arkadaş ekle → kodu yapıştır:\n${code}` }).catch(() => {}) }, 'Paylaş') : null));
+      h('div.row', null, h('button.btn.primary.sp', { onclick: copy }, 'Kopyala'), navigator.share ? h('button.btn.sp', { onclick: () => navigator.share({ title: 'Akvaryum Dünyam kartım', text: `Akvaryum Dünyam'nde profilim! Arkadaş ekle → kodu yapıştır:\n${code}` }).catch(() => {}) }, 'Paylaş') : null));
   },
   addFriend(prefill) {
     const rec = UI.sheet(h('div.stack'), {}), box = rec.wrap.querySelector('.sheet > div'), ta = h('textarea', { rows: 4, placeholder: 'AKV1.… kodunu buraya yapıştır', style: { width: '100%', fontSize: '12px', borderRadius: '10px' } }), out = h('div');

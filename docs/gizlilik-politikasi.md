@@ -1,11 +1,11 @@
-# Gizlilik Politikası — Akvaryum Üreticisi
+# Gizlilik Politikası — Akvaryum Dünyam
 
 *Son güncelleme: 2026-10-15 · İletişim: samekalsamet6@gmail.com*
 
 > Bu metin bir taslaktır; yayınlamadan önce iletişim bilgisini ve (gerekirse) hukuki incelemeyi kontrol edin.
 
 ## Kısaca
-Akvaryum Üreticisi bir tek oyunculu oyundur. **Hesap açmazsınız, ad-soyad, e-posta, konum veya telefon numarası vermeniz istenmez.** Oyun verileriniz yalnızca kendi cihazınızda saklanır.
+Akvaryum Dünyam bir tek oyunculu oyundur. **Hesap açmazsınız, ad-soyad, e-posta, konum veya telefon numarası vermeniz istenmez.** Oyun verileriniz yalnızca kendi cihazınızda saklanır.
 
 ## Cihazınızda saklanan veriler
 Oyun ilerlemesi, ayarlar ve oyuncu adınız cihazın yerel depolamasında tutulur. Bizim sunucularımıza gönderilmez. Uygulamayı silerseniz bu veriler de silinir.

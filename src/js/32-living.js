@@ -90,8 +90,8 @@ const Notifier = {
   },
   async onHide() {
     const S = Game.S; if (!S || !S.settings.notify) return; const list = this.upcoming(S), LN = this.cap();
-    if (LN) { try { await LN.cancel({ notifications: Array.from({ length: 12 }, (_, i) => ({ id: 100 + i })) }); if (list.length) await LN.schedule({ notifications: list.map((n) => ({ id: n.id, title: 'Akvaryum Üreticisi', body: n.text, schedule: { at: new Date(n.at) } })) }); } catch (e) { console.warn('Bildirim', e); } return; }
-    if ('Notification' in window && Notification.permission === 'granted') { this._timers = (this._timers || []).filter((t) => { clearTimeout(t); return false; }); for (const n of list.slice(0, 4)) { const d = n.at - Date.now(); if (d > 0 && d < 2147483000) this._timers.push(setTimeout(() => { try { new Notification('Akvaryum Üreticisi', { body: n.text }); } catch (e) { /* yoksay */ } }, d)); } }
+    if (LN) { try { await LN.cancel({ notifications: Array.from({ length: 12 }, (_, i) => ({ id: 100 + i })) }); if (list.length) await LN.schedule({ notifications: list.map((n) => ({ id: n.id, title: 'Akvaryum Dünyam', body: n.text, schedule: { at: new Date(n.at) } })) }); } catch (e) { console.warn('Bildirim', e); } return; }
+    if ('Notification' in window && Notification.permission === 'granted') { this._timers = (this._timers || []).filter((t) => { clearTimeout(t); return false; }); for (const n of list.slice(0, 4)) { const d = n.at - Date.now(); if (d > 0 && d < 2147483000) this._timers.push(setTimeout(() => { try { new Notification('Akvaryum Dünyam', { body: n.text }); } catch (e) { /* yoksay */ } }, d)); } }
   },
   async onShow() { const LN = this.cap(); if (LN) { try { await LN.cancel({ notifications: Array.from({ length: 12 }, (_, i) => ({ id: 100 + i })) }); } catch (e) { /* yoksay */ } } for (const t of this._timers || []) clearTimeout(t); this._timers = []; },
   async enable() {

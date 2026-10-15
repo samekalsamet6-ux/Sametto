@@ -42,7 +42,7 @@ html = f"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#04161f">
-<title>Akvaryum Üreticisi</title>
+<title>Akvaryum Dünyam</title>
 {fonts_link}<style>
 {css}
 </style>
