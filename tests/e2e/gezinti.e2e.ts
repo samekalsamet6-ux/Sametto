@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
 test('ana sayfa: seviye kartları ve araç bağlantıları', async ({ page }) => {
@@ -157,4 +158,14 @@ test.describe('yayın adresi, robots.txt ve meta etiketler', () => {
     await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute('content', 'Lepistes Rehberi');
     await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', 'https://lepistes-rehberi.pages.dev/icons/icon-512.png');
   });
+});
+
+test('404 sayfası derlenir ve Cloudflare yapılandırması tutarlı', async ({ request }) => {
+  const res = await request.get('/404.html');
+  expect(res.status()).toBe(200); // statik sunucuda dosya olarak vardır
+  expect(await res.text()).toContain('Sayfa bulunamadı');
+  const cfg = readFileSync('wrangler.jsonc', 'utf8');
+  expect(cfg).toContain('"name": "lepistes-rehberi"');
+  expect(cfg).toContain('"directory": "./dist"');
+  expect(cfg).toContain('"not_found_handling": "404-page"');
 });
