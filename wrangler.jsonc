@@ -1,0 +1,12 @@
+{
+  // Cloudflare Workers (statik varlıklar) yapılandırması: Cloudflare panelindeki
+  // "Project name" bu ad ile AYNI olmalıdır.
+  "name": "lepistes-rehberi",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    // npm run build çıktısı
+    "directory": "./dist",
+    // Bulunamayan adreslerde dist/404.html gösterilir
+    "not_found_handling": "404-page"
+  }
+}

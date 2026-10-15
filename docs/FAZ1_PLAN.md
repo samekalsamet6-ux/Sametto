@@ -46,7 +46,8 @@ Kaynak görev tanımı: `LEPISTES_SITE_PROMPT.md`
 - [x] Lisans: kod MIT, içerik CC BY-SA 4.0; site adı: Lepistes Rehberi; hak sahibi: Lepistes Rehberi katkıcıları
 - [x] CC BY-SA 4.0 lisans metni depoya eklendi
 - [x] Adres: https://lepistes-rehberi.pages.dev (Cloudflare Pages); robots.txt, canonical, Open Graph, _headers
-- [ ] Faz 10 kalan: Cloudflare Pages projesini oluşturup ilk dağıtımı yapmak (sizde)
+- [x] wrangler.jsonc (Workers statik varlıklar) ve 404 sayfası
+- [ ] Faz 10 kalan: Cloudflare projesini oluşturup ilk dağıtımı yapmak; çıkan adresi `site` değerine yazmak
 
 ## Doğrulama gerektiren konular (⚠)
 Sıcaklık/pH/GH/KH aralıkları, gebelik süresi–sıcaklık, doğum başına yavru sayısı, olgunlaşma yaşı, kalıtım tipleri (özellik bazında), tuz banyosu dozları. Bunlar kaynakla teyit edilmeden sayısal olarak yazılmayacak; mevcut sayfalarda `needs_verification: true` ile işaretlidir.
