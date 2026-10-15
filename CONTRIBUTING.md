@@ -2,7 +2,7 @@
 
 ## Genel akış
 1. Dal açın, değişikliği yapın.
-2. Yerelde şunların geçtiğinden emin olun: `npm test && npm run check && npm run build && npm run check:links && npm run a11y`.
+2. Yerelde şunların geçtiğinden emin olun: `npm test && npm run check && npm run build && npm run check:links && npm run e2e && npm run a11y`.
 3. Doğrulama durumunu değiştirdiyseniz `npm run open-questions` çalıştırıp `docs/OPEN_QUESTIONS.md` dosyasını da commit edin (CI bunu kontrol eder).
 4. Pull request açın.
 
@@ -46,6 +46,9 @@ needs_verification: false
 ```
 
 MDX'te metin içinde çıplak `<`, `{` yazmayın.
+
+## E2E testleri
+Etkileşimli bir sayfa veya araç eklerseniz `tests/e2e/*.e2e.ts` altına senaryo ekleyin. Testler derlenmiş siteyi (`dist/`) sunar, bu yüzden önce `npm run build` gerekir. Her test hem masaüstü hem mobil görünümde çalışır. Beklenen metinleri gevşetmeyin: testin amacı davranış değişince kırılmaktır.
 
 ## Yeni araç eklemek
 1. Hesabı `src/lib/calculators/` altında **saf fonksiyon** olarak yazın (DOM kullanmayın).

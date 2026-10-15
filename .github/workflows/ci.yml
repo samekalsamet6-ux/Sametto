@@ -31,6 +31,8 @@ jobs:
         run: npm run build
       - name: Kırık bağlantı denetimi
         run: npm run check:links
+      - name: E2E testleri (Playwright, masaüstü + mobil)
+        run: CHROME="$(which google-chrome)" CI=1 npm run e2e
       - name: Erişilebilirlik taraması (axe, açık/koyu tema)
         run: CHROME="$(which google-chrome)" npm run a11y
       - name: PWA ve çevrimdışı denetimi
