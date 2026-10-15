@@ -211,3 +211,22 @@ Object.assign(Tests, {
   },
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.saves(); return a && b; })(Tests.all);
+
+Object.assign(Tests, {
+  traits() {
+    const ok = {}, S = Game.S, keep = [S.traits, S.traitDone, S.coins]; S.traits = {}; S.traitDone = {};
+    try {
+      ok.cats = Traits.cats().length === 6;
+      // her öğenin örnek balığı kendi özelliğini gösteriyor mu?
+      const miss = []; for (const c of Traits.cats()) for (const it of c.list) { const cr = Traits.sample(it); if (!Traits.of(cr.pheno).includes(`${c.id}:${it.id}`)) miss.push(`${c.id}:${it.id}`); }
+      ok.samples = miss.length === 0; if (miss.length) console.warn('özellik örneği eşleşmiyor', miss);
+      ok.shapeGene = ['n', 'd', 's'].every((k) => Genetics.phenotype(Genetics.make({ shp: k === 'n' ? undefined : [k, k], tc: 'red', tail: 'fan' }, 'M').genome || Genetics.make({}, 'M')).shp !== undefined);
+      const before = S.coins, f = Traits.scan(true); ok.scanFinds = f.length > 0 && S.coins === before; // sessiz: ödül yok
+      ok.stored = Object.keys(Traits.store(S)).length === f.length; ok.idempotent = Traits.scan(true).length === 0;
+      const pg = Traits.progress(S); ok.progress = pg.every((p) => p.n <= p.total) && pg.reduce((a, p) => a + p.n, 0) === f.length;
+      ok.ui = !!UI.traitDexBody().querySelector('.trait');
+    } finally { S.traits = keep[0]; S.traitDone = keep[1]; S.coins = keep[2]; }
+    return this._log('Özellik Defteri (kataloğ, tarama, ödül, arayüz)', Object.values(ok).every(Boolean), ok);
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.traits(); return a && b; })(Tests.all);

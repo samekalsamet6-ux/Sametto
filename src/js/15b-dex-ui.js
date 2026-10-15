@@ -42,13 +42,15 @@ Object.assign(UI, {
     } else if (this.dexTab === 'plant') {
       body = h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(104px,1fr))' } }, ...Object.entries(PLANTS).map(([id, pl]) => { const d = !!(seen.plant || {})[id], cv = Editor.thumb('plant', id); if (!d) { cv.style.filter = 'brightness(0) opacity(.35)'; }
         return h('div.cat', { role: 'button', tabindex: 0, onclick: () => UI.openPlant(id) }, cv, h('b', null, d ? pl.name : '???'), h('span.tiny.muted', null, d ? ['', 'Kolay', 'Kolay', 'Orta', 'Zor', 'Uzman'][pl.diff] : 'Keşfedilmedi')); }));
+    } else if (this.dexTab === 'trait') {
+      body = UI.traitDexBody();
     } else {
       const mk = (k, id, def) => { const d = !!(seen.hard || {})[id]; const cv = k === 'sub' ? UI.subThumb(id) : Editor.thumb(k, id); if (!d) cv.style.filter = 'brightness(0) opacity(.35)'; return h('div.cat', { role: 'button', tabindex: 0, onclick: () => UI.openHard(k, id) }, cv, h('b', null, d ? def.name : '???'), h('span.tiny.muted', null, d ? '' : 'Keşfedilmedi')); };
       body = h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(104px,1fr))' } }, ...Object.entries(HARDSCAPE).map(([id, d]) => mk(d.kind, id, d)), ...Object.entries(SUBSTRATES).map(([id, d]) => mk('sub', id, d)), ...Object.entries(DECOR).map(([id, d]) => mk('decor', id, d)));
     }
     el.replaceChildren(h('div.wrap', null,
       h('div.row', { style: { margin: '6px 0 10px' } }, h('div.ring', { style: { '--p': pc } }, h('span', null, pc + '%')), h('div', null, h('h2', null, 'Ansiklopedi'), h('div.muted.small', null, `${found}/${total} keşif · Balık ${fishFound}/${ALL_BREEDS.length} · Bitki ${plantFound}/${Object.keys(PLANTS).length} · Taş&zemin ${hardFound}/${hardAll.length}`))),
-      UI.tabs([['fish', 'Balıkdex'], ['plant', 'Bitkidex'], ['hard', 'Taşdex']], this.dexTab, (k) => { this.dexTab = k; UI.render_dex(el); }), body));
+      UI.tabs([['fish', 'Balıkdex'], ['plant', 'Bitkidex'], ['hard', 'Taşdex'], ['trait', 'Özellikler']], this.dexTab, (k) => { this.dexTab = k; UI.render_dex(el); }), body));
   },
   subThumb(id) { const cv = document.createElement('canvas'); cv.width = cv.height = 96; const c = cv.getContext('2d'), [h_, s, l] = SUBSTRATES[id].colors.natural; c.fillStyle = hsl(h_, s, l); c.beginPath(); c.moveTo(6, 70); c.quadraticCurveTo(48, 40, 90, 66); c.lineTo(90, 90); c.lineTo(6, 90); c.fill(); const r = new RNG(3); for (let i = 0; i < 60; i++) { c.fillStyle = r.pick(['rgba(255,255,255,.25)', 'rgba(0,0,0,.25)']); c.beginPath(); c.arc(r.float(10, 88), r.float(62, 88), r.float(0.8, 2.4), 0, TAU); c.fill(); } return cv; },
 

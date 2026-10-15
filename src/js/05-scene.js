@@ -319,9 +319,9 @@ class Tank {
 function createStarterFish(tank, now) {
   const mk = (spec, sex, age) => tank.addCreature(new Creature({ genome: Genetics.make(spec, sex), bornT: now - age * 1440, x: R.float(160, tank.W - 160), y: R.float(160, tank.H - 220) }));
   const A = 90;
-  mk({ tc: 'red', tail: 'delta' }, 'M', A); mk({ tc: 'blue', tail: 'fan', body: ['W', 'blu'] }, 'M', A + 5);
+  mk({ tc: 'red', tail: 'delta', shp: ['n', 'd'] }, 'M', A); mk({ tc: 'blue', tail: 'fan', body: ['W', 'blu'] }, 'M', A + 5);
   mk({ body: ['gld', 'gld'], tail: 'round', tc: 'none' }, 'M', A + 12);
-  mk({ tail: 'veil', X: { tc: 'blue' }, X2: {}, body: ['W', 'alb'] }, 'F', A + 20);
+  mk({ tail: 'veil', X: { tc: 'blue' }, X2: {}, body: ['W', 'alb'], shp: ['n', 'd'] }, 'F', A + 20);
   mk({ tail: 'delta', X: { tc: 'red', tux: 1 }, X2: { tc: 'green' } }, 'F', A + 8);
   mk({ tail: 'fan', body: ['W', 'bld'], X: { sb: 1 } }, 'F', A + 3);
   for (const c of tank.creatures) { Pedigree.add(c.id, 0, 0); }

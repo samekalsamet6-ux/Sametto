@@ -308,6 +308,9 @@ input[type=range]{min-height:44px}
 .cat-grid .cat,.tpl button{min-height:44px}
 .f3-btn{min-height:36px;min-width:42px;position:relative}.f3-btn::after{content:'';position:absolute;inset:-4px}
 .sp-chip,.btn.sm{min-width:44px}
+.trait-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;margin-top:10px}
+.trait{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:14px;text-align:center;background:var(--panel);border:1px solid var(--c);font-size:12px}
+.trait canvas{width:100%;height:auto;display:block}.trait.lock{border-style:dashed;opacity:.75}
 
 </style>
 </head>
@@ -634,7 +637,7 @@ const SP_BREEDS = {};
    · Mutasyon, akrabalık katsayısı (soyağacından), ırk tanıma
    ===================================================================== */
 
-const AUTO_LOCI = ['body', 'purple', 'metal', 'tail'];
+const AUTO_LOCI = ['body', 'purple', 'metal', 'tail', 'shp'];   // shp: gövde şekli (n normal baskın; dd derin, ss ince)
 const SC_LOCI = ['tc', 'tux', 'sb', 'st', 'grass', 'mosaic', 'moscow'];
 const XY_CROSS = 0.03;      // erkekte X–Y arası çaprazlama (lokus başına)
 const XX_CROSS = 0.25;      // dişide X–X arası
@@ -664,12 +667,13 @@ const Pedigree = {
 const SCHEMA = {
   guppy: {
     auto: AUTO_LOCI, sc: SC_LOCI, xy: XY_CROSS,
-    defAuto: { body: ['W', 'W'], tail: ['delta', 'delta'], purple: ['pb', 'pb'], metal: ['mg', 'mg'] },
+    defAuto: { body: ['W', 'W'], tail: ['delta', 'delta'], purple: ['pb', 'pb'], metal: ['mg', 'mg'], shp: ['n', 'n'] },
     defSc: { tc: 'none', tux: 0, sb: 0, st: 0, grass: 0, mosaic: 0, moscow: 0 },
     quant: { size: [0.75, 1.3], tailLen: [0.6, 1.4], vigor: [0.5, 1.4], intensity: [0.55, 1.3] },
     mut(locus, al, rng) {
       if (locus === 'body') { if (rng.chance(0.12)) return rng.pick(['obs', 'aur']); return rng.pick(BODY_RANK.filter((a) => a !== al && a !== 'obs' && a !== 'aur')); }
       if (locus === 'tail') return rng.pick(TAIL_RANK.filter((a) => a !== al));
+      if (locus === 'shp') return rng.pick(['n', 'd', 's'].filter((a) => a !== al));
       if (locus === 'purple') return al === 'Pb' ? 'pb' : 'Pb'; if (locus === 'metal') return al === 'Mg' ? 'mg' : 'Mg'; return al;
     },
     mutSc(locus, v, rng) { if (locus === 'tc') return rng.pick(Object.keys(TAILCOL).filter((c) => c !== v)); return v ? 0 : 1; },
@@ -701,6 +705,7 @@ const Genetics = {
   randomFounder(sex, rng = R, sp = 'guppy') {
     if (sp !== 'guppy') return sch(sp).founder(sex, rng);
     const spec = { body: rng.chance(0.12) ? rng.pick(['bld', 'gld', 'alb', 'blu']) : 'W', tail: rng.pick(TAIL_COMMON), X: { tc: rng.chance(0.18) ? rng.pick(['red', 'blue']) : 'none' } };
+    if (rng.chance(0.12)) spec.shp = [rng.pick(['d', 's']), 'n'];   // gizli şekil taşıyıcısı
     return this.make(spec, sex, rng);
   },
 
@@ -720,8 +725,9 @@ const Genetics = {
       p.tailColor = a; p.tailColor2 = b;
       for (const k of ['tux', 'sb', 'st', 'grass', 'mosaic', 'moscow']) p[k] = (x[k] || y[k]) ? 1 : 0;
     }
+    const sa = g.auto.shp || ['n', 'n']; p.shp = sa.includes('n') || sa[0] !== sa[1] ? 'n' : sa[0]; p.H = { n: 1, d: 1.26, s: 0.82 }[p.shp];   // gövde şekli: derin / ince
     p.penalty = p.metalDouble ? 0.65 : 1;
-    p.sig = [p.sex, p.body, p.purple | 0, p.metal | 0, p.tail, p.tailColor, p.tailColor2, p.tux, p.sb, p.st, p.grass, p.mosaic, p.moscow].join('|');
+    p.sig = [p.sex, p.body, p.shp, p.purple | 0, p.metal | 0, p.tail, p.tailColor, p.tailColor2, p.tux, p.sb, p.st, p.grass, p.mosaic, p.moscow].join('|');
     return p;
   },
 
@@ -782,6 +788,7 @@ const Genetics = {
     rows.push(['Mor gövde (Pb)', g.auto.purple.join(' / ')]);
     rows.push(['Metal (Mg)', g.auto.metal.join(' / ')]);
     rows.push(['Kuyruk tipi', g.auto.tail.map((a) => TAILS[a].name).join(' / ')]);
+    rows.push(['Gövde şekli (n/d/s)', (g.auto.shp || ['n', 'n']).map((a) => ({ n: 'Normal', d: 'Derin', s: 'İnce' }[a])).join(' / ')]);
     const hn = (h) => { const l = [h.tc !== 'none' ? 'kuyruk ' + TAILCOL[h.tc].name : null, h.tux ? 'Tuxedo' : null, h.sb ? 'Snake-gövde' : null, h.st ? 'Snake-kuyruk' : null, h.grass ? 'Grass' : null, h.mosaic ? 'Mozaik' : null, h.moscow ? 'Moscow' : null].filter(Boolean); return l.length ? l.join(', ') : '–'; };
     rows.push(['X kromozomu', hn(g.sc[0])]);
     rows.push([g.sex === 'M' ? 'Y kromozomu' : '2. X kromozomu', hn(g.sc[1])]);
@@ -1856,9 +1863,9 @@ class Tank {
 function createStarterFish(tank, now) {
   const mk = (spec, sex, age) => tank.addCreature(new Creature({ genome: Genetics.make(spec, sex), bornT: now - age * 1440, x: R.float(160, tank.W - 160), y: R.float(160, tank.H - 220) }));
   const A = 90;
-  mk({ tc: 'red', tail: 'delta' }, 'M', A); mk({ tc: 'blue', tail: 'fan', body: ['W', 'blu'] }, 'M', A + 5);
+  mk({ tc: 'red', tail: 'delta', shp: ['n', 'd'] }, 'M', A); mk({ tc: 'blue', tail: 'fan', body: ['W', 'blu'] }, 'M', A + 5);
   mk({ body: ['gld', 'gld'], tail: 'round', tc: 'none' }, 'M', A + 12);
-  mk({ tail: 'veil', X: { tc: 'blue' }, X2: {}, body: ['W', 'alb'] }, 'F', A + 20);
+  mk({ tail: 'veil', X: { tc: 'blue' }, X2: {}, body: ['W', 'alb'], shp: ['n', 'd'] }, 'F', A + 20);
   mk({ tail: 'delta', X: { tc: 'red', tux: 1 }, X2: { tc: 'green' } }, 'F', A + 8);
   mk({ tail: 'fan', body: ['W', 'bld'], X: { sb: 1 } }, 'F', A + 3);
   for (const c of tank.creatures) { Pedigree.add(c.id, 0, 0); }
@@ -4714,13 +4721,15 @@ Object.assign(UI, {
     } else if (this.dexTab === 'plant') {
       body = h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(104px,1fr))' } }, ...Object.entries(PLANTS).map(([id, pl]) => { const d = !!(seen.plant || {})[id], cv = Editor.thumb('plant', id); if (!d) { cv.style.filter = 'brightness(0) opacity(.35)'; }
         return h('div.cat', { role: 'button', tabindex: 0, onclick: () => UI.openPlant(id) }, cv, h('b', null, d ? pl.name : '???'), h('span.tiny.muted', null, d ? ['', 'Kolay', 'Kolay', 'Orta', 'Zor', 'Uzman'][pl.diff] : 'Keşfedilmedi')); }));
+    } else if (this.dexTab === 'trait') {
+      body = UI.traitDexBody();
     } else {
       const mk = (k, id, def) => { const d = !!(seen.hard || {})[id]; const cv = k === 'sub' ? UI.subThumb(id) : Editor.thumb(k, id); if (!d) cv.style.filter = 'brightness(0) opacity(.35)'; return h('div.cat', { role: 'button', tabindex: 0, onclick: () => UI.openHard(k, id) }, cv, h('b', null, d ? def.name : '???'), h('span.tiny.muted', null, d ? '' : 'Keşfedilmedi')); };
       body = h('div.grid2', { style: { gridTemplateColumns: 'repeat(auto-fill,minmax(104px,1fr))' } }, ...Object.entries(HARDSCAPE).map(([id, d]) => mk(d.kind, id, d)), ...Object.entries(SUBSTRATES).map(([id, d]) => mk('sub', id, d)), ...Object.entries(DECOR).map(([id, d]) => mk('decor', id, d)));
     }
     el.replaceChildren(h('div.wrap', null,
       h('div.row', { style: { margin: '6px 0 10px' } }, h('div.ring', { style: { '--p': pc } }, h('span', null, pc + '%')), h('div', null, h('h2', null, 'Ansiklopedi'), h('div.muted.small', null, `${found}/${total} keşif · Balık ${fishFound}/${ALL_BREEDS.length} · Bitki ${plantFound}/${Object.keys(PLANTS).length} · Taş&zemin ${hardFound}/${hardAll.length}`))),
-      UI.tabs([['fish', 'Balıkdex'], ['plant', 'Bitkidex'], ['hard', 'Taşdex']], this.dexTab, (k) => { this.dexTab = k; UI.render_dex(el); }), body));
+      UI.tabs([['fish', 'Balıkdex'], ['plant', 'Bitkidex'], ['hard', 'Taşdex'], ['trait', 'Özellikler']], this.dexTab, (k) => { this.dexTab = k; UI.render_dex(el); }), body));
   },
   subThumb(id) { const cv = document.createElement('canvas'); cv.width = cv.height = 96; const c = cv.getContext('2d'), [h_, s, l] = SUBSTRATES[id].colors.natural; c.fillStyle = hsl(h_, s, l); c.beginPath(); c.moveTo(6, 70); c.quadraticCurveTo(48, 40, 90, 66); c.lineTo(90, 90); c.lineTo(6, 90); c.fill(); const r = new RNG(3); for (let i = 0; i < 60; i++) { c.fillStyle = r.pick(['rgba(255,255,255,.25)', 'rgba(0,0,0,.25)']); c.beginPath(); c.arc(r.float(10, 88), r.float(62, 88), r.float(0.8, 2.4), 0, TAU); c.fill(); } return cv; },
 
@@ -6264,6 +6273,25 @@ Object.assign(Tests, {
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.saves(); return a && b; })(Tests.all);
 
+Object.assign(Tests, {
+  traits() {
+    const ok = {}, S = Game.S, keep = [S.traits, S.traitDone, S.coins]; S.traits = {}; S.traitDone = {};
+    try {
+      ok.cats = Traits.cats().length === 6;
+      // her öğenin örnek balığı kendi özelliğini gösteriyor mu?
+      const miss = []; for (const c of Traits.cats()) for (const it of c.list) { const cr = Traits.sample(it); if (!Traits.of(cr.pheno).includes(`${c.id}:${it.id}`)) miss.push(`${c.id}:${it.id}`); }
+      ok.samples = miss.length === 0; if (miss.length) console.warn('özellik örneği eşleşmiyor', miss);
+      ok.shapeGene = ['n', 'd', 's'].every((k) => Genetics.phenotype(Genetics.make({ shp: k === 'n' ? undefined : [k, k], tc: 'red', tail: 'fan' }, 'M').genome || Genetics.make({}, 'M')).shp !== undefined);
+      const before = S.coins, f = Traits.scan(true); ok.scanFinds = f.length > 0 && S.coins === before; // sessiz: ödül yok
+      ok.stored = Object.keys(Traits.store(S)).length === f.length; ok.idempotent = Traits.scan(true).length === 0;
+      const pg = Traits.progress(S); ok.progress = pg.every((p) => p.n <= p.total) && pg.reduce((a, p) => a + p.n, 0) === f.length;
+      ok.ui = !!UI.traitDexBody().querySelector('.trait');
+    } finally { S.traits = keep[0]; S.traitDone = keep[1]; S.coins = keep[2]; }
+    return this._log('Özellik Defteri (kataloğ, tarama, ödül, arayüz)', Object.values(ok).every(Boolean), ok);
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.traits(); return a && b; })(Tests.all);
+
 /* ───── 21-native.js ───── */
 'use strict';
 /* =====================================================================
@@ -7552,6 +7580,76 @@ UI.shopMap = function () {
   return cv;
 };
 UI.openTanks = ((orig) => function () { const r = orig.apply(this, arguments); const box = document.querySelector('.tanks-sheet .sheet > div') || document.querySelector('.tanks-sheet > div'); const head = box && box.firstElementChild; if (head && !box.querySelector('canvas')) head.after(UI.shopMap()); return r; })(UI.openTanks);
+
+/* ───── 34-traits.js ───── */
+'use strict';
+/* =====================================================================
+   34 · ÖZELLİK DEFTERİ — Irk isimlerinden bağımsız, tek tek özellik koleksiyonu:
+   kuyruk şekli, kuyruk rengi, gövde rengi, desen, gövde şekli, boy sınıfı.
+   Bir özellik bir balıkta ilk kez görülünce keşfedilir (isimsiz/karışık kombinasyonlar dahil),
+   küçük ödül verir; kategori tamamlanınca bonus. Ansiklopedi > Özellikler sekmesi.
+   (Şimdilik lepistes; diğer türler için genişletilebilir.)
+   ===================================================================== */
+const TRAIT_RARITY_TAIL = { lyre: 2, crown: 2, lace: 2, halfmoon: 2, doublesword: 1, topsword: 1, bottomsword: 1, spade: 1, veil: 0, round: 0, fan: 0, delta: 0 };
+const TRAIT_CATS = [
+  { id: 'tail', name: 'Kuyruk şekli', emo: '🎏', hint: 'Kuyruk tipi otozomal bir gendir; mutasyon ve çeşitli ebeveynlerle yeni şekiller çıkar.',
+    items: () => TAIL_RANK.map((k) => ({ id: k, name: TAILS[k].name, spec: { tail: k, tc: 'blue' }, r: TRAIT_RARITY_TAIL[k] ?? 1 })) },
+  { id: 'tcol', name: 'Kuyruk rengi', emo: '🎨', hint: 'Kuyruk rengi cinsiyet kromozomlarındadır: erkekte görünür, dişi gizlice taşır.',
+    items: () => Object.keys(TAILCOL).filter((k) => k !== 'none').map((k) => ({ id: k, name: TAILCOL[k].name, spec: { tc: k, tail: 'delta' }, r: ['red', 'blue'].includes(k) ? 0 : 1 })) },
+  { id: 'body', name: 'Gövde rengi', emo: '🐟', hint: 'Gövde rengi otozomal çekinik genlerle belirlenir (Albino, Blond, Golden, Blue…).',
+    items: () => BODY_RANK.map((k) => ({ id: k, name: BODY[k].name, spec: { body: k, tc: 'red', tail: 'delta' }, r: { W: 0, alb: 1, bld: 1, gld: 1, blu: 1, pnk: 2, obs: 3, aur: 4 }[k] ?? 1 })) },
+  { id: 'pat', name: 'Desen', emo: '🔶', hint: 'Desen genlerinin çoğu Y kromozomuna bağlıdır; erkeklerde görünür.',
+    items: () => [['tux', 'Tuxedo', { tux: 1 }, 1], ['sb', 'Yılan derisi (gövde)', { sb: 1 }, 2], ['st', 'Yılan derisi (kuyruk)', { st: 1 }, 2], ['grass', 'Grass', { grass: 1 }, 1], ['mosaic', 'Mozaik', { mosaic: 1 }, 1], ['moscow', 'Moscow', { moscow: 1, tc: 'blue' }, 2], ['purple', 'Mor gövde', { purple: 1 }, 2], ['metal', 'Metalik', { metal: 1 }, 3]].map(([id, name, sp, r]) => ({ id, name, spec: Object.assign({ tc: 'red', tail: 'delta' }, sp), r })) },
+  { id: 'shape', name: 'Gövde şekli', emo: '⚖️', hint: 'Gövde şekli yeni bir gendir: Normal baskın; Derin ve İnce çekinik. İki taşıyıcıyı eşleştir!',
+    items: () => [['n', 'Normal', {}, 0], ['d', 'Derin gövde', { shp: 'd' }, 1], ['s', 'İnce gövde', { shp: 's' }, 1]].map(([id, name, sp, r]) => ({ id, name, spec: Object.assign({ tc: 'red', tail: 'fan' }, sp), r })) },
+  { id: 'size', name: 'Boy sınıfı', emo: '📏', hint: 'Boy nicel (poligenik) bir özelliktir: ebeveyn ortalaması + sapma. Seçilim yaparak uç değerlere ulaş.',
+    items: () => [['small', 'Minyon', { size: 0.8 }, 1], ['mid', 'Orta boy', {}, 0], ['big', 'İri', { size: 1.27 }, 1]].map(([id, name, sp, r]) => ({ id, name, spec: Object.assign({ tc: 'red', tail: 'fan' }, sp), r })) },
+];
+
+const Traits = {
+  _s: new Map(), cats() { return this._cats || (this._cats = TRAIT_CATS.map((c) => ({ ...c, list: c.items() }))); },
+  store(S = Game.S) { return S.traits || (S.traits = {}); },
+  /** Bir fenotipin gösterdiği özellik kimlikleri ('cat:id'). */
+  of(p) {
+    if (!p || (p.sp && p.sp !== 'guppy')) return [];
+    const o = [`tail:${p.tail}`, `body:${p.body}`, `shape:${p.shp || 'n'}`, `size:${p.size < 0.9 ? 'small' : p.size >= 1.13 ? 'big' : 'mid'}`];
+    if (p.tailColor && p.tailColor !== 'none') o.push(`tcol:${p.tailColor}`); if (p.tailColor2) o.push(`tcol:${p.tailColor2}`);
+    for (const k of ['tux', 'sb', 'st', 'grass', 'mosaic', 'moscow']) if (p[k]) o.push(`pat:${k}`); if (p.purple) o.push('pat:purple'); if (p.metal) o.push('pat:metal');
+    return o;
+  },
+  find(key) { const [c, id] = key.split(':'); const cat = this.cats().find((x) => x.id === c); return cat ? { cat, item: cat.list.find((i) => i.id === id) } : null; },
+  progress(S = Game.S) { const st = this.store(S); return this.cats().map((c) => ({ c, n: c.list.filter((i) => st[`${c.id}:${i.id}`]).length, total: c.list.length })); },
+  /** Tüm canlıları tara; yeni özellik varsa ödül ver. quiet: toast/ses yok. */
+  scan(quiet) {
+    const S = Game.S, st = this.store(S), crs = [...Game.tank.creatures, ...(S.qFish || [])], found = [];
+    for (const c of crs) { if (c.species !== 'guppy') continue; for (const k of this.of(c.pheno)) if (!st[k]) { st[k] = { t: S.clockMin, by: c.name }; found.push(k); } }
+    if (!found.length) return found;
+    for (const k of found) { const f = this.find(k); if (!f || !f.item) continue; const rw = [10, 25, 50, 90, 150][f.item.r] || 10;
+      if (!quiet) { Game.addCoins(rw, true); Game.addXp(10 + f.item.r * 15); }
+      if (!quiet) { const pg = this.progress(S).find((x) => x.c.id === f.cat.id); UI.toast(`${f.cat.emo} Yeni özellik: ${f.item.name}! (${f.cat.name} ${pg.n}/${pg.total})`, 'star', 4200); AudioSys.SFX.discover(f.item.r); Game.notify('trait', `Yeni özellik: ${f.item.name}`); } }
+    // kategori tamamlama bonusu
+    const done = (S.traitDone = S.traitDone || {});
+    for (const p of this.progress(S)) if (p.n === p.total && !done[p.c.id]) { done[p.c.id] = 1; if (!quiet) { Game.addCoins(150, true); Game.addXp(100); UI.toast(`🏅 ${p.c.name} koleksiyonu tamamlandı! +150 💰`, 'star', 5000); } }
+    if (this.progress(S).every((p) => p.n === p.total) && !done.all) { done.all = 1; if (!quiet) { S.stone = (S.stone || 0) + 3; UI.toast('🌟 Tüm özellikler toplandı! +3 Yosun Taşı', 'star', 6000); } }
+    Ach.check(); return found;
+  },
+  sample(item) { let c = this._s.get(item.id + JSON.stringify(item.spec)); if (!c) { c = Game.sampleCreature(item.spec); this._s.set(item.id + JSON.stringify(item.spec), c); } return c; },
+};
+
+/* Keşif taraması: açılışta sessiz, sonrasında her canlı değişikliğinde */
+Game.checkDiscoveries = ((orig) => function (silent) { const r = orig.apply(this, arguments); try { Traits.scan(!!silent); } catch (e) { console.warn('Özellik taraması', e); } return r; })(Game.checkDiscoveries);
+ACHIEVEMENTS.push({ id: 'traits', name: 'Özellik Avcısı', ic: '🧬', desc: 'Özellik Defteri\'ni doldur', tiers: [8, 16, 28], get: (S) => Object.keys(Traits.store(S)).length });
+
+/* Ansiklopedi > Özellikler */
+Object.assign(UI, {
+  traitDexBody() {
+    const S = Game.S, st = Traits.store(S), pr = Traits.progress(S), tot = pr.reduce((a, p) => a + p.n, 0), all = pr.reduce((a, p) => a + p.total, 0);
+    return h('div.stack', null, h('div.card.small', null, h('b', null, `Özellik Defteri · ${tot}/${all}`), h('div.muted', null, 'Irk ismi olmasa da bir balıkta ilk kez görülen her özellik burada kaydedilir. Karışık özellikli yavrular da sayılır.')),
+      ...pr.map(({ c, n, total }) => h('div.card', null, h('div.row', null, h('div', { style: { fontSize: '26px' } }, c.emo), h('div.sp', null, h('b', null, c.name), h('div.tiny.muted', null, c.hint)), h('span.pill', { style: n === total ? { color: 'var(--ok)' } : null }, `${n}/${total}`)),
+        h('div.trait-grid', null, ...c.list.map((it) => { const got = !!st[`${c.id}:${it.id}`], rr = RARITY[it.r || 0], cr = Traits.sample(it), cv = got ? UI.thumbCv(cr, 96) : UI.silhouette(cr, 96);
+          return h('div.trait' + (got ? '' : '.lock'), { style: { '--c': rr.color }, title: got ? `${it.name} · ilk: ${st[`${c.id}:${it.id}`].by}` : 'Henüz keşfedilmedi' }, cv, h('b', null, got ? it.name : '???'), h('span.tiny', { style: { color: rr.color } }, got ? rr.icon + ' ' + rr.name : 'Keşfedilmedi')); })))));
+  },
+});
 
 </script>
 </body>

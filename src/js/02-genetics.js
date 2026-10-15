@@ -8,7 +8,7 @@
    · Mutasyon, akrabalık katsayısı (soyağacından), ırk tanıma
    ===================================================================== */
 
-const AUTO_LOCI = ['body', 'purple', 'metal', 'tail'];
+const AUTO_LOCI = ['body', 'purple', 'metal', 'tail', 'shp'];   // shp: gövde şekli (n normal baskın; dd derin, ss ince)
 const SC_LOCI = ['tc', 'tux', 'sb', 'st', 'grass', 'mosaic', 'moscow'];
 const XY_CROSS = 0.03;      // erkekte X–Y arası çaprazlama (lokus başına)
 const XX_CROSS = 0.25;      // dişide X–X arası
@@ -38,12 +38,13 @@ const Pedigree = {
 const SCHEMA = {
   guppy: {
     auto: AUTO_LOCI, sc: SC_LOCI, xy: XY_CROSS,
-    defAuto: { body: ['W', 'W'], tail: ['delta', 'delta'], purple: ['pb', 'pb'], metal: ['mg', 'mg'] },
+    defAuto: { body: ['W', 'W'], tail: ['delta', 'delta'], purple: ['pb', 'pb'], metal: ['mg', 'mg'], shp: ['n', 'n'] },
     defSc: { tc: 'none', tux: 0, sb: 0, st: 0, grass: 0, mosaic: 0, moscow: 0 },
     quant: { size: [0.75, 1.3], tailLen: [0.6, 1.4], vigor: [0.5, 1.4], intensity: [0.55, 1.3] },
     mut(locus, al, rng) {
       if (locus === 'body') { if (rng.chance(0.12)) return rng.pick(['obs', 'aur']); return rng.pick(BODY_RANK.filter((a) => a !== al && a !== 'obs' && a !== 'aur')); }
       if (locus === 'tail') return rng.pick(TAIL_RANK.filter((a) => a !== al));
+      if (locus === 'shp') return rng.pick(['n', 'd', 's'].filter((a) => a !== al));
       if (locus === 'purple') return al === 'Pb' ? 'pb' : 'Pb'; if (locus === 'metal') return al === 'Mg' ? 'mg' : 'Mg'; return al;
     },
     mutSc(locus, v, rng) { if (locus === 'tc') return rng.pick(Object.keys(TAILCOL).filter((c) => c !== v)); return v ? 0 : 1; },
@@ -75,6 +76,7 @@ const Genetics = {
   randomFounder(sex, rng = R, sp = 'guppy') {
     if (sp !== 'guppy') return sch(sp).founder(sex, rng);
     const spec = { body: rng.chance(0.12) ? rng.pick(['bld', 'gld', 'alb', 'blu']) : 'W', tail: rng.pick(TAIL_COMMON), X: { tc: rng.chance(0.18) ? rng.pick(['red', 'blue']) : 'none' } };
+    if (rng.chance(0.12)) spec.shp = [rng.pick(['d', 's']), 'n'];   // gizli şekil taşıyıcısı
     return this.make(spec, sex, rng);
   },
 
@@ -94,8 +96,9 @@ const Genetics = {
       p.tailColor = a; p.tailColor2 = b;
       for (const k of ['tux', 'sb', 'st', 'grass', 'mosaic', 'moscow']) p[k] = (x[k] || y[k]) ? 1 : 0;
     }
+    const sa = g.auto.shp || ['n', 'n']; p.shp = sa.includes('n') || sa[0] !== sa[1] ? 'n' : sa[0]; p.H = { n: 1, d: 1.26, s: 0.82 }[p.shp];   // gövde şekli: derin / ince
     p.penalty = p.metalDouble ? 0.65 : 1;
-    p.sig = [p.sex, p.body, p.purple | 0, p.metal | 0, p.tail, p.tailColor, p.tailColor2, p.tux, p.sb, p.st, p.grass, p.mosaic, p.moscow].join('|');
+    p.sig = [p.sex, p.body, p.shp, p.purple | 0, p.metal | 0, p.tail, p.tailColor, p.tailColor2, p.tux, p.sb, p.st, p.grass, p.mosaic, p.moscow].join('|');
     return p;
   },
 
@@ -156,6 +159,7 @@ const Genetics = {
     rows.push(['Mor gövde (Pb)', g.auto.purple.join(' / ')]);
     rows.push(['Metal (Mg)', g.auto.metal.join(' / ')]);
     rows.push(['Kuyruk tipi', g.auto.tail.map((a) => TAILS[a].name).join(' / ')]);
+    rows.push(['Gövde şekli (n/d/s)', (g.auto.shp || ['n', 'n']).map((a) => ({ n: 'Normal', d: 'Derin', s: 'İnce' }[a])).join(' / ')]);
     const hn = (h) => { const l = [h.tc !== 'none' ? 'kuyruk ' + TAILCOL[h.tc].name : null, h.tux ? 'Tuxedo' : null, h.sb ? 'Snake-gövde' : null, h.st ? 'Snake-kuyruk' : null, h.grass ? 'Grass' : null, h.mosaic ? 'Mozaik' : null, h.moscow ? 'Moscow' : null].filter(Boolean); return l.length ? l.join(', ') : '–'; };
     rows.push(['X kromozomu', hn(g.sc[0])]);
     rows.push([g.sex === 'M' ? 'Y kromozomu' : '2. X kromozomu', hn(g.sc[1])]);
