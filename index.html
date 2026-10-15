@@ -296,6 +296,19 @@ details.card summary{list-style:none}
 @keyframes bumpk{0%{transform:scale(1)}40%{transform:scale(1.2)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.bump{animation:none}}
 
+/* ---- Kalite: dokunma alanları ≥44 px (görsel boyut değişmeden), üst çubuk taşmasız ---- */
+.btn.sm{min-height:44px}
+.sp-chip{min-height:44px}
+.switch::after,.aq-info .chip::after,.chip[role=button]::after,button.chip::after{content:'';position:absolute;inset:-8px -4px}
+.aq-info .chip,button.chip{position:relative}
+input[type=range]{min-height:44px}
+.ed-top{overflow-x:auto;scrollbar-width:none;padding-right:2px}.ed-top::-webkit-scrollbar{display:none}
+.ed-top .icon-btn{flex:none;width:42px;height:42px;min-width:42px}
+.set-row input[type=text],.set-row input[type=password],.set-row select{min-height:44px}
+.cat-grid .cat,.tpl button{min-height:44px}
+.f3-btn{min-height:36px;min-width:42px;position:relative}.f3-btn::after{content:'';position:absolute;inset:-4px}
+.sp-chip,.btn.sm{min-width:44px}
+
 </style>
 </head>
 <body>
