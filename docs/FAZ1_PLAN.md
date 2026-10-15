@@ -1,5 +1,7 @@
 # Faz 1 — Keşif ve Plan
 
+Güncel durum için README ve OPEN_QUESTIONS.md dosyalarına bakın.
+
 Kaynak görev tanımı: `LEPISTES_SITE_PROMPT.md`
 
 ## Varsayımlar
@@ -35,7 +37,8 @@ Kaynak görev tanımı: `LEPISTES_SITE_PROMPT.md`
 - [x] Faz 4 başlangıç içeriği: 15 ders + 29 wiki maddesi (sayısal değerler `needs_verification`)
 - [x] Faz 5 orta içerik: 15 ders + 16 yeni wiki maddesi (45 madde toplam)
 - [x] Faz 6 ileri içerik: 15 ders + 17 wiki maddesi + kaynaklar sayfası (62 madde toplam)
-- [ ] Faz 7–9 diğer araçlar, Faz 10 cilalama
+- [x] Faz 10 (kısmen): CI, README, CONTRIBUTING, CONTENT_REVIEW, OPEN_QUESTIONS
+- [ ] Faz 10 kalan: SVG diyagramlar, erişilebilirlik/Lighthouse, PWA, E2E, kalan araçlar, lisans
 
 ## Doğrulama gerektiren konular (⚠)
 Sıcaklık/pH/GH/KH aralıkları, gebelik süresi–sıcaklık, doğum başına yavru sayısı, olgunlaşma yaşı, kalıtım tipleri (özellik bazında), tuz banyosu dozları. Bunlar kaynakla teyit edilmeden sayısal olarak yazılmayacak; mevcut sayfalarda `needs_verification: true` ile işaretlidir.

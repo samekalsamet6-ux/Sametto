@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Birim testleri
+        run: npm test
+      - name: Tip ve içerik denetimi
+        run: npm run check
+      - name: Derleme (içerik şeması + arama dizini)
+        run: npm run build
+      - name: Kırık bağlantı denetimi
+        run: npm run check:links
+      - name: Doğrulama bekleyen içerik listesi güncel mi?
+        run: |
+          node scripts/list-unverified.mjs
+          git diff --exit-code docs/OPEN_QUESTIONS.md
