@@ -33,7 +33,8 @@ Kaynak görev tanımı: `LEPISTES_SITE_PROMPT.md`
 - [x] Araç örnekleri: akvaryum hacmi, su değişimi (testli)
 - [x] Faz 3 arama (Pagefind), sözlük bağlantı/tooltip (Terim), TOC, geri bağlantılar, kırık link denetimi
 - [x] Faz 4 başlangıç içeriği: 15 ders + 29 wiki maddesi (sayısal değerler `needs_verification`)
-- [ ] Faz 5–6 içerik, Faz 7–9 diğer araçlar, Faz 10 cilalama
+- [x] Faz 5 orta içerik: 15 ders + 16 yeni wiki maddesi (45 madde toplam)
+- [ ] Faz 6 ileri içerik, Faz 7–9 diğer araçlar, Faz 10 cilalama
 
 ## Doğrulama gerektiren konular (⚠)
 Sıcaklık/pH/GH/KH aralıkları, gebelik süresi–sıcaklık, doğum başına yavru sayısı, olgunlaşma yaşı, kalıtım tipleri (özellik bazında), tuz banyosu dozları. Bunlar kaynakla teyit edilmeden sayısal olarak yazılmayacak; mevcut sayfalarda `needs_verification: true` ile işaretlidir.
