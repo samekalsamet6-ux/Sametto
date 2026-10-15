@@ -155,3 +155,18 @@ Object.assign(Tests, {
   },
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.habitats(); return a && b; })(Tests.all);
+
+/* Canlı dükkân: sezon dekorları, etkinlik bonusu, asistan, bildirim planı */
+Object.assign(Tests, {
+  living() {
+    const ok = {}, cv = document.createElement('canvas'); cv.width = cv.height = 400; const c = cv.getContext('2d'); c.translate(200, 380);
+    ok.decorDraw = Object.entries(DECOR).filter(([, d]) => d.season).every(([k, d]) => { try { Art.decor(c, d, new RNG(3)); return true; } catch (e) { console.warn(k, e); return false; } });
+    ok.seasonMap = ['spring', 'summer', 'autumn', 'winter'].every((s) => DECOR[SEASON_DECOR[s]] && DECOR[SEASON_DECOR[s]].season === s && SEASON_EVENT[s]);
+    const cr = Game.sampleCreature(BREEDS[0].spec); ok.bonus = Object.values(SEASON_EVENT).every((e) => e.pm(cr) >= 1 && e.pm(cr) <= 1.2);
+    const S = Game.S, bak = S.research.assistant; ok.research = RESEARCH.some((r) => r.id === 'assistant' && r.after === 'feeder');
+    const f = Game.tank.creatures.find((x) => x.sex === 'F'), old = f.preg; f.preg = { start: S.clockMin, due: S.clockMin + 3600 }; const up = Notifier.upcoming(S); f.preg = old; ok.notify = up.length >= 1 && up[0].text.includes(f.name) && up[0].at > Date.now() + 3000 * 1000;
+    ok.hide = typeof Notifier.onHide === 'function'; if (bak === undefined) delete S.research.assistant;
+    return this._log('Canlı dükkân (sezon dekoru, etkinlik, asistan, bildirim)', Object.values(ok).every(Boolean), ok);
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.living(); return a && b; })(Tests.all);
