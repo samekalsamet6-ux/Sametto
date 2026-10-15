@@ -121,6 +121,16 @@ test.describe('pedigri çizici', () => {
     await expect(page.locator('#out svg')).toHaveAttribute('role', 'img');
   });
 
+  test('örnek düğmeleri soy ağacını yükler ve düz dille özetler', async ({ page }) => {
+    await page.goto('/araclar/pedigri/');
+    await expect(page.locator('#plain')).toContainText('C balığının ebeveynleri birbirine akraba (F = 0.25)');
+    await page.click('[data-ex=akrabasiz]');
+    await expect(page.locator('#msg')).toContainText('7 birey');
+    await expect(page.locator('#plain')).toContainText('akraba değil');
+    await page.click('[data-ex=ebeveyn]');
+    await expect(page.locator('#plain')).toContainText('B balığının ebeveynleri birbirine akraba (F = 0.25)');
+  });
+
   test('döngü hatası gösterilir ve çizim temizlenir', async ({ page }) => {
     await page.goto('/araclar/pedigri/');
     await page.fill('[name=ped]', 'A,B,\nB,A,');
