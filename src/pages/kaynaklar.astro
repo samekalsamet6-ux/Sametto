@@ -1,0 +1,17 @@
+---
+import Base from '../layouts/Base.astro';
+import kaynaklar from '../data/kaynaklar.json';
+const label: Record<string, string> = { birincil: 'Birincil (bilimsel makale)', ikincil: 'İkincil (atıf yoluyla)', egitim: 'Eğitim kaynağı' };
+---
+<Base title="Kaynaklar" description="Sitede kullanılan kaynaklar ve doğrulama durumu.">
+  <h1>Kaynaklar</h1>
+  <p class="muted">Sitedeki bilimsel iddialar buradaki kaynaklara dayanır. “İkincil” işaretli kaynaklar özgün haliyle okunmamıştır ve doğrulanmalıdır.</p>
+  <ul>
+    {kaynaklar.map((k) => (
+      <li id={k.id}>
+        <strong>{k.authors}{k.year ? ` (${k.year})` : ''}</strong>. {k.url ? <a href={k.url}>{k.title}</a> : k.title}. <em>{k.venue}</em>. <span class="badge">{label[k.kind]}</span>
+        <div class="muted meta">{k.note}</div>
+      </li>
+    ))}
+  </ul>
+</Base>
