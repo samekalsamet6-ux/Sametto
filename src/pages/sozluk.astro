@@ -7,7 +7,7 @@ const letters = [...new Set(terms.map((t) => t.data.title[0].toLocaleUpperCase('
 <Base title="Sözlük" description="Lepistes yetiştiriciliği terimleri.">
   <h1>Sözlük</h1>
   <p class="muted">Terimler wiki maddelerine bağlıdır. Daha fazlası için <a href="/wiki">Wiki</a> ve <a href="/ara">Ara</a>.</p>
-  <p>{letters.map((l) => <a href={`#h-${l}`} style="margin-right:10px">{l}</a>)}</p>
+  <p>{letters.map((l) => <a class="az" href={`#h-${l}`}>{l}</a>)}</p>
   {letters.map((l) => (
     <section id={`h-${l}`}>
       <h2>{l}</h2>

@@ -45,7 +45,7 @@ const groups = [...new Set(symptoms.map((s) => s.group))];
           <strong>Ölçün / gözleyin:</strong> ${r.cause.tests.map(esc).join(' · ')}
           ${r.cause.wiki ? `<p><a href="/wiki/${r.cause.wiki}">Ayrıntılı bilgi →</a></p>` : ''}
         </article>`).join('') + `<p class="muted">${sel.length} belirti seçildi (${symptoms.length} seçenek).</p>`;
-      el('res').scrollIntoView({ behavior: 'smooth' });
+      el('res').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     });
   </script>
 </Base>

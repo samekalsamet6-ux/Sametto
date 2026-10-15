@@ -39,9 +39,11 @@ npm run dev        # geliştirme sunucusu (arama dizini yalnızca build sonrası
 | `npm run build` | Siteyi `dist/` içine derler ve Pagefind dizinini oluşturur |
 | `npm run preview` | Derlenmiş siteyi yerelde açar |
 | `npm run check:links` | `dist/` içindeki dahili bağlantıları denetler (önce `build`) |
+| `npm run a11y` | Tüm sayfalarda axe taraması, açık ve koyu tema (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
+| `npm run lighthouse` | Seçili 7 sayfada Lighthouse (mobil); performans ≥ 85, erişilebilirlik/en iyi uygulamalar/SEO ≥ 95 |
 | `npm run open-questions` | `docs/OPEN_QUESTIONS.md` dosyasını yeniden üretir |
 
-CI (`.github/workflows/ci.yml`) şunları çalıştırır: test → `check` → `build` → `check:links` → `OPEN_QUESTIONS.md` güncel mi.
+CI (`.github/workflows/ci.yml`) şunları çalıştırır: test → `check` → `build` → `check:links` → `a11y` → `lighthouse` → `OPEN_QUESTIONS.md` güncel mi.
 
 ## Proje yapısı
 
@@ -66,6 +68,14 @@ docs/                  Plan ve doğrulama listesi
 - Bilimsel iddialar için `src/data/kaynaklar.json` içine kaynak ekleyin ve `/kaynaklar#id` ile bağlayın.
 - Ayrıntılar: [`CONTRIBUTING.md`](CONTRIBUTING.md), editör listesi: [`CONTENT_REVIEW.md`](CONTENT_REVIEW.md).
 
+## Erişilebilirlik
+
+- axe-core taraması (WCAG 2.0/2.1/2.2 A–AA + en iyi uygulamalar) tüm sayfalarda, açık ve koyu temada, mobil görünümde ihlalsiz geçer.
+- Klavye gezintisi için görünür odak çerçevesi, "ana içeriğe geç" bağlantısı, `prefers-reduced-motion` desteği, en az 24 px dokunma hedefi.
+- Renk değişkenleri açık ve koyu tema için kontrast denetiminden geçecek biçimde ayarlıdır; yeni renk eklerseniz `npm run a11y` çalıştırın.
+- Görev listesi onay kutularına (`- [ ]`) derleme sırasında `aria-label` eklenir (`src/lib/rehype-task-labels.mjs`).
+- Not: Astro 7'nin varsayılan MDX işlemcisi rehype eklentilerini çalıştırmaz; bu yüzden `astro.config.mjs` içinde `unified` işlemcisi kullanılır.
+
 ## Yayınlama
 
 `npm run build` çıktısı (`dist/`) statik bir sitedir; Cloudflare Pages, Netlify, GitHub Pages gibi herhangi bir statik barındırmada çalışır.
@@ -78,7 +88,7 @@ Yayından önce:
 ## Yapılacaklar
 
 - SVG diyagramlar (azot döngüsü, tank düzeni, gonopodium, Punnett, soy ağacı)
-- Erişilebilirlik (axe) ve Lighthouse denetimi, PWA/çevrimdışı kullanım
+- PWA/çevrimdışı kullanım
 - Kalan araçlar: büyüme takipçisi, maliyet, ilaç dozajı, pedigri çizici
 - E2E testleri (Playwright)
 - Lisans seçimi (henüz yok)

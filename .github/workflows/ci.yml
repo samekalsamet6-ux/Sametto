@@ -31,6 +31,10 @@ jobs:
         run: npm run build
       - name: Kırık bağlantı denetimi
         run: npm run check:links
+      - name: Erişilebilirlik taraması (axe, açık/koyu tema)
+        run: CHROME="$(which google-chrome)" npm run a11y
+      - name: Lighthouse (mobil)
+        run: CHROME="$(which google-chrome)" npm run lighthouse
       - name: Doğrulama bekleyen içerik listesi güncel mi?
         run: |
           node scripts/list-unverified.mjs

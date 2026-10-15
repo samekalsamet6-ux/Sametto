@@ -18,7 +18,7 @@ import Base from '../../layouts/Base.astro';
   <p>
     <button id="exp" type="button">Dışa aktar (JSON)</button>
     <label class="muted" style="display:inline-block;margin-left:8px">İçe aktar <input id="imp" type="file" accept="application/json" /></label>
-    <button id="clr" type="button" style="background:var(--hard)">Tümünü sil</button>
+    <button id="clr" type="button" class="danger">Tümünü sil</button>
   </p>
   <script>
     import { evaluateCycle, serialize, parseImport, type CycleEntry } from '../../lib/storage/cycle';
@@ -41,7 +41,7 @@ import Base from '../../layouts/Base.astro';
     function render() {
       el('status').textContent = evaluateCycle(entries).message;
       const s = [...entries].sort((a, b) => b.date.localeCompare(a.date));
-      el('tbl').innerHTML = '<tr><th>Tarih</th><th>NH3</th><th>NO2</th><th>NO3</th><th></th></tr>' + s.map((e) => `<tr><td>${e.date}</td><td>${e.nh3}</td><td>${e.no2}</td><td>${e.no3}</td><td><button type="button" data-d="${e.date}" aria-label="${e.date} kaydını sil">✕</button></td></tr>`).join('');
+      el('tbl').innerHTML = '<tr><th>Tarih</th><th>NH3</th><th>NO2</th><th>NO3</th><th><span class="sr-only">İşlem</span></th></tr>' + s.map((e) => `<tr><td>${e.date}</td><td>${e.nh3}</td><td>${e.no2}</td><td>${e.no3}</td><td><button type="button" data-d="${e.date}" aria-label="${e.date} kaydını sil">✕</button></td></tr>`).join('');
       chart();
     }
     const f = el<HTMLFormElement>('f');

@@ -2,7 +2,7 @@
 
 ## Genel akış
 1. Dal açın, değişikliği yapın.
-2. Yerelde şunların geçtiğinden emin olun: `npm test && npm run check && npm run build && npm run check:links`.
+2. Yerelde şunların geçtiğinden emin olun: `npm test && npm run check && npm run build && npm run check:links && npm run a11y`.
 3. Doğrulama durumunu değiştirdiyseniz `npm run open-questions` çalıştırıp `docs/OPEN_QUESTIONS.md` dosyasını da commit edin (CI bunu kontrol eder).
 4. Pull request açın.
 
@@ -53,6 +53,11 @@ MDX'te metin içinde çıplak `<`, `{` yazmayın.
 3. Sayfayı `src/pages/araclar/` altında oluşturun; ondalık virgülü için `src/lib/dom.ts` içindeki `num()` kullanın.
 4. Aracı `src/data/araclar.ts` listesine ekleyin.
 5. Sezgisel veya doğrulanmamış varsayımlar kullanıyorsa sayfada görünür uyarı verin.
+
+## Erişilebilirlik kuralları
+- Tablo başlık hücreleri boş bırakılmaz (ilk sütun için bile bir başlık yazın).
+- Form alanlarına `<label>` veya `aria-label` verin; satır içi `style` ile renk tanımlamayın (tema değişkenlerini kullanın).
+- Tıklanabilir öğeler en az 24×24 px olmalı; bitişik küçük bağlantılar arasında boşluk bırakın.
 
 ## Commit
 Kısa, açıklayıcı, Türkçe veya İngilizce mesajlar.

@@ -36,7 +36,7 @@ import Base from '../layouts/Base.astro';
           <p><a href="${href}"><strong>Bu yola başla →</strong></a></p>
         </div>
         ${r.missed.length ? '<h3>Gözden geçirilecek sorular</h3>' + r.missed.map((q) => `<div class="callout"><strong>${esc(q.q)}</strong><div>Doğru cevap: ${esc(q.options[q.correct])}.</div><div class="muted">${esc(q.explain)}</div>${q.wiki ? `<a href="/wiki/${q.wiki}">İlgili madde →</a>` : ''}</div>`).join('') : '<p>Tüm soruları doğru cevapladınız. 🎉</p>'}`;
-      el('res').scrollIntoView({ behavior: 'smooth' });
+      el('res').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     });
   </script>
 </Base>
