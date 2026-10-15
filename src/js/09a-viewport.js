@@ -27,7 +27,7 @@ class Viewport {
   toScreen(wx, wy) { const S = this.scale(); return { x: (wx - this.cam.cx) * S + this.cw / 2, y: (wy - this.cam.cy) * S + this.cy0(), S }; }
   resize() {
     const r = this.cv.getBoundingClientRect(); if (r.width < 10 || r.height < 10) return;
-    this.dpr = Math.min(2, devicePixelRatio || 1); this.cw = r.width; this.ch = r.height; this.cv.width = Math.round(r.width * this.dpr); this.cv.height = Math.round(r.height * this.dpr);
+    this.dpr = Math.min(this.dprCap || 2, devicePixelRatio || 1); this.cw = r.width; this.ch = r.height; this.cv.width = Math.round(r.width * this.dpr); this.cv.height = Math.round(r.height * this.dpr);
     const oldW = this.tank.W; this.tank.setAspect(r.width / r.height); if (this.tank.W !== oldW) this.cam.cx *= this.tank.W / oldW;
     if (!this._fit) { this._fit = 1; this.fitDefault(); } this.cam.zoom = Math.max(1, this.cam.zoom); this.clamp();
   }

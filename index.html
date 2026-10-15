@@ -10,15 +10,15 @@
 <style>
 /* ====== Tasarım dili: "Sualtı cam" ====== */
 :root{
-  --bg:#04161f; --bg2:#08303f; --panel:rgba(14,56,74,.62); --panel-solid:#0d3a4d; --panel-b:rgba(130,230,235,.2);
+  --bg:#04161f; --bg2:#08303f; --panel:rgba(12,50,68,.86); --panel-solid:#0d3a4d; --panel-b:rgba(130,230,235,.2);
   --text:#e8f7f8; --muted:#9fc6cd; --accent:#2fd4c6; --accent-ink:#032a2a; --coral:#ff7f6e; --ok:#4cd694; --warn:#ffc65c; --bad:#ff6b6b;
   --r0:#9aa8b1; --r1:#4aa8ff; --r2:#b06cff; --r3:#ffc247; --r4:#ff7ad9;
   --radius:16px; --tab-h:66px; --top-h:56px; --ease:cubic-bezier(.22,1,.36,1);
   --fs:1; --shadow:0 10px 30px rgba(0,0,0,.35);
   --font-h:'Baloo 2','Nunito','Segoe UI Rounded','Trebuchet MS',system-ui,sans-serif; --font-b:'Nunito','Segoe UI',system-ui,-apple-system,sans-serif;
 }
-:root[data-theme=light]{ --bg:#e9f7f8; --bg2:#cdeef0; --panel:rgba(255,255,255,.72); --panel-solid:#ffffff; --panel-b:rgba(14,100,120,.18); --text:#0c3340; --muted:#4a7380; --accent:#0aa89b; --accent-ink:#fff; --shadow:0 10px 26px rgba(10,70,90,.18); }
-:root[data-theme=oled]{ --bg:#000; --bg2:#000; --panel:rgba(18,32,38,.78); --panel-solid:#0a1418; --panel-b:rgba(120,220,225,.16); }
+:root[data-theme=light]{ --bg:#e9f7f8; --bg2:#cdeef0; --panel:rgba(255,255,255,.92); --panel-solid:#ffffff; --panel-b:rgba(14,100,120,.18); --text:#0c3340; --muted:#4a7380; --accent:#0aa89b; --accent-ink:#fff; --shadow:0 10px 26px rgba(10,70,90,.18); }
+:root[data-theme=oled]{ --bg:#000; --bg2:#000; --panel:rgba(16,30,36,.9); --panel-solid:#0a1418; --panel-b:rgba(120,220,225,.16); }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:calc(16px * var(--fs));overflow:hidden;overscroll-behavior:none}
 body{background:radial-gradient(1200px 700px at 50% -10%,var(--bg2),var(--bg));}
@@ -33,7 +33,7 @@ h1,h2,h3,h4{font-family:var(--font-h);margin:0;font-weight:700;letter-spacing:.2
 #splash.out{opacity:0;filter:blur(10px);pointer-events:none}
 #splash h1{font-size:clamp(34px,8vw,64px);color:#eafffd;text-shadow:0 4px 30px rgba(47,212,198,.5)}
 #splash p{margin:0;color:#a8d8dc;max-width:34ch}
-#splash .tap{margin-top:12px;padding:14px 30px;border-radius:30px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);backdrop-filter:blur(8px);font-family:var(--font-h);font-size:20px;animation:breathe 2.4s ease-in-out infinite}
+#splash .tap{margin-top:12px;padding:14px 30px;border-radius:30px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);font-family:var(--font-h);font-size:20px;animation:breathe 2.4s ease-in-out infinite}
 #splash canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 @keyframes breathe{50%{transform:scale(1.05);box-shadow:0 0 30px rgba(47,212,198,.45)}}
 
@@ -43,10 +43,10 @@ h1,h2,h3,h4{font-family:var(--font-h);margin:0;font-weight:700;letter-spacing:.2
 #topbar .brand{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px 0 8px;border:0;background:none;cursor:pointer;font-family:var(--font-h);font-size:18px;color:var(--text);border-radius:14px}
 #topbar .brand .ic{width:28px;height:28px;color:var(--accent)}
 #topbar .grow{flex:1}
-.chip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border-radius:20px;background:var(--panel);border:1px solid var(--panel-b);backdrop-filter:blur(12px);font-weight:700;font-variant-numeric:tabular-nums}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border-radius:20px;background:var(--panel);border:1px solid var(--panel-b);font-weight:700;font-variant-numeric:tabular-nums}
 .chip .ic{width:18px;height:18px}
 .chip.coin .ic{color:#ffd36b}.chip.rep .ic{color:var(--coral)}
-.icon-btn{position:relative;width:44px;height:44px;min-width:44px;display:inline-grid;place-items:center;border-radius:14px;border:1px solid var(--panel-b);background:var(--panel);backdrop-filter:blur(12px);cursor:pointer;overflow:hidden;transition:transform .18s var(--ease),background .2s}
+.icon-btn{position:relative;width:44px;height:44px;min-width:44px;display:inline-grid;place-items:center;border-radius:14px;border:1px solid var(--panel-b);background:var(--panel);cursor:pointer;overflow:hidden;transition:transform .18s var(--ease),background .2s}
 .icon-btn:active{transform:scale(.92)}
 .badge-dot{position:absolute;top:5px;right:5px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--coral);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center}
 #screens{position:relative;flex:1;min-height:0}
@@ -54,8 +54,8 @@ h1,h2,h3,h4{font-family:var(--font-h);margin:0;font-weight:700;letter-spacing:.2
 .screen.active{display:block}
 .screen.enter{animation:rise .5s var(--ease) both}
 .screen.leave{display:block;animation:sink .32s var(--ease) both;pointer-events:none}
-@keyframes rise{from{opacity:0;transform:translateY(26px);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
-@keyframes sink{to{opacity:0;transform:scale(.985);filter:blur(7px)}}
+@keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+@keyframes sink{to{opacity:0;transform:scale(.985)}}
 .wrap{max-width:760px;margin:0 auto}
 #tabbar{position:absolute;left:0;right:0;bottom:0;height:calc(var(--tab-h) + env(safe-area-inset-bottom));padding:6px 8px env(safe-area-inset-bottom);display:flex;gap:2px;z-index:20;background:linear-gradient(transparent,var(--bg) 40%);}
 #tabbar .tab{flex:1;min-height:44px;border:0;background:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:700;cursor:pointer;border-radius:14px;position:relative;transition:color .25s,transform .18s var(--ease)}
@@ -66,11 +66,11 @@ h1,h2,h3,h4{font-family:var(--font-h);margin:0;font-weight:700;letter-spacing:.2
 @keyframes bubUp{from{transform:translateY(0) translateX(0);opacity:.9}to{transform:translateY(-105vh) translateX(var(--dx,20px));opacity:0}}
 
 /* ====== Kart / düğme ====== */
-.card{background:var(--panel);border:1px solid var(--panel-b);border-radius:var(--radius);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:14px;box-shadow:var(--shadow)}
+.card{background:var(--panel);border:1px solid var(--panel-b);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)}
 .card + .card,.stack > * + *{margin-top:12px}
 .row{display:flex;align-items:center;gap:10px}.row.wrap-r{flex-wrap:wrap}.sp{flex:1}
 .muted{color:var(--muted)}.small{font-size:13px}.tiny{font-size:11.5px}
-.btn{position:relative;overflow:hidden;min-height:44px;padding:0 18px;border-radius:14px;border:1px solid var(--panel-b);background:var(--panel);color:var(--text);font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .18s var(--ease),background .2s,box-shadow .2s;backdrop-filter:blur(10px)}
+.btn{position:relative;overflow:hidden;min-height:44px;padding:0 18px;border-radius:14px;border:1px solid var(--panel-b);background:var(--panel);color:var(--text);font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .18s var(--ease),background .2s,box-shadow .2s;}
 .btn:active{transform:scale(.95)}
 .btn.primary{background:linear-gradient(135deg,var(--accent),#17a7c4);color:var(--accent-ink);border-color:transparent;box-shadow:0 6px 18px rgba(47,212,198,.28)}
 .btn.coral{background:linear-gradient(135deg,#ff8a78,#ff5f7a);color:#fff;border-color:transparent}
@@ -113,7 +113,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 .aq-info{position:absolute;top:6px;left:12px;right:12px;display:flex;gap:8px;pointer-events:none;flex-wrap:wrap;z-index:5}
 .aq-info .chip{pointer-events:auto;font-size:14px}
 .qa{position:absolute;left:0;right:0;bottom:calc(var(--tab-h) + 10px + env(safe-area-inset-bottom));display:flex;justify-content:center;gap:10px;z-index:6;padding:0 10px}
-.qa .qbtn{width:60px;min-height:58px;border-radius:18px;border:1px solid var(--panel-b);background:var(--panel);backdrop-filter:blur(14px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:800;cursor:pointer;transition:transform .18s var(--ease)}
+.qa .qbtn{width:60px;min-height:58px;border-radius:18px;border:1px solid var(--panel-b);background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:800;cursor:pointer;transition:transform .18s var(--ease)}
 .qa .qbtn:active{transform:scale(.9)}
 .qa .qbtn.on{background:var(--accent);color:var(--accent-ink)}
 .tip{position:absolute;z-index:7;padding:6px 12px;border-radius:12px;background:var(--panel-solid);border:1px solid var(--panel-b);font-weight:800;pointer-events:none;transform:translate(-50%,-130%);white-space:nowrap;animation:rise .25s var(--ease) both}
@@ -121,7 +121,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 /* ====== Sheet / modal ====== */
 #sheets{position:fixed;inset:0;z-index:50;pointer-events:none}
 .sheet-wrap{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;pointer-events:auto}
-.sheet-back{position:absolute;inset:0;background:rgba(2,12,18,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:fadeIn .3s var(--ease) both}
+.sheet-back{position:absolute;inset:0;background:rgba(2,12,18,.55);animation:fadeIn .3s var(--ease) both}
 .sheet{position:relative;width:100%;max-width:640px;max-height:94%;overflow-y:auto;background:var(--panel-solid);border:1px solid var(--panel-b);border-radius:24px 24px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom));box-shadow:var(--shadow);animation:sheetUp .4s var(--ease) both}
 .sheet.full{height:96%}
 .sheet.flip{animation:fadeIn .3s both}
@@ -142,7 +142,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 .cc-portrait.r4{border-image:linear-gradient(120deg,#ff7ad9,#ffd36b,#7be7ff,#b06cff) 1;border-radius:0}
 .cc-tools{position:absolute;top:8px;right:8px;display:flex;gap:6px}
 .cc-tools .icon-btn{width:40px;height:40px;min-width:40px;background:rgba(3,22,32,.55)}
-.cc-rar{position:absolute;left:10px;bottom:10px}.cc-rar .pill{background:rgba(3,22,32,.72);backdrop-filter:blur(6px)}
+.cc-rar{position:absolute;left:10px;bottom:10px}.cc-rar .pill{background:rgba(3,22,32,.72);}
 .cc-name{font-family:var(--font-h);font-size:24px;background:transparent;border:0;border-bottom:1px dashed var(--panel-b);border-radius:0;min-height:40px;padding:0 2px}
 .kv{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:15px}.kv span:nth-child(odd){color:var(--muted)}.kv span:nth-child(even){text-align:right;font-weight:700}
 .meters{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:10px 0}.meters label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
@@ -172,7 +172,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 .launch-grid button:active{transform:scale(.94)}.launch-grid .ic{width:28px;height:28px;color:var(--accent)}
 
 /* ====== Kutlama ====== */
-#celebrate{position:fixed;inset:0;z-index:80;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;text-align:center;background:rgba(1,8,14,.9);backdrop-filter:blur(10px)}
+#celebrate{position:fixed;inset:0;z-index:80;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;text-align:center;background:rgba(1,8,14,.9);}
 #celebrate.show{display:flex;animation:fadeIn .8s ease both}
 #celebrate .glow{position:absolute;inset:0;background:radial-gradient(closest-side at 50% 42%,color-mix(in srgb,var(--c) 40%,transparent),transparent 75%);animation:breathe2 4s ease-in-out infinite}
 #celebrate.r4 .glow{background:conic-gradient(from 0deg at 50% 42%,#ff7ad9,#ffd36b,#7be7ff,#b06cff,#ff7ad9);mask-image:radial-gradient(closest-side at 50% 42%,#000,transparent 75%);-webkit-mask-image:radial-gradient(closest-side at 50% 42%,#000,transparent 75%);opacity:.5;animation:spin 14s linear infinite}
@@ -211,9 +211,9 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 #dtank{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
 .ed-top{position:absolute;top:6px;left:8px;right:8px;display:flex;gap:6px;align-items:center;z-index:5}
 .ed-top .icon-btn{width:40px;height:40px;min-width:40px}.ed-top .icon-btn.on{background:var(--accent);color:var(--accent-ink)}.ed-top .icon-btn[disabled]{opacity:.35}
-.ed-sel{position:absolute;left:8px;right:8px;top:54px;z-index:6;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding:6px;border-radius:16px;background:var(--panel);backdrop-filter:blur(14px);border:1px solid var(--panel-b)}
+.ed-sel{position:absolute;left:8px;right:8px;top:54px;z-index:6;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding:6px;border-radius:16px;background:var(--panel);border:1px solid var(--panel-b)}
 .ed-sel .icon-btn{width:38px;height:38px;min-width:38px;font-size:18px}
-.ed-drawer{position:absolute;left:0;right:0;bottom:calc(var(--tab-h) + env(safe-area-inset-bottom));z-index:6;background:var(--panel);backdrop-filter:blur(16px);border-top:1px solid var(--panel-b);border-radius:20px 20px 0 0;max-height:40%;display:flex;flex-direction:column}
+.ed-drawer{position:absolute;left:0;right:0;bottom:calc(var(--tab-h) + env(safe-area-inset-bottom));z-index:6;background:var(--panel);border-top:1px solid var(--panel-b);border-radius:20px 20px 0 0;max-height:40%;display:flex;flex-direction:column}
 .ed-tabs{display:flex;gap:2px;padding:6px 6px 2px}
 .ed-tab{flex:1;min-height:44px;border:0;background:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;border-radius:12px;cursor:pointer}
 .ed-tab .ic{width:20px;height:20px}.ed-tab.on{background:rgba(47,212,198,.18);color:var(--accent)}
@@ -230,7 +230,7 @@ body.photo #topbar,body.photo #tabbar,body.photo .qa,body.photo .aq-info{display
 #photo-ui{position:fixed;inset:0;z-index:40;pointer-events:none}
 .photo-top{position:absolute;top:calc(10px + env(safe-area-inset-top));left:12px;display:flex;gap:10px;pointer-events:auto}
 .photo-bottom{position:absolute;bottom:calc(16px + env(safe-area-inset-bottom));left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:auto}
-.photo-bottom .seg{background:var(--panel);backdrop-filter:blur(10px)}
+.photo-bottom .seg{background:var(--panel);}
 .shutter{width:68px;height:68px;border-radius:50%;border:4px solid #fff;background:rgba(255,255,255,.25);cursor:pointer;transition:transform .15s var(--ease)}.shutter:active{transform:scale(.88);background:#fff}
 .flash{position:fixed;inset:0;background:#fff;z-index:90;animation:fadeOut .4s both;pointer-events:none}
 
@@ -277,7 +277,7 @@ details.card summary{list-style:none}
 .f3-cv{z-index:2;border-radius:inherit}
 .f3-bar{position:absolute;z-index:3;display:flex;flex-direction:column;gap:4px;padding:0 6px;transform:translateY(-100%);pointer-events:none}
 .f3-row{display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap}
-.f3-btn{pointer-events:auto;min-width:34px;min-height:28px;padding:2px 8px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(4,22,32,.55);backdrop-filter:blur(6px);color:var(--text,#e6f7fa);font-size:12px;cursor:pointer}
+.f3-btn{pointer-events:auto;min-width:34px;min-height:28px;padding:2px 8px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(4,22,32,.55);color:var(--text,#e6f7fa);font-size:12px;cursor:pointer}
 .f3-btn:active{transform:scale(.94)}
 
 /* ---- Çoklu tank ---- */
@@ -3021,8 +3021,26 @@ const Game = {
     // otomatik düşük güç modu: kare süresi uzarsa süs efektlerini azalt
     this.ema = (this.ema || 0.016) * 0.97 + dt * 0.03; this.slowT = clamp((this.slowT || 0) + (this.ema > 0.034 ? dt : -dt * 2), 0, 6);
     if (!this.low && this.slowT > 4) this.low = true; else if (this.low && this.slowT <= 0 && this.ema < 0.022) this.low = false;
-    if (UI.cur === 'aq') this.renderMain(); else if (UI.cur === 'design') Editor.render();
+    this.perfTick(dt);
+    // 90/120 Hz ekranlarda çizimi ~60 kareyle sınırla (yük ve ısınma yarıya iner)
+    if (now - (this.lastR || 0) >= 14) { this.lastR = now; if (UI.cur === 'aq') this.renderMain(); else if (UI.cur === 'design') Editor.render(); }
   },
+
+  /** Grafik kalitesi: kare süresi uzarsa çizim çözünürlüğünü kademeli düşürür (otomatik) ya da elle seçilen kademeyi uygular. */
+  GFX_DPR: [2, 1.5, 1.25, 1],
+  gfxTarget() { const m = this.S.settings.gfx || 'auto'; return m === 'high' ? 0 : m === 'mid' ? 1 : m === 'low' ? 3 : (this.gfxTier ?? 0); },
+  perfTick(dt) {
+    if (this.gfxTier === undefined) { let v = 0; try { v = +localStorage.getItem('akv.gfx') || 0; } catch (e) { /* yoksay */ } this.gfxTier = clamp(v | 0, 0, 3); this.applyGfx(); }
+    this.perfT = (this.perfT || 0) + dt; if (this.perfT < 2.5) return; this.perfT = 0;
+    const auto = (this.S.settings.gfx || 'auto') === 'auto', measuring = UI.cur === 'aq' || UI.cur === 'design';
+    if (auto && measuring) {
+      if (this.ema > 0.036 && this.gfxTier < 3) { this.gfxTier++; this.ema = 0.016; this.goodT = 0; try { localStorage.setItem('akv.gfx', this.gfxTier); } catch (e) { /* yoksay */ } }
+      else if (this.ema < 0.0185 && this.gfxTier > 0) { this.goodT = (this.goodT || 0) + 2.5; if (this.goodT > 45) { this.gfxTier--; this.goodT = 0; try { localStorage.setItem('akv.gfx', this.gfxTier); } catch (e) { /* yoksay */ } } }
+      else this.goodT = 0;
+    }
+    this.applyGfx();
+  },
+  applyGfx() { const cap = this.GFX_DPR[this.gfxTarget()]; if (this.vp && this.vp.dprCap !== cap) { this.vp.dprCap = cap; if (this.dvp) this.dvp.dprCap = cap; this.resizeCanvas(); } },
 
   /* ---------------- Görünümler (kamera/girdi) ---------------- */
   get cam() { return this.vp.cam; }, get cw() { return this.vp.cw; }, get ch() { return this.vp.ch; }, get cvs() { return this.vp.cv; },
@@ -3110,7 +3128,7 @@ class Viewport {
   toScreen(wx, wy) { const S = this.scale(); return { x: (wx - this.cam.cx) * S + this.cw / 2, y: (wy - this.cam.cy) * S + this.cy0(), S }; }
   resize() {
     const r = this.cv.getBoundingClientRect(); if (r.width < 10 || r.height < 10) return;
-    this.dpr = Math.min(2, devicePixelRatio || 1); this.cw = r.width; this.ch = r.height; this.cv.width = Math.round(r.width * this.dpr); this.cv.height = Math.round(r.height * this.dpr);
+    this.dpr = Math.min(this.dprCap || 2, devicePixelRatio || 1); this.cw = r.width; this.ch = r.height; this.cv.width = Math.round(r.width * this.dpr); this.cv.height = Math.round(r.height * this.dpr);
     const oldW = this.tank.W; this.tank.setAspect(r.width / r.height); if (this.tank.W !== oldW) this.cam.cx *= this.tank.W / oldW;
     if (!this._fit) { this._fit = 1; this.fitDefault(); } this.cam.zoom = Math.max(1, this.cam.zoom); this.clamp();
   }
@@ -3813,7 +3831,12 @@ const Editor = {
     if (!this.canBuy(def)) { this.placing = null; this.refresh(); return; }
     const ex = {}; let fx = clamp(this.snapV(w.x, 20) / W, 0.02, 0.98);
     if (p.k === 'plant' && def.type === 'epi') {
-      const host = this.hostAt(w, null); if (!host) { UI.toast('Epifitler taş veya köke bağlanır — bir taşa/köke dokun', 'bell'); return; }
+      let host = this.hostAt(w, null);
+      if (!host) { // açık suya dokunulduysa en yakın taşa/köke otomatik bağla
+        let best = 1e9; for (const o of this.sc.items) { if (o.k !== 'rock' && o.k !== 'wood') continue; const q = Scape.pos(this.sc, W, o), d = Math.hypot(q.x - w.x, q.y - w.y); if (d < best) { best = d; host = o; } }
+        if (!host) { UI.toast('Epifitler taş veya köke bağlanır — önce bir taş/kök yerleştir', 'bell', 3500); return; }
+        const q = Scape.pos(this.sc, W, host); w = { x: q.x, y: q.y - 10 }; UI.toast('Epifit en yakın taşa bağlandı 🌿', 'leaf', 2200);
+      }
       const hp = Scape.pos(this.sc, W, host), c = Math.cos(-hp.r), s = Math.sin(-hp.r), dx = w.x - hp.x, dy = w.y - hp.y, hd = Scape.defOf(host);
       ex.att = { id: host.id, ox: clamp((dx * c - dy * s) / hp.s * hp.fl, -hd.w * 0.4, hd.w * 0.4), oy: clamp((dx * s + dy * c) / hp.s, -hd.h * 0.95, -hd.h * 0.15) }; ex.gnd = false; fx = host.fx;
     }
@@ -6332,6 +6355,38 @@ Object.assign(Tests, {
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.cards(); return a && b; })(Tests.all);
 
+Object.assign(Tests, {
+  perf() {
+    const ok = {}, S = Game.S, keep = [S.settings.gfx, Game.gfxTier, Game.vp.dprCap], scr = UI.cur;
+    try {
+      if (UI.cur !== 'aq') UI.go('aq');
+      S.settings.gfx = 'low'; Game.applyGfx(); ok.low = Game.vp.dprCap === 1 && (!Game.vp.cw || Game.vp.dpr <= 1);
+      S.settings.gfx = 'high'; Game.applyGfx(); ok.high = Game.vp.dprCap === 2;
+      S.settings.gfx = 'auto'; Game.gfxTier = 0; Game.ema = 0.05; Game.perfT = 3; Game.perfTick(0.01); ok.autoDown = Game.gfxTier === 1 && Game.vp.dprCap === 1.5;
+      Game.ema = 0.01; ok.render = (() => { try { Game.renderMain(); return true; } catch (e) { return false; } })();
+    } finally { S.settings.gfx = keep[0]; Game.gfxTier = keep[1]; Game.vp.dprCap = keep[2]; Game.resizeCanvas(); try { localStorage.removeItem('akv.gfx'); } catch (e) { /* yoksay */ } if (scr && scr !== 'aq') UI.go(scr); }
+    return this._log('Grafik kalitesi (çözünürlük kademeleri, otomatik düşürme)', Object.values(ok).every(Boolean), ok);
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.perf(); return a && b; })(Tests.all);
+
+Object.assign(Tests, {
+  epiphyte() {
+    const ok = {}, scr = UI.cur; if (UI.cur !== 'design') UI.go('design');
+    const E = Editor, sc = E.sc, keep = sc.items, coins = Game.S.coins, cnt = Game.S.cnt.scape;
+    try {
+      E.placing = { k: 'plant', d: 'anubias' };
+      sc.items = keep.filter((i) => i.k !== 'rock' && i.k !== 'wood'); const n0 = sc.items.length; let thr = false;
+      try { E.place({ x: 300, y: 300 }); } catch (e) { thr = true; } ok.noHostNoCrash = !thr && sc.items.length === n0;
+      sc.items = keep.slice(); if (!sc.items.some((i) => i.k === 'rock' || i.k === 'wood')) { Scape.newItem(sc, 'rock', Object.keys(HARDSCAPE)[0], 0.5, {}); }
+      const n1 = sc.items.length; E.placing = { k: 'plant', d: 'anubias' }; E.place({ x: 20, y: 200 }); // açık suya dokunuş
+      const it = sc.items[sc.items.length - 1]; ok.autoAttach = sc.items.length === n1 + 1 && !!(it.att && it.att.id);
+    } finally { E.placing = null; sc.items = keep; Game.S.coins = coins; Game.S.cnt.scape = cnt; E.refresh(); if (scr && scr !== 'design') UI.go(scr); }
+    return this._log('Epifit bitki: açık suya dokununca en yakın taşa bağlanır', Object.values(ok).every(Boolean), ok);
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.epiphyte(); return a && b; })(Tests.all);
+
 /* ───── 21-native.js ───── */
 'use strict';
 /* =====================================================================
@@ -6364,7 +6419,7 @@ Tests.all = ((orig) => function () { const a = orig.call(this), b = this.cards()
 const Tut = {
   steps: [
     { id: 'tab-design', text: 'Alttaki **Tasarım** sekmesine dokun.', target: () => $('#tabbar .tab[data-go="design"]'), done: () => UI.cur === 'design' },
-    { id: 'place', text: (S, T) => `Katalogdan 1 taş ve 2 bitki seçip tanka dokun (${Math.min(3, Math.max(0, (S.cnt.scape || 0) - T.base.scape))}/3).`, target: () => $('#ed-drawer'), enter: (S, T) => { T.base.scape = S.cnt.scape || 0; }, done: (S, T) => (S.cnt.scape || 0) - T.base.scape >= 3 },
+    { id: 'place', text: (S, T) => `Alttaki listeden bir bitki seç, sonra tanka dokun (${Math.min(3, Math.max(0, (S.cnt.scape || 0) - T.base.scape))}/3). **Taş&Kök** sekmesinden taş da koyabilirsin.`, target: () => $('#ed-drawer'), enter: (S, T) => { T.base.scape = S.cnt.scape || 0; try { Editor.mode = 'plant'; Editor.collapsed = false; Editor.placing = null; Editor.refresh(); } catch (e) { /* editör henüz hazır değilse oyuncu sekmeyi kendisi seçer */ } }, done: (S, T) => (S.cnt.scape || 0) - T.base.scape >= 3 },
     { id: 'water', text: 'Şimdi **Akvaryum** sekmesine dön.', target: () => $('#tabbar .tab[data-go="aq"]'), enter: () => Tut.nitrogenInfo(), done: () => UI.cur === 'aq' },
     { id: 'speed', text: '**Hız** düğmesine bas: zaman hızlanır, bakteriler ve yavrular çabuk gelişir.', target: () => $('.qbtn[aria-label="Hız"]'), enter: (S, T) => { T.base.speed = S.settings.speed; }, done: (S, T) => S.settings.speed !== T.base.speed },
     { id: 'feed', text: '**Yem** düğmesine bas ve balıkların yemesini izle.', target: () => $('.qbtn[aria-label="Yem"]'), enter: (S, T) => { T.base.feed = S.cnt.feed || 0; }, done: (S, T) => (S.cnt.feed || 0) - T.base.feed >= 1 },
@@ -7877,6 +7932,20 @@ UI.render_profile = ((orig) => function (el) {
 })(UI.render_profile);
 /* Web: sayfa #kart=KOD ile açılırsa içe aktarma ekranı */
 setTimeout(() => { const m = location.hash.match(/kart=([^&]+)/); if (m && window.Game && Game.S) { UI.addFriend(decodeURIComponent(m[1])); history.replaceState(null, '', location.pathname + location.search); } }, 2500);
+
+/* ───── 37-perf.js ───── */
+'use strict';
+/* =====================================================================
+   37 · GRAFİK KALİTESİ — Ayarlar: Otomatik (önerilen) / Yüksek / Orta / Düşük.
+   Düşük kademeler çizim çözünürlüğünü azaltır; eski telefonlarda akıcılığı artırır.
+   ===================================================================== */
+UI.render_settings = ((orig) => function (el) {
+  const r = orig.apply(this, arguments), w = el.querySelector('.wrap') || el.firstElementChild, S = Game.S; if (!w || !S) return r;
+  const cur = S.settings.gfx || 'auto';
+  w.append(h('div.card', null, h('div.sp', null, h('b', null, 'Grafik kalitesi'), h('div.small.muted', null, 'Oyun kasıyorsa Orta ya da Düşük seç. Otomatik, kare hızına göre kendi ayarlanır.')),
+    h('div.seg', { style: { marginTop: '8px' } }, [['auto', 'Otomatik'], ['high', 'Yüksek'], ['mid', 'Orta'], ['low', 'Düşük']].map(([v, l]) => h('button' + (v === cur ? '.on' : ''), { onclick: () => { S.settings.gfx = v; if (v === 'auto') { Game.gfxTier = 0; Game.ema = 0.016; try { localStorage.removeItem('akv.gfx'); } catch (e) { /* yoksay */ } } Game.applyGfx(); Game.save(); UI.render_settings(el); } }, l)))));
+  return r;
+})(UI.render_settings);
 
 </script>
 </body>

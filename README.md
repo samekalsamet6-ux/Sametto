@@ -76,6 +76,7 @@ src/js/
   34-traits.js         Özellik Defteri: tüm türler için kuyruk/renk/desen/şekil koleksiyonu (Ansiklopedi > Özellikler)
   35-boosts.js         ödüllü reklam güçlendirmeleri (AdMob + demo yedek, günlük sınır; ADS_CFG.test=false mağaza öncesi)
   36-cards.js          profil kartı paylaşımı: kod üret/yapıştır, arkadaş listesi (sunucusuz)
+  37-perf.js           grafik kalitesi ayarı (Otomatik/Yüksek/Orta/Düşük)
   27-equip-art.js      ekipman çizimleri (filtre, ısıtıcı, difüzör, armatür…)
   24-depth.js         Genetik Defter tahminleri, gizli varyasyonlar, hat bonusu, ek başarımlar, koleksiyon ödülleri
 ```

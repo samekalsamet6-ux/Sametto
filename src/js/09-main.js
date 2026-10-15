@@ -284,8 +284,26 @@ const Game = {
     // otomatik düşük güç modu: kare süresi uzarsa süs efektlerini azalt
     this.ema = (this.ema || 0.016) * 0.97 + dt * 0.03; this.slowT = clamp((this.slowT || 0) + (this.ema > 0.034 ? dt : -dt * 2), 0, 6);
     if (!this.low && this.slowT > 4) this.low = true; else if (this.low && this.slowT <= 0 && this.ema < 0.022) this.low = false;
-    if (UI.cur === 'aq') this.renderMain(); else if (UI.cur === 'design') Editor.render();
+    this.perfTick(dt);
+    // 90/120 Hz ekranlarda çizimi ~60 kareyle sınırla (yük ve ısınma yarıya iner)
+    if (now - (this.lastR || 0) >= 14) { this.lastR = now; if (UI.cur === 'aq') this.renderMain(); else if (UI.cur === 'design') Editor.render(); }
   },
+
+  /** Grafik kalitesi: kare süresi uzarsa çizim çözünürlüğünü kademeli düşürür (otomatik) ya da elle seçilen kademeyi uygular. */
+  GFX_DPR: [2, 1.5, 1.25, 1],
+  gfxTarget() { const m = this.S.settings.gfx || 'auto'; return m === 'high' ? 0 : m === 'mid' ? 1 : m === 'low' ? 3 : (this.gfxTier ?? 0); },
+  perfTick(dt) {
+    if (this.gfxTier === undefined) { let v = 0; try { v = +localStorage.getItem('akv.gfx') || 0; } catch (e) { /* yoksay */ } this.gfxTier = clamp(v | 0, 0, 3); this.applyGfx(); }
+    this.perfT = (this.perfT || 0) + dt; if (this.perfT < 2.5) return; this.perfT = 0;
+    const auto = (this.S.settings.gfx || 'auto') === 'auto', measuring = UI.cur === 'aq' || UI.cur === 'design';
+    if (auto && measuring) {
+      if (this.ema > 0.036 && this.gfxTier < 3) { this.gfxTier++; this.ema = 0.016; this.goodT = 0; try { localStorage.setItem('akv.gfx', this.gfxTier); } catch (e) { /* yoksay */ } }
+      else if (this.ema < 0.0185 && this.gfxTier > 0) { this.goodT = (this.goodT || 0) + 2.5; if (this.goodT > 45) { this.gfxTier--; this.goodT = 0; try { localStorage.setItem('akv.gfx', this.gfxTier); } catch (e) { /* yoksay */ } } }
+      else this.goodT = 0;
+    }
+    this.applyGfx();
+  },
+  applyGfx() { const cap = this.GFX_DPR[this.gfxTarget()]; if (this.vp && this.vp.dprCap !== cap) { this.vp.dprCap = cap; if (this.dvp) this.dvp.dprCap = cap; this.resizeCanvas(); } },
 
   /* ---------------- Görünümler (kamera/girdi) ---------------- */
   get cam() { return this.vp.cam; }, get cw() { return this.vp.cw; }, get ch() { return this.vp.ch; }, get cvs() { return this.vp.cv; },

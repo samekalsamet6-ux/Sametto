@@ -7,7 +7,7 @@
 const Tut = {
   steps: [
     { id: 'tab-design', text: 'Alttaki **Tasarım** sekmesine dokun.', target: () => $('#tabbar .tab[data-go="design"]'), done: () => UI.cur === 'design' },
-    { id: 'place', text: (S, T) => `Katalogdan 1 taş ve 2 bitki seçip tanka dokun (${Math.min(3, Math.max(0, (S.cnt.scape || 0) - T.base.scape))}/3).`, target: () => $('#ed-drawer'), enter: (S, T) => { T.base.scape = S.cnt.scape || 0; }, done: (S, T) => (S.cnt.scape || 0) - T.base.scape >= 3 },
+    { id: 'place', text: (S, T) => `Alttaki listeden bir bitki seç, sonra tanka dokun (${Math.min(3, Math.max(0, (S.cnt.scape || 0) - T.base.scape))}/3). **Taş&Kök** sekmesinden taş da koyabilirsin.`, target: () => $('#ed-drawer'), enter: (S, T) => { T.base.scape = S.cnt.scape || 0; try { Editor.mode = 'plant'; Editor.collapsed = false; Editor.placing = null; Editor.refresh(); } catch (e) { /* editör henüz hazır değilse oyuncu sekmeyi kendisi seçer */ } }, done: (S, T) => (S.cnt.scape || 0) - T.base.scape >= 3 },
     { id: 'water', text: 'Şimdi **Akvaryum** sekmesine dön.', target: () => $('#tabbar .tab[data-go="aq"]'), enter: () => Tut.nitrogenInfo(), done: () => UI.cur === 'aq' },
     { id: 'speed', text: '**Hız** düğmesine bas: zaman hızlanır, bakteriler ve yavrular çabuk gelişir.', target: () => $('.qbtn[aria-label="Hız"]'), enter: (S, T) => { T.base.speed = S.settings.speed; }, done: (S, T) => S.settings.speed !== T.base.speed },
     { id: 'feed', text: '**Yem** düğmesine bas ve balıkların yemesini izle.', target: () => $('.qbtn[aria-label="Yem"]'), enter: (S, T) => { T.base.feed = S.cnt.feed || 0; }, done: (S, T) => (S.cnt.feed || 0) - T.base.feed >= 1 },

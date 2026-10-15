@@ -111,7 +111,12 @@ const Editor = {
     if (!this.canBuy(def)) { this.placing = null; this.refresh(); return; }
     const ex = {}; let fx = clamp(this.snapV(w.x, 20) / W, 0.02, 0.98);
     if (p.k === 'plant' && def.type === 'epi') {
-      const host = this.hostAt(w, null); if (!host) { UI.toast('Epifitler taş veya köke bağlanır — bir taşa/köke dokun', 'bell'); return; }
+      let host = this.hostAt(w, null);
+      if (!host) { // açık suya dokunulduysa en yakın taşa/köke otomatik bağla
+        let best = 1e9; for (const o of this.sc.items) { if (o.k !== 'rock' && o.k !== 'wood') continue; const q = Scape.pos(this.sc, W, o), d = Math.hypot(q.x - w.x, q.y - w.y); if (d < best) { best = d; host = o; } }
+        if (!host) { UI.toast('Epifitler taş veya köke bağlanır — önce bir taş/kök yerleştir', 'bell', 3500); return; }
+        const q = Scape.pos(this.sc, W, host); w = { x: q.x, y: q.y - 10 }; UI.toast('Epifit en yakın taşa bağlandı 🌿', 'leaf', 2200);
+      }
       const hp = Scape.pos(this.sc, W, host), c = Math.cos(-hp.r), s = Math.sin(-hp.r), dx = w.x - hp.x, dy = w.y - hp.y, hd = Scape.defOf(host);
       ex.att = { id: host.id, ox: clamp((dx * c - dy * s) / hp.s * hp.fl, -hd.w * 0.4, hd.w * 0.4), oy: clamp((dx * s + dy * c) / hp.s, -hd.h * 0.95, -hd.h * 0.15) }; ex.gnd = false; fx = host.fx;
     }

@@ -270,3 +270,35 @@ Object.assign(Tests, {
   },
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.cards(); return a && b; })(Tests.all);
+
+Object.assign(Tests, {
+  perf() {
+    const ok = {}, S = Game.S, keep = [S.settings.gfx, Game.gfxTier, Game.vp.dprCap], scr = UI.cur;
+    try {
+      if (UI.cur !== 'aq') UI.go('aq');
+      S.settings.gfx = 'low'; Game.applyGfx(); ok.low = Game.vp.dprCap === 1 && (!Game.vp.cw || Game.vp.dpr <= 1);
+      S.settings.gfx = 'high'; Game.applyGfx(); ok.high = Game.vp.dprCap === 2;
+      S.settings.gfx = 'auto'; Game.gfxTier = 0; Game.ema = 0.05; Game.perfT = 3; Game.perfTick(0.01); ok.autoDown = Game.gfxTier === 1 && Game.vp.dprCap === 1.5;
+      Game.ema = 0.01; ok.render = (() => { try { Game.renderMain(); return true; } catch (e) { return false; } })();
+    } finally { S.settings.gfx = keep[0]; Game.gfxTier = keep[1]; Game.vp.dprCap = keep[2]; Game.resizeCanvas(); try { localStorage.removeItem('akv.gfx'); } catch (e) { /* yoksay */ } if (scr && scr !== 'aq') UI.go(scr); }
+    return this._log('Grafik kalitesi (çözünürlük kademeleri, otomatik düşürme)', Object.values(ok).every(Boolean), ok);
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.perf(); return a && b; })(Tests.all);
+
+Object.assign(Tests, {
+  epiphyte() {
+    const ok = {}, scr = UI.cur; if (UI.cur !== 'design') UI.go('design');
+    const E = Editor, sc = E.sc, keep = sc.items, coins = Game.S.coins, cnt = Game.S.cnt.scape;
+    try {
+      E.placing = { k: 'plant', d: 'anubias' };
+      sc.items = keep.filter((i) => i.k !== 'rock' && i.k !== 'wood'); const n0 = sc.items.length; let thr = false;
+      try { E.place({ x: 300, y: 300 }); } catch (e) { thr = true; } ok.noHostNoCrash = !thr && sc.items.length === n0;
+      sc.items = keep.slice(); if (!sc.items.some((i) => i.k === 'rock' || i.k === 'wood')) { Scape.newItem(sc, 'rock', Object.keys(HARDSCAPE)[0], 0.5, {}); }
+      const n1 = sc.items.length; E.placing = { k: 'plant', d: 'anubias' }; E.place({ x: 20, y: 200 }); // açık suya dokunuş
+      const it = sc.items[sc.items.length - 1]; ok.autoAttach = sc.items.length === n1 + 1 && !!(it.att && it.att.id);
+    } finally { E.placing = null; sc.items = keep; Game.S.coins = coins; Game.S.cnt.scape = cnt; E.refresh(); if (scr && scr !== 'design') UI.go(scr); }
+    return this._log('Epifit bitki: açık suya dokununca en yakın taşa bağlanır', Object.values(ok).every(Boolean), ok);
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.epiphyte(); return a && b; })(Tests.all);
