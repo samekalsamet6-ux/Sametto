@@ -1,0 +1,9 @@
+---
+interface Props { tip?: 'bilgi' | 'uyari' | 'hata' | 'ipucu'; baslik?: string }
+const { tip = 'bilgi', baslik } = Astro.props;
+const icon = { bilgi: 'ℹ️', uyari: '⚠️', hata: '⛔', ipucu: '💡' }[tip];
+---
+<aside class={`callout callout-${tip}`}>
+  <strong>{icon} {baslik ?? { bilgi: 'Bilgi', uyari: 'Dikkat', hata: 'Sık hata', ipucu: 'İpucu' }[tip]}</strong>
+  <div><slot /></div>
+</aside>

@@ -1,0 +1,22 @@
+{
+  "name": "Lepistes Rehberi",
+  "short_name": "Lepistes",
+  "description": "Lepistes (guppy) üretimi için rehber, wiki ve yardımcı araçlar.",
+  "lang": "tr",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6fafb",
+  "theme_color": "#0b6e8a",
+  "categories": ["education", "lifestyle"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Araçlar", "url": "/araclar/", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Sorun giderme", "url": "/sorun-giderme/", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

@@ -1,0 +1,6 @@
+---
+interface Props { evidence?: 'kaynakli' | 'karma' | 'topluluk' }
+const { evidence } = Astro.props;
+const t = { kaynakli: ['Kanıt: kaynaklı', 'Ana iddialar hakemli makale, uzantı yayını veya veri tabanına dayanır.'], karma: ['Kanıt: karma', 'Bir kısmı kaynaklı, bir kısmı topluluk (hobi) bilgisidir; metinde ayrıldı.'], topluluk: ['Kanıt: topluluk bilgisi', 'Hobi kılavuzları ve yetiştirici deneyimine dayanır; hakemli doğrulaması yoktur.'] };
+---
+{evidence && <span class={`badge ev-${evidence}`} title={t[evidence][1]}>{t[evidence][0]}</span>}

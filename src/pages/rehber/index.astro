@@ -1,0 +1,20 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+const all = (await getCollection('guide')).sort((a, b) => a.data.order - b.data.order);
+const levels = [['baslangic','🟢 Başlangıç'],['orta','🟡 Orta'],['ileri','🔴 İleri']] as const;
+---
+<Base title="Rehber">
+  <h1>Rehber</h1>
+  {levels.map(([k, t]) => (
+    <section id={k}>
+      <h2>{t}</h2>
+      <div class="grid">
+        {all.filter((e) => e.data.level === k).map((e) => (
+          <a class="card" href={`/rehber/${e.id}`}><h3>{e.data.order}. {e.data.title}</h3><p class="muted">{e.data.summary}</p></a>
+        ))}
+      </div>
+      {!all.some((e) => e.data.level === k) && <p class="muted">Dersler hazırlanıyor.</p>}
+    </section>
+  ))}
+</Base>

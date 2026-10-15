@@ -1,0 +1,39 @@
+{
+  "name": "lepistes-rehberi",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && pagefind --site dist && node scripts/build-sw.mjs",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test": "vitest run",
+    "check:links": "node scripts/check-links.mjs",
+    "open-questions": "node scripts/list-unverified.mjs",
+    "a11y": "node scripts/a11y.mjs",
+    "lighthouse": "node scripts/lighthouse.mjs",
+    "pwa": "node scripts/pwa-check.mjs",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "^7.3.3",
+    "@astrojs/mdx": "^8.1.0",
+    "@astrojs/sitemap": "^3.7.4",
+    "astro": "^7.4.0",
+    "pagefind": "^1.5.2"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@playwright/test": "^1.64.1",
+    "axe-core": "^4.14.0",
+    "lighthouse": "^13.5.0",
+    "playwright-core": "^1.64.1",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}

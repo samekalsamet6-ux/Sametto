@@ -1,0 +1,34 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Yem planlayıcı">
+  <p><a href="/araclar">← Araçlar</a></p>
+  <h1>Yem planlayıcı</h1>
+  <form class="tool" id="f" style="max-width:520px">
+    <label>İlk öğün saati<input type="number" name="start" min="0" max="23" value="8" /></label>
+    <label>Son öğün saati<input type="number" name="end" min="0" max="23" value="20" /></label>
+    <fieldset><legend>Yaş grupları (adet / günlük öğün)</legend>
+      <label>Yeni doğan yavru<span><input name="n0" inputmode="numeric" value="0" /> / <input name="m0" inputmode="numeric" value="4" /></span></label>
+      <label>Genç<span><input name="n1" inputmode="numeric" value="0" /> / <input name="m1" inputmode="numeric" value="3" /></span></label>
+      <label>Yetişkin<span><input name="n2" inputmode="numeric" value="10" /> / <input name="m2" inputmode="numeric" value="2" /></span></label>
+    </fieldset>
+    <button>Planla</button>
+    <div class="result" id="out" aria-live="polite"></div>
+  </form>
+  <div class="callout callout-uyari"><strong>⚠ Öğün sayıları hobi uygulamasıdır.</strong> Hakemli bir yem programı bulamadık; hobi kaynakları yeni doğan yavrular için günde yaklaşık 3–8 küçük öğün der, büyüdükçe azaltır. Değerleri kendi gözleminize göre düzenleyin. Miktar gram olarak verilmez: balıkların bir–iki dakikada bitirebileceği kadar yem verin; kalıntıyı alın. Bkz. <a href="/rehber/baslangic/09-beslenme-temelleri">Beslenme temelleri</a>.</div>
+  <script>
+    import { planFeeding } from '../../lib/calculators/feeding';
+    import { num, el } from '../../lib/dom';
+    const f = el<HTMLFormElement>('f');
+    const names = ['Yeni doğan yavru', 'Genç', 'Yetişkin'];
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const d = new FormData(f);
+      try {
+        const groups = names.map((name, i) => ({ name, count: num(d.get(`n${i}`)) || 0, mealsPerDay: num(d.get(`m${i}`)) }));
+        const rows = planFeeding(groups.filter((g) => g.count > 0), num(d.get('start')), num(d.get('end')));
+        el('out').innerHTML = rows.length ? rows.map((r) => `<div>${r.name} (${r.count}): ${r.times.join(' · ')}</div>`).join('') : 'Adet girin.';
+      } catch (err) { el('out').textContent = (err as Error).message; }
+    });
+  </script>
+</Base>

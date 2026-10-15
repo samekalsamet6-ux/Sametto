@@ -1,0 +1,45 @@
+---
+import '../styles/global.css';
+interface Props { title: string; description?: string }
+const { title, description = 'Lepistes (guppy) üretimi için rehber, wiki ve yardımcı araçlar.' } = Astro.props;
+const nav = [['/rehber','Rehber'],['/wiki','Wiki'],['/araclar','Araçlar'],['/sorun-giderme','Sorun giderme'],['/ara','🔍 Ara'],['/kaynaklar','Kaynaklar'],['/hakkinda','Hakkında']];
+---
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{title} · Lepistes Rehberi</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+  <meta property="og:site_name" content="Lepistes Rehberi" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="tr_TR" />
+  <meta property="og:title" content={`${title} · Lepistes Rehberi`} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
+  <meta property="og:image" content={new URL('/icons/icon-512.png', Astro.site)} />
+  <meta name="twitter:card" content="summary" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <meta name="theme-color" content="#0b6e8a" />
+</head>
+<body>
+  <a class="skip" href="#icerik">Ana içeriğe geç</a>
+  <header class="site"><div class="wrap">
+    <a class="logo" href="/">🐟 Lepistes Rehberi</a>
+    <nav>{nav.map(([h,t]) => <a href={h}>{t}</a>)}</nav>
+  </div></header>
+  <main class="wrap" id="icerik" tabindex="-1" data-pagefind-body><slot /></main>
+  <footer><div class="wrap">
+    <p><a href="/seviye-testi">Seviye testi</a> · <a href="/sss">SSS</a> · <a href="/sozluk">Sözlük</a> · <a href="/kaynaklar">Kaynaklar</a> · <a href="/lisans">Lisans</a></p>
+    © 2026 Lepistes Rehberi katkıcıları · İçerik <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.tr" rel="license">CC BY-SA 4.0</a>, kod MIT.<br />
+    Bilgiler eğitim amaçlıdır; ilaç ve tedavi için uzman görüşü alın. Lepistes asla doğaya salınmamalıdır.
+  </div></footer>
+  <script>
+    if ('serviceWorker' in navigator && import.meta.env.PROD) {
+      addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => {}); });
+    }
+  </script>
+</body>
+</html>

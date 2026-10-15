@@ -1,0 +1,51 @@
+---
+import Base from '../layouts/Base.astro';
+import { symptoms } from '../data/belirtiler';
+const groups = [...new Set(symptoms.map((s) => s.group))];
+---
+<Base title="Sorun giderme" description="Belirtilerden olası nedenlere: balıklarınızdaki sorunu adım adım daraltın.">
+  <h1>Sorun giderme</h1>
+  <p class="muted">Gözlemlediğiniz belirtileri işaretleyin; olası nedenleri, ilk adımları ve yapılacak ölçümleri görün. Bu araç <strong>kesin teşhis koymaz</strong>.</p>
+  <form class="tool" id="f" style="max-width:640px">
+    {groups.map((g) => (
+      <fieldset>
+        <legend>{g}</legend>
+        {symptoms.filter((s) => s.group === g).map((s) => (
+          <label style="display:flex;gap:8px;align-items:center;font-weight:400"><input type="checkbox" name="s" value={s.id} /> {s.label}</label>
+        ))}
+      </fieldset>
+    ))}
+    <button>Olası nedenleri göster</button>
+  </form>
+  <div id="triage" aria-live="polite"></div>
+  <div id="res" aria-live="polite"></div>
+  <div class="callout callout-uyari"><strong>⚠ Önemli.</strong> İlaç ve tuz dozları burada verilmez; ürün etiketine ve güvenilir kaynaklara başvurun. Toplu ölüm, hızlı yayılma veya teşhis edilemeyen belirtilerde bir akvaryum veteriner hekimine ya da deneyimli bir yetiştiriciye danışın.</div>
+  <script>
+    import { rankCauses, triage } from '../lib/diagnosis';
+    import { causes, symptoms } from '../data/belirtiler';
+    import { el } from '../lib/dom';
+    const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+    const label: Record<string, string> = { guclu: 'Güçlü işaret', olasi: 'Olası', mumkun: 'Mümkün' };
+    const f = el<HTMLFormElement>('f');
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const sel = new FormData(f).getAll('s').map(String);
+      const t = triage(sel);
+      el('triage').innerHTML = t.urgent
+        ? `<div class="callout callout-hata"><strong>⛔ Acil durum olabilir</strong><ul>${t.reasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ul><p>Şimdi: amonyak ve nitriti ölçün; yüksekse klor giderici ile hazırlanmış, sıcaklığı eşitlenmiş suyla kısmi su değişimi yapın, havalandırmayı artırın, yemlemeyi durdurun.</p></div>`
+        : '';
+      const ranked = rankCauses(sel, causes).slice(0, 5);
+      if (sel.length === 0) { el('res').innerHTML = '<p>En az bir belirti seçin.</p>'; return; }
+      if (!ranked.length) { el('res').innerHTML = '<p>Eşleşen neden bulunamadı. Su değerlerini ölçün ve uzmana danışın.</p>'; return; }
+      el('res').innerHTML = '<h2>Olası nedenler</h2>' + ranked.map((r) => `
+        <article class="card" style="margin:12px 0">
+          <span class="badge">${label[r.strength]}</span>
+          <h3>${esc(r.cause.title)}</h3>
+          <strong>İlk adımlar</strong><ol>${r.cause.firstSteps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
+          <strong>Ölçün / gözleyin:</strong> ${r.cause.tests.map(esc).join(' · ')}
+          ${r.cause.wiki ? `<p><a href="/wiki/${r.cause.wiki}">Ayrıntılı bilgi →</a></p>` : ''}
+        </article>`).join('') + `<p class="muted">${sel.length} belirti seçildi (${symptoms.length} seçenek).</p>`;
+      el('res').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    });
+  </script>
+</Base>

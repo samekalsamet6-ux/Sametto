@@ -1,0 +1,8 @@
+---
+import { getEntry } from 'astro:content';
+interface Props { s: string }
+const { s } = Astro.props;
+const entry = await getEntry('wiki', s);
+if (!entry) throw new Error(`Terim bulunamadı: wiki/${s}`);
+---
+<a class="terim" href={`/wiki/${entry.id}`} title={entry.data.summary}><slot /></a>

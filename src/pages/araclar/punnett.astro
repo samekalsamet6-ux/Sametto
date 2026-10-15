@@ -1,0 +1,43 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Punnett hesaplayıcı">
+  <p><a href="/araclar">← Araçlar</a></p>
+  <h1>Punnett hesaplayıcı</h1>
+  <form class="tool" id="f">
+    <label>Kalıtım tipi<select name="mode"><option value="auto">Otozomal</option><option value="x">X-bağlantılı</option><option value="y">Y-bağlantılı (ideal)</option></select></label>
+    <label id="l1">Anne genotipi (örn. Bb)<input name="p1" value="Bb" maxlength="2" /></label>
+    <label id="l2">Baba genotipi (örn. Bb; X-bağlantılıda tek harf)<input name="p2" value="Bb" maxlength="2" /></label>
+    <label>Yavru sayısı (beklenen adet için)<input name="n" inputmode="numeric" value="40" /></label>
+    <button>Hesapla</button>
+    <div class="result" id="out" aria-live="polite"></div>
+  </form>
+  <div class="callout"><strong>Beklenen olasılık.</strong> Gerçek sayılar küçük örneklemde beklentiden saparır. Y-bağlantıda lepistesin X–Y arası rekombinasyonu nedeniyle istisnalar olabilir; bkz. <a href="/wiki/y-bagli-kalitim">Y-bağlantılı kalıtım</a>. Hangi özelliğin hangi tipte olduğu için <a href="/rehber/ileri/02-ozellik-kalitim-haritasi">kalıtım haritası</a> dersine bakın.</div>
+  <script>
+    import { autosomal, xLinked, yLinked, expectedCounts, type Dist } from '../../lib/calculators/genetics';
+    import { num, el } from '../../lib/dom';
+    const f = el<HTMLFormElement>('f');
+    const fmt = (d: Dist, n: number) => { const c = expectedCounts(d, n); return Object.entries(d).map(([k, p]) => `${k}: %${Math.round(p * 1000) / 10} (≈ ${c[k]})`).join(' · '); };
+    const al = (s: string, n: number): string[] => { const a = [...s.trim()]; if (a.length !== n) throw new RangeError(`${n} alel gerekli`); return a; };
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const d = new FormData(f);
+      const n = num(d.get('n')) || 40;
+      try {
+        const mode = d.get('mode');
+        if (mode === 'auto') {
+          const [a, b] = al(String(d.get('p1')), 2); const [c, dd] = al(String(d.get('p2')), 2);
+          el('out').textContent = fmt(autosomal([a, b], [c, dd]), n);
+        } else if (mode === 'x') {
+          const [a, b] = al(String(d.get('p1')), 2); const [x] = al(String(d.get('p2')), 1);
+          const r = xLinked([a, b], x);
+          el('out').innerHTML = `Dişiler (yarısı): ${fmt(r.daughters, n / 2)}<br>Erkekler (yarısı): ${fmt(r.sons, n / 2)}`;
+        } else {
+          const [y] = al(String(d.get('p2')), 1);
+          const r = yLinked(y);
+          el('out').innerHTML = `Erkekler (yarısı): ${fmt(r.sons, n / 2)}<br>Dişiler (yarısı): ${fmt(r.daughters, n / 2)}`;
+        }
+      } catch (err) { el('out').textContent = (err as Error).message; }
+    });
+  </script>
+</Base>

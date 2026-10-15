@@ -1,0 +1,18 @@
+---
+import Base from '../layouts/Base.astro';
+import kaynaklar from '../data/kaynaklar.json';
+const label: Record<string, string> = { birincil: 'Birincil (makale/uzantı yayını)', ikincil: 'İkincil (hobi/kurum/atıf)', egitim: 'Eğitim kaynağı', 'veri tabanı': 'Veri tabanı' };
+---
+<Base title="Kaynaklar" description="Sitede kullanılan kaynaklar ve doğrulama durumu.">
+  <h1>Kaynaklar</h1>
+  <p class="muted">Sitedeki bilimsel iddialar buradaki kaynaklara dayanır. “İkincil” işaretli kaynaklar özgün haliyle okunmamıştır ve doğrulanmalıdır.</p>
+  <p class="muted"><strong>Okuma yöntemi:</strong> Bu çalışmanın yürütüldüğü ortamda çoğu web sitesine doğrudan erişim kapalıydı; kaynaklar arama sonuçlarının özetleri üzerinden okundu. Her kaydın notu, hangi bilginin kaynaktan alındığını gösterir. Tam metinler okunmadığı için kritik kararlardan önce özgün kaynağa bakın. Ayrıntılı iddia–kaynak tablosu: <code>docs/DOGRULAMA.md</code>.</p>
+  <ul>
+    {kaynaklar.map((k) => (
+      <li id={k.id}>
+        <strong>{k.authors}{k.year ? ` (${k.year})` : ''}</strong>. {k.url ? <a href={k.url}>{k.title}</a> : k.title}. <em>{k.venue}</em>. <span class="badge">{label[k.kind]}</span>
+        <div class="muted meta">{k.note}</div>
+      </li>
+    ))}
+  </ul>
+</Base>

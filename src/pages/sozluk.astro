@@ -1,0 +1,21 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+const terms = (await getCollection('wiki')).filter((e) => e.data.category === 'terimler').sort((a, b) => a.data.title.localeCompare(b.data.title, 'tr'));
+const letters = [...new Set(terms.map((t) => t.data.title[0].toLocaleUpperCase('tr')))];
+---
+<Base title="Sözlük" description="Lepistes yetiştiriciliği terimleri.">
+  <h1>Sözlük</h1>
+  <p class="muted">Terimler wiki maddelerine bağlıdır. Daha fazlası için <a href="/wiki">Wiki</a> ve <a href="/ara">Ara</a>.</p>
+  <p>{letters.map((l) => <a class="az" href={`#h-${l}`}>{l}</a>)}</p>
+  {letters.map((l) => (
+    <section id={`h-${l}`}>
+      <h2>{l}</h2>
+      <dl>
+        {terms.filter((t) => t.data.title[0].toLocaleUpperCase('tr') === l).map((t) => (
+          <><dt><a href={`/wiki/${t.id}`}><strong>{t.data.title}</strong></a></dt><dd>{t.data.summary}</dd></>
+        ))}
+      </dl>
+    </section>
+  ))}
+</Base>

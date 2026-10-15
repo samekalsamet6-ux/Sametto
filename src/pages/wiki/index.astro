@@ -1,0 +1,20 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+const all = (await getCollection('wiki')).sort((a, b) => a.data.title.localeCompare(b.data.title, 'tr'));
+const cats = [...new Set(all.map((e) => e.data.category))].sort((a, b) => a.localeCompare(b, 'tr'));
+---
+<Base title="Wiki">
+  <h1>Wiki</h1>
+  <p class="muted">Aramak için <a href="/ara">Ara</a> sayfasını kullanın.</p>
+  {cats.map((c) => (
+    <section>
+      <h2 style="text-transform:capitalize">{c}</h2>
+      <div class="grid">
+        {all.filter((e) => e.data.category === c).map((e) => (
+          <a class="card" href={`/wiki/${e.id}`}><h3>{e.data.title}</h3><p class="muted">{e.data.summary}</p></a>
+        ))}
+      </div>
+    </section>
+  ))}
+</Base>

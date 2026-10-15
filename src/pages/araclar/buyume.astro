@@ -1,0 +1,112 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Yavru büyüme takipçisi">
+  <p><a href="/araclar">← Araçlar</a></p>
+  <h1>Yavru büyüme takipçisi</h1>
+  <p class="muted">Kendi yavru gruplarınızın boyunu kaydedin; büyüme hızını (mm/hafta) ve grafiği görün. Veriler yalnızca bu tarayıcıda saklanır.</p>
+  <div class="callout"><strong>Referans eğri yok.</strong> Hakemli bir hafta-hafta guppi boy tablosu bulamadık; bu yüzden araç sizi bir “normal” değerle karşılaştırmaz. Gruplarınızı birbiriyle ve kendi geçmişinizle karşılaştırın; sıcaklık, yem ve yoğunluk farklıysa karşılaştırma yanıltıcı olur. Sıcaklığın büyümeyi etkilediği ölçülmüştür (bkz. <a href="/wiki/sicaklik">Su sıcaklığı</a>).</div>
+  <form class="tool" id="fc" style="margin-top:16px">
+    <h2 style="margin:0">Yeni grup</h2>
+    <label>Grup adı<input name="name" required value="Parti 1" /></label>
+    <label>Doğum tarihi<input type="date" name="birth" required /></label>
+    <button>Grubu ekle</button>
+    <div class="result" id="cmsg" aria-live="polite"></div>
+  </form>
+  <form class="tool" id="fm" style="margin-top:16px">
+    <h2 style="margin:0">Ölçüm ekle</h2>
+    <label>Grup<select name="cohort" id="csel"></select></label>
+    <label>Ölçüm tarihi<input type="date" name="date" required /></label>
+    <label>Ortalama boy (mm)<input name="len" inputmode="decimal" required /></label>
+    <label>Ölçülen balık sayısı<input name="n" inputmode="numeric" value="5" /></label>
+    <button>Ölçümü kaydet</button>
+    <div class="result" id="mmsg" aria-live="polite"></div>
+  </form>
+  <div id="summary" style="margin:16px 0" aria-live="polite"></div>
+  <div id="chart"></div>
+  <table id="tbl" style="width:100%"></table>
+  <p>
+    <button id="exp" type="button">Dışa aktar (JSON)</button>
+    <label class="muted" style="display:inline-block;margin-left:8px">İçe aktar <input id="imp" type="file" accept="application/json" /></label>
+    <button id="clr" type="button" class="danger">Tümünü sil</button>
+  </p>
+  <script>
+    import { summarize, validateMeasurement, serialize, parseImport, type Cohort, type Measurement } from '../../lib/storage/growth';
+    import { num, el, download } from '../../lib/dom';
+    const KEY = 'lepistes.growth.v1';
+    let cohorts: Cohort[] = [];
+    let ms: Measurement[] = [];
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) { const o = parseImport(raw); cohorts = o.cohorts; ms = o.measurements; }
+    } catch { cohorts = []; ms = []; }
+    const save = () => { try { localStorage.setItem(KEY, serialize(cohorts, ms)); } catch { /* depolama kapalı */ } };
+    const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+    const sel = el<HTMLSelectElement>('csel');
+    const today = new Date();
+    (el<HTMLFormElement>('fc').querySelector('[name=birth]') as HTMLInputElement).valueAsDate = today;
+    (el<HTMLFormElement>('fm').querySelector('[name=date]') as HTMLInputElement).valueAsDate = today;
+
+    function chart(points: { ageDays: number; lengthMm: number }[]) {
+      if (points.length < 2) { el('chart').innerHTML = '<p class="muted">Grafik için en az 2 ölçüm gerekir.</p>'; return; }
+      const W = 600, H = 240, pad = 40;
+      const maxX = Math.max(...points.map((p) => p.ageDays)), maxY = Math.max(...points.map((p) => p.lengthMm));
+      const x = (v: number) => pad + (v / (maxX || 1)) * (W - 2 * pad);
+      const y = (v: number) => H - pad - (v / (maxY || 1)) * (H - 2 * pad);
+      const poly = points.map((p) => `${x(p.ageDays)},${y(p.lengthMm)}`).join(' ');
+      el('chart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="dg" role="img" aria-label="Yaşa göre ortalama boy grafiği"><line class="dg-axis" x1="${pad}" y1="${H - pad}" x2="${W - pad}" y2="${H - pad}"/><line class="dg-axis" x1="${pad}" y1="${pad / 2}" x2="${pad}" y2="${H - pad}"/><polyline class="dg-curve" stroke="var(--brand)" points="${poly}"/>${points.map((p) => `<circle cx="${x(p.ageDays)}" cy="${y(p.lengthMm)}" r="4" fill="var(--brand)"/>`).join('')}<text class="dg-s" x="${W / 2}" y="${H - 8}" text-anchor="middle">yaş (gün) → en yüksek ${maxX} gün</text><text class="dg-s" x="${pad + 6}" y="18">boy (mm) · en yüksek ${maxY}</text></svg>`;
+    }
+    function render() {
+      sel.innerHTML = cohorts.map((c) => `<option value="${esc(c.id)}">${esc(c.name)} (${c.birthDate})</option>`).join('') || '<option value="">Önce bir grup ekleyin</option>';
+      const c = cohorts.find((x) => x.id === sel.value) ?? cohorts[0];
+      if (!c) { el('summary').textContent = ''; el('tbl').innerHTML = ''; el('chart').innerHTML = ''; return; }
+      sel.value = c.id;
+      const s = summarize(c, ms);
+      el('summary').innerHTML = `<b>${esc(c.name)}</b>: ${s.points.length} ölçüm` + (s.overallMmPerWeek !== null ? ` · genel hız ≈ <b>${s.overallMmPerWeek} mm/hafta</b>` : '');
+      el('tbl').innerHTML = '<tr><th>Tarih</th><th>Yaş (gün)</th><th>Boy (mm)</th><th>n</th><th>Hız (mm/hafta)</th><th><span class="sr-only">İşlem</span></th></tr>' + s.points.map((p, i) => `<tr><td>${p.date}</td><td>${p.ageDays}</td><td>${p.lengthMm}</td><td>${p.sampleSize}</td><td>${i ? (s.segments[i - 1]?.mmPerWeek ?? '—') : '—'}</td><td><button type="button" data-d="${p.date}" data-c="${esc(c.id)}" aria-label="${p.date} ölçümünü sil">✕</button></td></tr>`).join('');
+      chart(s.points);
+    }
+    el<HTMLFormElement>('fc').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const d = new FormData(e.target as HTMLFormElement);
+      const name = String(d.get('name')).trim();
+      const birth = String(d.get('birth'));
+      if (!name) { el('cmsg').textContent = 'Grup adı gerekli.'; return; }
+      const id = `c${Date.now().toString(36)}`;
+      cohorts.push({ id, name, birthDate: birth });
+      save();
+      sel.innerHTML = cohorts.map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+      sel.value = id;
+      render();
+      el('cmsg').textContent = 'Grup eklendi.';
+    });
+    el<HTMLFormElement>('fm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const d = new FormData(e.target as HTMLFormElement);
+      const c = cohorts.find((x) => x.id === String(d.get('cohort')));
+      if (!c) { el('mmsg').textContent = 'Önce bir grup ekleyin.'; return; }
+      const m: Measurement = { cohortId: c.id, date: String(d.get('date')), lengthMm: num(d.get('len')), sampleSize: num(d.get('n')) };
+      try { validateMeasurement(m, c); } catch (err) { el('mmsg').textContent = (err as Error).message; return; }
+      ms = ms.filter((x) => !(x.cohortId === m.cohortId && x.date === m.date)).concat(m);
+      save();
+      render();
+      el('mmsg').textContent = 'Ölçüm kaydedildi.';
+    });
+    sel.addEventListener('change', render);
+    el('tbl').addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+      const date = t.getAttribute('data-d');
+      const cid = t.getAttribute('data-c');
+      if (date && cid) { ms = ms.filter((x) => !(x.cohortId === cid && x.date === date)); save(); render(); }
+    });
+    el('exp').addEventListener('click', () => download('buyume.json', 'application/json', serialize(cohorts, ms)));
+    el<HTMLInputElement>('imp').addEventListener('change', async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try { const o = parseImport(await file.text()); cohorts = o.cohorts; ms = o.measurements; save(); render(); el('mmsg').textContent = 'İçe aktarıldı.'; }
+      catch (err) { el('mmsg').textContent = (err as Error).message; }
+    });
+    el('clr').addEventListener('click', () => { if (confirm('Tüm gruplar ve ölçümler silinsin mi?')) { cohorts = []; ms = []; save(); render(); } });
+    render();
+  </script>
+</Base>

@@ -1,0 +1,19 @@
+---
+import Base from '../../layouts/Base.astro';
+import { tools } from '../../data/araclar';
+const groups = [...new Set(tools.map((t) => t.group))];
+---
+<Base title="Araçlar" description="Lepistes yetiştiriciliği için hesaplayıcı, planlayıcı ve takip araçları.">
+  <h1>Araçlar</h1>
+  <p class="muted">Tüm hesaplar tarayıcınızda yapılır; veriler sunucuya gönderilmez. Sonuçlar yol göstericidir.</p>
+  {groups.map((g) => (
+    <section>
+      <h2>{g}</h2>
+      <div class="grid">
+        {tools.filter((t) => t.group === g).map((t) => (
+          <a class="card" href={`/araclar/${t.slug}`}><h3>{t.title}</h3><p class="muted">{t.desc}</p></a>
+        ))}
+      </div>
+    </section>
+  ))}
+</Base>

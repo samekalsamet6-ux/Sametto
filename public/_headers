@@ -1,0 +1,16 @@
+# Cloudflare Pages (ve Netlify) başlık kuralları
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# Derleme çıktısındaki dosya adları içerik özetiyle değişir: uzun süre önbelleğe alınabilir
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Hizmet çalışanı ve manifest her zaman güncel olmalı
+/sw.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache
