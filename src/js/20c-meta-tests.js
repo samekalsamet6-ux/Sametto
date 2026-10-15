@@ -127,3 +127,15 @@ Object.assign(Tests, {
   },
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.tanks(); return a && b; })(Tests.all);
+
+/* Uyum matrisi: kurallar ve puanlar */
+Object.assign(Tests, {
+  compat() {
+    const ok = {}, gs = Compat.pair('guppy', 'shrimp'), gp = Compat.pair('guppy', 'platy'), bb = Compat.pair('betta', 'betta', { malePair: true }), sym = Compat.pair('guppy', 'molly'), sym2 = Compat.pair('molly', 'guppy');
+    ok.predation = gs.lv === 2 && gs.why.length > 0; ok.symmetric = sym.lv === sym2.lv; ok.bettaMales = bb.lv === 2; ok.friendly = gp.lv <= 1;
+    const m = Compat.matrix(); const sc = Compat.score(m); ok.score = sc >= 0 && sc <= 100 && Number.isInteger(sc);
+    const c = Game.tank.creatures[0]; const st = Compat.stressFor(c); ok.stress = st >= 0 && st <= 0.35;
+    return this._log('Uyum matrisi (avlanma, beta, simetri, puan, stres)', Object.values(ok).every(Boolean), { ...ok, gp: gp.lv, sc });
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.compat(); return a && b; })(Tests.all);
