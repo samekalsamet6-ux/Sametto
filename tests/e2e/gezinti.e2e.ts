@@ -132,3 +132,29 @@ test('lisans sayfası ve altbilgi lisans bağlantıları', async ({ page }) => {
   await expect(page.getByText('CC BY-SA 4.0').first()).toBeVisible();
   await expect(page.getByText('MIT').first()).toBeVisible();
 });
+
+test.describe('yayın adresi, robots.txt ve meta etiketler', () => {
+  test('robots.txt sitemap adresini yayın adresinden türetir', async ({ request }) => {
+    const res = await request.get('/robots.txt');
+    expect(res.status()).toBe(200);
+    const text = await res.text();
+    expect(text).toContain('User-agent: *');
+    expect(text).toContain('Sitemap: https://lepistes-rehberi.pages.dev/sitemap-index.xml');
+  });
+
+  test('sitemap yayın adresini kullanır', async ({ request }) => {
+    const idx = await (await request.get('/sitemap-index.xml')).text();
+    expect(idx).toContain('https://lepistes-rehberi.pages.dev/sitemap-0.xml');
+    const sm = await (await request.get('/sitemap-0.xml')).text();
+    expect(sm).toContain('https://lepistes-rehberi.pages.dev/rehber/');
+    expect(sm).not.toContain('example.com');
+  });
+
+  test('canonical ve Open Graph etiketleri doğru', async ({ page }) => {
+    await page.goto('/rehber/baslangic/05-azot-dongusu-kurulum/');
+    await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', 'https://lepistes-rehberi.pages.dev/rehber/baslangic/05-azot-dongusu-kurulum/');
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /Azot döngüsü: tankı hazırlamak · Lepistes Rehberi/);
+    await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute('content', 'Lepistes Rehberi');
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', 'https://lepistes-rehberi.pages.dev/icons/icon-512.png');
+  });
+});

@@ -39,7 +39,7 @@ npm run dev        # geliştirme sunucusu (arama dizini yalnızca build sonrası
 | `npm run build` | Siteyi `dist/` içine derler ve Pagefind dizinini oluşturur |
 | `npm run preview` | Derlenmiş siteyi yerelde açar |
 | `npm run check:links` | `dist/` içindeki dahili bağlantıları denetler (önce `build`) |
-| `npm run e2e` | Playwright E2E testleri (98 test = 49 senaryo × masaüstü/mobil): araçlar, sorun giderme, seviye testi, gezinti, arama (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
+| `npm run e2e` | Playwright E2E testleri (104 test = 52 senaryo × masaüstü/mobil): araçlar, sorun giderme, seviye testi, gezinti, arama (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
 | `npm run a11y` | Tüm sayfalarda axe taraması, açık ve koyu tema (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
 | `npm run pwa` | Manifest, simgeler, hizmet çalışanı ve **gerçek çevrimdışı** gezinti/arama/araç denetimi (önce `build`) |
 | `npm run lighthouse` | Seçili 7 sayfada Lighthouse (mobil); performans ≥ 85, erişilebilirlik/en iyi uygulamalar/SEO ≥ 95 |
@@ -93,10 +93,19 @@ docs/                  Plan ve doğrulama listesi
 
 `npm run build` çıktısı (`dist/`) statik bir sitedir; Cloudflare Pages, Netlify, GitHub Pages gibi herhangi bir statik barındırmada çalışır.
 
-Yayından önce:
-1. `astro.config.mjs` içindeki `site` değerini gerçek alan adınızla değiştirin (sitemap için).
-2. Site adını ve alan adını netleştirin (şimdilik "Lepistes Rehberi").
-3. [`CONTENT_REVIEW.md`](CONTENT_REVIEW.md) listesini tamamlayın.
+**Adres ve barındırma:** Site adı *Lepistes Rehberi*; hedef adres `https://lepistes-rehberi.pages.dev` (Cloudflare Pages). Adres tek yerde tanımlıdır: `astro.config.mjs` → `site`. Sitemap, `robots.txt`, canonical ve Open Graph bağlantıları buradan türetilir. Cloudflare başka bir ad verirse (proje adı doluysa sonuna ek ekler) yalnızca bu satırı değiştirin.
+
+### Cloudflare Pages kurulumu
+1. Cloudflare panelinde **Workers & Pages → Create → Pages → Connect to Git** ile bu depoyu bağlayın; proje adı `lepistes-rehberi` olsun.
+2. Build ayarları: **Framework preset:** Astro · **Build command:** `npm run build` · **Build output directory:** `dist`.
+3. **Environment variables:** `NODE_VERSION` = `22`.
+4. Üretim dalı olarak `main` (veya yayınlamak istediğiniz dal) seçin; diğer dallar otomatik önizleme adresi alır.
+5. İlk dağıtımdan sonra çıkan adres `site` değeriyle aynı değilse `astro.config.mjs` içindeki `site` satırını güncelleyip yeniden dağıtın.
+6. Kendi alan adınızı sonradan **Custom domains** bölümünden ekleyebilirsiniz; ekledikten sonra `site` değerini yeni alan adıyla değiştirin.
+
+`public/_headers` dosyası güvenlik başlıklarını ve önbellek kurallarını (hash'li varlıklar uzun süre, `sw.js` ve manifest hiç önbelleğe alınmaz) tanımlar; Cloudflare Pages ve Netlify bu dosyayı okur.
+
+Yayından önce [`CONTENT_REVIEW.md`](CONTENT_REVIEW.md) listesini tamamlayın.
 
 ## Yapılacaklar
 

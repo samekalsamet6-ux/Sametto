@@ -11,7 +11,8 @@ const hash = createHash('sha256');
     const p = join(d, f);
     if (statSync(p).isDirectory()) { walk(p); continue; }
     const rel = '/' + relative(dist, p).replace(/\\/g, '/');
-    if (rel === '/sw.js' || rel === '/sw-template.js' || rel.endsWith('.map')) continue;
+    // Barındırma sağlayıcısının işlediği ve istemciye sunulmayan dosyalar önbelleğe alınmaz (aksi halde kurulum 404 ile başarısız olur)
+    if (rel === '/sw.js' || rel === '/sw-template.js' || rel === '/_headers' || rel === '/_redirects' || rel.endsWith('.map')) continue;
     urls.push(rel.endsWith('/index.html') ? rel.slice(0, -'index.html'.length) : rel);
     hash.update(rel).update(readFileSync(p));
   }

@@ -42,16 +42,17 @@ Kaynak görev tanımı: `LEPISTES_SITE_PROMPT.md`
 - [x] SVG diyagramlar: 6 (azot akışı, azot grafiği, tank düzeni, gonopodium, Punnett, soy ağacı)
 - [x] PWA: manifest, simgeler, hizmet çalışanı (290 dosya önbellekte), gerçek çevrimdışı denetimi
 - [x] E2E: 36 senaryo × 2 görünüm = 72 test (araçlar, sorun giderme, quiz, gezinti, arama)
-- [x] Kaynak araştırması ve düzeltmeler: docs/DOGRULAMA.md; 13 araç; 98 E2E testi
+- [x] Kaynak araştırması ve düzeltmeler: docs/DOGRULAMA.md; 13 araç; 104 E2E testi
 - [x] Lisans: kod MIT, içerik CC BY-SA 4.0; site adı: Lepistes Rehberi; hak sahibi: Lepistes Rehberi katkıcıları
 - [x] CC BY-SA 4.0 lisans metni depoya eklendi
-- [ ] Faz 10 kalan: alan adı ve `site` değeri
+- [x] Adres: https://lepistes-rehberi.pages.dev (Cloudflare Pages); robots.txt, canonical, Open Graph, _headers
+- [ ] Faz 10 kalan: Cloudflare Pages projesini oluşturup ilk dağıtımı yapmak (sizde)
 
 ## Doğrulama gerektiren konular (⚠)
 Sıcaklık/pH/GH/KH aralıkları, gebelik süresi–sıcaklık, doğum başına yavru sayısı, olgunlaşma yaşı, kalıtım tipleri (özellik bazında), tuz banyosu dozları. Bunlar kaynakla teyit edilmeden sayısal olarak yazılmayacak; mevcut sayfalarda `needs_verification: true` ile işaretlidir.
 
 ## Açık sorular (onay isteyen)
 1. Alan adı? (site adı "Lepistes Rehberi" olarak belirlendi)
-2. Hedef barındırma sağlayıcısı?
+2. Hedef barındırma sağlayıcısı? → Cloudflare Pages
 3. Reklam/analitik olacak mı? (varsayılan: yok)
 4. Görseller için fotoğraf kaynağınız var mı?

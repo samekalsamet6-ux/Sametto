@@ -5,7 +5,8 @@ import { unified } from '@astrojs/markdown-remark';
 import rehypeTaskLabels from './src/lib/rehype-task-labels.mjs';
 
 export default defineConfig({
-  site: 'https://example.com',
+  // Yayın adresi (tek kaynak): sitemap, robots.txt ve canonical/OG bağlantıları buradan türetilir.
+  site: 'https://lepistes-rehberi.pages.dev',
   markdown: { processor: unified({ rehypePlugins: [rehypeTaskLabels] }) },
   integrations: [mdx(), sitemap()],
 });
