@@ -262,3 +262,10 @@ details.card summary{list-style:none}
 #tut-ring.hidden{display:none}
 @keyframes tutpulse{50%{box-shadow:0 0 0 9px rgba(63,224,208,.1),0 0 30px rgba(63,224,208,.8)}}
 @media (prefers-reduced-motion:reduce){#tut-ring{animation:none}}
+
+/* ---- 3D balık ---- */
+.f3-cv{z-index:2;border-radius:inherit}
+.f3-bar{position:absolute;z-index:3;display:flex;flex-direction:column;gap:4px;padding:0 6px;transform:translateY(-100%);pointer-events:none}
+.f3-row{display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap}
+.f3-btn{pointer-events:auto;min-width:34px;min-height:28px;padding:2px 8px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(4,22,32,.55);backdrop-filter:blur(6px);color:var(--text,#e6f7fa);font-size:12px;cursor:pointer}
+.f3-btn:active{transform:scale(.94)}

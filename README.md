@@ -64,6 +64,9 @@ src/js/
   21-native.js         APK: Android geri tuşu, uygulama yaşam döngüsü
   22-tutorial.js       onboarding: sinematik + 10 adımlık ~5 dk eğitim
   23-music-link.js     müzik bağlamı: sezon, tank içeriği, hava durumu, yarışma ruh hali
+  25-fish3d.js         3D balık: WebGL, sprite'tan şişirilmiş ağ, omurga dalga animasyonu, poz makinesi, portrelerde
+  26-devgate.js        Geliştirici paneli şifre kilidi
+  27-equip-art.js      ekipman çizimleri (filtre, ısıtıcı, difüzör, armatür…)
   24-depth.js         Genetik Defter tahminleri, gizli varyasyonlar, hat bonusu, ek başarımlar, koleksiyon ödülleri
 ```
 

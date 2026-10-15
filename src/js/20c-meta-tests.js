@@ -91,3 +91,19 @@ Object.assign(Tests, {
   },
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.depth(); return a && b; })(Tests.all);
+
+/* 3D balık: ağ üretimi WebGL gerektirmez; her tür için kapalı, makul bir ağ çıkmalı */
+Object.assign(Tests, {
+  fish3d() {
+    const ok = {}, sps = ['guppy', 'endler', 'molly', 'platy', 'swordtail', 'betta']; let allOk = true, info = [];
+    for (const sp of sps) {
+      const b = breedsOf(sp).find((x) => x.spec) || breedsOf(sp)[0], cr = Game.sampleCreature(b.spec), m = Fish3D.mesh(FishArt.sprite(cr));
+      const vcount = m.V.length / 8, maxIdx = Math.max(...m.front, ...m.back), fine = vcount < 65536 && maxIdx < vcount && m.front.length > 3000 && m.back.length === m.front.length;
+      let zmax = 0; for (let i = 0; i < m.V.length; i += 8) zmax = Math.max(zmax, Math.abs(m.V[i + 2])); const finite = m.V.every(Number.isFinite);
+      info.push(sp + ':' + m.front.length / 3 + 't z' + zmax.toFixed(3)); if (!(fine && finite && zmax > 0.02 && zmax < 0.3)) allOk = false;
+    }
+    ok.meshes = allOk; ok.mesh_cached = (() => { const cr = Game.sampleCreature(BREEDS[0].spec), sp = FishArt.sprite(cr); return Fish3D.mesh(sp) === Fish3D.mesh(sp); })();
+    return this._log('3D balık ağı (tüm balık türleri)', Object.values(ok).every(Boolean), { ...ok, info });
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.fish3d(); return a && b; })(Tests.all);
