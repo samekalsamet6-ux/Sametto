@@ -305,8 +305,9 @@ const FishArt = {
     const k = (cr.bodyLen() / sp.bodyLen) * mul;                       // doku birimi → dünya birimi
     const lod = k * TW * base[0] < 175 ? 1 : 0;                         // küçük balık: daha az dilim
     const S = this.spine(sw.joints, this._pts, lod), P = this._pts;
-    const hc = Math.cos(sw.heading), hs = Math.sin(sw.heading), fl = sw.flip;
-    const la = hc * k, lb = hs * k, lc = -hs * fl * k, ld = hc * fl * k;
+    // Yön: yatay "yaw" ölçeği (fl: +1 sağa, -1 sola). Dönerken gövde kısalır ama hiç çizgiye inmez; eğim ±40° ile sınırlı (dikey duruş yok).
+    const hc0 = Math.cos(sw.heading), hs0 = Math.sin(sw.heading), th = clamp(Math.atan2(hs0, Math.abs(hc0)), -0.7, 0.7), hc = Math.cos(th), hs = Math.sin(th), fl = sw.flip, vs = 1 + 0.12 * (1 - Math.abs(fl));
+    const la = fl * hc * k, lb = hs * k, lc = -fl * hs * vs * k, ld = hc * vs * k;
     const Fa = base[0] * la + base[2] * lb, Fb = base[1] * la + base[3] * lb, Fc = base[0] * lc + base[2] * ld, Fd = base[1] * lc + base[3] * ld;
     const Fe = base[0] * sw.x + base[2] * sw.y + base[4], Ff = base[1] * sw.x + base[3] * sw.y + base[5];
     ctx.globalAlpha = alpha;

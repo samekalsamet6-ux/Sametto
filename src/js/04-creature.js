@@ -225,8 +225,9 @@ class Swimmer {
     // sola bakarken balığı ters çevir (karın aşağıda kalsın) — kenar-üstü geçişi yumuşak
     if (this.flipTarget === undefined) this.flipTarget = cs >= 0 ? 1 : -1;
     if (cs > 0.18) this.flipTarget = 1; else if (cs < -0.18) this.flipTarget = -1;
-    this.flip = damp(this.flip, this.flipTarget, 7, dt);
-    if (Math.abs(this.flip) < 0.04) this.flip = this.flipTarget * 0.04;
+    // flip = yatay yaw: +1 sağa, -1 sola. En dar anda (≈0.3) yön işareti değişir; gövde hiçbir zaman çizgiye inmez.
+    this.flip = damp(this.flip, this.flipTarget, 8, dt);
+    if (Math.abs(this.flip) < 0.3) this.flip = this.flipTarget * 0.3;
   }
 
   updateJoints(dt) {
