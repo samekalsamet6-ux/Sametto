@@ -2,6 +2,9 @@ name: Android Release (imzalı AAB + APK)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [claude/new-session-m0dtk5]
+    paths: ['.github/workflows/android-release.yml']
 
 jobs:
   release:
