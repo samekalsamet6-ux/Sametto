@@ -33,6 +33,8 @@ jobs:
         run: npm run check:links
       - name: Erişilebilirlik taraması (axe, açık/koyu tema)
         run: CHROME="$(which google-chrome)" npm run a11y
+      - name: PWA ve çevrimdışı denetimi
+        run: CHROME="$(which google-chrome)" npm run pwa
       - name: Lighthouse (mobil)
         run: CHROME="$(which google-chrome)" npm run lighthouse
       - name: Doğrulama bekleyen içerik listesi güncel mi?

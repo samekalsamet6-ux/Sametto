@@ -11,6 +11,9 @@ const nav = [['/rehber','Rehber'],['/wiki','Wiki'],['/araclar','Araçlar'],['/so
   <title>{title} · Lepistes Rehberi</title>
   <meta name="description" content={description} />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <meta name="theme-color" content="#0b6e8a" />
 </head>
 <body>
   <a class="skip" href="#icerik">Ana içeriğe geç</a>
@@ -23,5 +26,10 @@ const nav = [['/rehber','Rehber'],['/wiki','Wiki'],['/araclar','Araçlar'],['/so
     <p><a href="/seviye-testi">Seviye testi</a> · <a href="/sss">SSS</a> · <a href="/sozluk">Sözlük</a> · <a href="/kaynaklar">Kaynaklar</a></p>
     Bilgiler eğitim amaçlıdır; ilaç ve tedavi için uzman görüşü alın. Lepistes asla doğaya salınmamalıdır.
   </div></footer>
+  <script>
+    if ('serviceWorker' in navigator && import.meta.env.PROD) {
+      addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => {}); });
+    }
+  </script>
 </body>
 </html>

@@ -40,10 +40,11 @@ npm run dev        # geliştirme sunucusu (arama dizini yalnızca build sonrası
 | `npm run preview` | Derlenmiş siteyi yerelde açar |
 | `npm run check:links` | `dist/` içindeki dahili bağlantıları denetler (önce `build`) |
 | `npm run a11y` | Tüm sayfalarda axe taraması, açık ve koyu tema (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
+| `npm run pwa` | Manifest, simgeler, hizmet çalışanı ve **gerçek çevrimdışı** gezinti/arama/araç denetimi (önce `build`) |
 | `npm run lighthouse` | Seçili 7 sayfada Lighthouse (mobil); performans ≥ 85, erişilebilirlik/en iyi uygulamalar/SEO ≥ 95 |
 | `npm run open-questions` | `docs/OPEN_QUESTIONS.md` dosyasını yeniden üretir |
 
-CI (`.github/workflows/ci.yml`) şunları çalıştırır: test → `check` → `build` → `check:links` → `a11y` → `lighthouse` → `OPEN_QUESTIONS.md` güncel mi.
+CI (`.github/workflows/ci.yml`) şunları çalıştırır: test → `check` → `build` → `check:links` → `a11y` → `pwa` → `lighthouse` → `OPEN_QUESTIONS.md` güncel mi.
 
 ## Proje yapısı
 
@@ -77,6 +78,15 @@ docs/                  Plan ve doğrulama listesi
 - Görev listesi onay kutularına (`- [ ]`) derleme sırasında `aria-label` eklenir (`src/lib/rehype-task-labels.mjs`).
 - Not: Astro 7'nin varsayılan MDX işlemcisi rehype eklentilerini çalıştırmaz; bu yüzden `astro.config.mjs` içinde `unified` işlemcisi kullanılır.
 
+## PWA ve çevrimdışı kullanım
+
+- Site kurulabilir bir web uygulamasıdır (`public/manifest.webmanifest`, simgeler `public/icons/`; yeniden üretmek için `node scripts/make-icons.mjs`).
+- `npm run build` sonunda `scripts/build-sw.mjs`, `public/sw-template.js` şablonundan `dist/sw.js` üretir: tüm sayfalar, varlıklar ve arama dizini (~290 dosya, ~2,5 MB) ilk ziyarette önbelleğe alınır; önbellek adı içerik özetinden türetilir, yeni sürümde eski önbellek silinir.
+- Gezinme isteklerinde ağ önce denenir (3 sn), olmazsa önbellek, o da yoksa `/offline/` sayfası gösterilir. Diğer dosyalar önbellekten sunulur.
+- Çevrimdışıyken tüm rehber, wiki, araçlar, sorun giderme, test ve arama çalışır; takipçi verisi zaten yereldir.
+- Hizmet çalışanı yalnızca üretim derlemesinde kaydedilir (geliştirme sunucusunda yoktur).
+- Yayın notu: site bir alt dizinde değil, alan adının kökünde (`/`) sunulmalıdır; aksi halde manifest ve `sw.js` yolları ayarlanmalıdır.
+
 ## Yayınlama
 
 `npm run build` çıktısı (`dist/`) statik bir sitedir; Cloudflare Pages, Netlify, GitHub Pages gibi herhangi bir statik barındırmada çalışır.
@@ -88,7 +98,6 @@ Yayından önce:
 
 ## Yapılacaklar
 
-- PWA/çevrimdışı kullanım
 - Kalan araçlar: büyüme takipçisi, maliyet, ilaç dozajı, pedigri çizici
 - E2E testleri (Playwright)
 - Lisans seçimi (henüz yok)
