@@ -110,7 +110,7 @@ Object.assign(UI, {
 
   render_profile(el) {
     const S = Game.S, lvl = Progress.level(S.xp), cur = Progress.xpFor(lvl), nxt = Progress.xpFor(lvl + 1), stat = (v, l) => h('div.stat', null, h('b', null, v), h('div.small.muted', null, l));
-    const nameIn = h('input', { type: 'text', value: S.name, maxlength: 16, 'aria-label': 'Kullanıcı adı', onchange: (e) => { S.name = e.target.value.trim().slice(0, 16) || 'Misafir'; Game.save(); } });
+    const nameIn = h('input', { type: 'text', value: S.name, maxlength: 16, 'aria-label': 'Kullanıcı adı', onchange: (e) => { S.name = Cards.safeName(e.target.value); if (S.name !== e.target.value.trim().slice(0, 16)) e.target.value = S.name; Game.save(); } });
     const best = Game.tank.creatures.reduce((m, c) => Math.max(m, c.rarity()), 0), earned = Object.entries(S.ach || {}).filter(([, t]) => t > 0).map(([id, t]) => ({ a: ACHIEVEMENTS.find((x) => x.id === id), t }));
     const shown = (S.shown || []).filter((id) => (S.ach || {})[id]).slice(0, 6), vit = h('canvas', { width: 640, height: 360, style: { width: '100%', borderRadius: '14px', display: 'block' } });
     const seen = S.seen || {}, fishP = Math.round(100 * BREEDS.filter((b) => S.discovered[b.id]).length / BREEDS.length), plP = Math.round(100 * Object.keys(PLANTS).filter((k) => (seen.plant || {})[k]).length / Object.keys(PLANTS).length);

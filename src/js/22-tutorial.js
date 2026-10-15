@@ -51,7 +51,7 @@ const Tut = {
   nameSheet() {
     const S = Game.S, T = S.tut; if (T.named) return; const inp = h('input', { type: 'text', value: S.name === 'Misafir' ? '' : S.name, maxlength: 16, placeholder: 'Dükkân sahibinin adı', 'aria-label': 'Ad', style: { width: '100%', fontSize: '18px' } });
     const rec = UI.sheet(h('div.stack', null, h('h3', null, '🏪 Dükkânına hoş geldin!'), h('div.small.muted', null, 'Adını istediğin zaman Profil ekranından değiştirebilirsin.'), inp,
-      h('button.btn.primary', { onclick: () => { S.name = inp.value.trim().slice(0, 16) || 'Misafir'; T.named = 1; rec.close(); UI.refreshTop(); } }, 'Tamam')));
+      h('button.btn.primary', { onclick: () => { S.name = Cards.safeName(inp.value); T.named = 1; rec.close(); UI.refreshTop(); } }, 'Tamam')));
   },
   /** Çiftleştirme sonrası ilk doğumu birkaç saniyeye sığdır (yalnızca eğitimde). */
   fastBirth() {

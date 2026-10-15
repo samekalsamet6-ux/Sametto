@@ -122,3 +122,10 @@ cd android && ./gradlew assembleDebug
 Bu bir **debug** APK'dır. Play Store için imzalı AAB ayrıca yapılandırılmalıdır.
 
 **Not:** Oyun kayıtları cihazın içinde (localStorage) tutulur; uygulamayı silmek kayıtları siler. Önemli ilerlemeyi Ayarlar'dan dışa aktararak yedekleyin.
+
+## Yayın öncesi kontrol listesi
+- `src/js/35-boosts.js` içinde `ADS_CFG.test = false` yap (gerçek reklamlar).
+- `docs/gizlilik-politikasi.md` dosyasını bir web adresinde yayınla (ör. GitHub Pages); Play Console ve AdMob'a bu adresi gir.
+- Play Console: hedef kitleye çocukları ekle (Aileler politikası), veri güvenliği formunu doldur (yerel veri + AdMob), içerik derecelendirmesi.
+- AdMob: uygulamayı çocuklara yönelik olarak işaretle; reklam içeriğini G ile sınırla.
+- Release imzası (keystore) üret; debug APK mağazaya yüklenemez.

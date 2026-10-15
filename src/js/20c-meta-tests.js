@@ -258,6 +258,7 @@ Object.assign(Tests, {
       ok.tamper = !Cards.decode(code.slice(0, -1) + (code.slice(-1) === 'a' ? 'b' : 'a')).ok && !Cards.decode(code.slice(0, 30)).ok && !Cards.decode('merhaba').ok && !Cards.decode('x'.repeat(5000)).ok;
       const evil = Object.assign({}, c, { n: '<img src=x onerror=alert(1)>Ali"', lv: 1e9, bd: [['yok', 3], ['born', 99]], fi: [{ nm: '<b>x</b>', sp: { body: 'zzz', tail: 'zzz', tc: 'zzz', size: 99, shp: ['q', 'q'], __proto__: { a: 1 } }, r: 99 }] }), e = Cards.decode(Cards.encode(evil));
       ok.sanitize = e.ok && !/[<>"]/.test(e.card.n) && e.card.lv === 999 && e.card.bd.length === 1 && e.card.fi[0].sp.body === 'W' && e.card.fi[0].sp.size === 1.5 && !e.card.fi[0].sp.shp && e.card.fi[0].r === RARITY.length - 1 && !/[<>]/.test(e.card.fi[0].nm);
+      ok.filter = ['orospu', 'S1kt1r', 'a m k', 'FUCK', 'Siktir_et'].every((x) => Cards.bad(x)) && ['Ayşe', 'Mehmet', 'Balıkçı', 'Sıkıcı', 'Malak', 'Bokeh', 'Scunthorpe', 'Dicky'].filter((x) => Cards.bad(x)).join() === '' && Cards.safeName('piç') === 'Misafir' && Cards.safeName('Deniz') === 'Deniz';
       ok.view = !!UI.cardView(d.card).querySelector('canvas');
       ok.add = Cards.add(d.card, S) === 'added' && Cards.add(d.card, S) === 'updated' && Cards.list(S).length === 1;
       for (let i = 0; i < 40; i++) Cards.add(Object.assign({}, d.card, { n: 'K' + i }), S); ok.cap = Cards.list(S).length === FRIEND_MAX;

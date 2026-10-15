@@ -7,14 +7,23 @@
    ===================================================================== */
 const CARD_PREFIX = 'AKV1', CARD_MAX = 4000, FRIEND_MAX = 30;
 const CARD_SPEC_KEYS = ['tux', 'sb', 'st', 'grass', 'mosaic', 'moscow', 'purple', 'metal'];
+const BAD_LONG = ['orospu', 'orosbu', 'siktir', 'sikik', 'sikeyim', 'sikis', 'sikim', 'sikerim', 'yarrak', 'yarak', 'amcik', 'gotveren', 'ibne', 'pezevenk', 'gavat', 'kahpe', 'fuck', 'shit', 'bitch', 'nigg', 'fagg', 'whore', 'slut', 'porno', 'nazi', 'hitler', 'rapist', 'pedo'];
+const BAD_TOKEN = ['amk', 'aq', 'pic', 'got', 'sik', 'dick', 'sex', 'bok', 'rape', 'porn', 'cunt'];
 const Cards = {
+  /** Küfür/uygunsuz ad süzgeci: aksan ve rakam-harf (1→i, 0→o…) hilelerini normalleştirir. */
+  bad(t) {
+    const n = String(t || '').toLowerCase().replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ş/g, 's').replace(/ç/g, 'c').replace(/ö/g, 'o').replace(/ü/g, 'u').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[0]/g, 'o').replace(/[1!|]/g, 'i').replace(/3/g, 'e').replace(/[4@]/g, 'a').replace(/[5$]/g, 's').replace(/7/g, 't');
+    const flat = n.replace(/[^a-z]/g, ''), toks = n.split(/[^a-z]+/).filter(Boolean);
+    return BAD_LONG.some((w) => flat.includes(w)) || toks.some((w) => BAD_TOKEN.includes(w)) || BAD_TOKEN.includes(flat);
+  },
+  safeName(t, n = 16) { const c = this.clean(t, n); return !c || this.bad(c) ? 'Misafir' : c; },
   clean(t, n) { return String(t == null ? '' : t).replace(/[\u0000-\u001f<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, n); },
   sum(s) { let a = 5381; for (let i = 0; i < s.length; i++) a = ((a * 33) ^ s.charCodeAt(i)) >>> 0; return a.toString(36).slice(0, 5); },
   /** Oyuncunun kartı (paylaşılabilir en küçük veri). */
   make(S = Game.S) {
     const lvl = Progress.level(S.xp), a = S.av || { f: 0, a: 0, c: 0 };
     const fish = [...Game.tank.creatures].filter((c) => c.species === 'guppy' && c.pheno).sort((x, y) => y.rarity() - x.rarity() || y.value() - x.value()).slice(0, 3).map((c) => { const p = c.pheno, sp = { body: p.body, tail: p.tail, tc: p.tailColor === 'none' ? 'red' : p.tailColor, shp: p.shp === 'n' ? undefined : [p.shp, p.shp], size: Math.round(p.size * 100) / 100 }; for (const k of CARD_SPEC_KEYS) if (p[k]) sp[k] = 1; return { nm: this.clean(c.name, 14), sex: c.sex, r: c.rarity(), sp }; });
-    return { n: this.clean(S.name, 16) || 'Misafir', av: { f: a.f | 0, a: a.a | 0, c: a.c | 0 }, lv: lvl, rep: S.rep | 0, disc: BREEDS.filter((b) => S.discovered[b.id]).length, tr: Object.keys(S.traits || {}).length, born: (S.cnt && S.cnt.born) | 0, sold: (S.stats && S.stats.sold) | 0, bd: (S.shown || []).filter((id) => (S.ach || {})[id]).slice(0, 6).map((id) => [id, S.ach[id]]), fi: fish, tk: (S.tanks ? S.tanks.length : 1) };
+    return { n: this.safeName(S.name), av: { f: a.f | 0, a: a.a | 0, c: a.c | 0 }, lv: lvl, rep: S.rep | 0, disc: BREEDS.filter((b) => S.discovered[b.id]).length, tr: Object.keys(S.traits || {}).length, born: (S.cnt && S.cnt.born) | 0, sold: (S.stats && S.stats.sold) | 0, bd: (S.shown || []).filter((id) => (S.ach || {})[id]).slice(0, 6).map((id) => [id, S.ach[id]]), fi: fish, tk: (S.tanks ? S.tanks.length : 1) };
   },
   encode(card) { const j = JSON.stringify(card), b = btoa(unescape(encodeURIComponent(j))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); return `${CARD_PREFIX}.${b}.${this.sum(b)}`; },
   /** Koddan kart: {ok, card} | {ok:false, err}. Her alan doğrulanır/kısıtlanır. */
@@ -23,12 +32,12 @@ const Cards = {
       code = String(code || '').replace(/\s+/g, ''); const m = code.match(/(AKV1)\.([A-Za-z0-9_-]+)\.([a-z0-9]{1,5})$/); if (code.length > CARD_MAX || !m) return { ok: false, err: 'Kod tanınmadı' };
       if (this.sum(m[2]) !== m[3]) return { ok: false, err: 'Kod bozuk veya eksik kopyalanmış' };
       const raw = JSON.parse(decodeURIComponent(escape(atob(m[2].replace(/-/g, '+').replace(/_/g, '/'))))), num = (v, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(+v) ? Math.round(+v) : 0));
-      const card = { n: this.clean(raw.n, 16) || 'Misafir', av: { f: num(raw.av && raw.av.f, 0, 40), a: num(raw.av && raw.av.a, 0, 40), c: num(raw.av && raw.av.c, 0, 40) }, lv: num(raw.lv, 1, 999), rep: num(raw.rep, 0, 1e6), disc: num(raw.disc, 0, 999), tr: num(raw.tr, 0, 999), born: num(raw.born, 0, 1e7), sold: num(raw.sold, 0, 1e7), tk: num(raw.tk, 1, MAX_TANKS), bd: [], fi: [] };
+      const card = { n: this.safeName(raw.n), av: { f: num(raw.av && raw.av.f, 0, 40), a: num(raw.av && raw.av.a, 0, 40), c: num(raw.av && raw.av.c, 0, 40) }, lv: num(raw.lv, 1, 999), rep: num(raw.rep, 0, 1e6), disc: num(raw.disc, 0, 999), tr: num(raw.tr, 0, 999), born: num(raw.born, 0, 1e7), sold: num(raw.sold, 0, 1e7), tk: num(raw.tk, 1, MAX_TANKS), bd: [], fi: [] };
       for (const b of Array.isArray(raw.bd) ? raw.bd.slice(0, 6) : []) { if (Array.isArray(b) && ACHIEVEMENTS.some((a) => a.id === b[0])) card.bd.push([String(b[0]), num(b[1], 1, 3)]); }
       for (const f of Array.isArray(raw.fi) ? raw.fi.slice(0, 3) : []) {
         const s = f && f.sp || {}, sp = { body: BODY[s.body] ? s.body : 'W', tail: TAILS[s.tail] ? s.tail : 'delta', tc: TAILCOL[s.tc] && s.tc !== 'none' ? s.tc : 'red', size: Math.min(1.5, Math.max(0.6, +s.size || 1)) };
         if (Array.isArray(s.shp) && ['d', 's'].includes(s.shp[0])) sp.shp = [s.shp[0], s.shp[0]]; for (const k of CARD_SPEC_KEYS) if (s[k]) sp[k] = 1;
-        card.fi.push({ nm: this.clean(f && f.nm, 14) || 'Balık', sex: f && f.sex === 'F' ? 'F' : 'M', r: num(f && f.r, 0, RARITY.length - 1), sp });
+        card.fi.push({ nm: this.safeName(f && f.nm, 14) === 'Misafir' ? 'Balık' : this.safeName(f && f.nm, 14), sex: f && f.sex === 'F' ? 'F' : 'M', r: num(f && f.r, 0, RARITY.length - 1), sp });
       }
       return { ok: true, card };
     } catch (e) { return { ok: false, err: 'Kod okunamadı' }; }
