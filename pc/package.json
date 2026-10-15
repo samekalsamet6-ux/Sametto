@@ -1,0 +1,20 @@
+{
+  "name": "akvaryum-dunyam-pc",
+  "productName": "Akvaryum Dünyam",
+  "version": "1.0.0",
+  "description": "Akvaryum Dünyam — masaüstü sürümü (Electron)",
+  "main": "main.js",
+  "author": "Sametto",
+  "private": true,
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.sametto.akvaryum.pc",
+    "productName": "Akvaryum Dünyam",
+    "files": ["main.js", "index.html"],
+    "win": { "target": [{ "target": "portable", "arch": ["x64"] }], "icon": "build/icon.png", "artifactName": "AkvaryumDunyam-${version}-portable.exe" },
+    "directories": { "output": "dist" }
+  }
+}

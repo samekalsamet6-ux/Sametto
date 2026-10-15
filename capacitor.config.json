@@ -1,0 +1,8 @@
+{
+  "appId": "com.sametto.akvaryum",
+  "appName": "Akvaryum Dünyam",
+  "webDir": "www",
+  "backgroundColor": "#04161f",
+  "android": { "allowMixedContent": false, "backgroundColor": "#04161f" },
+  "server": { "androidScheme": "https" }
+}

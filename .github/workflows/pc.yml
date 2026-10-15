@@ -1,0 +1,46 @@
+name: PC (Windows)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/new-session-m0dtk5]
+    paths: ['src/**', 'build.py', 'pc/**', '.github/workflows/pc.yml', 'resources/icon.png']
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+
+      - name: Oyunu derle (yazı tipleri gömülü, tek dosya)
+        run: |
+          npm install
+          python build.py --native
+          cp www/index.html pc/index.html
+          cp resources/icon.png pc/build/icon.png
+
+      - name: Windows uygulaması (taşınabilir .exe)
+        working-directory: pc
+        run: |
+          npm install
+          npx electron-builder --win portable --x64 --publish never
+          ls -la dist
+
+      - name: Tarayıcıda çalışan tek dosya
+        run: mkdir -p out && cp www/index.html out/AkvaryumDunyam-tarayici.html
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: akvaryum-pc-windows
+          path: |
+            pc/dist/*.exe
+            out/AkvaryumDunyam-tarayici.html
