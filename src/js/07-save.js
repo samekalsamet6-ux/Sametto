@@ -27,6 +27,7 @@ const Save = {
   /** Eski kayıtları şimdiki sürüme taşır. Yeni sürüm = yeni `case`. */
   migrate(d) {
     if (!d || typeof d !== 'object') throw new Error('Geçersiz kayıt');
+    if (!Array.isArray(d.creatures) || typeof d.clockMin !== 'number') throw new Error('Kayıt bozuk: canlılar veya zaman bilgisi yok');   // boş/uydurma veriyi 'onarma'
     d.v = d.v || 1;
     while (d.v < SAVE_VERSION) {
       switch (d.v) {
@@ -76,6 +77,8 @@ const Save = {
     }
     return null;
   },
+  /** Okunamayan kaydın ham hali (kurtarma için). */
+  rawOf(i) { try { return localStorage.getItem(this.key(i)) || localStorage.getItem(this.key(i) + '.bak'); } catch (e) { return null; } },
   clear(i) { try { localStorage.removeItem(this.key(i)); localStorage.removeItem(this.key(i) + '.bak'); } catch (e) { /* yoksay */ } },
 
   slotInfo(i) {

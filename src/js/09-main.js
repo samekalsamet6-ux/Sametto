@@ -26,7 +26,7 @@ const Game = {
     const r = Save.read(this.slot);
     let offline = null;
     if (r) { this.loadState(r.data); if (r.fromBackup) setTimeout(() => UI.toast('Kayıt bozuktu, yedekten yüklendi', 'bell'), 1200); offline = this.computeOffline(); }
-    else this.freshState();
+    else { const raw = Save.rawOf(this.slot); if (raw) { try { localStorage.setItem('akv.corrupt.' + this.slot, raw); } catch (e) { /* kota */ } this._corruptRaw = raw; } this.freshState(); }
     this.applySettings(); UI.init(); this.bindCanvas(); this.watchLifecycle();
     document.addEventListener('visibilitychange', () => this.onVisibility());
     window.addEventListener('beforeunload', () => this.save(true));
@@ -39,6 +39,7 @@ const Game = {
       splash.removeEventListener('click', enter); AudioSys.start(); this.applyAudio();
       splash.classList.add('out'); setTimeout(() => splash.remove(), 700); $('#app').classList.remove('hidden');
       UI.go('hub'); UI.refreshTop();
+      if (this._corruptRaw) setTimeout(() => UI.corruptSheet(this._corruptRaw), 400);
       if (!this.S.onboarded) setTimeout(() => this.welcome(), 600);
       else if (offline) setTimeout(() => UI.offlineSummary(offline), 700);
     };

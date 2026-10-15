@@ -194,3 +194,20 @@ Object.assign(Tests, {
   },
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.offline(); return a && b; })(Tests.all);
+
+/* Kayıt sağlamlığı (şartname 11): bozuk kayıtta çökme yok, yedekten yükleme, uydurma veri "onarılmaz" */
+Object.assign(Tests, {
+  saves() {
+    const ok = {}, i = 2, k = Save.key(i), keep = [localStorage.getItem(k), localStorage.getItem(k + '.bak')];
+    try {
+      const good = Game.pack(); const goodStr = JSON.stringify(good);
+      localStorage.setItem(k, '{"v":5,"creatures":'); localStorage.setItem(k + '.bak', goodStr); const r1 = Save.read(i); ok.backup = !!r1 && r1.fromBackup && r1.data.creatures.length === good.creatures.length;
+      localStorage.setItem(k, 'çöp'); localStorage.setItem(k + '.bak', '{"also":"bad"}'); ok.bothBad = Save.read(i) === null;
+      localStorage.setItem(k, '{"creatures":"x","clockMin":1}'); localStorage.removeItem(k + '.bak'); ok.badShape = Save.read(i) === null;
+      ok.migrateThrows = (() => { try { Save.migrate({ foo: 1 }); return false; } catch (e) { return true; } })(); ok.rawOf = Save.rawOf(i) !== null; ok.slotInfoSafe = Save.slotInfo(i) === null;
+      localStorage.setItem(k, goodStr); ok.roundtrip = Save.read(i).data.coins === good.coins;
+    } finally { for (const [kk, v] of [[k, keep[0]], [k + '.bak', keep[1]]]) { if (v === null) localStorage.removeItem(kk); else localStorage.setItem(kk, v); } }
+    return this._log('Kayıt sağlamlığı (yedek, bozuk veri, çökmeme)', Object.values(ok).every(Boolean), ok);
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.saves(); return a && b; })(Tests.all);

@@ -379,3 +379,11 @@ const UI = {
       h('button.btn.primary', { onclick: () => rec.close() }, 'Devam')));
   },
 };
+
+/* Kayıt bozuk ve yedekten de kurtarılamadıysa: çökmeden yeni oyun + ham veriyi kurtarma seçeneği */
+Object.assign(UI, {
+  corruptSheet(raw) {
+    const rec = UI.sheet(h('div.stack', null, h('h3', null, '⚠️ Kayıt okunamadı'), h('p.muted', null, 'Kayıt dosyası bozulmuş ve yedek yuva da kurtarılamadı. Yeni bir oyun başlatıldı. Bozuk veriyi indirip saklayabilirsin; bir geliştirici onarabilir.'),
+      h('div.row.wrap-r', null, h('button.btn', { onclick: () => { try { const a = h('a', { href: URL.createObjectURL(new Blob([raw], { type: 'application/json' })), download: 'akvaryum-bozuk-kayit.json' }); document.body.append(a); a.click(); a.remove(); } catch (e) { UI.toast('İndirilemedi', 'bell'); } } }, 'Bozuk veriyi indir'), h('button.btn.primary', { onclick: () => rec.close() }, 'Tamam'))));
+  },
+});

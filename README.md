@@ -90,6 +90,7 @@ Tarayıcı konsolunda `Tests.all()`. Kapsam: Mendel 3:1, cinsiyete bağlı kalı
 - [x] **7 – Türler:** endler, molly, platy, kılıç kuyruk, beta, karides, salyangoz, melezler
 - [x] **8 – Meta & Cila:** hikâye, yarışmalar, sezonlar, Sabit Hat, prestij
 - [x] **Aşama 9 – Şartname boşlukları:** onboarding, lo-fi + bağlama duyarlı müzik, Genetik Defter/gizli varyasyonlar, çoklu tank + tank geçişi, uyum matrisi, habitat biyotopları, ışık spektrumu, üst plan, sezon etkinlikleri + sınırlı dekor, asistan, bildirimler, 3D balık, gerçek tank ölçüleri, ekipman çizimleri
+- [x] **Aşama 10 – Kalite sağlamlaştırma:** tüm ekranlar için otomatik tarama (NaN/undefined metin, taşma, konsol hatası), dokunma alanları ≥44 px, çevrimdışı dönüşte canlı/bitki korunur, bozuk kayıtta yedekten yükleme + kurtarma penceresi (uydurma veri onarılmaz), arka plan önbelleği
 - [x] **APK:** Capacitor yapılandırması, çevrimdışı yazı tipleri, geri tuşu, GitHub Actions ile derleme
 
 Henüz doğrulanmayanlar: gerçek cihazda dokunma jestleri ve akıcılık, müziğin kulakla değerlendirilmesi, imzalı yayın sürümü.
