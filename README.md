@@ -142,3 +142,7 @@ Bu bir **debug** APK'dır. Play Store için imzalı AAB ayrıca yapılandırılm
 - `docs/store/`: Play Store listesi metinleri (TR/EN), 512 px simge, 1024×500 öne çıkan görsel, telefon ekran görüntüleri.
 - `resources/`: uygulama simgesi (ön/arka plan uyarlanabilir) ve açılış ekranı. Oyunun kendi balık çizimiyle üretildi.
 - Hedef API 36 gerektiği için proje Capacitor 8, Java 21 ve Node 22 kullanır.
+
+## PC sürümü (Windows)
+- Actions → **PC (Windows)** iş akışı `akvaryum-pc-windows` çıktısı üretir: `AkvaryumDunyam-1.0.0-portable.exe` (kurulumsuz, çift tıkla çalışır) ve `AkvaryumDunyam-tarayici.html` (Chrome/Edge ile açılan tek dosya, internet gerektirmez).
+- Kaynak: `pc/` (Electron kabuğu). Tam ekran: F11. İmzasız olduğu için Windows SmartScreen "Yine de çalıştır" diyebilir.
