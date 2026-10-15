@@ -172,4 +172,6 @@ test('404 sayfası derlenir ve Cloudflare yapılandırması tutarlı', async ({ 
   expect(cfg).toContain('"name": "lepistes-rehberi"');
   expect(cfg).toContain('"directory": "./dist"');
   expect(cfg).toContain('"not_found_handling": "404-page"');
+  // Cloudflare önizleme derlemeleri (wrangler preview) bu bloğu zorunlu tutar
+  expect(cfg).toContain('"previews": {}');
 });

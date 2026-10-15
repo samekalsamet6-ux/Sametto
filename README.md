@@ -96,7 +96,7 @@ docs/                  Plan ve doğrulama listesi
 **Adres ve barındırma:** Site adı *Lepistes Rehberi*. Barındırma Cloudflare'dedir. Adres tek yerde tanımlıdır: `astro.config.mjs` → `site`; sitemap, `robots.txt`, canonical ve Open Graph bağlantıları buradan türetilir. Cloudflare'in verdiği gerçek adres `site` ile aynı olmalıdır; farklıysa yalnızca bu satırı değiştirin.
 
 ### Cloudflare kurulumu (Workers — statik varlıklar)
-Depodaki `wrangler.jsonc`, `dist/` klasörünü statik site olarak yayınlar; bulunamayan adreslerde `404.html` gösterilir.
+Depodaki `wrangler.jsonc`, `dist/` klasörünü statik site olarak yayınlar; bulunamayan adreslerde `404.html` gösterilir. Boş `"previews": {}` bloğu, Cloudflare'in dal/PR önizleme derlemeleri (`npx wrangler preview`, açık beta) için gereklidir; yoksa o komut "missing a `previews` block" hatasıyla başarısız olur.
 
 1. Cloudflare panelinde **Workers & Pages → Create** ile bu depoyu (`samekalsamet6-ux/Sametto`) bağlayın.
 2. **Project name:** `lepistes-rehberi` — `wrangler.jsonc` içindeki `name` ile **aynı olmalı**, aksi halde derleme hata verir.
