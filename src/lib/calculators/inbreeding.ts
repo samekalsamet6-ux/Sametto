@@ -7,8 +7,8 @@ export function parsePedigree(text: string): PedRow[] {
     const line = raw.trim();
     if (!line || line.startsWith('#')) continue;
     const [id, sire, dam] = line.split(/[,;\t]/).map((s) => s.trim());
-    if (!id) throw new RangeError(`Satır ${i + 1}: kod boş`);
-    if (seen.has(id)) throw new RangeError(`Satır ${i + 1}: yinelenen kod ${id}`);
+    if (!id) throw new RangeError(`Satır ${i + 1}: ad boş`);
+    if (seen.has(id)) throw new RangeError(`Satır ${i + 1}: yinelenen ad ${id}`);
     seen.add(id);
     rows.push({ id, sire: sire || undefined, dam: dam || undefined });
   }

@@ -4,19 +4,36 @@ import Base from '../../layouts/Base.astro';
 <Base title="Pedigri çizici">
   <p><a href="/araclar">← Araçlar</a></p>
   <h1>Pedigri çizici</h1>
+  <p>Balıklarınızın soy ağacını yazın; araç onu çizsin ve her balık için <a href="/wiki/inbreeding-katsayisi">inbreeding katsayısını (F)</a> hesaplasın. Her şey tarayıcınızda yapılır, yazdıklarınız sunucuya gitmez.</p>
+  <details open><summary>Nasıl kullanılır?</summary>
+    <ol>
+      <li><strong>Her balığa bir ad verin</strong> (Baba, Anne, Mavi…). Aynı balığa her yerde aynı adı yazın.</li>
+      <li><strong>Her balık için bir satır yazın:</strong> <code>balığın adı, babası, annesi</code>. Örneğin <code>Yavru,Baba,Anne</code>, “Yavru’nun babası Baba, annesi Anne” demektir.</li>
+      <li><strong>Ebeveyni bilinmeyen balıkları</strong> yalnızca adıyla yazın: <code>Baba</code>. Ebeveynlerden birini bilmiyorsanız boş bırakın: <code>Yavru,Baba,</code>.</li>
+      <li><strong>“Çiz” düğmesine basın.</strong> Aşağıdaki örneklerden birini yükleyip ne olduğunu da görebilirsiniz.</li>
+    </ol>
+    <p>Varsayılan örnekte Baba ve Anne’nin iki yavrusu var: Kardeş1 ve Kardeş2. “Yavru” ise bu iki kardeşin yavrusudur, bu yüzden Yavru’nun F değeri 0,25 çıkar.</p>
+    <p class="muted">Ayraç olarak virgül, noktalı virgül veya sekme kullanabilirsiniz. <code>#</code> ile başlayan satırlar not sayılır. Aynı adı iki kez yazarsanız veya biri kendi atası olursa araç hatayı gösterir.</p>
+  </details>
+  <p><strong>Örnek yükle:</strong>
+    <button type="button" data-ex="kardes">Kardeşlerin yavrusu</button>
+    <button type="button" data-ex="akrabasiz">Akraba olmayan çift</button>
+    <button type="button" data-ex="ebeveyn">Baba × kızı</button>
+  </p>
   <form class="tool" id="f" style="max-width:560px">
-    <label>Soy ağacı (her satır: kod, baba, anne; boş bırakılabilir; # ile yorum)<textarea name="ped" rows="10" style="font:inherit">S
-M
-A,S,M
-B,S,M
-C,A,B</textarea></label>
+    <label>Soy ağacı (her satır: ad, baba, anne; boş bırakılabilir; # ile yorum)<textarea name="ped" rows="10" style="font:inherit">Baba
+Anne
+Kardeş1,Baba,Anne
+Kardeş2,Baba,Anne
+Yavru,Kardeş1,Kardeş2</textarea></label>
     <button>Çiz</button>
     <div class="result" id="msg" aria-live="polite"></div>
   </form>
+  <p id="plain" aria-live="polite"></p>
   <div id="out" style="margin:16px 0"></div>
   <p><button id="dl" type="button" hidden>SVG olarak indir</button></p>
   <table id="tbl" style="width:100%"></table>
-  <div class="callout"><strong>Nasıl okunur?</strong> Atalar üstte, torunlar altta; düz çizgi babayı, kesikli çizgi anneyi gösterir. Her kutudaki F değeri, o bireyin <a href="/wiki/inbreeding-katsayisi">inbreeding katsayısıdır</a> (ebeveynleri akraba değilse 0). Satırda tanımlanmamış bir ata, soluk kutuyla gösterilir ve akraba olmadığı varsayılır.</div>
+  <div class="callout"><strong>Çizimi okumak:</strong> Atalar üstte, yavrular altta durur. Düz çizgi babayı, kesikli çizgi anneyi gösterir. Her kutudaki F, o balığın ebeveynlerinin birbirine ne kadar akraba olduğunu söyler: 0 akraba değil demektir, sayı büyüdükçe akrabalık artar. Kendi satırını yazmadığınız ama ebeveyn olarak andığınız ata soluk kutuyla çıkar ve F yerine “bilinmiyor” yazar. Böyle atalar birbirine akraba değilmiş gibi hesaplanır; gerçekte akrabalarsa gerçek F, gösterilenden yüksek olabilir.</div>
   <script>
     import { layoutPedigree } from '../../lib/calculators/pedigree-layout';
     import { parsePedigree } from '../../lib/calculators/inbreeding';
@@ -41,17 +58,31 @@ C,A,B</textarea></label>
         const l = layoutPedigree(parsePedigree(String(new FormData(f).get('ped'))));
         if (!l.nodes.length) { el('msg').textContent = 'En az bir birey girin.'; return; }
         el('msg').textContent = `${l.nodes.length} birey, ${l.edges.length} bağlantı.`;
+        const inbred = l.nodes.filter((n) => n.f !== null && n.f > 0);
+        el('plain').textContent = inbred.length
+          ? 'Özet: ' + inbred.map((n) => `${n.id} balığının ebeveynleri birbirine akraba (F = ${Math.round(n.f! * 10000) / 10000})`).join('; ') + '.'
+          : 'Özet: bu kayıtlara göre hiçbir balığın ebeveynleri birbirine akraba değil (tüm F değerleri 0).';
         el('out').innerHTML = svg(l, false);
         lastSvg = svg(l, true);
         el<HTMLButtonElement>('dl').hidden = false;
         el('tbl').innerHTML = '<tr><th>Birey</th><th>Kuşak</th><th>F</th></tr>' + l.nodes.map((n) => `<tr><td>${esc(n.id)}</td><td>${n.generation}</td><td>${n.f === null ? 'bilinmiyor' : Math.round(n.f * 10000) / 10000}</td></tr>`).join('');
       } catch (err) {
         el('msg').textContent = (err as Error).message;
+        el('plain').textContent = '';
         el('out').innerHTML = '';
         el('tbl').innerHTML = '';
         el<HTMLButtonElement>('dl').hidden = true;
       }
     });
+    const examples: Record<string, string> = {
+      kardes: 'Baba\nAnne\nKardeş1,Baba,Anne\nKardeş2,Baba,Anne\nYavru,Kardeş1,Kardeş2',
+      akrabasiz: 'Baba1\nAnne1\nBaba2\nAnne2\nDişi,Baba1,Anne1\nErkek,Baba2,Anne2\nYavru,Erkek,Dişi',
+      ebeveyn: 'Baba\nAnne\nKız,Baba,Anne\nYavru,Baba,Kız',
+    };
+    document.querySelectorAll<HTMLButtonElement>('[data-ex]').forEach((b) => b.addEventListener('click', () => {
+      (f.elements.namedItem('ped') as HTMLTextAreaElement).value = examples[b.dataset.ex!];
+      f.requestSubmit();
+    }));
     el('dl').addEventListener('click', () => download('pedigri.svg', 'image/svg+xml', lastSvg));
     f.requestSubmit();
   </script>
