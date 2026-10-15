@@ -140,9 +140,9 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 .cc-portrait{position:relative;height:min(40vh,340px);border-radius:20px;overflow:hidden;margin:-4px -4px 12px;border:2px solid var(--c,var(--r0));box-shadow:0 0 28px color-mix(in srgb,var(--c,var(--r0)) 40%,transparent)}
 .cc-portrait canvas{position:absolute;inset:0;width:100%;height:100%}
 .cc-portrait.r4{border-image:linear-gradient(120deg,#ff7ad9,#ffd36b,#7be7ff,#b06cff) 1;border-radius:0}
-.cc-tools{position:absolute;top:8px;right:8px;display:flex;gap:6px}
+.cc-tools{position:absolute;top:8px;right:8px;display:flex;gap:6px;z-index:6}
 .cc-tools .icon-btn{width:40px;height:40px;min-width:40px;background:rgba(3,22,32,.55)}
-.cc-rar{position:absolute;left:10px;bottom:10px}.cc-rar .pill{background:rgba(3,22,32,.72);}
+.cc-rar{position:absolute;left:10px;bottom:10px;z-index:6}.cc-rar .pill{background:rgba(3,22,32,.72);}
 .cc-name{font-family:var(--font-h);font-size:24px;background:transparent;border:0;border-bottom:1px dashed var(--panel-b);border-radius:0;min-height:40px;padding:0 2px}
 .kv{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:15px}.kv span:nth-child(odd){color:var(--muted)}.kv span:nth-child(even){text-align:right;font-weight:700}
 .meters{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:10px 0}.meters label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
@@ -409,7 +409,7 @@ input[type=range]{min-height:44px}
 <div id="celebrate" role="dialog" aria-modal="true"></div>
 
 <script>
-window.BUILD_ID = '34d35fc · 15.10 12:07 UTC';
+window.BUILD_ID = '996c5b0 · 15.10 12:22 UTC';
 /* ───── 00-util.js ───── */
 'use strict';
 /* =====================================================================
@@ -1105,8 +1105,9 @@ const FishArt = {
     const k = (cr.bodyLen() / sp.bodyLen) * mul;                       // doku birimi → dünya birimi
     const lod = k * TW * base[0] < 175 ? 1 : 0;                         // küçük balık: daha az dilim
     const S = this.spine(sw.joints, this._pts, lod), P = this._pts;
-    const hc = Math.cos(sw.heading), hs = Math.sin(sw.heading), fl = sw.flip;
-    const la = hc * k, lb = hs * k, lc = -hs * fl * k, ld = hc * fl * k;
+    // Yön: yatay "yaw" ölçeği (fl: +1 sağa, -1 sola). Dönerken gövde kısalır ama hiç çizgiye inmez; eğim ±40° ile sınırlı (dikey duruş yok).
+    const hc0 = Math.cos(sw.heading), hs0 = Math.sin(sw.heading), th = clamp(Math.atan2(hs0, Math.abs(hc0)), -0.7, 0.7), hc = Math.cos(th), hs = Math.sin(th), fl = sw.flip, vs = 1 + 0.12 * (1 - Math.abs(fl));
+    const la = fl * hc * k, lb = hs * k, lc = -fl * hs * vs * k, ld = hc * vs * k;
     const Fa = base[0] * la + base[2] * lb, Fb = base[1] * la + base[3] * lb, Fc = base[0] * lc + base[2] * ld, Fd = base[1] * lc + base[3] * ld;
     const Fe = base[0] * sw.x + base[2] * sw.y + base[4], Ff = base[1] * sw.x + base[3] * sw.y + base[5];
     ctx.globalAlpha = alpha;
@@ -1378,8 +1379,9 @@ class Swimmer {
     // sola bakarken balığı ters çevir (karın aşağıda kalsın) — kenar-üstü geçişi yumuşak
     if (this.flipTarget === undefined) this.flipTarget = cs >= 0 ? 1 : -1;
     if (cs > 0.18) this.flipTarget = 1; else if (cs < -0.18) this.flipTarget = -1;
-    this.flip = damp(this.flip, this.flipTarget, 7, dt);
-    if (Math.abs(this.flip) < 0.04) this.flip = this.flipTarget * 0.04;
+    // flip = yatay yaw: +1 sağa, -1 sola. En dar anda (≈0.3) yön işareti değişir; gövde hiçbir zaman çizgiye inmez.
+    this.flip = damp(this.flip, this.flipTarget, 8, dt);
+    if (Math.abs(this.flip) < 0.3) this.flip = this.flipTarget * 0.3;
   }
 
   updateJoints(dt) {
@@ -6185,7 +6187,7 @@ Object.assign(Tests, {
       const b = breedsOf(sp).find((x) => x.spec) || breedsOf(sp)[0], cr = Game.sampleCreature(b.spec), m = Fish3D.mesh(FishArt.sprite(cr));
       const vcount = m.V.length / 8, maxIdx = Math.max(...m.front, ...m.back), fine = vcount < 65536 && maxIdx < vcount && m.front.length > 3000 && m.back.length === m.front.length;
       let zmax = 0; for (let i = 0; i < m.V.length; i += 8) zmax = Math.max(zmax, Math.abs(m.V[i + 2])); const finite = m.V.every(Number.isFinite);
-      info.push(sp + ':' + m.front.length / 3 + 't z' + zmax.toFixed(3)); if (!(fine && finite && zmax > 0.02 && zmax < 0.3)) allOk = false;
+      info.push(sp + ':' + m.front.length / 3 + 't z' + zmax.toFixed(3)); if (!(fine && finite && zmax > 0.02 && zmax < 0.4)) allOk = false;
     }
     ok.meshes = allOk; ok.mesh_cached = (() => { const cr = Game.sampleCreature(BREEDS[0].spec), sp = FishArt.sprite(cr); return Fish3D.mesh(sp) === Fish3D.mesh(sp); })();
     return this._log('3D balık ağı (tüm balık türleri)', Object.values(ok).every(Boolean), { ...ok, info });
@@ -6764,7 +6766,7 @@ precision highp float;
 #else
 precision mediump float;
 #endif
-uniform sampler2D uTex, uGlow; uniform float uPass, uMode, uHasGlow, uT, uDim, uSick, uSeed; uniform vec3 uCam, uFinCol; uniform float uCamZ;
+uniform sampler2D uTex, uGlow, uMask; uniform float uPass, uMode, uHasGlow, uT, uDim, uSick, uSeed; uniform vec3 uCam, uFinCol; uniform float uCamZ;
 varying vec2 vUV; varying vec3 vN; varying vec3 vW; varying float vS;
 float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 void main() {
@@ -6775,12 +6777,14 @@ void main() {
     gl_FragColor = vec4(fc * al, al); return;
   }
   vec4 t = texture2D(uTex, vUV); float a = t.a;
-  if (uPass < 0.5) { if (a < 0.9) discard; } else { if (a >= 0.9 || a < 0.03) discard; }
+  float fin = texture2D(uMask, vUV).r;
+  if (uPass < 0.5) { if (fin > 0.5) { if (a < 0.9) discard; } else if (a < 0.4) discard; } else { if (fin < 0.5 || a >= 0.9 || a < 0.03) discard; }
   float nd = dot(N, L), wrap = 0.5 + 0.5 * nd, fres = 1.0 - max(dot(N, V), 0.0);
   float caust = 0.92 + 0.08 * sin(vW.x * 9.0 + uT * 1.7) * sin(vW.y * 7.0 - uT * 1.3);
-  vec3 col = t.rgb * (0.34 + 0.86 * wrap) * caust;
+  vec3 base = t.rgb; if (fin < 0.5 && a < 0.9) base *= 0.5 + 0.5 * smoothstep(0.4, 0.9, a);   // gövde kenarı (dikiş): açık renkli tırtıklı çizgi yerine koyu ince kenar
+  vec3 col = base * (0.34 + 0.86 * wrap) * caust;
   if (uPass < 0.5) {
-    vec3 Hh = normalize(L + V); col += vec3(0.95, 1.0, 1.0) * pow(max(dot(N, Hh), 0.0), 38.0) * 0.30;
+    vec3 Hh = normalize(L + V); col += vec3(0.95, 1.0, 1.0) * pow(max(dot(N, Hh), 0.0), 38.0) * 0.30 * (fin < 0.5 && a < 0.9 ? 0.15 : 1.0);
     col += vec3(0.30, 0.62, 0.70) * pow(fres, 2.6) * 0.34;
     if (uHasGlow > 0.5) { vec4 g = texture2D(uGlow, vUV); float k = 0.5 + 0.5 * sin(dot(N, vec3(1.3, 0.6, 0.0)) * 5.0 + uT * 0.9 + vS * 6.0); col += g.rgb * g.a * (0.25 + 0.55 * k) * 0.8; }
     if (uSick > 0.0) { vec2 gq = floor(vUV * vec2(46.0, 24.0)); float r = h21(gq + uSeed); vec2 f = fract(vUV * vec2(46.0, 24.0)) - 0.5; if (r > 1.0 - 0.18 * uSick && dot(f, f) < 0.14) col = mix(col, vec3(1.0), 0.9); }
@@ -6810,10 +6814,10 @@ const Fish3D = {
     const R = 6, dl = new Float32Array(NW * NH), tmp = new Float32Array(NW * NH);
     for (let y = 0; y < NH; y++) for (let x = 0; x < NW; x++) { let m = 0; for (let k = -R; k <= R; k++) { const xx = x + k; if (xx >= 0 && xx < NW) m = Math.max(m, d[y * NW + xx]); } tmp[y * NW + x] = m; }
     for (let y = 0; y < NH; y++) for (let x = 0; x < NW; x++) { let m = 0; for (let k = -R; k <= R; k++) { const yy = y + k; if (yy >= 0 && yy < NH) m = Math.max(m, tmp[yy * NW + x]); } dl[y * NW + x] = m; }
-    const cellY = 1 / GH, half = dmax * cellY * 0.62;      // gövde yarı kalınlığı (yanlardan basık)
+    const cellY = 1 / GH, half = dmax * cellY * 0.78;      // gövde yarı kalınlığı (yanlardan basık)
     let z = new Float32Array(NW * NH);
-    for (let i = 0; i < z.length; i++) { if (d[i] <= 0 || d[i] >= BIG) continue; const loc = Math.max(dl[i], 1), f = Math.min(1, d[i] / loc), prof = Math.sqrt(Math.max(0, 1 - (1 - f) * (1 - f))), body = Math.pow(Math.min(1, loc / (dmax * 0.9)), 1.15); z[i] = half * body * prof + 0.0035 * Math.min(1, d[i] / 2); }
-    for (let pass = 0; pass < 3; pass++) { const nz = new Float32Array(z.length); for (let y = 0; y < NH; y++) for (let x = 0; x < NW; x++) { const i = y * NW + x; if (z[i] <= 0) continue; let s = 0, c = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= NW || yy >= NH) continue; const v = z[yy * NW + xx]; s += v * (dx || dy ? 1 : 2); c += dx || dy ? 1 : 2; } nz[i] = s / c; } z = nz; }
+    for (let i = 0; i < z.length; i++) { if (d[i] <= 0 || d[i] >= BIG) continue; const loc = Math.max(dl[i], 1), f = Math.min(1, d[i] / loc), prof = 0.5 * Math.pow(Math.sqrt(Math.max(0, 1 - (1 - f) * (1 - f))), 0.82) + 0.5 * (1 - (1 - f) * (1 - f)), body = Math.pow(Math.min(1, loc / (dmax * 0.9)), 1.15); z[i] = half * body * prof + 0.0035 * Math.min(1, d[i] / 2); }
+    for (let pass = 0; pass < 5; pass++) { const nz = new Float32Array(z.length); for (let y = 0; y < NH; y++) for (let x = 0; x < NW; x++) { const i = y * NW + x; if (z[i] <= 0) continue; let s = 0, c = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= NW || yy >= NH) continue; const v = z[yy * NW + xx]; s += v * (dx || dy ? 1 : 2); c += dx || dy ? 1 : 2; } nz[i] = s / c; } z = nz; }
     // köşe noktaları + normaller
     const V = new Float32Array(NW * NH * 2 * 8), cw = ASP / GW, ch = 1 / GH, X = (i) => (0.5 - i / GW) * ASP, Y = (j) => 0.5 - j / GH;
     const zz = (x, y) => (x < 0 || y < 0 || x >= NW || y >= NH ? 0 : z[y * NW + x]);
@@ -6825,11 +6829,23 @@ const Fish3D = {
         V[o] = X(i); V[o + 1] = Y(j); V[o + 2] = side * zf; V[o + 3] = nx / nl; V[o + 4] = ny / nl; V[o + 5] = nz / nl; V[o + 6] = i / GW; V[o + 7] = j / GH;
       }
     }
-    const fi = [], bi = [];
+    // yüzgeç benzeri (geniş, yarı saydam) bölgeler: gövde kenarındaki 1-2 texel'lik saydam bant bunun dışında kalır → önden bakınca dikiş çizgisi oluşmaz
+    const tr = (x, y) => (x < 0 || y < 0 || x >= NW || y >= NH ? 0 : (al[y * NW + x] > 0.03 && al[y * NW + x] < 0.9 ? 1 : 0)), finLike = new Uint8Array(NW * NH);
+    for (let y = 0; y < NH; y++) for (let x = 0; x < NW; x++) { if (!tr(x, y)) continue; let c = 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) c += tr(x + dx, y + dy); if (c >= 14) finLike[y * NW + x] = 1; }
+    // 3D için işlenmiş doku: gövde kenarındaki yarı saydam pikseller komşu gövde rengiyle doldurulur (kenar duvarında beyaz/boşluk kalmasın)
+    const t3 = document.createElement('canvas'); t3.width = TW; t3.height = TH; { const tx = t3.getContext('2d', { willReadFrequently: true }); tx.drawImage(sp.tex, 0, 0); const im = tx.getImageData(0, 0, TW, TH), dd = im.data;
+      const isFin = (x, y) => finLike[Math.min(NH - 1, Math.floor(y * NH / TH)) * NW + Math.min(NW - 1, Math.floor(x * NW / TW))] === 1;
+      for (let pass = 0; pass < 3; pass++) { const src = new Uint8ClampedArray(dd); for (let y = 1; y < TH - 1; y++) for (let x = 1; x < TW - 1; x++) { const o = (y * TW + x) * 4, a = src[o + 3]; if (a >= 235 || a < 24 || isFin(x, y)) continue;
+        let best = -1, ba = 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const q = ((y + dy) * TW + x + dx) * 4; if (src[q + 3] > ba && src[q + 3] >= 235) { ba = src[q + 3]; best = q; } }
+        if (best >= 0) { dd[o] = src[best]; dd[o + 1] = src[best + 1]; dd[o + 2] = src[best + 2]; dd[o + 3] = 255; } } }
+      tx.putImageData(im, 0, 0); }
+    const mk2 = document.createElement('canvas'); mk2.width = NW; mk2.height = NH; { const mx = mk2.getContext('2d'), im = mx.createImageData(NW, NH); for (let i = 0; i < NW * NH; i++) { const v = finLike[i] ? 255 : 0; im.data[i * 4] = v; im.data[i * 4 + 1] = v; im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; } mx.putImageData(im, 0, 0); }
+    const fi = [], bi = [], fif = [], bif = [];
     for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
       const a = j * NW + i, b = a + 1, c = a + NW, e = c + 1; if (al[a] < 0.12 && al[b] < 0.12 && al[c] < 0.12 && al[e] < 0.12) continue;
       fi.push(a, c, b, b, c, e);                                   // ön yüzey (x aynalı → sarım ters)
       const o = NW * NH; bi.push(a + o, b + o, c + o, b + o, e + o, c + o);
+      if (finLike[a] || finLike[b] || finLike[c] || finLike[e]) { fif.push(a, c, b, b, c, e); bif.push(a + o, b + o, c + o, b + o, e + o, c + o); }
     }
     // göğüs yüzgeci: gövdenin %20'sinde, karın tarafı; dokudaki uzunluk piksel → dünya
     const P = (sp.bodyLen * 0.2 + 8) / TW, fx = (0.5 - P) * ASP, fy = 0.5 - (sp.MID + sp.H * 0.5) / TH, fr = sp.bodyLen * 0.09 * sp.pec / TH;
@@ -6838,7 +6854,7 @@ const Fish3D = {
     const fidx = []; for (let q = 1; q <= seg; q++) fidx.push(0, q, q + 1);
     // dokudaki göğüs yüzgeci boyutu: yüzgeç gövdeye değer; z başlangıcı yüzey kalınlığı
     const gi = Math.round(Math.min(NW - 1, Math.max(0, (0.5 - fx / ASP) * GW))), gj = Math.round(Math.min(NH - 1, Math.max(0, (0.5 - fy) * GH))), zb = Math.max(0.01, z[gj * NW + gi]);
-    return (sp.m3 = { V, front: new Uint16Array(fi), back: new Uint16Array(bi), fin: new Float32Array(fv), finIdx: new Uint16Array(fidx), base: [fx, fy, zb], ASP, nIdx: fi.length });
+    return (sp.m3 = { V, front: new Uint16Array(fi), back: new Uint16Array(bi), tex3: t3, mask: mk2, frontFin: new Uint16Array(fif), backFin: new Uint16Array(bif), fin: new Float32Array(fv), finIdx: new Uint16Array(fidx), base: [fx, fy, zb], ASP, nIdx: fi.length });
   },
 
   /** Portre için 3D görünüm kur (WebGL yoksa null). */
@@ -6855,7 +6871,7 @@ class Fish3DView {
     const gl = this.gl = this.cv.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: true }) || this.cv.getContext('experimental-webgl'); if (!gl) throw new Error('webgl yok');
     const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
     const pr = this.pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, F3_VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, F3_FS)); gl.linkProgram(pr); if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(pr));
-    this.U = {}; for (const n of ['uProj', 'uView', 'uModel', 'uNrmM', 'uOmega', 'uK', 'uAmp', 'uBend', 'uHead', 'uLen', 'uGravid', 'uFlap', 'uSide', 'uMode', 'uBase', 'uTex', 'uGlow', 'uPass', 'uHasGlow', 'uT', 'uDim', 'uSick', 'uSeed', 'uCam', 'uFinCol']) this.U[n] = gl.getUniformLocation(pr, n);
+    this.U = {}; for (const n of ['uProj', 'uView', 'uModel', 'uNrmM', 'uOmega', 'uK', 'uAmp', 'uBend', 'uHead', 'uLen', 'uGravid', 'uFlap', 'uSide', 'uMode', 'uBase', 'uTex', 'uGlow', 'uMask', 'uPass', 'uHasGlow', 'uT', 'uDim', 'uSick', 'uSeed', 'uCam', 'uFinCol']) this.U[n] = gl.getUniformLocation(pr, n);
     this.A = { aPos: gl.getAttribLocation(pr, 'aPos'), aNrm: gl.getAttribLocation(pr, 'aNrm'), aUV: gl.getAttribLocation(pr, 'aUV'), aFin: gl.getAttribLocation(pr, 'aFin') };
     this.cv.addEventListener('webglcontextlost', (e) => { e.preventDefault(); this.dispose(); this.pt.f3 = null; });
     this.upload(); this.ui(); this.bindInput();
@@ -6867,9 +6883,9 @@ class Fish3DView {
   place() { const c = this.pt.cv, s = this.cv.style; s.position = 'absolute'; s.left = c.offsetLeft + 'px'; s.top = c.offsetTop + 'px'; s.width = c.clientWidth + 'px'; s.height = c.clientHeight + 'px'; s.touchAction = 'none'; s.cursor = 'grab'; const dpr = Math.min(window.devicePixelRatio || 1, 2); this.cv.width = Math.max(2, Math.round(c.clientWidth * dpr)); this.cv.height = Math.max(2, Math.round(c.clientHeight * dpr)); }
   upload() {
     const gl = this.gl, sp = FishArt.sprite(this.pt.p), m = this.m = Fish3D.mesh(sp), mk = (type, data) => { const b = gl.createBuffer(); gl.bindBuffer(type, b); gl.bufferData(type, data, gl.STATIC_DRAW); return b; };
-    this.sp = sp; this.vb = mk(gl.ARRAY_BUFFER, m.V); this.ibF = mk(gl.ELEMENT_ARRAY_BUFFER, m.front); this.ibB = mk(gl.ELEMENT_ARRAY_BUFFER, m.back); this.fvb = mk(gl.ARRAY_BUFFER, m.fin); this.fib = mk(gl.ELEMENT_ARRAY_BUFFER, m.finIdx);
+    this.sp = sp; this.vb = mk(gl.ARRAY_BUFFER, m.V); this.ibF = mk(gl.ELEMENT_ARRAY_BUFFER, m.front); this.ibB = mk(gl.ELEMENT_ARRAY_BUFFER, m.back); this.ibFF = mk(gl.ELEMENT_ARRAY_BUFFER, m.frontFin); this.ibBF = mk(gl.ELEMENT_ARRAY_BUFFER, m.backFin); this.fvb = mk(gl.ARRAY_BUFFER, m.fin); this.fib = mk(gl.ELEMENT_ARRAY_BUFFER, m.finIdx);
     const tex = (cvs) => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cvs); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t; };
-    this.tex = tex(sp.tex); this.glowTex = sp.glow ? tex(sp.glow) : this.tex; this.key = sp.key;
+    this.tex = tex(m.tex3); this.glowTex = sp.glow ? tex(sp.glow) : this.tex; this.maskTex = tex(m.mask); this.key = sp.key;
     // yüzgeç rengi: kuyruk rengi varsa onun tonu, yoksa soluk beyaz-mavi
     const ph = this.pt.p.pheno, tc = (ph.tcol) || TAILCOL[ph.tailColor] || null; this.finCol = tc && tc.h !== undefined ? this.hsl(tc.h, Math.min(0.55, (tc.s || 30) / 100), 0.78) : [0.9, 0.96, 1.0];
   }
@@ -6937,14 +6953,14 @@ class Fish3DView {
     gl.uniform1f(U.uOmega, this.phase); gl.uniform1f(U.uK, cur.k); gl.uniform1f(U.uAmp, cur.amp); gl.uniform1f(U.uBend, cur.bend + (this.cr.defect ? 0.18 * (this.cr.id % 2 ? 1 : -1) : 0)); gl.uniform1f(U.uHead, ASP / 2); gl.uniform1f(U.uLen, ASP); gl.uniform1f(U.uGravid, gravid);
     gl.uniform1f(U.uT, this.t); gl.uniform1f(U.uDim, cur.dim); gl.uniform1f(U.uSick, dis && dis.id === 'ich' ? clamp(dis.sev, 0.1, 1) : 0); gl.uniform1f(U.uSeed, this.cr.seed % 97); gl.uniform3f(U.uCam, 0, 0, camZ); gl.uniform1f(U.uHasGlow, this.sp.glow ? 1 : 0); gl.uniform3fv(U.uFinCol, this.finCol); gl.uniform3fv(U.uBase, this.m.base);
     const fa = this.A, st = 32, bindBody = (ib) => { gl.bindBuffer(gl.ARRAY_BUFFER, this.vb); gl.enableVertexAttribArray(fa.aPos); gl.vertexAttribPointer(fa.aPos, 3, gl.FLOAT, false, st, 0); gl.enableVertexAttribArray(fa.aNrm); gl.vertexAttribPointer(fa.aNrm, 3, gl.FLOAT, false, st, 12); gl.enableVertexAttribArray(fa.aUV); gl.vertexAttribPointer(fa.aUV, 2, gl.FLOAT, false, st, 24); gl.disableVertexAttribArray(fa.aFin); gl.vertexAttrib1f(fa.aFin, 0); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); };
-    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.tex); gl.uniform1i(U.uTex, 0); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.glowTex); gl.uniform1i(U.uGlow, 1);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.tex); gl.uniform1i(U.uTex, 0); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.glowTex); gl.uniform1i(U.uGlow, 1); gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, this.maskTex); gl.uniform1i(U.uMask, 2); gl.activeTexture(gl.TEXTURE0);
     // geçiş 0: opak gövde (iki yüzey)
     gl.disable(gl.BLEND); gl.depthMask(true); gl.uniform1f(U.uMode, 0); gl.uniform1f(U.uPass, 0);
     bindBody(this.ibF); gl.drawElements(gl.TRIANGLES, this.m.front.length, gl.UNSIGNED_SHORT, 0); bindBody(this.ibB); gl.drawElements(gl.TRIANGLES, this.m.back.length, gl.UNSIGNED_SHORT, 0);
     // geçiş 1: yarı saydam yüzgeç/kuyruk (kameraya bakan yüzey) + göğüs yüzgeçleri
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
     const camSide = model[10] >= 0 ? 'f' : 'b';       // kamera modelin +z tarafında mı
-    gl.uniform1f(U.uPass, 1); bindBody(camSide === 'f' ? this.ibF : this.ibB); gl.drawElements(gl.TRIANGLES, (camSide === 'f' ? this.m.front : this.m.back).length, gl.UNSIGNED_SHORT, 0);
+    gl.uniform1f(U.uPass, 1); bindBody(camSide === 'f' ? this.ibFF : this.ibBF); gl.drawElements(gl.TRIANGLES, (camSide === 'f' ? this.m.frontFin : this.m.backFin).length, gl.UNSIGNED_SHORT, 0);
     gl.uniform1f(U.uMode, 1); gl.bindBuffer(gl.ARRAY_BUFFER, this.fvb); gl.enableVertexAttribArray(fa.aPos); gl.vertexAttribPointer(fa.aPos, 3, gl.FLOAT, false, st, 0); gl.enableVertexAttribArray(fa.aNrm); gl.vertexAttribPointer(fa.aNrm, 3, gl.FLOAT, false, st, 12); gl.enableVertexAttribArray(fa.aUV); gl.vertexAttribPointer(fa.aUV, 2, gl.FLOAT, false, st, 24); gl.disableVertexAttribArray(fa.aUV); gl.enableVertexAttribArray(fa.aFin); gl.vertexAttribPointer(fa.aFin, 1, gl.FLOAT, false, st, 28); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.fib);
     for (const side of [1, -1]) { gl.uniform1f(U.uSide, side); gl.uniform1f(U.uFlap, cur.flap + 0.3 * Math.sin(this.pf + (side > 0 ? 0 : 0.5))); gl.drawElements(gl.TRIANGLES, this.m.finIdx.length, gl.UNSIGNED_SHORT, 0); }
     gl.depthMask(true);
