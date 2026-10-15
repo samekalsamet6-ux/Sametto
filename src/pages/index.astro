@@ -1,0 +1,20 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Ana Sayfa">
+  <section class="hero">
+    <h1>Lepistes üretimi için eksiksiz rehber</h1>
+    <p class="muted">Yeni başlayanlardan deneyimli yetiştiricilere; rehber, wiki ve yardımcı araçlar tek yerde.</p>
+  </section>
+  <h2>Nereden başlamalıyım?</h2>
+  <div class="grid">
+    <a class="card" href="/rehber#baslangic"><span class="badge l-baslangic">🟢</span><h3>Yeni başlıyorum</h3><p class="muted">Kurulum, azot döngüsü, ilk yavrular.</p></a>
+    <a class="card" href="/rehber#orta"><span class="badge l-orta">🟡</span><h3>Biraz deneyimim var</h3><p class="muted">Seçilim, beslenme, hastalık önleme.</p></a>
+    <a class="card" href="/rehber#ileri"><span class="badge l-ileri">🔴</span><h3>Hat geliştiriyorum</h3><p class="muted">Genetik, inbreeding, pedigri.</p></a>
+  </div>
+  <h2>Araçlar</h2>
+  <div class="grid">
+    <a class="card" href="/araclar/hacim"><h3>Akvaryum hacmi</h3><p class="muted">Brüt ve net litre.</p></a>
+    <a class="card" href="/araclar/su-degisimi"><h3>Su değişimi</h3><p class="muted">Nitrata göre değişim oranı.</p></a>
+  </div>
+</Base>

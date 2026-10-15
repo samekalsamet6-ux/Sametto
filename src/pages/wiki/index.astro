@@ -1,0 +1,13 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+const all = (await getCollection('wiki')).sort((a, b) => a.data.title.localeCompare(b.data.title, 'tr'));
+---
+<Base title="Wiki">
+  <h1>Wiki</h1>
+  <div class="grid">
+    {all.map((e) => (
+      <a class="card" href={`/wiki/${e.id}`}><h3>{e.data.title}</h3><p class="muted">{e.data.summary}</p></a>
+    ))}
+  </div>
+</Base>

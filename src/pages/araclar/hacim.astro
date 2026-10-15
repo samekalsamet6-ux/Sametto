@@ -1,0 +1,31 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Akvaryum hacmi">
+  <p><a href="/araclar">← Araçlar</a></p>
+  <h1>Akvaryum hacmi</h1>
+  <form class="tool" id="f">
+    <label>Şekil<select name="shape"><option value="dikdortgen">Dikdörtgen</option><option value="silindir">Silindir</option></select></label>
+    <label>Uzunluk / çap (cm)<input name="length" inputmode="decimal" required value="60" /></label>
+    <label id="w">Genişlik (cm)<input name="width" inputmode="decimal" value="30" /></label>
+    <label>Yükseklik (su, cm)<input name="height" inputmode="decimal" required value="35" /></label>
+    <label>Zemin/dekor payı (%)<input name="pct" inputmode="decimal" value="10" /></label>
+    <button>Hesapla</button>
+    <div class="result" id="out" aria-live="polite"></div>
+  </form>
+  <p class="muted">Net hacim = brüt hacim × (1 − pay). Cam kalınlığı ve su seviyesi farkı için yüksekliği gerçek su seviyesine göre girin.</p>
+  <script>
+    import { tankVolume } from '../../lib/calculators/volume';
+    const f = document.getElementById('f') as HTMLFormElement;
+    const out = document.getElementById('out')!;
+    const num = (v: FormDataEntryValue | null) => Number(String(v ?? '').replace(',', '.'));
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const d = new FormData(f);
+      try {
+        const r = tankVolume({ shape: d.get('shape') as 'dikdortgen' | 'silindir', length: num(d.get('length')), width: num(d.get('width')), height: num(d.get('height')), displacementPct: num(d.get('pct')) });
+        out.textContent = `Brüt: ${r.grossLiters} L · Net: ${r.netLiters} L`;
+      } catch (err) { out.textContent = (err as Error).message; }
+    });
+  </script>
+</Base>

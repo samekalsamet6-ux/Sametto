@@ -1,0 +1,5 @@
+---
+const { level } = Astro.props as { level: 'baslangic' | 'orta' | 'ileri' };
+const t = { baslangic: '🟢 Başlangıç', orta: '🟡 Orta', ileri: '🔴 İleri' }[level];
+---
+<span class={`badge l-${level}`}>{t}</span>

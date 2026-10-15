@@ -1,0 +1,30 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Su değişimi">
+  <p><a href="/araclar">← Araçlar</a></p>
+  <h1>Su değişimi planlayıcı</h1>
+  <form class="tool" id="f">
+    <label>Net hacim (L)<input name="liters" inputmode="decimal" required value="100" /></label>
+    <label>Ölçülen nitrat (mg/L)<input name="cur" inputmode="decimal" required value="80" /></label>
+    <label>Çeşme suyu nitratı (mg/L)<input name="fresh" inputmode="decimal" value="0" /></label>
+    <label>Hedef nitrat (mg/L)<input name="target" inputmode="decimal" required value="40" /></label>
+    <button>Hesapla</button>
+    <div class="result" id="out" aria-live="polite"></div>
+  </form>
+  <p class="muted">Hedef değerleri kaynakla doğrulayın (⚠). Büyük değişimlerde sıcaklık ve su değerlerini eşitleyin.</p>
+  <script>
+    import { waterChange } from '../../lib/calculators/waterChange';
+    const f = document.getElementById('f') as HTMLFormElement;
+    const out = document.getElementById('out')!;
+    const num = (v: FormDataEntryValue | null) => Number(String(v ?? '').replace(',', '.'));
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const d = new FormData(f);
+      try {
+        const r = waterChange({ netLiters: num(d.get('liters')), currentNitrate: num(d.get('cur')), freshNitrate: num(d.get('fresh')), targetNitrate: num(d.get('target')) });
+        out.textContent = r.liters === 0 ? 'Değişim gerekmiyor.' : `Değiştirilecek: %${Math.round(r.fraction * 100)} ≈ ${r.liters} L`;
+      } catch (err) { out.textContent = (err as Error).message; }
+    });
+  </script>
+</Base>
