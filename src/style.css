@@ -279,3 +279,9 @@ details.card summary{list-style:none}
 .tank-mgr{position:absolute;right:10px;top:-34px}
 .tank-hint{position:absolute;left:4px;bottom:-4px;display:none}
 .tanks-sheet .card.row{gap:10px;align-items:center}
+
+/* ---- Animasyon cilası ---- */
+.fly-bub{position:fixed;z-index:90;border-radius:50%;pointer-events:none;box-shadow:0 0 8px rgba(255,200,80,.6)}
+.bump{animation:bumpk .34s cubic-bezier(.22,1,.36,1)}
+@keyframes bumpk{0%{transform:scale(1)}40%{transform:scale(1.2)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.bump{animation:none}}

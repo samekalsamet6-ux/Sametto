@@ -68,6 +68,7 @@ src/js/
   26-devgate.js        Geliştirici paneli şifre kilidi
   28-tanks.js          çoklu tank: raflar, tank geçişi, balık taşıma (su şoku), kayıt
   28b-tanks-ui.js      Merkez tank kaydırıcısı, Tanklarım penceresi, taşıma penceresi
+  29-anim.js           animasyon cilası: sayaç yuvarlanma, para kabarcıkları, doğum ışıltısı, kum tozu, sıralı liste belirişi
   27-equip-art.js      ekipman çizimleri (filtre, ısıtıcı, difüzör, armatür…)
   24-depth.js         Genetik Defter tahminleri, gizli varyasyonlar, hat bonusu, ek başarımlar, koleksiyon ödülleri
 ```
