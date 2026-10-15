@@ -1,0 +1,18 @@
+---
+import Azot from './diyagram/Azot.astro';
+import AzotGrafik from './diyagram/AzotGrafik.astro';
+import TankDuzeni from './diyagram/TankDuzeni.astro';
+import Gonopodium from './diyagram/Gonopodium.astro';
+import Punnett from './diyagram/Punnett.astro';
+import SoyAgaci from './diyagram/SoyAgaci.astro';
+
+const map = { azot: Azot, 'azot-grafik': AzotGrafik, tank: TankDuzeni, gonopodium: Gonopodium, punnett: Punnett, 'soy-agaci': SoyAgaci } as const;
+interface Props { ad: keyof typeof map; baslik: string }
+const { ad, baslik } = Astro.props;
+const C = map[ad];
+if (!C) throw new Error(`Bilinmeyen diyagram: ${ad}`);
+---
+<figure class="diyagram">
+  <C />
+  <figcaption>{baslik}</figcaption>
+</figure>

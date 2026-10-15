@@ -50,3 +50,21 @@ article a,.card a{padding:2px 0}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 .danger{background:var(--hard);color:var(--on-hard)}
 .az{display:inline-block;padding:6px 10px;margin:0 2px}
+
+/* Diyagramlar */
+figure.diyagram{margin:1.5em 0;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
+figure.diyagram figcaption{margin-top:8px;font-size:.9rem;color:var(--muted);text-align:center}
+svg.dg{display:block;width:100%;max-width:640px;height:auto;margin:0 auto;color:var(--fg)}
+.dg-box{fill:var(--bg);stroke:var(--brand);stroke-width:2}
+.dg-bad{stroke:var(--hard)}.dg-ok{stroke:var(--ok)}
+.dg-hl{fill:var(--accent);fill-opacity:.25;stroke:var(--accent)}
+.dg-t{font:700 22px system-ui,sans-serif;fill:currentColor}
+.dg-t2{font:700 20px system-ui,sans-serif}
+.dg-s{font:16px system-ui,sans-serif;fill:currentColor}
+.dg-ar,.dg-ln,.dg-axis{stroke:currentColor;stroke-width:2.5;fill:none}
+.dg-dash{stroke-dasharray:6 5}
+.dg-curve{fill:none;stroke-width:4;stroke-linecap:round}
+.dg-fish{fill:var(--bg);stroke:currentColor;stroke-width:2.5;stroke-linejoin:round}
+.dg-gono{fill:var(--brand);stroke:currentColor;stroke-width:2}
+.dg-fin{fill:var(--bg);stroke:currentColor;stroke-width:2.5;stroke-linejoin:round}
+.dg-spot{fill:currentColor;fill-opacity:.55}

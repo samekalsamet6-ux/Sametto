@@ -5,6 +5,7 @@ import LevelBadge from '../../components/LevelBadge.astro';
 import Toc from '../../components/Toc.astro';
 import Terim from '../../components/Terim.astro';
 import Uyari from '../../components/Uyari.astro';
+import Diyagram from '../../components/Diyagram.astro';
 export async function getStaticPaths() {
   const all = await getCollection('wiki');
   const ids = new Set(all.map((e) => e.id));
@@ -25,7 +26,7 @@ const { Content, headings } = await render(entry);
   <h1>{entry.data.title}</h1>
   {entry.data.needs_verification && <div class="callout callout-uyari">⚠ Sayısal değerler kaynakla doğrulanmayı bekliyor.</div>}
   <Toc headings={headings} />
-  <article><Content components={{ Terim, Uyari }} /></article>
+  <article><Content components={{ Terim, Uyari, Diyagram }} /></article>
   {related.length > 0 && (
     <section class="related"><h2>İlgili maddeler</h2>
       <ul>{related.map((e) => <li><a href={`/wiki/${e.id}`}>{e.data.title}</a></li>)}</ul>

@@ -5,6 +5,7 @@ import LevelBadge from '../../components/LevelBadge.astro';
 import Toc from '../../components/Toc.astro';
 import Terim from '../../components/Terim.astro';
 import Uyari from '../../components/Uyari.astro';
+import Diyagram from '../../components/Diyagram.astro';
 export async function getStaticPaths() {
   const all = (await getCollection('guide')).sort((a, b) => a.data.order - b.data.order);
   const order = ['baslangic', 'orta', 'ileri'];
@@ -20,7 +21,7 @@ const { Content, headings } = await render(entry);
   <h1>{entry.data.title}</h1>
   {entry.data.needs_verification && <div class="callout callout-uyari">⚠ Bu sayfadaki sayısal değerler kaynakla doğrulanmayı bekliyor; tek başına kesin kabul etmeyin.</div>}
   <Toc headings={headings} />
-  <article><Content components={{ Terim, Uyari }} /></article>
+  <article><Content components={{ Terim, Uyari, Diyagram }} /></article>
   <div class="lesson-nav">
     {prev ? <a href={`/rehber/${prev.id}`}>← {prev.data.title}</a> : <span />}
     {next ? <a href={`/rehber/${next.id}`}>{next.data.title} →</a> : <span />}

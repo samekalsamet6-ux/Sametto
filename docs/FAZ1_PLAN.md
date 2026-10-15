@@ -39,7 +39,8 @@ Kaynak görev tanımı: `LEPISTES_SITE_PROMPT.md`
 - [x] Faz 6 ileri içerik: 15 ders + 17 wiki maddesi + kaynaklar sayfası (62 madde toplam)
 - [x] Faz 10 (kısmen): CI, README, CONTRIBUTING, CONTENT_REVIEW, OPEN_QUESTIONS
 - [x] Faz 10: erişilebilirlik (axe: 254 tarama, ihlal yok) ve Lighthouse (7 sayfa, hepsi 91-100)
-- [ ] Faz 10 kalan: SVG diyagramlar, PWA, E2E, kalan araçlar, lisans
+- [x] SVG diyagramlar: 6 (azot akışı, azot grafiği, tank düzeni, gonopodium, Punnett, soy ağacı)
+- [ ] Faz 10 kalan: PWA, E2E, kalan araçlar, lisans
 
 ## Doğrulama gerektiren konular (⚠)
 Sıcaklık/pH/GH/KH aralıkları, gebelik süresi–sıcaklık, doğum başına yavru sayısı, olgunlaşma yaşı, kalıtım tipleri (özellik bazında), tuz banyosu dozları. Bunlar kaynakla teyit edilmeden sayısal olarak yazılmayacak; mevcut sayfalarda `needs_verification: true` ile işaretlidir.

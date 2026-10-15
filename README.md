@@ -73,6 +73,7 @@ docs/                  Plan ve doğrulama listesi
 - axe-core taraması (WCAG 2.0/2.1/2.2 A–AA + en iyi uygulamalar) tüm sayfalarda, açık ve koyu temada, mobil görünümde ihlalsiz geçer.
 - Klavye gezintisi için görünür odak çerçevesi, "ana içeriğe geç" bağlantısı, `prefers-reduced-motion` desteği, en az 24 px dokunma hedefi.
 - Renk değişkenleri açık ve koyu tema için kontrast denetiminden geçecek biçimde ayarlıdır; yeni renk eklerseniz `npm run a11y` çalıştırın.
+- Diyagramlar (`src/components/diyagram/`, `<Diyagram ad="…" baslik="…" />` ile eklenir) satır içi SVG'dir, tema renk değişkenlerini kullanır ve `<title>`/`<desc>` ile metin alternatifi taşır.
 - Görev listesi onay kutularına (`- [ ]`) derleme sırasında `aria-label` eklenir (`src/lib/rehype-task-labels.mjs`).
 - Not: Astro 7'nin varsayılan MDX işlemcisi rehype eklentilerini çalıştırmaz; bu yüzden `astro.config.mjs` içinde `unified` işlemcisi kullanılır.
 
@@ -87,7 +88,6 @@ Yayından önce:
 
 ## Yapılacaklar
 
-- SVG diyagramlar (azot döngüsü, tank düzeni, gonopodium, Punnett, soy ağacı)
 - PWA/çevrimdışı kullanım
 - Kalan araçlar: büyüme takipçisi, maliyet, ilaç dozajı, pedigri çizici
 - E2E testleri (Playwright)
