@@ -63,5 +63,8 @@ Etkileşimli bir sayfa veya araç eklerseniz `tests/e2e/*.e2e.ts` altına senary
 - Form alanlarına `<label>` veya `aria-label` verin; satır içi `style` ile renk tanımlamayın (tema değişkenlerini kullanın).
 - Tıklanabilir öğeler en az 24×24 px olmalı; bitişik küçük bağlantılar arasında boşluk bırakın.
 
+## Lisans
+Katkı yaparak, kodunuzun MIT, içeriğinizin CC BY-SA 4.0 lisansıyla yayımlanmasını kabul etmiş olursunuz. Başkasına ait metin, görsel veya tablo kopyalamayın; kaynakları kendi cümlelerinizle özetleyip `kaynaklar.json` içinde belirtin.
+
 ## Commit
 Kısa, açıklayıcı, Türkçe veya İngilizce mesajlar.

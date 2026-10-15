@@ -39,7 +39,7 @@ npm run dev        # geliştirme sunucusu (arama dizini yalnızca build sonrası
 | `npm run build` | Siteyi `dist/` içine derler ve Pagefind dizinini oluşturur |
 | `npm run preview` | Derlenmiş siteyi yerelde açar |
 | `npm run check:links` | `dist/` içindeki dahili bağlantıları denetler (önce `build`) |
-| `npm run e2e` | Playwright E2E testleri (96 test = 48 senaryo × masaüstü/mobil): araçlar, sorun giderme, seviye testi, gezinti, arama (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
+| `npm run e2e` | Playwright E2E testleri (98 test = 49 senaryo × masaüstü/mobil): araçlar, sorun giderme, seviye testi, gezinti, arama (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
 | `npm run a11y` | Tüm sayfalarda axe taraması, açık ve koyu tema (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
 | `npm run pwa` | Manifest, simgeler, hizmet çalışanı ve **gerçek çevrimdışı** gezinti/arama/araç denetimi (önce `build`) |
 | `npm run lighthouse` | Seçili 7 sayfada Lighthouse (mobil); performans ≥ 85, erişilebilirlik/en iyi uygulamalar/SEO ≥ 95 |
@@ -100,7 +100,13 @@ Yayından önce:
 
 ## Yapılacaklar
 
-- Lisans seçimi (henüz yok)
+
+## Lisans
+
+- **Kaynak kod:** [MIT](LICENSE).
+- **İçerik** (rehber, wiki, diyagramlar, simgeler, veri dosyaları, belgeler): [CC BY-SA 4.0](LICENSE-CONTENT.md) — atıf verin, uyarlamayı aynı lisansla paylaşın.
+- Telif hakkı sahibi: “Lepistes Rehberi katkıcıları”. Site adı: **Lepistes Rehberi**.
+- Üçüncü taraf kaynaklar bu lisansların dışındadır ([Kaynaklar](src/data/kaynaklar.json)). Lisans metinleri hukuki tavsiye değildir.
 
 ## Sorumluluk reddi
 

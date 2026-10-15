@@ -120,3 +120,15 @@ test('erişilebilirlik temelleri: atlama bağlantısı, dil, tek h1', async ({ p
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/#icerik$/);
 });
+
+test('lisans sayfası ve altbilgi lisans bağlantıları', async ({ page }) => {
+  await page.goto('/');
+  const footer = page.locator('footer');
+  await expect(footer).toContainText('Lepistes Rehberi katkıcıları');
+  await expect(footer.locator('a[rel=license]')).toHaveAttribute('href', /creativecommons\.org\/licenses\/by-sa\/4\.0/);
+  await footer.getByRole('link', { name: 'Lisans' }).click();
+  await expect(page).toHaveURL(/\/lisans/);
+  await expect(page.locator('h1')).toHaveText('Lisans ve kullanım');
+  await expect(page.getByText('CC BY-SA 4.0').first()).toBeVisible();
+  await expect(page.getByText('MIT').first()).toBeVisible();
+});
