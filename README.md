@@ -64,6 +64,7 @@ src/js/
   21-native.js         APK: Android geri tuşu, uygulama yaşam döngüsü
   22-tutorial.js       onboarding: sinematik + 10 adımlık ~5 dk eğitim
   23-music-link.js     müzik bağlamı: sezon, tank içeriği, hava durumu, yarışma ruh hali
+  24-depth.js         Genetik Defter tahminleri, gizli varyasyonlar, hat bonusu, ek başarımlar, koleksiyon ödülleri
 ```
 
 ## Testler

@@ -71,3 +71,23 @@ Object.assign(Tests, {
   },
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.music(); return a && b; })(Tests.all);
+
+/* Derinlik: dolunay, kilometre taşları, tahmin değerlendirme, gizli varyasyon */
+Object.assign(Tests, {
+  depth() {
+    const ok = {}, S = Game.S, M = Depth.ensure(S);
+    ok.moon = Depth.fullMoon(15 * 1440 + 22 * 60) && !Depth.fullMoon(15 * 1440 + 12 * 60) && !Depth.fullMoon(5 * 1440 + 22 * 60);
+    const mi = Depth.mileInfo(S); ok.mile = mi.length === SPECIES.filter((sp) => breedsOf(sp.id).length).length && mi.every((r) => r.tiers.length === 4);
+    // tahmin: dişi seç, doğru tahminle not ver, değerlendir
+    const f = Game.tank.creatures.find((c) => c.sex === 'F'); let graded = false;
+    if (f) { const act = Genetics.carried(f.genome), opts = [...new Set([...act, 'Sahte gen'])]; const n0 = M.notes.length; Depth.addNote(f, act, opts); const was = f.tested; f.tested = true; Depth.grade(f); f.tested = was; const n = M.notes[M.notes.length - 1]; graded = M.notes.length === n0 + 1 && n.done === 1 && n.ok === opts.length; M.notes.pop(); }
+    ok.grade = graded;
+    // gizli varyasyon: albino + dolunay
+    const rng = new RNG(9), alb = Genetics.make({ body: ['alb', 'alb'] }, 'M', rng); ok.albino = Depth.isAlbino(alb) && !Depth.isAlbinoHet(alb) && Depth.isAlbinoHet(Genetics.make({ body: ['W', 'alb'] }, 'F', rng));
+    ok.secrets = Object.keys(SECRETS).length >= 2 && Object.values(SECRETS).every((x) => x.hint && x.how);
+    // sabit hat satış bonusu
+    const c = Game.tank.creatures[0], base = Market.price(c); M.lines.push({ id: 99, sp: c.species, bid: (c.breed() || {}).id, name: 't' }); const boosted = Market.price(c); M.lines.pop(); ok.lineBonus = !!c.breed() && boosted >= Math.round(base * 1.2);
+    return this._log('Derinlik (dolunay, kilometre taşı, defter, gizli varyasyon, hat bonusu)', Object.values(ok).every(Boolean), ok);
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.depth(); return a && b; })(Tests.all);

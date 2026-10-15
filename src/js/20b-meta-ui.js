@@ -107,8 +107,10 @@ Object.assign(UI, {
       body = h('div.stack', null, h('div.small.muted', null, 'Sabit Hat: 3 nesil aynı ırkı koruyan erkek soyu ve oğulların ≥%90\'ı aynı ırk çıkan bir çift. En fazla 3 hat; "Yeni Şube"de korunur.'),
         h('button.btn.primary', { onclick: () => UI.pickLine() }, 'Yeni Sabit Hat kaydet'),
         h('h3', { style: { margin: '6px 2px 0' } }, 'Onur Listesi'),
-        ...(M.lines.length ? M.lines.map((l) => h('div.card.row', null, h('div', { style: { fontSize: '30px' } }, '🧬'), h('div.sp', null, h('b', null, l.name), h('div.small.muted', null, `${SPECIES.find((s) => s.id === l.sp).name} · ${l.bn} · %${l.rate} saf · gün ${Math.floor(l.t / 1440) + 1}`)))) : [UI.emptyState('🧬', 'Henüz hat yok', 'Aynı ırkı 3 nesil üret ve tutarlılığını kanıtla.')]),
+        ...(M.lines.length ? M.lines.map((l) => h('div.card.row', null, h('div', { style: { fontSize: '30px' } }, '🧬'), h('div.sp', null, h('b', null, l.name), h('div.small.muted', null, `${SPECIES.find((s) => s.id === l.sp).name} · ${l.bn} · %${l.rate} saf · +%25 satış · gün ${Math.floor(l.t / 1440) + 1}`)))) : [UI.emptyState('🧬', 'Henüz hat yok', 'Aynı ırkı 3 nesil üret ve tutarlılığını kanıtla.')]),
         M.badges.length ? h('div.small', null, '🏷️ Sezon rozetleri: ' + M.badges.map((k) => SEASON_THEMES[+k.slice(1) % 4].badge).join(' ')) : null);
+    } else if (this.legacyTab === 'notes') { body = UI.legacyNotes();
+    } else if (this.legacyTab === 'secrets') { body = UI.legacySecrets();
     } else if (this.legacyTab === 'ledger') {
       body = h('div.stack', null, h('div.small.muted', null, 'Genetik Defter: yaptığın son çiftleştirmeler.'),
         ...(M.ledger.length ? M.ledger.slice().reverse().map((e) => h('div.card.small', null, h('b', null, `${e.m} × ${e.f}`), h('span.muted', null, ` — ${e.b} · gün ${Math.floor(e.t / 1440) + 1}`))) : [UI.emptyState('📓', 'Defter boş', 'Laboratuvarda bir çift eşleştirince burada kayıt tutulur.')]));
@@ -117,7 +119,7 @@ Object.assign(UI, {
       body = h('div.stack', null, h('div.card', null, h('b', null, `🏪 Yeni Şube (${n} kez açıldı)`), h('div.small.muted', null, `Şampiyona hikâyesini bitirince (veya 100. seviyede) açılır. Kalıcı bonus: satış +%${Math.min(30, 3 * n)}, XP +%${Math.min(50, 5 * n)}, başlangıç parası +${250 * n}. Korunanlar: ansiklopedi, başarımlar, unvanlar, kupalar, 3 Sabit Hat (çiftleriyle birlikte), Yosun Taşı. Sıfırlananlar: para, seviye, tank, araştırma.`)),
         ...BRANCHES.map((b) => h('div.card.row', null, h('div', { style: { fontSize: '30px' } }, b.emo), h('div.sp', null, h('b', null, b.name), h('div.small.muted', null, b.desc)), h('button.btn.sm' + (can ? '.coral' : ''), { disabled: can ? null : true, onclick: () => UI.confirm(`${b.name} açılsın mı?`, 'Mevcut dükkân kapanır; ilerleme sıfırlanır (korunanlar hariç). Bu geri alınamaz — önce dışa aktararak yedek alabilirsin.', () => { Prestige.perform(b.id); UI.go('hub'); UI.toast('Yeni şube açıldı! 🎉', 'star', 4000); }) }, can ? 'Aç' : '🔒'))));
     }
-    el.replaceChildren(h('div.wrap.stack', null, h('h2', { style: { margin: '6px 2px 2px' } }, 'Miras'), UI.tabs([['lines', '🧬 Hatlar'], ['ledger', '📓 Defter'], ['prestige', '🏪 Yeni Şube']], this.legacyTab, (k) => { this.legacyTab = k; UI.render_legacy(el); }), body));
+    el.replaceChildren(h('div.wrap.stack', null, h('h2', { style: { margin: '6px 2px 2px' } }, 'Miras'), UI.tabs([['lines', '🧬 Hatlar'], ['notes', '📝 Tahmin'], ['secrets', '🔍 Sırlar'], ['ledger', '📓 Günlük'], ['prestige', '🏪 Şube']], this.legacyTab, (k) => { this.legacyTab = k; UI.render_legacy(el); }), body));
   },
   pickLine() {
     const sel = { m: null, f: null }, out = h('div.small'), nameIn = h('input', { type: 'text', placeholder: 'Hat adı (isteğe bağlı)', maxlength: 24, style: { width: '100%' } }), box = h('div');
