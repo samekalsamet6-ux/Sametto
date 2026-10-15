@@ -188,6 +188,7 @@ const Editor = {
       b('grid', 'Izgara', () => { this.grid = !this.grid; this.refresh(); }, this.grid),
       b('guide', 'Kılavuz: ' + { none: 'yok', thirds: 'üçler kuralı', golden: 'altın oran' }[this.guides], () => { this.guides = { none: 'thirds', thirds: 'golden', golden: 'none' }[this.guides]; this.refresh(); }, this.guides !== 'none'),
       b('water', 'Su doldur önizlemesi', () => { this.dry = !this.dry; this.refresh(); }, !this.dry),
+      b('layers', 'Üst plan görünümü', () => UI.openPlan()),
       h('div.sp'), h('div.chip', null, icon('coin'), fmt(this.S.coins)), b('check', 'Bitti', () => UI.go('aq')));
   },
 
@@ -277,6 +278,7 @@ const Editor = {
       row('Isıtıcı', ...Object.entries(EQUIP.heater).map(([k, d]) => opt(d, (k === 'on') === !!e.heater, d.name, () => { const on = k === 'on'; if (on && !o.heater) return this.buyOpt(d, false, () => { o.heater = 1; e.heater = true; }); this.commit(); e.heater = on; this.changed(); this.refresh(); }, k === 'none' || o.heater))),
       row('CO₂', ...Object.entries(EQUIP.co2).map(([k, d]) => opt(d, e.co2 === k, d.name, () => this.buyOpt(d, k === 'none' || o.co2[k], (b) => { if (b) o.co2[k] = 1; e.co2 = k; if (!b) { this.commit(); this.changed(); this.refresh(); } }), k === 'none' || o.co2[k]))),
       row('Hava taşı', opt(EQUIP.air, e.air, e.air ? 'Açık' : 'Kapalı', () => { this.commit(); e.air = !e.air; this.changed(); this.refresh(); }, true)),
+      row('Işık spektrumu', ...Object.entries(SPECTRA).map(([k, d]) => { const ow = (o.spec = o.spec || { white: 1 }); return opt(d, (L.spec || 'white') === k, d.name, () => this.buyOpt(d, ow[k], (b) => { if (b) ow[k] = 1; L.spec = k; if (!b) { this.commit(); this.changed(); this.refresh(); } }), ow[k]); })),
       h('div.small.muted', { style: { marginTop: '6px' } }, `Işık gücü: ${L.p}% · ${pad2(L.from)}:00–${pad2(L.to)}:00`),
       h('div.set-row', null, h('label', null, 'Güç'), h('input', { type: 'range', min: 20, max: 100, value: L.p, style: { maxWidth: '65%' }, onchange: (ev) => { this.commit(); L.p = +ev.target.value; this.changed(); this.refresh(); } })),
       h('div.set-row', null, h('label', null, 'Açılış saati'), h('input', { type: 'range', min: 0, max: 23, value: L.from, style: { maxWidth: '65%' }, onchange: (ev) => { this.commit(); L.from = +ev.target.value; if (L.to <= L.from) L.to = Math.min(24, L.from + 1); this.changed(); this.refresh(); } })),

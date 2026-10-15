@@ -170,3 +170,16 @@ Object.assign(Tests, {
   },
 });
 Tests.all = ((orig) => function () { const a = orig.call(this), b = this.living(); return a && b; })(Tests.all);
+
+/* Işık spektrumu + üst plan */
+Object.assign(Tests, {
+  light() {
+    const ok = {}, sc = Scape.fromTemplate('start'); ok.default = specOf(sc) === SPECTRA.white; sc.equip.light.spec = 'plant'; ok.plant = specOf(sc).grow > 1 && specOf(sc).red > 1; sc.equip.light.spec = 'blue'; ok.blue = specOf(sc).grow < 1;
+    ok.rays = Object.values(SPECTRA).every((x) => /^\d+,\d+,\d+$/.test(x.ray));
+    // kırmızı bitkiler bitki spektrumunda daha çok kırmızılaşır (aynı koşulda)
+    const tint = (spec) => { const s2 = Scape.fromTemplate('start'); s2.equip.light.spec = spec; return clamp((0.8 - 0.45) * 2.2 * specOf(s2).red, 0, 1); }; ok.redTint = tint('plant') > tint('white') && tint('blue') < tint('white');
+    UI.openPlan(); ok.plan = !!document.querySelector('#plan-info') && document.querySelector('#plan-info').textContent.length > 5; UI.sheets.slice().forEach((s) => s.close());
+    return this._log('Işık spektrumu ve üst plan', Object.values(ok).every(Boolean), ok);
+  },
+});
+Tests.all = ((orig) => function () { const a = orig.call(this), b = this.light(); return a && b; })(Tests.all);

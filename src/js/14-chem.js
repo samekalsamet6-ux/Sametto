@@ -84,7 +84,7 @@ const Chem = {
     const S = Game.S, w = this.w, t = Game.tank, sc = t.scape, V = Math.max(10, sc.liters), vk = 60 / V, e = sc.equip, now = S.clockMin;
     if (sc.dry) { this.dryStep(dd); return; }
     const lampOn = (t.lampMode === 'on') || (t.lampMode === 'auto' && ((now % 1440) / 60 >= e.light.from && (now % 1440) / 60 < e.light.to));
-    const P = e.light.p / 100, flow = t.flowPow, items = sc.items, plants = this.plants();
+    const P = e.light.p / 100 * specOf(sc).grow, flow = t.flowPow, items = sc.items, plants = this.plants();
     // --- hardscape / zemin etkileri ---
     let dKH = 0, dGH = 0, dTan = 0, hardBio = 0;
     for (const it of items) { if (!Scape.isHard(it)) continue; const d = HARDSCAPE[it.d] || {}, f = d.eff; if (!f) continue; const k = (it.s || 1) * (it.k === 'leaf' ? 0.25 : 1); dKH += (f.kh || 0) * k; dGH += (f.gh || 0) * k; dTan += (f.tannin || 0) * k; hardBio += (f.bio || 0) * k; }
@@ -167,7 +167,7 @@ const Chem = {
     else if (d.type === 'moss') it.sp = Math.min(2, (it.sp || 1) + dd * rate * 0.12);
     else if (d.type === 'stem' || d.type === 'ribbon' || d.type === 'rosette') it.ht = Math.min(2.4, (it.ht || 1) + dd * rate * (d.type === 'stem' ? 0.35 : 0.08));
     // kırmızılaşma
-    if (d.red) { const tg = clamp((pe - 0.45) * 2.2, 0, 1) * Math.min(cf, nf) * (on ? 1 : 0.8); it.tint = lerp(it.tint || 0, tg, clamp(dd * 1.2, 0, 1)); }
+    if (d.red) { const tg = clamp((pe - 0.45) * 2.2 * specOf(Game.S.scape).red, 0, 1) * Math.min(cf, nf) * (on ? 1 : 0.8); it.tint = lerp(it.tint || 0, tg, clamp(dd * 1.2, 0, 1)); }
     return rate * (it.g ?? 1) * 0.5 + 0.01;
   },
 

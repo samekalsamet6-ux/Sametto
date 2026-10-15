@@ -88,3 +88,12 @@ const TEMPLATES = {
   betta:   { name: 'Beta Biyotopu', desc: 'Durgun, gölgeli, yüzen bitkili bir Tayland pirinç tarlası.', liters: 20, sub: { type: 'sand', color: 'natural' }, equip: { filter: 'sponge', heater: true, co2: 'none', air: false },
     items: [['wood', 'malaysian', 0.45, { s: 0.9 }], ['plant', 'wendtii', 0.15], ['plant', 'wendtii', 0.8], ['plant', 'vallis', 0.92], ['plant', 'salvinia', 0.3], ['plant', 'salvinia', 0.65], ['plant', 'limnobium', 0.48], ['leaf', 'almond', 0.3], ['leaf', 'almond', 0.7], ['leaf', 'cone', 0.6]] },
 };
+
+/* Işık spektrumu: büyüme/yosun çarpanı (grow), kırmızı bitki renklenmesi (red), hüzme rengi (ray) */
+const SPECTRA = {
+  white: { name: 'Doğal beyaz (6500 K)', ray: '210,255,250', grow: 1.0, red: 1.0, cost: 0, lvl: 1 },
+  warm:  { name: 'Sıcak (3000 K)', ray: '255,222,170', grow: 0.92, red: 1.15, cost: 20, lvl: 2 },
+  plant: { name: 'Bitki (kırmızı-mavi)', ray: '255,170,215', grow: 1.14, red: 1.6, cost: 55, lvl: 3 },
+  blue:  { name: 'Mavi aktinik', ray: '140,190,255', grow: 0.75, red: 0.7, cost: 40, lvl: 2 },
+};
+const specOf = (sc) => SPECTRA[(sc.equip.light && sc.equip.light.spec) || 'white'] || SPECTRA.white;

@@ -235,7 +235,7 @@ class Tank {
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
       for (let i = 0; i < (v.low ? 3 : 7); i++) {
         const bx = W * (0.08 + i * 0.14) + Math.sin(t * 0.15 + i * 2) * 24 + px * 0.15, wTop = 30 + 20 * ((i * 7) % 3), wBot = wTop * 2.6, br = 0.65 + 0.35 * Math.sin(t * 0.45 + i * 1.7);
-        const g = ctx.createLinearGradient(0, 24, 0, H * 0.9), col = lightK > 0.5 ? '210,255,250' : '150,180,255';
+        const g = ctx.createLinearGradient(0, 24, 0, H * 0.9), col = lightK > 0.5 ? specOf(this.scape).ray : '150,180,255';
         g.addColorStop(0, `rgba(${col},${rayA * br})`); g.addColorStop(1, `rgba(${col},0)`);
         ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(bx - wTop / 2, 24); ctx.lineTo(bx + wTop / 2, 24); ctx.lineTo(bx + wBot / 2 - 90, H * 0.9); ctx.lineTo(bx - wBot / 2 - 90, H * 0.9); ctx.closePath(); ctx.fill();
       }

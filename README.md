@@ -69,6 +69,10 @@ src/js/
   28-tanks.js          çoklu tank: raflar, tank geçişi, balık taşıma (su şoku), kayıt
   28b-tanks-ui.js      Merkez tank kaydırıcısı, Tanklarım penceresi, taşıma penceresi
   29-anim.js           animasyon cilası: sayaç yuvarlanma, para kabarcıkları, doğum ışıltısı, kum tozu, sıralı liste belirişi
+  30-compat.js         uyum matrisi: mizaç, katman, avlanma, su aralığı + stres
+  31-habitats.js       biyotop habitatları + habitat bazlı jüri + şablonlar
+  32-living.js         asistan, sezon dekorları/etkinlikleri, bildirimler
+  33-plan.js           üst plan görünümü, dükkân haritası
   27-equip-art.js      ekipman çizimleri (filtre, ısıtıcı, difüzör, armatür…)
   24-depth.js         Genetik Defter tahminleri, gizli varyasyonlar, hat bonusu, ek başarımlar, koleksiyon ödülleri
 ```
@@ -85,6 +89,7 @@ Tarayıcı konsolunda `Tests.all()`. Kapsam: Mendel 3:1, cinsiyete bağlı kalı
 - [x] **6 – İlerleme:** görevler, başarımlar, pazar, mağaza, siparişler, araştırma
 - [x] **7 – Türler:** endler, molly, platy, kılıç kuyruk, beta, karides, salyangoz, melezler
 - [x] **8 – Meta & Cila:** hikâye, yarışmalar, sezonlar, Sabit Hat, prestij
+- [x] **Aşama 9 – Şartname boşlukları:** onboarding, lo-fi + bağlama duyarlı müzik, Genetik Defter/gizli varyasyonlar, çoklu tank + tank geçişi, uyum matrisi, habitat biyotopları, ışık spektrumu, üst plan, sezon etkinlikleri + sınırlı dekor, asistan, bildirimler, 3D balık, gerçek tank ölçüleri, ekipman çizimleri
 - [x] **APK:** Capacitor yapılandırması, çevrimdışı yazı tipleri, geri tuşu, GitHub Actions ile derleme
 
 Henüz doğrulanmayanlar: gerçek cihazda dokunma jestleri ve akıcılık, müziğin kulakla değerlendirilmesi, imzalı yayın sürümü.
