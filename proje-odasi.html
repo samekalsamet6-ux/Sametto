@@ -83,7 +83,7 @@ textarea{flex:1;min-width:0;resize:none;background:var(--bg);border:1px solid va
 .hint{font-size:12px;color:var(--muted)}
 .docs,.view-g{display:none}
 .app[data-view="cikti"] .docs,.app[data-view="gelisim"] .view-g{display:flex}
-.app[data-view="cikti"] .room,.app[data-view="gelisim"] .room{display:none}
+.app[data-view="cikti"] .room,.app[data-view="gelisim"] .room,.app[data-view="model"] .room{display:none}
 .dbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line)}
 .dbar b{font-family:var(--font-d)}
 .dbar .sp{flex:1}
@@ -120,6 +120,23 @@ textarea{flex:1;min-width:0;resize:none;background:var(--bg);border:1px solid va
 .card h4 span{font-family:var(--font-m);font-size:11.5px;color:var(--muted);font-weight:400;margin-left:6px}
 .card pre{margin:0;white-space:pre-wrap;font-family:var(--font-b);color:var(--muted);font-size:13px}
 .card ul{margin:0;padding-left:18px;color:var(--muted);font-size:13px}
+.sh{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin-bottom:6px}
+.sb{display:flex;gap:6px}
+.pv{width:100%;height:460px;border:1px solid var(--line);border-radius:6px;background:#fff;display:block}
+.pvsvg{max-width:100%;border:1px solid var(--line);border-radius:6px;background:#fff;display:block}
+.pvbox{border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;font-size:13.5px}
+.pvbox p{margin:0}
+.codeview{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px;overflow:auto;max-height:420px;margin:0;font-size:12.5px;line-height:1.45}
+.viewer{display:none;flex:1;min-height:0;min-width:0;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.app[data-view="model"] .viewer{display:flex}
+.dbar span.i{font-family:var(--font-m);font-size:12px;color:var(--muted)}
+.stage{position:relative;flex:1;min-height:260px;background:linear-gradient(#cfd8e3,#9fb0c4)}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.vempty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:#34404f;font-size:14px}
+.vempty div{max-width:380px}
+.vempty[hidden]{display:none}
+.rbar{display:flex;gap:8px;padding:8px 12px;border-top:1px solid var(--line)}
+.rbar input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 10px}
 @media (max-width:1050px){
   .app{grid-template-columns:230px minmax(0,1fr)}
   .app>.col:nth-child(3){display:none}
@@ -148,12 +165,13 @@ textarea{flex:1;min-width:0;resize:none;background:var(--bg);border:1px solid va
   <aside class="col side">
     <div class="brand">
       <h1>Proje Odası</h1>
-      <p>Projeni yaz. Rana uygun ajanları işe alır, ekip odada konuşur, üretir, denetçi kontrol eder ve herkes öğrendiğini kaydeder.</p>
+      <p>Ne istersen yaz: tasarım, şablon, site, logo, 3B model, kod, belge. Rana uygun ajanları işe alır, ekip konuşup gerçek dosyaları üretir, denetçi kontrol eder, herkes öğrenir.</p>
     </div>
     <div class="proj" id="projbox" hidden></div>
     <div class="tabs" id="tabs">
       <button type="button" data-v="oda" aria-pressed="true">Oda</button>
       <button type="button" data-v="cikti" aria-pressed="false">Çıktı</button>
+      <button type="button" data-v="model" aria-pressed="false">Model</button>
       <button type="button" data-v="gelisim" aria-pressed="false">Gelişim</button>
       <button type="button" class="narrow" data-v="pano" aria-pressed="false">Pano</button>
     </div>
@@ -178,17 +196,28 @@ textarea{flex:1;min-width:0;resize:none;background:var(--bg);border:1px solid va
           <textarea id="input" rows="1" placeholder="Ne yapmak istiyorsun? Projeni anlat, ekip kurulsun." aria-label="Mesaj"></textarea>
           <button class="send" id="send" type="submit">Başlat</button>
         </div>
-        <div class="hint" id="hint">Her adım birkaç yapay zekâ isteği harcar. Bir proje yaklaşık 25-40 istek tutar.</div>
+        <div class="hint" id="hint">Her adım birkaç yapay zekâ isteği harcar. Bir proje yaklaşık 30-45 istek tutar.</div>
       </form>
     </div>
     <section class="docs" id="docs">
       <div class="dbar">
         <b>Çıktı</b><span class="sp"></span>
-        <button class="mini" type="button" id="dmd" disabled>Markdown indir</button>
-        <button class="mini" type="button" id="dzip" disabled>Kod dosyaları (zip)</button>
+        <button class="mini" type="button" id="dmd" disabled>Rapor (.md)</button>
+        <button class="mini" type="button" id="dzip" disabled>Tüm dosyalar (zip)</button>
         <button class="mini" type="button" id="dcopy" disabled>Kopyala</button>
       </div>
       <div class="dscroll" id="dscroll"></div>
+    </section>
+    <section class="viewer" id="viewer">
+      <div class="dbar">
+        <b>3B Model</b><span class="i" id="vinfo">henüz üretilmedi</span><span class="sp"></span>
+        <button class="mini" type="button" id="vrot">Dönmeyi durdur</button>
+        <button class="mini" type="button" id="vglb" disabled>GLB (zip)</button>
+        <button class="mini" type="button" id="vpng" disabled>PNG</button>
+        <button class="mini" type="button" id="vjson" disabled>Spec JSON</button>
+      </div>
+      <div class="stage" id="stage"><div class="vempty" id="vempty"><div>Henüz 3B model yok. Projen 3 boyutlu bir şeyse ekip modeli burada kurar.</div></div></div>
+      <div class="rbar"><input id="rtext" type="text" placeholder="Modelde neyi değiştirelim? (örn. kuyruğu büyüt)" aria-label="Model değişikliği"><button class="mini primary" type="button" id="vrev" disabled>Revize et</button></div>
     </section>
     <section class="grow view-g" id="gview">
       <div class="dbar">
@@ -216,6 +245,9 @@ textarea{flex:1;min-width:0;resize:none;background:var(--bg);border:1px solid va
   </aside>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
 <script>
 const RANA={id:"rana",name:"Rana",role:"İK ve Ekip Kurucu",col:"var(--c-rana)",key:"ik-ekip-kurucu",recruiter:true,
   brief:"Projeye bakıp doğru uzman yapay zekâ ajanlarını işe alır. Önceki projelerden ekip kurma dersleri çıkarır ve bir sonraki ekibi daha iyi kurar."};
@@ -307,13 +339,29 @@ function mdNode(md){
   });
   return box;
 }
+const KIND_TR={belge:"belge",html:"web çıktısı",svg:"görsel (SVG)",kod:"kod",veri:"veri","3d":"3B model"};
+const KINDS_OUT=["belge","html","svg","kod","veri","3d"], KIND_EXT={belge:"md",html:"html",svg:"svg",kod:"txt",veri:"json","3d":"glb"};
+let codeView=new Set();
+const svgSrc=svg=>"data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+function previewNode(sec){
+  if(sec.kind==="3d"){ const d=el("div","pvbox"), b=el("button","mini primary","Modeli aç"); b.type="button"; b.onclick=()=>{ setView("model") };
+    d.append(el("p",null,P.model?`${P.model.parts.length} parçalı model hazır. Fareyle döndürüp GLB olarak indirebilirsin.`:"Model henüz kurulmadı."),b); return d }
+  if(sec.kind==="belge") return mdNode(sec.md);
+  if(codeView.has(sec.id)||sec.kind==="kod"||sec.kind==="veri"){ const pre=el("pre","codeview"); pre.appendChild(el("code",null,sec.md)); return pre }
+  if(sec.kind==="html"){ const f=el("iframe","pv"); f.setAttribute("sandbox","allow-scripts"); f.setAttribute("title",sec.title); f.srcdoc=sec.md; return f }
+  const im=el("img","pvsvg"); im.alt=sec.title; im.src=svgSrc(sec.md); return im;
+}
 function renderDocs(){
   const s=$("dscroll"); s.textContent="";
   const S=P?P.sections:[], has=S.length>0;
-  ["dmd","dcopy"].forEach(i=>$(i).disabled=!has); $("dzip").disabled=!codeFiles().length;
-  if(!has){ s.appendChild(el("div","none","Uygulama adımında her ajan kendi bölümünü yazar; bölümler burada birleşir.")); return }
+  $("dmd").disabled=!has; $("dcopy").disabled=!has; $("dzip").disabled=!has;
+  if(!has){ s.appendChild(el("div","none","Uygulama adımında ekip istediğin şeyi gerçek dosyalar olarak üretir: web tasarımı/şablon (HTML), görsel (SVG), 3B model, kod, veri ve belgeler. Önizleme burada görünür.")); return }
   S.forEach(sec=>{ const a=byId(sec.agent)||{name:sec.name||"?",col:"var(--muted)"}, w=el("div","sec"); w.style.setProperty("--col",a.col);
-    w.appendChild(el("h3",null,sec.title)); w.appendChild(el("div","by",a.name+(sec.rev?" · revizyon "+sec.rev:""))); w.appendChild(mdNode(sec.md)); s.appendChild(w) });
+    const head=el("div","sh"), t=el("div"), btns=el("div","sb");
+    t.append(el("h3",null,sec.title),el("div","by",a.name+" · "+KIND_TR[sec.kind]+(sec.file?" · "+sec.file:"")+(sec.rev?" · revizyon "+sec.rev:"")));
+    if(["html","svg"].includes(sec.kind)){ const b=el("button","mini",codeView.has(sec.id)?"Önizle":"Kod"); b.type="button"; b.onclick=()=>{ codeView.has(sec.id)?codeView.delete(sec.id):codeView.add(sec.id); renderDocs() }; btns.appendChild(b) }
+    const d=el("button","mini","İndir"); d.type="button"; d.onclick=()=>downloadOne(sec); btns.appendChild(d);
+    head.append(t,btns); w.append(head,previewNode(sec)); s.appendChild(w) });
   (P.reviews||[]).slice(-1).forEach(r=>{ const v=el("div","verdict "+(r.verdict==="onay"?"ok":"rev")); v.appendChild(el("b",null,"Denetçi · "+r.score+"/10 · "+(r.verdict==="onay"?"onay":"revize gerekli")));
     v.appendChild(el("div",null,r.summary)); if(r.issues.length){ const u=el("ul"); r.issues.forEach(i=>u.appendChild(el("li",null,i.agent+": "+i.issue))); v.appendChild(u) } s.appendChild(v) });
 }
@@ -432,10 +480,10 @@ async function talkRounds(sample,n,mode){
 }
 
 /* ---------- yardımcılar: json, adım ---------- */
-async function getJson(sample,prompt,tier,pick){
+async function getJson(sample,prompt,tier,pick,extra){
   let err="";
   for(let i=0;i<2;i++){
-    try{ const v=await sample.json(prompt+(err?"\n\nÖnceki yanıtın kullanılamadı: "+err+" Yalnızca şemaya uygun geçerli JSON döndür.":""),{cache:false,modelTier:tier,signal:ctrl.signal});
+    try{ const v=await sample.json(prompt+(err?"\n\nÖnceki yanıtın kullanılamadı: "+err+" Yalnızca şemaya uygun geçerli JSON döndür.":""),{cache:false,modelTier:tier,signal:ctrl.signal,...(extra||{})});
       const r=pick(v); if(r) return r; err="Şema beklenen alanları içermiyordu." }
     catch(e){ if(!e||e.code!=="invalid_json"||ctrl.signal.aborted) throw e; err="JSON ayrıştırılamadı." }
   }
@@ -464,14 +512,15 @@ ${ls?"Ekip kurma derslerin:\n"+ls+"\n":""}
 Daha önce deneyim kazanmış roller: ${knownRoles()}
 
 Kurallar:
-- 4 ile 6 ajan seç. Her biri projeye gerçekten gereken ayrı bir uzmanlık olsun; biri koordinatör/proje yöneticisi olsun.
+- 4 ile 7 ajan seç. Her biri projeye gerçekten gereken ayrı bir uzmanlık olsun; biri koordinatör/proje yöneticisi olsun.
 - Uygun bir rol daha önce deneyim kazanmışsa rol adını aynen yazarak yeniden kullan (deneyimini taşır).
+- Ekip, kullanıcının istediği şeyi gerçekten üretebilmeli. Çıktı türüne göre uzman seç: web sitesi, tasarım, şablon, poster, sunum, arayüz için ön yüz/tasarım uzmanları; logo, ikon, illüstrasyon için görsel tasarımcı; 3B model için modelleme, malzeme/doku, animasyon ve ışık/render uzmanları; yazı için içerik uzmanları; kod ya da veri için yazılımcı/veri uzmanı. Gerekirse 7 ajana kadar çıkabilirsin.
 - Denetçiyi ekleme, sistem kendisi ekler. Adlar benzersiz Türkçe ilk adlar olsun, "Rana" ve "Deniz" olmasın.
 Biçim (yalnızca JSON): {"title":"kısa proje adı, 2-5 kelime","rationale":"ekibi neden böyle kurdun, 2 cümle","team":[{"name":"Ad","role":"Rol","brief":"uzmanlığı ve bu projedeki sorumluluğu, 1-2 cümle"}]}`;
 }
 async function startProject(sample,brief){ 
-  P={id:Date.now(),title:"Yeni proje",brief,team:[],off:[],log:[],tasks:[],acts:[],nextTask:1,sections:[],plan:null,reviews:[],done:[false,false,false,false,false]};
-  P.log.push({from:"me",text:brief}); renderAll(); note(null,"Proje başladı");
+  P={id:Date.now(),title:"Yeni proje",brief,team:[],off:[],log:[],tasks:[],acts:[],nextTask:1,sections:[],model:null,plan:null,reviews:[],done:[false,false,false,false,false]};
+  clearModel(); P.log.push({from:"me",text:brief}); renderAll(); note(null,"Proje başladı");
   let r;
   try{ r=await work(RANA,"ekibi kuruyor",()=>getJson(sample,recruitPrompt(brief),"default",v=>{
       const l=(v&&Array.isArray(v.team)?v.team:[]).filter(t=>t&&t.name&&t.role); return l.length>=2?{title:String(v.title||"").slice(0,50),rationale:String(v.rationale||""),team:l}:null }),
@@ -487,6 +536,9 @@ async function startProject(sample,brief){
 
 /* ---------- 1-5) süreç adımları ---------- */
 async function stepIdea(sample){ await talkRounds(sample,2,"idea"); P.done[0]=true; save() }
+const is3d=()=>/3\s*b\b|3\s*d\b|3d|üç\s*boyut|3\s*boyut/i.test(P.brief);
+function cleanFile(f,kind,title){ let n=String(f||"").replace(/[^\w.\-/]/g,"").replace(/^[./]+/,"").replace(/\.\.+/g,".");
+  if(!n||!/\.\w{1,6}$/.test(n)) n=(keyOf(title)||"cikti")+"."+KIND_EXT[kind]; return n.slice(0,60) }
 function planPrompt(c){
   return `[GÖREV:PLAN]
 Sen ${c.name}, ${c.role}. ${c.brief}
@@ -497,82 +549,133 @@ Ekip: ${teamLine()}.
 Ekibin fikir turundaki konuşması:
 ${history(40)}
 
-Bu konuşmadan ekibin kararlarını özetle ve nihai çıktının bölümlerini planla. Her bölümü ekipten bir kişi yazacak; bölümler birleşince proje isteğini eksiksiz karşılamalı. 3-8 bölüm; bir kişiye birden fazla bölüm verebilirsin. Denetçi (Deniz) bölüm yazmaz.
-Biçim (yalnızca JSON): {"summary":"kararların özeti, 3-5 cümle","items":[{"agent":"Ad","title":"bölüm başlığı","spec":"bu bölümde tam olarak ne yazılacak/yapılacak, 1-2 cümle"}]} Bölümler son belgedeki sırayla yazılsın.`;
+Kararları özetle ve kullanıcının istediği şeyi GERÇEKTEN üretecek bir plan yap. Ekibin üretebildiği çıktı türleri (kind):
+- "html": tek dosyalık çalışan web çıktısı. Web sitesi, tasarım, şablon, arayüz, poster, sunum, davetiye, özgeçmiş, oyun, hesaplayıcı, form gibi görsel şeyler için. Önizlenir ve indirilir.
+- "svg": logo, ikon, illüstrasyon, diyagram, infografik. Önizlenir ve indirilir.
+- "3d": 3 boyutlu model. Ekip ilkel şekillerden modeli sahnede kurar, GLB olarak iner. En fazla bir tane koy; modelleme, malzeme, hareket ve ışık işlerini ekip kendisi paylaşır.
+- "kod": betik ya da program dosyası ("file" uzantısını yaz).
+- "veri": csv ya da json veri dosyası.
+- "belge": yazı (Markdown): plan, metin, rapor, içerik.
+Kurallar:
+- İstenen asıl şey mutlaka html, svg, 3d, kod ya da veri türünde GERÇEK dosya olarak üretilsin. "belge" yalnızca destekleyici (tasarım kararları, içerik metni) olsun ya da istek zaten bir yazıysa asıl çıktı olsun.
+- Destekleyici belgeleri öne, asıl çıktıları sona koy; son çıktılar öncekilerin metin ve kararlarını kullanır.
+- 2-7 öğe. Her öğeyi ekipten bir kişi yazar; bir kişiye birden fazla verebilirsin. Denetçi (Deniz) çıktı üretmez.
+Biçim (yalnızca JSON): {"summary":"kararların özeti, 3-5 cümle","items":[{"agent":"Ad","title":"çıktı başlığı","spec":"tam olarak ne üretilecek, 1-2 cümle","kind":"html|svg|3d|kod|veri|belge","file":"dosya-adi.uzanti"}]}`;
 }
 async function stepPlan(sample){
-  const c=coord(); const plan=await work(c,"planı çıkarıyor",()=>getJson(sample,planPrompt(c),"default",v=>{
-    const items=(v&&Array.isArray(v.items)?v.items:[]).map(i=>{ const a=i&&byName(i.agent); return a&&!a.reviewer&&!a.recruiter&&i.title?{agent:a.id,title:String(i.title).slice(0,80),spec:String(i.spec||"").slice(0,300)}:null }).filter(Boolean).slice(0,9);
-    return items.length>=2?{summary:String(v.summary||""),items}:null }),p=>`Plan hazır (${p.items.length} bölüm):\n${p.summary}\n`+p.items.map((i,n)=>`${n+1}. ${i.title} → ${byId(i.agent).name}`).join("\n"));
+  const c=coord();
+  const plan=await work(c,"planı çıkarıyor",()=>getJson(sample,planPrompt(c),"default",v=>{
+    let items=(v&&Array.isArray(v.items)?v.items:[]).map(i=>{ const a=i&&byName(i.agent); if(!a||a.reviewer||a.recruiter||!i.title) return null;
+      const kind=KINDS_OUT.includes(i.kind)?i.kind:"belge"; return {agent:a.id,title:String(i.title).slice(0,80),spec:String(i.spec||"").slice(0,300),kind,file:cleanFile(i.file,kind,i.title)} }).filter(Boolean);
+    let seen=false; items=items.filter(i=>i.kind!=="3d"||(!seen&&(seen=true))).slice(0,8);
+    if(is3d()&&!seen) items.push({agent:modelRoles().mod.id,title:"3B model",spec:"İstenen nesnenin 3 boyutlu modeli.",kind:"3d",file:"model.glb"});
+    items.sort((a,b)=>(a.kind==="belge"?0:1)-(b.kind==="belge"?0:1));
+    return items.length?{summary:String(v&&v.summary||""),items}:null }),
+    p=>`Plan hazır (${p.items.length} çıktı):\n${p.summary}\n`+p.items.map((i,n)=>`${n+1}. ${i.title} [${KIND_TR[i.kind]}] → ${byId(i.agent).name}`).join("\n"));
   P.plan=plan; P.tasks=P.tasks.filter(t=>t.done); plan.items.forEach(i=>{ P.tasks.push({id:P.nextTask++,text:i.title,owner:i.agent,done:false,plan:true}) });
-  P.done[1]=true; P.done[2]=false; P.done[3]=false; P.sections=[]; P.reviews=[]; save(); renderAll();
+  P.done[1]=true; P.done[2]=false; P.done[3]=false; P.sections=[]; P.model=null; P.reviews=[]; clearModel(); save(); renderAll();
 }
-function sectionPrompt(a,item,prev,issues){
-  const others=P.plan.items.filter(i=>i!==item).map(i=>"- "+i.title+" ("+byId(i.agent).name+")").join("\n");
-  return `[GÖREV:BÖLÜM]
+const context=item=>P.sections.filter(s=>s.kind!=="3d"&&s.title!==item.title).map(s=>`### ${s.title} (${KIND_TR[s.kind]})\n${s.md.slice(0,s.kind==="belge"?1800:700)}`).join("\n\n");
+function outputPrompt(a,item,prev,issues){
+  const rules={
+    belge:`- 150-450 kelime, Markdown. Başlık yazma (başlığı sistem ekler); alt başlık için "####". Gerçek, kullanılabilir içerik: metin, plan, tablo, adım listesi. Boş vaat ve genel laf yok.\n- Kod yazarsan her kod bloğunu şu biçimde aç: \`\`\`dil klasör/dosyaadi.uzanti`,
+    html:`- Tek dosyalık, kendi başına çalışan bir HTML yaz: <!doctype html> ile başla, tüm CSS ve JS satır içi olsun, harici kaynak kullanma (Google Fonts bağlantısı serbest).\n- Mobilde ve masaüstünde düzgün görünsün; gerçek içerik kullan (lorem ipsum yok); okunaklı renk kontrastı, özenli tipografi ve boşluk, belirgin bir görsel kimlik. Diğer çıktılardaki metin ve tasarım kararlarını kullan.\n- En fazla yaklaşık 350 satır. Yalnızca dosyanın tamamını tek bir \`\`\`html bloğu içinde ver.`,
+    svg:`- Tek bir <svg> elemanı yaz: viewBox içersin (örn. 0 0 800 600), harici kaynak, görsel ya da script olmasın, her şekilde açık fill/stroke olsun, özenli kompozisyon ve renk paleti kullan, gerekirse <defs> ile gradyan ekle. Yazı gerekiyorsa sistem fontu kullan.\n- Yalnızca \`\`\`svg bloğu içinde ver.`,
+    kod:`- Çalışan, eksiksiz, kısa yorumlu bir dosya yaz. Yalnızca dosyayı tek kod bloğu içinde ver.`,
+    veri:`- Geçerli, gerçekçi ve dolu bir veri dosyası yaz (dosya adının uzantısına göre csv ya da json). Yalnızca dosyayı tek kod bloğu içinde ver.`}[item.kind];
+  return `[GÖREV:ÇIKTI]
 Sen ${a.name}, ${a.role}. ${a.brief}
 ${memFor(a)}
 Proje: ${P.title}. ${P.brief}
 Ekibin kararları: ${P.plan.summary}
 
-Senin bölümün: "${item.title}" — ${item.spec}
-Diğer bölümler (tekrar etme, tutarlı kal):
-${others||"(yok)"}
-${prev?`\nÖnceki sürümün:\n${prev}\n\nDenetçinin senden istediği düzeltmeler:\n${issues}\nBölümü bu düzeltmelerle baştan, eksiksiz yaz.\n`:""}
+Senin çıktın: "${item.title}" (${KIND_TR[item.kind]}, dosya: ${item.file}) — ${item.spec}
+Ekibin diğer çıktıları (tutarlı kal, tekrar etme):
+${context(item)||"(henüz yok)"}
+${prev?`\nÖnceki sürümün:\n${prev.slice(0,6000)}\n\nDenetçinin istediği düzeltmeler:\n${issues}\nÇıktıyı bu düzeltmelerle baştan, eksiksiz yaz.\n`:""}
 Kurallar:
-- Doğrudan kullanılabilir gerçek içerik yaz: metin, plan, tablo, adım listesi ya da çalışan kod. Boş vaat, genel laf, "buraya eklenecek" yazma.
-- 150-450 kelime, Markdown. Başlık yazma (başlığı sistem ekler); alt başlık için "####" kullan.
-- Kod yazarsan her kod bloğunu şu biçimde aç: \`\`\`dil klasör/dosyaadi.uzanti (örnek: \`\`\`html index.html).
-- Yalnızca bölüm içeriğini yaz, giriş ya da kapanış cümlesi ekleme.`;
+${rules}
+- Giriş ya da kapanış cümlesi ekleme.`;
+}
+function extractOut(kind,reply){
+  if(kind==="belge") return reply.trim();
+  const f=reply.match(/```[^\n]*\n([\s\S]*?)(?:```|$)/); let b=(f?f[1]:reply).trim();
+  if(kind==="html"){ const i=b.search(/<!doctype|<html/i); if(i>0) b=b.slice(i); if(/<html/i.test(b)&&!/<\/html>/i.test(b)) b+="\n</body>\n</html>" }
+  if(kind==="svg"){ const m=b.match(/<svg[\s\S]*<\/svg>/i); if(m) b=m[0] }
+  return b;
+}
+const validOut=(k,b)=>b.length>20&&(k==="html"?/<[a-z!]/i.test(b):k==="svg"?/<svg[\s>]/i.test(b)&&/<\/svg>/i.test(b):true);
+async function makeOutput(sample,a,item,prev,issues){
+  for(let i=0;i<2;i++){
+    const res=await sample(outputPrompt(a,item,prev,issues)+(i?"\n\nÖnceki yanıtın beklenen biçimde değildi. Yalnızca istenen biçimde, kod bloğu içinde ver.":""),{cache:false,modelTier:"default",signal:ctrl.signal});
+    const body=extractOut(item.kind,res.text||""); if(validOut(item.kind,body)) return body;
+  }
+  throw {code:"bad_output",message:"Çıktı biçimi geçersiz"};
 }
 async function stepBuild(sample){
-  if(!P.plan){ await stepPlan(sample) }
-  P.sections=[]; renderDocs();
+  if(!P.plan) await stepPlan(sample);
+  P.sections=[]; P.model=null; clearModel(); renderDocs();
   for(const item of P.plan.items){
-    const a=byId(item.agent); if(!a) continue;
-    const md=await work(a,"“"+item.title+"” bölümünü yazıyor",()=>text(sample,sectionPrompt(a,item),"default"),r=>"Bölüm hazır: "+item.title+" ("+r.split(/\s+/).length+" kelime). Çıktı sekmesinde.");
-    P.sections.push({id:P.sections.length+1,agent:a.id,name:a.name,title:item.title,md,rev:0});
+    const a=byId(item.agent); if(!a) continue; let md="";
+    if(item.kind==="3d"){ try{ await stepModel(sample,item) }catch(e){ if(e&&e.code==="cancelled"||ctrl.signal.aborted) throw e; sysMsg("3B model kurulamadı. "+errTxt(e)); continue } }
+    else md=await work(a,"“"+item.title+"” çıktısını hazırlıyor",()=>makeOutput(sample,a,item),r=>"Hazır: "+item.title+" ("+KIND_TR[item.kind]+", "+r.length.toLocaleString("tr-TR")+" karakter). Çıktı sekmesinde.");
+    P.sections.push({id:P.sections.length+1,agent:a.id,name:a.name,title:item.title,kind:item.kind,file:item.file,md,rev:0});
     const t=P.tasks.find(k=>k.plan&&k.text===item.title&&k.owner===a.id&&!k.done); if(t) t.done=true;
     save(); renderDocs(); renderTasks(); renderRoster();
   }
   P.done[2]=true; P.done[3]=false; save();
+  const main=[...P.sections].reverse().find(s=>["html","svg","3d"].includes(s.kind)); setView(main&&main.kind==="3d"?"model":"cikti");
 }
-const fullDoc=()=>`# ${P.title}\n\n> ${P.brief}\n\n`+P.sections.map(s=>`## ${s.title}\n*${s.name}*\n\n${s.md}`).join("\n\n");
-function reviewPrompt(d){
-  const doc=P.sections.map(s=>`### [${s.id}] ${s.title} — ${s.name}\n${s.md.slice(0,2600)}`).join("\n\n");
+const fullDoc=()=>`# ${P.title}\n\n> ${P.brief}\n\n`+P.sections.map(s=>s.kind==="belge"?`## ${s.title}\n*${s.name}*\n\n${s.md}`:`## ${s.title}\n*${s.name}* · ${KIND_TR[s.kind]} · dosya: ${s.file}`).join("\n\n");
+function normSvg(svg){ const vb=svg.match(/viewBox\s*=\s*["']\s*[-\d.]+[ ,]+[-\d.]+[ ,]+([\d.]+)[ ,]+([\d.]+)/i), w=800, h=vb?Math.round(w*(+vb[2]/+vb[1])):600;
+  return svg.replace(/<svg\b([^>]*)>/i,(m,at)=>"<svg"+at.replace(/\s(width|height)\s*=\s*("[^"]*"|'[^']*')/gi,"")+` width="${w}" height="${h}">`) }
+function svgPng(svg){ return new Promise(res=>{ const img=new Image(); img.onload=()=>{ const c=document.createElement("canvas"); c.width=img.naturalWidth||800; c.height=img.naturalHeight||600;
+  const x=c.getContext("2d"); x.fillStyle="#fff"; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0); c.toBlob(b=>res(b),"image/png") }; img.onerror=()=>res(null); img.src=svgSrc(normSvg(svg)) }) }
+async function reviewImages(sample){
+  let ok=false; try{ ok=!!(await sample.limits()).images }catch(e){}
+  if(!ok) return []; const out=[];
+  for(const s of P.sections){ if(out.length>=2) break; const b=s.kind==="svg"?await svgPng(s.md):s.kind==="3d"?await snapshot():null; if(b) out.push(b) }
+  return out;
+}
+function reviewPrompt(d,hasImg){
+  const doc=P.sections.map(s=>{ const h=`### [${s.id}] ${s.title} — ${s.name} (${KIND_TR[s.kind]}${s.file?", "+s.file:""})`;
+    return s.kind==="3d"?h+"\n3B model sahnede kuruldu. Parçalar:\n"+(P.model?modelParts():"(yok)")+"\nÜçgen sayısı: "+(V&&V.model?V.model.tris:"?"):h+"\n"+s.md.slice(0,s.kind==="belge"?2200:3500) }).join("\n\n");
   return `[GÖREV:DENETİM]
 Sen ${d.name}, ${d.role}. ${d.brief}
 ${memFor(d)}
 Proje isteği: ${P.brief}
 Ekibin kararları: ${P.plan?P.plan.summary:""}
 
-Denetlenecek çıktı:
+Denetlenecek çıktılar:
 ${doc}
 
-Çıktıyı sert ama adil denetle: istek eksiksiz karşılanmış mı, bölümler tutarlı mı, içerik gerçek ve uygulanabilir mi, hata ya da boşluk var mı. 0-10 arası puan ver (8 ve üstü = onay). Revize gerekiyorsa en fazla 4 somut madde yaz ve her maddede sorumlu ajanın adını belirt.
-Biçim (yalnızca JSON): {"score":0-10,"verdict":"onay|revize","summary":"2-3 cümle genel değerlendirme","issues":[{"agent":"Ad","issue":"somut düzeltme"}]}`;
+${hasImg?"Ekte SVG ve 3B modelin görüntüleri var; istenen şeye gerçekten benziyor mu, oranlar, renkler ve ayrıntılar doğru mu, kendin bak.":"(Görüntü eklenmedi; kodu ve içeriği okuyarak değerlendir.)"}
+Çıktıları sert ama adil denetle: kullanıcının istediği asıl şey GERÇEKTEN üretilmiş mi (yalnızca anlatılmamış mı), çalışır ve görünür durumda mı, parçalar birbiriyle tutarlı mı, eksik ya da hatalı yer var mı. 0-10 arası puan ver (8 ve üstü = onay). Revize gerekiyorsa en fazla 4 somut madde yaz; her maddede çıktı numarasını ve sorumlu ajanın adını belirt.
+Biçim (yalnızca JSON): {"score":0-10,"verdict":"onay|revize","summary":"2-3 cümle genel değerlendirme","issues":[{"output":numara,"agent":"Ad","issue":"somut düzeltme"}]}`;
 }
 async function stepReview(sample){
   if(!P.sections.length) await stepBuild(sample);
   const d=P.team.find(a=>a.reviewer); if(!d) return;
   for(let round=0;round<3;round++){
-    const rv=await work(d,round?"yeniden denetliyor":"projeyi denetliyor",()=>getJson(sample,reviewPrompt(d),"default",v=>{
+    const imgs=await reviewImages(sample);
+    const rv=await work(d,round?"yeniden denetliyor":"projeyi denetliyor",()=>getJson(sample,reviewPrompt(d,imgs.length>0),"default",v=>{
       if(!v||typeof v!=="object") return null; const score=num(v.score,NaN,0,10); if(!Number.isFinite(score)) return null;
-      const issues=(Array.isArray(v.issues)?v.issues:[]).map(i=>{ const a=i&&byName(i.agent); return a&&!a.reviewer&&i.issue?{agent:a.name,aid:a.id,issue:String(i.issue).slice(0,240)}:null }).filter(Boolean).slice(0,4);
-      const ok=score>=8; return {score:Math.round(score*10)/10,verdict:ok?"onay":"revize",summary:String(v.summary||""),issues:ok?[]:issues} }),
+      const issues=(Array.isArray(v.issues)?v.issues:[]).map(i=>{ if(!i||!i.issue) return null; const sec=P.sections.find(s=>s.id===+i.output)||P.sections.find(s=>{ const a=byName(i.agent); return a&&s.agent===a.id }); if(!sec) return null;
+        return {agent:byId(sec.agent)?byId(sec.agent).name:"?",sid:sec.id,issue:String(i.issue).slice(0,240)} }).filter(Boolean).slice(0,4);
+      const ok=score>=8; return {score:Math.round(score*10)/10,verdict:ok?"onay":"revize",summary:String(v.summary||""),issues:ok?[]:issues} },imgs.length?{images:imgs}:undefined),
       r=>`${r.score}/10 — ${r.verdict==="onay"?"ONAY":"REVİZE GEREKLİ"}. ${r.summary}`+(r.issues.length?"\n"+r.issues.map(i=>"• "+i.agent+": "+i.issue).join("\n"):""));
     P.reviews.push(Object.assign({round},rv)); renderDocs(); save();
     if(rv.verdict==="onay"||round===2||!rv.issues.length) break;
-    const by={}; rv.issues.forEach(i=>{ (by[i.aid]=by[i.aid]||[]).push(i.issue) });
-    for(const aid of Object.keys(by)){
-      const a=byId(aid), secs=P.sections.filter(s=>s.agent===aid); if(!a||!secs.length) continue; const sec=secs[0], item=P.plan.items.find(i=>i.title===sec.title)||{title:sec.title,spec:""};
-      const md=await work(a,"“"+sec.title+"” bölümünü düzeltiyor",()=>text(sample,sectionPrompt(a,item,sec.md,by[aid].map(x=>"- "+x).join("\n")),"default"),()=>"Düzeltme tamam.");
-      sec.md=md; sec.rev++; save(); renderDocs();
+    const by={}; rv.issues.forEach(i=>{ (by[i.sid]=by[i.sid]||[]).push(i.issue) });
+    for(const sid of Object.keys(by)){
+      const sec=P.sections.find(s=>s.id===+sid); if(!sec) continue; const txt=by[sid].map(x=>"- "+x).join("\n");
+      if(sec.kind==="3d"){ await reviseParts(sample,modelRoles().mod,txt); sec.rev++; save(); renderDocs(); continue }
+      const a=byId(sec.agent); if(!a) continue; const item=(P.plan.items.find(i=>i.title===sec.title))||{title:sec.title,spec:"",kind:sec.kind,file:sec.file};
+      sec.md=await work(a,"“"+sec.title+"” çıktısını düzeltiyor",()=>makeOutput(sample,a,item,sec.md,txt),()=>"Düzeltme tamam."); sec.rev++; save(); renderDocs();
     }
   }
   P.done[3]=true; save();
 }
-const num=(v,d,lo,hi)=>{ v=+v; return Number.isFinite(v)?Math.min(hi,Math.max(lo,v)):d };
 function learnPrompt(a,train){
   const last=(P.reviews||[]).slice(-1)[0], mine=P.sections.filter(s=>s.agent===a.id).map(s=>s.title).join(", ");
   const rev=last?`Denetçi sonucu: ${last.score}/10 — ${last.summary}\nMaddeler: ${last.issues.map(i=>i.agent+": "+i.issue).join(" | ")||"yok"}`:"(denetim yok)";
@@ -601,6 +704,252 @@ async function stepLearn(sample,train){
   if(!train){ P.done[4]=true; M.done++; M.archive.push({title:P.title,score:last?last.score:null,t:Date.now()}); M.archive=M.archive.slice(-30) }
   save(); renderAll();
 }
+
+/* ---------- 3B model ---------- */
+/* ---------- 3B MODEL: şema, doğrulama, kurulum ---------- */
+let V=null;
+const num=(v,d=0,lo=-100,hi=100)=>{ v=+v; return Number.isFinite(v)?Math.min(hi,Math.max(lo,v)):d };
+const vec=(a,d)=>Array.isArray(a)?[0,1,2].map(i=>num(a[i],d[i])):d.slice();
+const hex=(c,d)=>/^#[0-9a-f]{6}$/i.test(c)?c:d;
+const KINDS=["ellipsoid","lathe","fin","cylinder","cone","torus"];
+
+function cleanParts(list){
+  if(!Array.isArray(list)) return [];
+  const names=new Set(), out=[];
+  list.slice(0,80).forEach((p,i)=>{
+    if(!p||!KINDS.includes(p.kind)) return;
+    let name=String(p.name||p.kind+i).slice(0,30); while(names.has(name)) name+="_"; names.add(name);
+    const q={name,kind:p.kind,pos:vec(p.pos,[0,0,0]),rot:vec(p.rot,[0,0,0]),
+      size:vec(p.size,[1,1,1]).map(v=>Math.max(0.001,Math.abs(v))),color:hex(p.color,"#c8c8c8"),mirror:!!p.mirror,thickness:num(p.thickness,0.03,0.003,0.5)};
+    if(q.kind==="lathe"||q.kind==="fin"){
+      let pts=(Array.isArray(p.points)?p.points:[]).slice(0,48).filter(a=>Array.isArray(a)).map(a=>[num(a[0],0),num(a[1],0)]);
+      if(pts.length<(q.kind==="fin"?3:2)) return;
+      if(q.kind==="lathe"){
+        pts=pts.map(([x,r])=>[x,Math.abs(r)]).sort((a,b)=>a[0]-b[0]);
+        if(pts[0][1]>0.002) pts.unshift([pts[0][0],0]);
+        if(pts[pts.length-1][1]>0.002) pts.push([pts[pts.length-1][0],0]);
+      }
+      q.points=pts;
+    }
+    out.push(q);
+  });
+  return out;
+}
+const AX=["x","y","z"];
+function cleanMaterials(list){
+  if(!Array.isArray(list)) return [];
+  return list.slice(0,80).filter(m=>m&&m.part).map(m=>({part:String(m.part),color:m.color&&hex(m.color,null),color2:m.color2&&hex(m.color2,null),
+    gradient:AX.includes(m.gradient)?m.gradient:null,roughness:num(m.roughness,0.5,0,1),metalness:num(m.metalness,0,0,1),
+    opacity:num(m.opacity,1,0.1,1),clearcoat:num(m.clearcoat,0,0,1),emissive:m.emissive&&hex(m.emissive,null)}));
+}
+function cleanAnim(a){
+  a=a&&typeof a==="object"?a:{};
+  return {bob:{amp:num(a.bob&&a.bob.amp,0.03,0,0.3),speed:num(a.bob&&a.bob.speed,0.5,0,5)},
+    yaw:{amp:num(a.yaw&&a.yaw.amp,5,0,30),speed:num(a.yaw&&a.yaw.speed,1,0,5)},
+    parts:(Array.isArray(a.parts)?a.parts:[]).slice(0,40).filter(x=>x&&x.part&&AX.includes(x.axis)).map(x=>({part:String(x.part),axis:x.axis,
+      amp:num(x.amp,10,0,70),speed:num(x.speed,1,0,6),phase:num(x.phase,0,0,1),pivot:Array.isArray(x.pivot)?vec(x.pivot,[0,0,0]):null}))};
+}
+function cleanScene(c){
+  c=c&&typeof c==="object"?c:{};
+  return {background:hex(c.background,"#cfd8e3"),backgroundBottom:hex(c.backgroundBottom,"#9fb0c4"),
+    keyColor:hex(c.keyColor,"#ffffff"),keyIntensity:num(c.keyIntensity,1.1,0,4),fillColor:hex(c.fillColor,"#a8c4ff"),fillIntensity:num(c.fillIntensity,0.45,0,3),
+    rimColor:hex(c.rimColor,"#ffffff"),rimIntensity:num(c.rimIntensity,0.7,0,4),ambient:num(c.ambient,0.4,0,2),exposure:num(c.exposure,1,0.3,2.5),
+    floor:c.floor==="disc"?"disc":"none",floorColor:hex(c.floorColor,"#8a97a8"),azimuth:num(c.azimuth,35,-180,180),elevation:num(c.elevation,15,-10,70),autoRotate:c.autoRotate!==false};
+}
+
+function geometryFor(p){
+  let g;
+  switch(p.kind){
+    case "ellipsoid": g=new THREE.SphereGeometry(1,32,20); g.scale(p.size[0],p.size[1],p.size[2]); break;
+    case "lathe": { const sp=new THREE.SplineCurve(p.points.map(([x,r])=>new THREE.Vector2(x,r))).getPoints(p.points.length*7);
+      g=new THREE.LatheGeometry(sp.map((v,i)=>new THREE.Vector2(i===0||i===sp.length-1?0:Math.abs(v.y),v.x)),48); } g.rotateZ(-Math.PI/2); g.scale(1,p.size[1],p.size[2]); break;
+    case "fin": {
+      const c=new THREE.CatmullRomCurve3(p.points.map(([x,y])=>new THREE.Vector3(x,y,0)),true,"centripetal");
+      const sh=new THREE.Shape(c.getPoints(70).map(v=>new THREE.Vector2(v.x,v.y)));
+      g=new THREE.ExtrudeGeometry(sh,{depth:p.thickness,bevelEnabled:false,steps:1}); g.translate(0,0,-p.thickness/2); break; }
+    case "cylinder": g=new THREE.CylinderGeometry(p.size[0],p.size[0],p.size[1],28); break;
+    case "cone": g=new THREE.ConeGeometry(p.size[0],p.size[1],28); break;
+    default: g=new THREE.TorusGeometry(p.size[0],p.size[1],14,36);
+  }
+  return g;
+}
+function paintGradient(g,c1,c2,axis){
+  g.computeBoundingBox(); const bb=g.boundingBox, lo=bb.min[axis], hi=bb.max[axis], pos=g.attributes.position;
+  const col=new Float32Array(pos.count*3), A=new THREE.Color(c1), B=new THREE.Color(c2), t=new THREE.Color(), i0=AX.indexOf(axis);
+  for(let i=0;i<pos.count;i++){ const k=hi===lo?0:([pos.getX(i),pos.getY(i),pos.getZ(i)][i0]-lo)/(hi-lo); t.copy(A).lerp(B,Math.min(1,Math.max(0,k))); col.set([t.r,t.g,t.b],i*3) }
+  g.setAttribute("color",new THREE.BufferAttribute(col,3));
+}
+function materialFor(p,mats){
+  const m=Object.assign({},...mats.filter(x=>x.part==="*"),...mats.filter(x=>x.part===p.name));
+  const c=m.color||p.color, grad=m.gradient&&m.color2;
+  return {grad:grad?{c1:c,c2:m.color2,axis:m.gradient}:null,
+    mat:new THREE.MeshPhysicalMaterial({color:grad?0xffffff:new THREE.Color(c),vertexColors:!!grad,roughness:m.roughness??0.5,metalness:m.metalness??0.05,
+      clearcoat:m.clearcoat||0,clearcoatRoughness:0.2,opacity:m.opacity??1,transparent:(m.opacity??1)<1,side:(p.kind==="fin"||(m.opacity??1)<1)?THREE.DoubleSide:THREE.FrontSide,
+      emissive:new THREE.Color(m.emissive||"#000000")})};
+}
+const rad=d=>d*Math.PI/180;
+function buildModel(sp){
+  const swimmer=new THREE.Group(), anims=[]; let tris=0;
+  const add=(p,mir)=>{
+    const s=mir?-1:1, pos=[p.pos[0],p.pos[1],s*p.pos[2]];
+    const g=geometryFor(p), {mat,grad}=materialFor(p,sp.materials);
+    if(grad) paintGradient(g,grad.c1,grad.c2,grad.axis);
+    tris+=(g.index?g.index.count:g.attributes.position.count)/3;
+    const mesh=new THREE.Mesh(g,mat); mesh.castShadow=true;
+    mesh.rotation.set(rad(s*p.rot[0]),rad(s*p.rot[1]),rad(p.rot[2]),"XYZ");
+    const list=sp.animation.parts.filter(a=>a.part===p.name), pv=list.find(a=>a.pivot);
+    const pivot=pv?[pv.pivot[0],pv.pivot[1],s*pv.pivot[2]]:pos, wrap=new THREE.Group();
+    wrap.position.set(...pivot); mesh.position.set(pos[0]-pivot[0],pos[1]-pivot[1],pos[2]-pivot[2]); wrap.add(mesh); swimmer.add(wrap);
+    list.forEach(a=>anims.push({g:wrap,axis:a.axis,amp:rad(a.amp)*(mir&&(a.axis==="x"||a.axis==="y")?-1:1),speed:a.speed,phase:a.phase}));
+  };
+  sp.parts.forEach(p=>{ add(p,false); if(p.mirror) add(p,true) });
+  const holder=new THREE.Group(); holder.add(swimmer);
+  const box=new THREE.Box3().setFromObject(swimmer), size=box.getSize(new THREE.Vector3()), ctr=box.getCenter(new THREE.Vector3());
+  swimmer.position.sub(ctr); const k=2/Math.max(size.x,size.y,size.z,0.001); holder.scale.setScalar(k);
+  return {holder,swimmer,anims,tris:Math.round(tris),size:size.multiplyScalar(k),base:swimmer.position.clone()};
+}
+
+/* ---------- görüntüleyici ---------- */
+function initViewer(){
+  if(V) return V;
+  const stage=$("stage");
+  if(typeof THREE==="undefined"){ $("vempty").firstChild.textContent="3B kütüphanesi yüklenemedi. Sayfayı yenile."; return null }
+  let renderer;
+  try{ renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:false}) }
+  catch(e){ $("vempty").firstChild.textContent="Bu cihazda WebGL kullanılamıyor."; return null }
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,2)); renderer.shadowMap.enabled=true;
+  stage.appendChild(renderer.domElement);
+  const scene=new THREE.Scene(), cam=new THREE.PerspectiveCamera(38,1,0.1,60);
+  const controls=new THREE.OrbitControls(cam,renderer.domElement); controls.enableDamping=true; controls.minDistance=1.5; controls.maxDistance=9;
+  const amb=new THREE.AmbientLight(0xffffff,0.4), key=new THREE.DirectionalLight(0xffffff,1.1), fill=new THREE.DirectionalLight(0xa8c4ff,0.45), rim=new THREE.DirectionalLight(0xffffff,0.7);
+  key.position.set(3,4,3); key.castShadow=true; key.shadow.mapSize.set(1024,1024); Object.assign(key.shadow.camera,{left:-3,right:3,top:3,bottom:-3,near:0.5,far:14});
+  fill.position.set(-4,1,2); rim.position.set(-2,3,-4); scene.add(amb,key,fill,rim);
+  V={renderer,scene,cam,controls,amb,key,fill,rim,model:null,floor:null,cfg:cleanScene({}),spin:true,
+    resize(){ const w=stage.clientWidth,h=stage.clientHeight; if(!w||!h) return; renderer.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix() }};
+  new ResizeObserver(()=>V.resize()).observe(stage);
+  const tick=t=>{ requestAnimationFrame(tick);
+    if($("app").dataset.view!=="model"||document.hidden||!V.model||!P||!P.model) return;
+    const s=t/1000, M=V.model, a=P.model.animation;
+    M.anims.forEach(x=>{ x.g.rotation[x.axis]=x.amp*Math.sin((s*x.speed+x.phase)*Math.PI*2) });
+    M.swimmer.rotation.y=rad(a.yaw.amp)*Math.sin(s*a.yaw.speed*Math.PI*2);
+    M.swimmer.position.y=M.base.y+a.bob.amp/M.holder.scale.x*Math.sin(s*a.bob.speed*Math.PI*2);
+    controls.autoRotate=V.spin&&V.cfg.autoRotate; controls.autoRotateSpeed=1.2; controls.update(); renderer.render(scene,cam) };
+  requestAnimationFrame(tick); return V;
+}
+function clearModel(){ if(V&&V.model){ V.scene.remove(V.model.holder); V.model=null; if(V.floor){ V.scene.remove(V.floor); V.floor=null } V.renderer.clear() }
+  $("vempty").hidden=false; $("vinfo").textContent="henüz üretilmedi"; ["vglb","vpng","vjson","vrev"].forEach(i=>$(i).disabled=true) }
+function showModel(){
+  const sp=P&&P.model; if(!sp||!sp.parts||!sp.parts.length) return clearModel();
+  const v=initViewer(); if(!v) return;
+  if(v.model){ v.scene.remove(v.model.holder); v.model.holder.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material) o.material.dispose() }) }
+  v.model=buildModel(sp); v.scene.add(v.model.holder);
+  const c=v.cfg=sp.scene;
+  $("stage").style.background=`linear-gradient(${c.background},${c.backgroundBottom})`;
+  v.renderer.toneMappingExposure=c.exposure; v.renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  v.amb.intensity=c.ambient; v.key.color.set(c.keyColor); v.key.intensity=c.keyIntensity; v.fill.color.set(c.fillColor); v.fill.intensity=c.fillIntensity; v.rim.color.set(c.rimColor); v.rim.intensity=c.rimIntensity;
+  if(v.floor){ v.scene.remove(v.floor); v.floor=null }
+  if(c.floor==="disc"){ const f=new THREE.Mesh(new THREE.CircleGeometry(2.6,48),new THREE.MeshStandardMaterial({color:c.floorColor,roughness:0.9})); f.rotation.x=-Math.PI/2; f.position.y=-v.model.size.y/2-0.08; f.receiveShadow=true; v.floor=f; v.scene.add(f) }
+  const az=rad(c.azimuth), el=rad(c.elevation), d=4.4;
+  v.cam.position.set(Math.sin(az)*Math.cos(el)*d,Math.sin(el)*d,Math.cos(az)*Math.cos(el)*d); v.controls.target.set(0,0,0); v.controls.update();
+  $("vempty").hidden=true; v.resize();
+  const n=sp.parts.length+sp.parts.filter(p=>p.mirror).length;
+  $("vinfo").textContent=`${n} parça · ${v.model.tris.toLocaleString("tr-TR")} üçgen`;
+  ["vglb","vpng","vjson","vrev"].forEach(i=>$(i).disabled=false);
+}
+
+
+/* ---------- 3B model: dışa aktarma ve ekip adımları ---------- */
+function glb(){ return new Promise((ok,no)=>{
+  if(!V||!V.model||!THREE.GLTFExporter) return no(new Error("exporter"));
+  const M=V.model; M.anims.forEach(x=>x.g.rotation[x.axis]=0); M.swimmer.rotation.y=0; M.swimmer.position.copy(M.base);
+  new THREE.GLTFExporter().parse(M.holder,ok,{binary:true}) }) }
+function snapshot(){ return new Promise(res=>{
+  const v=P&&P.model&&initViewer(); if(!v||!v.model) return res(null);
+  const M=v.model; M.anims.forEach(x=>x.g.rotation[x.axis]=0); M.swimmer.rotation.y=0; M.swimmer.position.copy(M.base);
+  const r=v.renderer; r.setClearColor(new THREE.Color(v.cfg.backgroundBottom),1); r.setSize(640,480,false); v.cam.aspect=640/480; v.cam.updateProjectionMatrix(); r.render(v.scene,v.cam);
+  r.domElement.toBlob(b=>{ r.setClearColor(0x000000,0); v.resize(); res(b) },"image/png") }) }
+$("vglb").onclick=async()=>{ try{ const buf=await glb(); await saveFile("model.zip",zipStore([{name:"model.glb",data:new Uint8Array(buf)}])) }catch(e){ $("hint").textContent="GLB hazırlanamadı." } };
+$("vpng").onclick=()=>{ if(!V) return; V.renderer.render(V.scene,V.cam); V.renderer.domElement.toBlob(b=>b&&saveFile("model.png",b),"image/png") };
+$("vjson").onclick=()=>{ if(P&&P.model) saveFile("model-spec.json",JSON.stringify(P.model,null,1)) };
+$("vrot").onclick=()=>{ if(!V) return; V.spin=!V.spin; $("vrot").textContent=V.spin?"Dönmeyi durdur":"Döndür" };
+
+const who3=a=>`Sen ${a.name}, ${a.role}. ${a.brief}\n${memFor(a)}\n`;
+const modelParts=()=>P.model.parts.map(p=>`${p.name} (${p.kind}, konum ${p.pos.map(v=>+v.toFixed(2))}, ${p.mirror?"çift":"tek"}, ${p.color})`).join("\n");
+const P_MODEL=(a,brief,extra)=>`${who3(a)}Aşağıdaki üretim özetine göre 3 boyutlu modeli ilkel parçalardan kur. YALNIZCA JSON döndür, açıklama yazma.
+
+Üretim özeti:
+${brief}
+${extra||""}
+Koordinat sistemi: Y yukarı, nesnenin ön yönü +X (uzun ekseni X boyunca), Z yan taraf. En uzun boyut yaklaşık 2 birim, merkez orijine yakın. Açılar derece, sıra XYZ.
+
+Parça türleri (kind):
+- "ellipsoid": size = [rx, ry, rz] yarıçaplar. Göz, kafa, küçük kabartılar için.
+- "lathe": points = [[x, r], ...] profil; x uzun eksen boyunca konum, r o noktadaki yarıçap. En az 8 nokta kullan, uçlarda r küçülsün (gövde, boru, vazo). size = [1, yükseklikÇarpanı, genişlikÇarpanı] ile yanal sıkıştırabilirsin (örn. yandan basık gövde için [1, 1.3, 0.55]).
+- "fin": points = [[x, y], ...] yumuşatılan kapalı 2B siluet (6-14 nokta). Parça orijini (0,0) bağlantı noktasıdır; XY düzleminde yatar, kalınlığı thickness (0.01-0.04). Yüzgeç, kuyruk, yaprak, kanat için. rot ile çevir.
+- "cylinder": size = [yarıçap, yükseklik]; "cone": size = [yarıçap, yükseklik]; "torus": size = [halka yarıçapı, tüp kalınlığı]. Eksenleri Y'dir, rot ile döndür.
+Parça biçimi: {"name","kind","pos":[x,y,z],"rot":[rx,ry,rz],"size":[a,b,c],"points":[[..],..],"thickness":0.02,"color":"#rrggbb","mirror":false}
+mirror:true parçayı Z=0 düzleminde yansıtır; çift parçaları (göz, yan yüzgeç, kol, bacak) z>0 tarafında tanımla ve mirror:true yap.
+Kurallar: 12-30 parça; benzersiz Türkçe adlar; organik biçimler için lathe ve fin kullan; parçalar birbirine temas etsin veya örtüşsün; oranlar özetle uyumlu olsun.
+Biçim örneği: {"parts":[{"name":"gövde","kind":"lathe","pos":[0,0,0],"rot":[0,0,0],"size":[1,1,1],"points":[[-1,0],[-0.8,0.2],[0,0.3],[0.8,0.2],[1,0]],"color":"#88aacc"},{"name":"kanat","kind":"fin","pos":[0,0.2,0.1],"rot":[0,0,0],"points":[[0,0],[-0.3,0.4],[-0.6,0.1]],"thickness":0.02,"color":"#cc8844","mirror":true}]}`;
+const P_MAT=(a,brief)=>`${who3(a)}Üretim özetine ve parça listesine göre PBR malzemeleri belirle. YALNIZCA JSON döndür.
+
+Üretim özeti:
+${brief}
+
+Parçalar:
+${modelParts()}
+
+Biçim: {"materials":[{"part":"*" ya da tam parça adı,"color":"#rrggbb","color2":"#rrggbb (isteğe bağlı, geçiş rengi)","gradient":"x|y|z (isteğe bağlı, parçanın yerel ekseni boyunca color→color2 geçişi)","roughness":0-1,"metalness":0-1,"opacity":0.1-1,"clearcoat":0-1,"emissive":"#rrggbb (isteğe bağlı)"}]}
+Kurallar: "*" tüm parçalara varsayılan olur, sonra adı yazılan parçalar bunu ezer. Parça adlarını aynen kullan. Yüzgeç, kuyruk, yaprak gibi ince yapılarda opacity 0.55-0.85 kullan. Büyük gövdelerde gradient ile doğal renk geçişi ver. Özetteki renk ve desenlere sadık kal.`;
+const P_ANIM=(a,brief)=>`${who3(a)}Modelin canlı görünmesi için hareket belirle. YALNIZCA JSON döndür.
+
+Üretim özeti:
+${brief}
+
+Parçalar:
+${modelParts()}
+
+Biçim: {"animation":{"bob":{"amp":0.0-0.1,"speed":Hz},"yaw":{"amp":derece 0-15,"speed":Hz},"parts":[{"part":"tam parça adı","axis":"x|y|z","amp":derece,"speed":Hz,"phase":0-1,"pivot":[x,y,z]}]}}
+Kurallar: bob tüm modelin yukarı-aşağı salınımı, yaw tüm modelin sağa-sola dönmesidir. parts içindeki hareket parçayı pivot noktası etrafında, verilen eksende döndürür; pivot yazmazsan parçanın konumu kullanılır. Kuyruk, kol, kapak gibi parçalar için pivot'u bağlantı noktasına koy. mirror'lı parçaların karşı tarafı otomatik yansıtılır. 0-8 parça hareket ettir (nesne hareket etmeyecekse boş bırak), hızlar 0.3-3 Hz, abartma.`;
+const P_SCENE=(a,brief)=>`${who3(a)}Modeli en iyi gösterecek sahne ve ışık ayarını belirle. YALNIZCA JSON döndür.
+
+Üretim özeti:
+${brief}
+
+Biçim: {"scene":{"background":"#üst renk","backgroundBottom":"#alt renk","keyColor":"#","keyIntensity":0-3,"fillColor":"#","fillIntensity":0-2,"rimColor":"#","rimIntensity":0-3,"ambient":0-1.5,"exposure":0.6-1.6,"floor":"none|disc","floorColor":"#","azimuth":-180..180,"elevation":0..40,"autoRotate":true}}
+Kurallar: arka plan modelin renklerini öne çıkarsın; ana ışık sıcak veya nötr, dolgu soğuk, kontur ışığı silueti ayırsın. Kompozisyona uygun açı seç.`;
+function modelRoles(){ const co=coord(), pk=re=>live().find(a=>re.test(a.role)&&!a.reviewer&&!a.recruiter)||co;
+  return {co,mod:pk(/model|3d|3b/i),mat:pk(/doku|malzeme|texture|materyal/i),ani:pk(/animasyon|rig|hareket/i),lig:pk(/ışık|isik|render|sahne|kamera/i)} }
+function modelBriefPrompt(co){
+  const docs=P.sections.filter(s=>s.kind!=="3d").map(s=>`### ${s.title}\n${s.md.slice(0,1500)}`).join("\n\n");
+  return `Sen ${co.name}, ${co.role}. Ekibin 3 boyutlu modeli ilkel şekillerden (küre, profil dönel gövde, ince yüzgeç/yaprak siluetleri, silindir, koni, halka) kurabilmesi için bir ÜRETİM ÖZETİ yaz.
+Özet 8-14 satır olsun ve şunları açıkça içersin: nesnenin ne olduğu, ana oranlar (uzunluk:yükseklik:genişlik), her ana parçanın biçimi, parça listesi, renk ve desenler, hareket etmesi gereken parçalar. Kararsız noktalara sen makul karar ver. Sadece özeti yaz.
+
+Proje: ${P.brief}
+Ekibin kararları: ${P.plan?P.plan.summary:""}
+${docs?"\nEkibin yazdığı destek belgeleri:\n"+docs:""}`;
+}
+async function stepModel(sample,item){
+  const R=modelRoles(), sec=P.sections.find(s=>s.kind==="3d");
+  const brief=await work(R.co,"3B üretim özetini yazıyor",()=>text(sample,modelBriefPrompt(R.co),"quick"),b=>b);
+  P.model={brief,parts:[],materials:[],animation:cleanAnim({}),scene:cleanScene({})};
+  P.model.parts=await work(R.mod,"modeli parçalardan kuruyor",()=>getJson(sample,P_MODEL(R.mod,brief),"default",v=>{ const l=cleanParts(v&&v.parts); return l.length>=3?l:null }),
+    l=>`${l.length} parça kurdum: ${l.map(p=>p.name).slice(0,8).join(", ")}${l.length>8?"…":""}.`);
+  const opt=async(a,label,fn,pick,done)=>{ try{ return await work(a,label,()=>getJson(sample,fn,"quick",pick),done) }catch(e){ if(e&&e.code==="cancelled"||ctrl.signal.aborted) throw e; return null } };
+  P.model.materials=(await opt(R.mat,"malzemeleri hazırlıyor",P_MAT(R.mat,brief),v=>{ const l=cleanMaterials(v&&v.materials); return l.length?l:null },l=>`${l.length} malzeme tanımı hazır.`))||[];
+  P.model.animation=(await opt(R.ani,"hareketi kuruyor",P_ANIM(R.ani,brief),v=>v&&v.animation&&cleanAnim(v.animation),a=>`${a.parts.length} parça hareketlenecek.`))||cleanAnim({});
+  P.model.scene=(await opt(R.lig,"sahneyi ve ışığı kuruyor",P_SCENE(R.lig,brief),v=>v&&v.scene&&cleanScene(v.scene),c=>"Işık ve arka plan hazır."))||cleanScene({});
+  save(); showModel(); return P.model;
+}
+async function reviseParts(sample,a,request){
+  const cur=JSON.stringify(P.model.parts.map(({name,kind,pos,rot,size,points,thickness,color,mirror})=>({name,kind,pos,rot,size,points,thickness,color,mirror})));
+  P.model.parts=await work(a,"modeli düzeltiyor",()=>getJson(sample,P_MODEL(a,P.model.brief,`\nMEVCUT PARÇALAR (bunları düzenleyip tamamını geri döndür; istenmeyen parçalara dokunma):\n${cur}\n\nİstenen değişiklik: ${request}\n`),"default",v=>{ const l=cleanParts(v&&v.parts); return l.length>=3?l:null }),l=>`Güncelledim, şimdi ${l.length} parça var.`);
+  save(); showModel();
+}
+$("vrev").onclick=()=>{ const req=$("rtext").value.trim(); if(!req||busy||!P||!P.model) return; $("rtext").value="";
+  run(async s=>{ P.log.push({from:"me",text:"[Model revizyonu] "+req}); await reviseParts(s,modelRoles().mod,req) }) };
+$("rtext").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); $("vrev").click() } });
+
 
 /* ---------- çalıştırıcı ---------- */
 async function getSample(){ try{ return (typeof claude!=="undefined"&&claude.use)?await claude.use("sample"):null }catch(e){ return null } }
@@ -636,10 +985,14 @@ async function send(){
 
 /* ---------- dışa aktarma ---------- */
 function codeFiles(){
-  if(!P) return []; const out=[], used=new Set(); let n=0;
-  P.sections.forEach(s=>{ const re=/```([^\n]*)\n([\s\S]*?)```/g; let m;
+  if(!P) return []; const out=[], used=new Set(); let n=0, enc=new TextEncoder();
+  const add=(nm,data)=>{ while(used.has(nm)) nm="k"+(++n)+"-"+nm; used.add(nm); out.push({name:nm,data:enc.encode(data)}) };
+  P.sections.forEach(s=>{
+    if(s.kind==="3d") return;
+    if(s.kind!=="belge"){ add(cleanFile(s.file,s.kind,s.title),s.md); return }
+    const re=/```([^\n]*)\n([\s\S]*?)```/g; let m;
     while((m=re.exec(s.md))){ const parts=m[1].trim().split(/\s+/), lang=(parts[0]||"txt").toLowerCase(); let nm=parts[1]||""; nm=nm.replace(/[^\w./-]/g,"").replace(/^[./]+/,"").replace(/\.\.+/g,".");
-      const ext={javascript:"js",python:"py",typescript:"ts",markdown:"md"}[lang]||lang.replace(/[^a-z0-9]/g,"")||"txt"; if(!nm) nm="kod-"+(++n)+"."+ext; while(used.has(nm)) nm="k"+(++n)+"-"+nm; used.add(nm); out.push({name:nm,data:new TextEncoder().encode(m[2])}) } });
+      const ext={javascript:"js",python:"py",typescript:"ts",markdown:"md"}[lang]||lang.replace(/[^a-z0-9]/g,"")||"txt"; if(!nm) nm="kod-"+(++n)+"."+ext; add(nm,m[2]) } });
   return out;
 }
 function crc32(u8){ if(!crc32.t){ crc32.t=[]; for(let n=0,c;n<256;n++){ c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; crc32.t[n]=c>>>0 } }
@@ -659,9 +1012,19 @@ async function saveFile(name,data){
   if(!d){ $("hint").textContent="Bu görünümde dosya kaydı kullanılamıyor."; return }
   try{ await d.save({filename:name,data}); note(null,name+" kaydedildi") }catch(e){ if(!e||e.code!=="declined") $("hint").textContent="Dosya kaydedilemedi ["+(e&&e.code||"hata")+"]" }
 }
-$("dmd").onclick=()=>{ if(P&&P.sections.length) saveFile("cikti.md",fullDoc()) };
-$("dzip").onclick=()=>{ const f=codeFiles(); if(f.length) saveFile("kod-dosyalari.zip",zipStore(f)) };
-$("dcopy").onclick=async()=>{ try{ await navigator.clipboard.writeText(fullDoc()); $("hint").textContent="Çıktı panoya kopyalandı." }catch(e){ $("hint").textContent="Kopyalanamadı; Markdown indir düğmesini kullan." } };
+const DIRECT=new Set(["html","svg","md","txt","json","csv"]);
+async function downloadOne(sec){
+  if(sec.kind==="3d"){ try{ if(!(V&&V.model)) showModel(); const buf=await glb(); await saveFile("model.zip",zipStore([{name:"model.glb",data:new Uint8Array(buf)}])) }catch(e){ $("hint").textContent="GLB hazırlanamadı." } return }
+  const nm=cleanFile(sec.file,sec.kind,sec.title), base=nm.split("/").pop(), ext=base.split(".").pop().toLowerCase();
+  if(sec.kind==="belge") return saveFile(ext==="md"?base:keyOf(sec.title)+".md",sec.md);
+  if(DIRECT.has(ext)) return saveFile(base,sec.md);
+  saveFile(base+".zip",zipStore([{name:nm,data:new TextEncoder().encode(sec.md)}]));
+}
+$("dmd").onclick=()=>{ if(P&&P.sections.length) saveFile("rapor.md",fullDoc()) };
+$("dzip").onclick=async()=>{ if(!P) return; const f=codeFiles();
+  if(P.model){ try{ if(!(V&&V.model)) showModel(); f.push({name:"model.glb",data:new Uint8Array(await glb())}) }catch(e){} }
+  f.push({name:"rapor.md",data:new TextEncoder().encode(fullDoc())}); saveFile("proje-dosyalari.zip",zipStore(f)) };
+$("dcopy").onclick=async()=>{ try{ await navigator.clipboard.writeText(fullDoc()); $("hint").textContent="Rapor panoya kopyalandı." }catch(e){ $("hint").textContent="Kopyalanamadı; Rapor (.md) düğmesini kullan." } };
 
 /* ---------- olaylar ---------- */
 const grow=()=>{ const i=$("input"); i.style.height="auto"; i.style.height=Math.min(i.scrollHeight,140)+"px" };
@@ -673,11 +1036,12 @@ $("auto").onclick=autopilot;
 $("free").onclick=()=>{ if(P&&!busy) run(async s=>{ await talkRounds(s,4,"free") }) };
 $("train").onclick=()=>{ if(P&&!busy) run(async s=>{ await stepLearn(s,true) }) };
 function twice(id,key,label,fn){ const b=$(id); b.onclick=()=>{ if(busy) return; if(armed[key]){ armed[key]=0; b.textContent=label; fn() } else { armed[key]=1; b.textContent="Emin misin?"; setTimeout(()=>{ armed[key]=0; b.textContent=label },3500) } } }
-twice("newp","newp","Yeni proje",()=>{ P=null; save(); setView("oda"); renderAll(); setBusy(false) });
+twice("newp","newp","Yeni proje",()=>{ P=null; clearModel(); save(); setView("oda"); renderAll(); setBusy(false) });
 twice("wipe","wipe","Hafızayı sıfırla",()=>{ M={play:{},lessons:[],xp:{},done:0,archive:[]}; save(); renderAll() });
-function setView(v){ $("app").dataset.view=v; $("tabs").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v)) }
+function setView(v){ $("app").dataset.view=v; $("tabs").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v)); if(v==="model"){ if(P&&P.model&&!(V&&V.model)) showModel(); else if(V) V.resize() } }
 $("tabs").addEventListener("click",e=>{ const b=e.target.closest("button[data-v]"); if(b) setView(b.dataset.v) });
 
 if(P&&(!P.team||!P.log)) P=null;
+if(P&&P.model) setTimeout(()=>{ try{ showModel() }catch(e){} },0);
 setBusy(false); renderAll();
 </script>
