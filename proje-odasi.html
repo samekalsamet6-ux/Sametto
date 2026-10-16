@@ -1,0 +1,683 @@
+<title>Proje Odası</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Düzen: solda proje ve ekip, ortada oda/çıktı/gelişim sekmeleri, sağda süreç, görevler ve etkinlik. Dar ekranda sağ sütun "Pano" sekmesine döner. */
+:root{
+  --bg:#ecebe6; --panel:#f6f5f1; --line:#d4d2c9; --fg:#1d1f24; --muted:#6b6e76;
+  --me:#1d1f24; --me-fg:#f6f5f1; --focus:#2a5bd7; --ok:#0f8a6a; --warn:#b45309; --bad:#b91c1c;
+  --c-rana:#6d28d9; --c-deniz:#0f766e;
+  --font-d:"Familjen Grotesk","Segoe UI",system-ui,sans-serif;
+  --font-b:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --font-m:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14161a; --panel:#1b1e24; --line:#2c3038; --fg:#e8e9ec; --muted:#8d919b;
+  --me:#e8e9ec; --me-fg:#14161a; --focus:#7aa2ff; --ok:#34d399; --warn:#fbbf24; --bad:#f87171;
+  --c-rana:#a78bfa; --c-deniz:#2dd4bf; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14161a; --panel:#1b1e24; --line:#2c3038; --fg:#e8e9ec; --muted:#8d919b;
+  --me:#e8e9ec; --me-fg:#14161a; --focus:#7aa2ff; --ok:#34d399; --warn:#fbbf24; --bad:#f87171;
+  --c-rana:#a78bfa; --c-deniz:#2dd4bf; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-b);font-size:15px;line-height:1.5;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px}
+button,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.app{height:100%;max-width:1360px;margin:0 auto;display:grid;grid-template-columns:250px minmax(0,1fr) 310px;gap:14px}
+.col{min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px}
+.side{overflow-y:auto}
+.brand h1{font-family:var(--font-d);font-size:22px;line-height:1.1;margin:0;letter-spacing:-.01em}
+.brand p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.proj{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:13px}
+.proj b{font-family:var(--font-d);font-size:15px;display:block}
+.proj span{color:var(--muted);display:block;overflow-wrap:anywhere;max-height:4.2em;overflow:hidden}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button,.mini{background:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px;font-size:13px;color:var(--muted);cursor:pointer}
+.tabs button[aria-pressed="true"]{color:var(--fg);border-color:var(--fg)}
+.tabs .narrow{display:none}
+.mini:hover:not(:disabled){color:var(--fg);border-color:var(--muted)}
+.mini:disabled{opacity:.45;cursor:default}
+.mini.primary{background:var(--fg);color:var(--bg);border-color:var(--fg);font-weight:600}
+.mini.primary:hover:not(:disabled){color:var(--bg);border-color:var(--fg)}
+.roster{display:flex;flex-direction:column;gap:6px}
+.wrap{position:relative}
+.agent{width:100%;display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;align-items:center;text-align:left;
+  background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;cursor:pointer}
+.agent[aria-pressed="false"]{opacity:.45}
+.agent.live{border-color:var(--col)}
+.agent b{display:block;font-family:var(--font-d);font-size:15px;line-height:1.2}
+.agent b i{font-style:normal;font-family:var(--font-m);font-size:11px;color:var(--muted);margin-left:6px;font-weight:400}
+.agent small{display:block;color:var(--muted);font-size:12px;line-height:1.3;overflow-wrap:anywhere}
+.agent small.on{color:var(--fg)}
+.av{border-radius:50%;display:grid;place-items:center;font-family:var(--font-d);font-weight:700;color:#fff;background:var(--col);font-size:15px;flex:none;width:36px;height:36px}
+.room,.docs,.grow{background:var(--panel);border:1px solid var(--line);border-radius:8px;min-height:0;min-width:0;display:flex;flex-direction:column}
+.feed{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;min-height:0}
+.msg{display:grid;grid-template-columns:32px minmax(0,1fr);gap:10px;max-width:780px}
+.msg .av{width:32px;height:32px;font-size:13px}
+.msg .who{font-family:var(--font-m);font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--col);margin-bottom:2px}
+.msg .who span{color:var(--muted);text-transform:none;letter-spacing:0;margin-left:6px}
+.msg .body{white-space:pre-wrap;overflow-wrap:anywhere}
+.msg .body code{font-family:var(--font-m);font-size:13px;background:var(--bg);padding:1px 4px;border-radius:3px}
+.msg.me{justify-self:end;grid-template-columns:minmax(0,1fr)}
+.msg.me .body{background:var(--me);color:var(--me-fg);padding:8px 12px;border-radius:10px 10px 2px 10px}
+.sys{align-self:center;color:var(--muted);font-family:var(--font-m);font-size:12px;text-align:center;max-width:640px}
+.round{align-self:stretch;display:flex;align-items:center;gap:10px;color:var(--muted);font-family:var(--font-m);font-size:11.5px}
+.round::before,.round::after{content:"";flex:1;border-top:1px dashed var(--line)}
+.empty{margin:auto;max-width:500px;color:var(--muted);text-align:center}
+.empty h2{font-family:var(--font-d);color:var(--fg);font-size:21px;margin:0 0 6px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+.chips button{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer}
+.chips button:hover{border-color:var(--muted)}
+.composer{border-top:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.bar button.m{background:none;border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-family:var(--font-m);font-size:12px;color:var(--col);cursor:pointer}
+.bar .sp{flex:1}
+.bar label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.bar select{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:2px 6px;font-size:12px}
+.row{display:flex;gap:8px;align-items:flex-end}
+textarea{flex:1;min-width:0;resize:none;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 11px;max-height:140px;line-height:1.4}
+.send{background:var(--fg);color:var(--bg);border:0;border-radius:6px;padding:10px 16px;font-weight:600;cursor:pointer;white-space:nowrap}
+.send.stop{background:transparent;color:var(--fg);border:1px solid var(--muted)}
+.hint{font-size:12px;color:var(--muted)}
+.docs,.view-g{display:none}
+.app[data-view="cikti"] .docs,.app[data-view="gelisim"] .view-g{display:flex}
+.app[data-view="cikti"] .room,.app[data-view="gelisim"] .room{display:none}
+.dbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line)}
+.dbar b{font-family:var(--font-d)}
+.dbar .sp{flex:1}
+.dscroll{overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:18px;min-height:0;flex:1}
+.sec h3{font-family:var(--font-d);font-size:17px;margin:0 0 2px}
+.sec .by{font-family:var(--font-m);font-size:11.5px;color:var(--col);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.md{max-width:760px;overflow-wrap:anywhere}
+.md p{margin:0 0 8px}
+.md h4{margin:10px 0 4px;font-family:var(--font-d);font-size:15px}
+.md ul{margin:0 0 8px;padding-left:20px}
+.md pre{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px;overflow-x:auto;margin:0 0 8px;font-size:12.5px;line-height:1.45}
+.md code{font-family:var(--font-m)}
+.md .fn{font-family:var(--font-m);font-size:11.5px;color:var(--muted);margin-bottom:2px}
+.verdict{border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:13.5px}
+.verdict b{font-family:var(--font-d)}
+.verdict.ok{border-color:var(--ok)} .verdict.rev{border-color:var(--warn)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.panel h2{font-family:var(--font-d);font-size:15px;margin:0;padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline}
+.panel h2 span{font-family:var(--font-m);font-size:12px;color:var(--muted);font-weight:400}
+.list{overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:8px;min-height:0;flex:1}
+.step{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:13.5px}
+.dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--line)}
+.dot.done{background:var(--ok);border-color:var(--ok)} .dot.now{border-color:var(--warn)}
+.task{display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;align-items:start;font-size:13.5px;line-height:1.35}
+.task input{margin:2px 0 0;accent-color:var(--ok)}
+.task.done span.t{text-decoration:line-through;color:var(--muted)}
+.tag{font-family:var(--font-m);font-size:11px;color:var(--col);display:block}
+.act{font-size:12.5px;color:var(--muted);line-height:1.35;display:grid;grid-template-columns:42px minmax(0,1fr);gap:6px}
+.act time{font-family:var(--font-m);font-size:11px}
+.act b{color:var(--col);font-weight:600}
+.none{color:var(--muted);font-size:13px;padding:4px 2px}
+.card{border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;font-size:13.5px}
+.card h4{margin:0;font-family:var(--font-d);font-size:15px}
+.card h4 span{font-family:var(--font-m);font-size:11.5px;color:var(--muted);font-weight:400;margin-left:6px}
+.card pre{margin:0;white-space:pre-wrap;font-family:var(--font-b);color:var(--muted);font-size:13px}
+.card ul{margin:0;padding-left:18px;color:var(--muted);font-size:13px}
+@media (max-width:1050px){
+  .app{grid-template-columns:230px minmax(0,1fr)}
+  .app>.col:nth-child(3){display:none}
+  .tabs .narrow{display:inline-block}
+  .app[data-view="pano"]>.col:nth-child(3){display:flex;grid-column:2}
+  .app[data-view="pano"]>.col:nth-child(2){display:none}
+  .app[data-view="pano"] .panel{flex:1}
+}
+@media (max-width:720px){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:10px}
+  .app[data-view="pano"]>.col:nth-child(3){grid-column:1}
+  .side{overflow:visible;gap:8px}
+  .brand p,.agent small,.proj span{display:none}
+  .roster{flex-direction:row;overflow-x:auto;padding-bottom:2px}
+  .wrap{flex:none}
+  .agent{grid-template-columns:28px auto;padding:6px 10px;width:auto}
+  .agent .av{width:28px;height:28px;font-size:13px}
+  .agent b{font-size:13px}
+}
+@media (prefers-reduced-motion:no-preference){.dots{animation:p 1.2s infinite}@keyframes p{50%{opacity:.3}}}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600&display=swap">
+
+<div class="app" id="app" data-view="oda">
+  <aside class="col side">
+    <div class="brand">
+      <h1>Proje Odası</h1>
+      <p>Projeni yaz. Rana uygun ajanları işe alır, ekip odada konuşur, üretir, denetçi kontrol eder ve herkes öğrendiğini kaydeder.</p>
+    </div>
+    <div class="proj" id="projbox" hidden></div>
+    <div class="tabs" id="tabs">
+      <button type="button" data-v="oda" aria-pressed="true">Oda</button>
+      <button type="button" data-v="cikti" aria-pressed="false">Çıktı</button>
+      <button type="button" data-v="gelisim" aria-pressed="false">Gelişim</button>
+      <button type="button" class="narrow" data-v="pano" aria-pressed="false">Pano</button>
+    </div>
+    <div class="roster" id="roster"></div>
+    <div class="tabs"><button class="mini" type="button" id="newp">Yeni proje</button></div>
+  </aside>
+
+  <main class="col">
+    <div class="room" style="flex:1">
+      <div class="feed" id="feed" aria-live="polite"></div>
+      <form class="composer" id="form">
+        <div class="bar" id="mentions"></div>
+        <div class="bar">
+          <button class="mini primary" type="button" id="auto" disabled>Otomatik yürüt</button>
+          <button class="mini" type="button" id="free" disabled>Serbest sohbet</button>
+          <span class="sp"></span>
+          <label>Sohbette ekip kendi arasında
+            <select id="rounds"><option value="0">0 tur</option><option value="1" selected>1 tur</option><option value="2">2 tur</option><option value="3">3 tur</option></select>
+          </label>
+        </div>
+        <div class="row">
+          <textarea id="input" rows="1" placeholder="Ne yapmak istiyorsun? Projeni anlat, ekip kurulsun." aria-label="Mesaj"></textarea>
+          <button class="send" id="send" type="submit">Başlat</button>
+        </div>
+        <div class="hint" id="hint">Her adım birkaç yapay zekâ isteği harcar. Bir proje yaklaşık 25-40 istek tutar.</div>
+      </form>
+    </div>
+    <section class="docs" id="docs">
+      <div class="dbar">
+        <b>Çıktı</b><span class="sp"></span>
+        <button class="mini" type="button" id="dmd" disabled>Markdown indir</button>
+        <button class="mini" type="button" id="dzip" disabled>Kod dosyaları (zip)</button>
+        <button class="mini" type="button" id="dcopy" disabled>Kopyala</button>
+      </div>
+      <div class="dscroll" id="dscroll"></div>
+    </section>
+    <section class="grow view-g" id="gview">
+      <div class="dbar">
+        <b>Gelişim</b><span class="sp"></span>
+        <button class="mini" type="button" id="train" disabled>Kendini geliştir</button>
+        <button class="mini" type="button" id="wipe">Hafızayı sıfırla</button>
+      </div>
+      <div class="dscroll" id="gscroll"></div>
+    </section>
+  </main>
+
+  <aside class="col">
+    <section class="panel">
+      <h2>Süreç <span id="phlabel"></span></h2>
+      <div class="list" id="steps"></div>
+    </section>
+    <section class="panel" style="flex:1.2">
+      <h2>Görevler <span id="tcount"></span></h2>
+      <div class="list" id="tasks"></div>
+    </section>
+    <section class="panel" style="flex:1">
+      <h2>Etkinlik <span>canlı</span></h2>
+      <div class="list" id="acts"></div>
+    </section>
+  </aside>
+</div>
+
+<script>
+const RANA={id:"rana",name:"Rana",role:"İK ve Ekip Kurucu",col:"var(--c-rana)",key:"ik-ekip-kurucu",recruiter:true,
+  brief:"Projeye bakıp doğru uzman yapay zekâ ajanlarını işe alır. Önceki projelerden ekip kurma dersleri çıkarır ve bir sonraki ekibi daha iyi kurar."};
+const DENIZ={id:"deniz",name:"Deniz",role:"Proje Denetçisi",col:"var(--c-deniz)",key:"proje-denetcisi",reviewer:true,
+  brief:"Çıktıyı en sonda denetler: isteği karşılıyor mu, parçalar birbiriyle tutarlı mı, eksik veya hatalı yer var mı, uygulanabilir mi. Sert ama adil puan verir, somut düzeltme ister."};
+const STEPS=["Fikir turu","Plan","Uygulama","Denetim","Öğrenme"];
+const SUGGEST=["Küçük bir kafe için tek sayfalık web sitesi (tasarım, metin, kod).","Üniversite öğrencileri için 4 haftalık İngilizce çalışma programı.","Mobil oyun fikri: konsept, mekanikler, ilk seviye tasarımı ve pazarlama planı."];
+const KEY="proje-odasi-v1", MAXTEAM=9;
+let M={play:{},lessons:[],xp:{},done:0,archive:[]}, P=null, busy=false, ctrl=null, thinking=null, armed={newp:0,wipe:0};
+try{ const s=JSON.parse(localStorage.getItem(KEY)||"null"); if(s){ M=Object.assign(M,s.M||{}); P=s.P||null } }catch(e){}
+const $=id=>document.getElementById(id);
+const save=()=>{ try{ if(P){ P.log=P.log.slice(-110); P.acts=P.acts.slice(-90) } localStorage.setItem(KEY,JSON.stringify({M,P})) }catch(e){} };
+const fold=s=>String(s).toLowerCase().replace(/ı/g,"i").replace(/ş/g,"s").replace(/ğ/g,"g").replace(/ü/g,"u").replace(/ö/g,"o").replace(/ç/g,"c").replace(/i̇/g,"i");
+const keyOf=r=>fold(r).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,32)||"rol";
+const everyone=()=>[RANA,...(P?P.team:[])];
+const live=()=>P?P.team.filter(a=>!P.off.includes(a.id)):[];
+const byId=id=>everyone().find(a=>a.id===id);
+const byName=n=>{ const f=fold(String(n).replace(/^@/,"").replace(/[:,.]+$/,"")); return everyone().find(a=>fold(a.name)===f) };
+const snap=a=>({from:a.id,name:a.name,role:a.role,col:a.col});
+const clock=()=>new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"});
+const lvl=a=>1+Math.floor((M.xp[a.key]||0)/10);
+const coord=()=>live().find(a=>/yönetici|koordinat|lider|direktör/i.test(a.role))||live()[0];
+const workers=()=>live();
+function note(a,text){ if(!P) return; P.acts.push({t:clock(),name:a?a.name:"",col:a?a.col:"",text}); if(P.acts.length>90) P.acts.shift(); renderActs() }
+const nodeAv=(a,sz)=>{ const d=document.createElement("div"); d.className="av"; d.style.setProperty("--col",a.col); d.textContent=a.name[0]; if(sz) d.style.width=d.style.height=sz+"px"; return d };
+const el=(t,c,x)=>{ const e=document.createElement(t); if(c) e.className=c; if(x!=null) e.textContent=x; return e };
+
+/* ---------- görünümler ---------- */
+function renderProject(){
+  const b=$("projbox"); b.hidden=!P; b.textContent=""; if(!P) return;
+  b.append(el("b",null,P.title),el("span",null,P.brief));
+}
+function renderRoster(){
+  const r=$("roster"); r.textContent="";
+  everyone().forEach(a=>{
+    const w=el("div","wrap"), b=el("button","agent"+(thinking===a.id?" live":"")); b.type="button"; b.style.setProperty("--col",a.col);
+    const off=P&&P.off.includes(a.id); b.setAttribute("aria-pressed",!off); b.title=a.recruiter?"Rana her zaman odada":(off?"Odaya al":"Odadan çıkar");
+    b.appendChild(nodeAv(a));
+    const t=el("div"), n=el("b",null,a.name), s=el("small");
+    n.appendChild(el("i",null,"Sv."+lvl(a)));
+    const ot=P&&P.tasks.find(k=>!k.done&&k.owner===a.id);
+    if(thinking===a.id){ s.textContent="çalışıyor…"; s.className="on dots" } else if(ot&&!off){ s.textContent="▸ "+ot.text; s.className="on" } else s.textContent=a.role;
+    t.append(n,s); b.appendChild(t);
+    if(!a.recruiter) b.onclick=()=>{ if(!P) return; P.off.includes(a.id)?P.off=P.off.filter(x=>x!==a.id):P.off.push(a.id); if(!live().length) P.off=[]; save(); renderRoster() };
+    w.appendChild(b); r.appendChild(w);
+  });
+  const m=$("mentions"); m.textContent="";
+  everyone().filter(a=>!P||!P.off.includes(a.id)).forEach(a=>{ const b=el("button","m","@"+a.name); b.type="button"; b.style.setProperty("--col",a.col);
+    b.onclick=()=>{ const i=$("input"); i.value=(i.value?i.value.replace(/\s*$/," "):"")+"@"+a.name+" "; i.focus(); grow() }; m.appendChild(b) });
+}
+function renderSteps(){
+  const l=$("steps"); l.textContent=""; const d=P?P.done:[]; const nxt=d.findIndex(x=>!x);
+  $("phlabel").textContent=P?(nxt<0?"tamamlandı":STEPS[nxt]):"";
+  STEPS.forEach((n,i)=>{ const r=el("div","step"); r.append(el("span","dot"+(d[i]?" done":i===nxt?" now":"")),el("span",null,n));
+    const b=el("button","mini",d[i]?"Tekrar":"Çalıştır"); b.type="button"; b.disabled=!P||busy||i>(nxt<0?4:nxt); b.onclick=()=>runStep(i); r.appendChild(b); l.appendChild(r) });
+  if(!P) l.appendChild(el("div","none","Proje yazılınca süreç başlar."));
+}
+function renderTasks(){
+  const l=$("tasks"); l.textContent=""; const T=P?P.tasks:[];
+  $("tcount").textContent=T.length?T.filter(t=>!t.done).length+" açık / "+T.length:"";
+  if(!T.length){ l.appendChild(el("div","none","Plan çıkınca ve ajanlar iş ayırdıkça görevler burada toplanır.")); return }
+  [...T].sort((a,b)=>a.done-b.done||a.id-b.id).forEach(t=>{
+    const o=t.owner&&byId(t.owner), w=el("label","task"+(t.done?" done":"")), c=el("input"); c.type="checkbox"; c.checked=t.done;
+    c.onchange=()=>{ t.done=c.checked; note(null,"Görev #"+t.id+(t.done?" tamamlandı (sen)":" yeniden açıldı")); save(); renderTasks(); renderRoster() };
+    const d=el("div"), tag=el("span","tag","#"+t.id+" · "+(o?o.name:"sahipsiz")); tag.style.setProperty("--col",o?o.col:"var(--muted)");
+    d.append(tag,el("span","t",t.text)); w.append(c,d); l.appendChild(w) });
+}
+function renderActs(){
+  const l=$("acts"); l.textContent=""; const A=P?P.acts:[];
+  if(!A.length){ l.appendChild(el("div","none","Ajanların yaptığı her şey burada sırayla görünür.")); return }
+  A.forEach(x=>{ const d=el("div","act"), s=el("span"); if(x.name){ const b=el("b",null,x.name); b.style.setProperty("--col",x.col); s.append(b," "+x.text) } else s.textContent=x.text;
+    d.append(el("time",null,x.t),s); l.appendChild(d) });
+  l.scrollTop=l.scrollHeight;
+}
+function inl(parent,text){ text.split(/(`[^`]+`|\*\*[^*]+\*\*)/).forEach(p=>{
+  if(p.length>2&&p[0]==="`"&&p.endsWith("`")) parent.appendChild(el("code",null,p.slice(1,-1)));
+  else if(p.length>4&&p.startsWith("**")&&p.endsWith("**")) parent.appendChild(el("b",null,p.slice(2,-2)));
+  else parent.appendChild(document.createTextNode(p)) }) }
+function mdNode(md){
+  const box=el("div","md");
+  md.split("```").forEach((blk,i)=>{
+    if(i%2){ const nl=blk.indexOf("\n"), head=(nl<0?blk:blk.slice(0,nl)).trim(), code=nl<0?"":blk.slice(nl+1).replace(/\n$/,"");
+      if(head) box.appendChild(el("div","fn",head)); const pre=el("pre"); pre.appendChild(el("code",null,code)); box.appendChild(pre) }
+    else { let ul=null; blk.split("\n").forEach(line=>{
+      let m; if(!line.trim()){ ul=null; return }
+      if((m=line.match(/^\s*#{1,4}\s+(.*)$/))){ ul=null; const h=el("h4"); inl(h,m[1]); box.appendChild(h) }
+      else if((m=line.match(/^\s*(?:[-*]|\d+\.)\s+(.*)$/))){ if(!ul){ ul=el("ul"); box.appendChild(ul) } const li=el("li"); inl(li,m[1]); ul.appendChild(li) }
+      else { ul=null; const p=el("p"); inl(p,line); box.appendChild(p) } }) }
+  });
+  return box;
+}
+function renderDocs(){
+  const s=$("dscroll"); s.textContent="";
+  const S=P?P.sections:[], has=S.length>0;
+  ["dmd","dcopy"].forEach(i=>$(i).disabled=!has); $("dzip").disabled=!codeFiles().length;
+  if(!has){ s.appendChild(el("div","none","Uygulama adımında her ajan kendi bölümünü yazar; bölümler burada birleşir.")); return }
+  S.forEach(sec=>{ const a=byId(sec.agent)||{name:sec.name||"?",col:"var(--muted)"}, w=el("div","sec"); w.style.setProperty("--col",a.col);
+    w.appendChild(el("h3",null,sec.title)); w.appendChild(el("div","by",a.name+(sec.rev?" · revizyon "+sec.rev:""))); w.appendChild(mdNode(sec.md)); s.appendChild(w) });
+  (P.reviews||[]).slice(-1).forEach(r=>{ const v=el("div","verdict "+(r.verdict==="onay"?"ok":"rev")); v.appendChild(el("b",null,"Denetçi · "+r.score+"/10 · "+(r.verdict==="onay"?"onay":"revize gerekli")));
+    v.appendChild(el("div",null,r.summary)); if(r.issues.length){ const u=el("ul"); r.issues.forEach(i=>u.appendChild(el("li",null,i.agent+": "+i.issue))); v.appendChild(u) } s.appendChild(v) });
+}
+function renderGrowth(){
+  const g=$("gscroll"); g.textContent=""; $("train").disabled=!P||busy;
+  const keys=Object.keys(M.play); const intro=el("div","none",`Tamamlanan proje: ${M.done}. Ajanlar her projeden sonra ders yazar ve yöntem notlarını yeniden düzenler. Bir sonraki projede aynı rolü alan ajan bu notlarla başlar.`); g.appendChild(intro);
+  if(!keys.length){ g.appendChild(el("div","none","Henüz kayıtlı deneyim yok. İlk proje bitince burada görünür.")); return }
+  keys.forEach(k=>{ const c=el("div","card"), role=(M.lessons.find(l=>l.key===k)||{}).role||k, xp=M.xp[k]||0;
+    const h=el("h4",null,role); h.appendChild(el("span",null,"Sv."+(1+Math.floor(xp/10))+" · "+xp+" XP")); c.appendChild(h);
+    c.appendChild(el("pre",null,M.play[k])); const ls=M.lessons.filter(l=>l.key===k).slice(-3);
+    if(ls.length){ const u=el("ul"); ls.forEach(l=>u.appendChild(el("li",null,l.text))); c.appendChild(u) } g.appendChild(c) });
+}
+function fmt(e,text){ e.textContent=""; text.split(/(`[^`]+`)/).forEach(p=>{ if(p.length>2&&p[0]==="`"&&p.endsWith("`")) e.appendChild(el("code",null,p.slice(1,-1))); else e.appendChild(document.createTextNode(p)) }) }
+function msgNode(m){
+  if(m.round) return el("div","round",m.text);
+  if(m.sys) return el("div","sys",m.text);
+  if(m.from==="me"){ const w=el("div","msg me"); w.appendChild(el("div","body",m.text)); return w }
+  const a=byId(m.from)||{name:m.name||"?",role:m.role||"",col:m.col||"var(--muted)"}, w=el("div","msg"); w.style.setProperty("--col",a.col); w.appendChild(nodeAv(a,32));
+  const c=el("div"), who=el("div","who",a.name); who.appendChild(el("span",null,a.role)); const b=el("div","body"); fmt(b,m.text||"…");
+  c.append(who,b); w.appendChild(c); w._body=b; return w;
+}
+function renderFeed(){
+  const f=$("feed"); f.textContent="";
+  if(!P||!P.log.length){
+    const e=el("div","empty"); e.append(el("h2",null,"Proje Odası"),el("div",null,"Ne yapmak istediğini yaz. Rana projeye uygun yapay zekâ ajanlarını işe alıp bir oda kuracak; ekip özgürce konuşup fikir yürütecek, üretecek ve en sonda denetçi kontrol edecek."));
+    const c=el("div","chips"); SUGGEST.forEach(s=>{ const b=el("button",null,s); b.type="button"; b.onclick=()=>{ $("input").value=s; send() }; c.appendChild(b) }); e.appendChild(c); f.appendChild(e); return }
+  P.log.forEach(m=>f.appendChild(msgNode(m))); f.scrollTop=f.scrollHeight;
+}
+const scrollEnd=()=>{ const f=$("feed"); f.scrollTop=f.scrollHeight };
+function renderAll(){ renderProject(); renderRoster(); renderFeed(); renderSteps(); renderTasks(); renderActs(); renderDocs(); renderGrowth();
+  $("auto").disabled=!P||busy; $("free").disabled=!P||busy; $("dmd").disabled=!(P&&P.sections.length) }
+
+/* ---------- hafıza ve istemler ---------- */
+function memFor(a){
+  const pb=M.play[a.key], ls=M.lessons.filter(l=>l.key===a.key).slice(-3).map(l=>"- "+l.text).join("\n");
+  return `Yöntem notların (önceki projelerden öğrendiklerin, bunlara uy):\n${pb||"(henüz yok, ilk projen)"}${ls?"\nSon derslerin:\n"+ls:""}`;
+}
+const teamLine=()=>live().map(t=>`${t.name} (${t.role})`).join(", ")+", Rana (ekip kurucu)";
+const taskList=()=>!P.tasks.length?"(henüz görev yok)":P.tasks.map(t=>{ const o=t.owner&&byId(t.owner); return `#${t.id} [${o?o.name:"sahipsiz"}] ${t.text} (${t.done?"bitti":"açık"})` }).join("\n");
+const history=n=>P.log.filter(m=>!m.sys&&!m.round&&m.text).slice(-n).map(m=>`${m.from==="me"?"Kullanıcı":m.name}: ${m.text.slice(0,700)}`).join("\n");
+function chatPrompt(a,mode,direct){
+  const modeTxt={
+    user:direct?"Kullanıcı sana doğrudan seslendi, yanıt ver.":"Kullanıcı herkese yazdı. Yalnızca söyleyecek yararlı bir şeyin varsa yanıt ver, yoksa yalnızca PAS yaz.",
+    idea:"Fikir turundasın: projeyi nasıl en iyi yaparız? Somut bir fikir, risk ya da karar öner; meslektaşlarının fikirlerine katıl, geliştir ya da gerekçeyle itiraz et. Yeni ve yararlı bir şeyin yoksa yalnızca PAS yaz.",
+    free:"Serbest sohbettesin: istediğin gibi, doğal konuş. Meslektaşlarına @Ad ile seslen, katıl, itiraz et, espri yap, proje hakkında aklına geleni söyle. Söyleyecek bir şeyin yoksa yalnızca PAS yaz."}[mode];
+  const rec=a.recruiter?`\n- Projede eksik bir uzmanlık çıkarsa yanıtının sonuna ayrı satırda yaz: YENI_AJAN: Ad | Rol | Uzmanlık özeti. Toplam ekip ${MAXTEAM} kişiyi geçmesin, gereksiz ajan ekleme.`:"";
+  return `[GÖREV:SOHBET]
+Sen "${a.name}" adlı, ${a.role} uzmanısın. Alanın: ${a.brief}
+Proje: ${P.title}. ${P.brief}
+Odadaki ekip: ${teamLine()}.
+${memFor(a)}
+
+Ortak görev panosu:
+${taskList()}
+
+Kurallar:
+- Yalnızca ${a.name} olarak, kendi uzmanlığından konuş; başkasının alanını ona yönlendir (@Ad). Türkçe, samimi, net.
+- Önceki mesajları tekrar etme; ekle, itiraz et, karar ver ya da sonraki adımı söyle. En fazla 4 kısa cümle. Mesajın başına kendi adını yazma.
+- Panoya iş eklemek için yanıtın sonunda ayrı satırda: GOREV @Ad: iş. Bitirdiğin işi: TAMAM #numara.${rec}
+- ${modeTxt}
+
+Sohbet geçmişi:
+${history(30)}
+
+Şimdi ${a.name} olarak sıradaki mesajını yaz.`;
+}
+
+/* ---------- ajan konuşması ---------- */
+const CTRL=/^\s*(GOREV|TAMAM|YENI_AJAN)\b/i;
+const visible=t=>t.split("\n").filter(l=>!CTRL.test(l)).join("\n").trim();
+const palette=()=>`hsl(${Math.floor(Math.random()*360)} 62% 48%)`;
+function addAgent(n){
+  if(!n.name||!n.role||!P||P.team.length>=MAXTEAM) return null;
+  const nm=String(n.name).replace(/[^\p{L}\p{N} -]/gu,"").trim().slice(0,16);
+  if(!nm||fold(nm)===fold(RANA.name)||P.team.some(x=>fold(x.name)===fold(nm))) return null;
+  const a={id:"a"+Date.now().toString(36)+P.team.length,name:nm,role:String(n.role).slice(0,40),brief:String(n.brief||n.role).slice(0,300),col:palette()}; a.key=keyOf(a.role);
+  P.team.push(a); return a;
+}
+function applyControls(a,text){
+  text.split("\n").forEach(line=>{ let m;
+    if((m=line.match(/^\s*GOREV\s*(?:@(\S+))?\s*:\s*(.+)$/i))){
+      const o=(m[1]&&byName(m[1]))||a, txt=m[2].trim().slice(0,160);
+      if(!P.tasks.some(t=>fold(t.text)===fold(txt))){ P.tasks.push({id:P.nextTask++,text:txt,owner:o.id,done:false}); note(a,"görev ekledi: #"+(P.nextTask-1)+" "+txt+(o.id!==a.id?" → "+o.name:"")) }
+    } else if((m=line.match(/^\s*TAMAM\s*#?(\d+)/i))){ const t=P.tasks.find(x=>x.id===+m[1]&&!x.done); if(t){ t.done=true; note(a,"#"+t.id+" görevini tamamladı") } }
+    else if(a.recruiter&&(m=line.match(/^\s*YENI_AJAN\s*:\s*(.+)$/i))){ const p=m[1].split("|").map(s=>s.trim()); if(p.length>=3){ const n=addAgent({name:p[0],role:p[1],brief:p.slice(2).join(" ")});
+      if(n){ note(a,n.name+" ("+n.role+") ajanını odaya ekledi"); P.log.push({sys:true,text:"➕ "+n.name+" odaya katıldı: "+n.role}); renderRoster(); renderFeed() } } }
+  });
+}
+const WHY={not_granted:"Claude kullanımı için izin gerekli. Sayfa izin penceresi açtıysa onayla; reddettiysen sayfayı yenileyip tekrar dene.",rate_limited:"Çok hızlı gittik. Birkaç saniye bekleyip tekrar dene."};
+const sysMsg=t=>{ P.log.push({sys:true,text:t}) };
+const errTxt=(e,who)=>{ const c=e&&e.code; return (WHY[c]||(who?who+" yanıt veremedi.":"Adım tamamlanamadı."))+" ["+(c||"hata")+(e&&e.message?": "+String(e.message).slice(0,120):"")+"]" };
+
+async function speak(sample,a,mode,direct){
+  if(ctrl.signal.aborted) return "stop";
+  const m={...snap(a),text:""}; P.log.push(m); const node=msgNode(m); node._body.textContent="Düşünüyor…"; $("feed").appendChild(node); scrollEnd();
+  thinking=a.id; renderRoster(); const drop=()=>{ const i=P.log.indexOf(m); if(i>-1) P.log.splice(i,1); node.remove() };
+  try{
+    const res=await sample(chatPrompt(a,mode,direct),{cache:false,modelTier:"quick",signal:ctrl.signal,
+      onText:({text:t})=>{ const v=visible(t); if(/^PAS\b/i.test(v)) return; fmt(node._body,v||"…"); scrollEnd() }});
+    const raw=(res&&res.text||"").replace(new RegExp("^\\s*"+a.name+"\\s*[:：-]\\s*","i"),"").trim(), v=visible(raw);
+    if(!v||/^PAS\b/i.test(v)){ drop(); note(a,"söz almadı"); return "skip" }
+    m.text=v; fmt(node._body,v); note(a,"mesaj yazdı"); applyControls(a,raw); save(); renderTasks(); return "ok";
+  }catch(e){
+    if(e&&e.text&&visible(e.text)){ m.text=visible(e.text); fmt(node._body,m.text) } else drop();
+    if((e&&e.code)==="cancelled"||ctrl.signal.aborted) return "stop";
+    sysMsg(errTxt(e,a.name)); note(a,"hata verdi"); return "fatal";
+  }finally{ thinking=null; renderRoster() }
+}
+async function talkRounds(sample,n,mode){
+  for(let i=1;i<=n;i++){
+    if(ctrl.signal.aborted) return;
+    P.log.push({round:true,text:(mode==="idea"?"fikir turu ":mode==="free"?"serbest sohbet ":"ekip turu ")+i+"/"+n}); $("feed").appendChild(msgNode(P.log[P.log.length-1])); note(null,"Tur "+i+"/"+n+" başladı"); let spoke=0;
+    for(const a of workers().filter(x=>!x.recruiter)){ const r=await speak(sample,a,mode,false); if(r==="fatal"||r==="stop") throw {code:"stop"}; if(r==="ok") spoke++ }
+    if(!spoke){ note(null,"Kimse eklemek istemedi, tur sona erdi"); return }
+  }
+}
+
+/* ---------- yardımcılar: json, adım ---------- */
+async function getJson(sample,prompt,tier,pick){
+  let err="";
+  for(let i=0;i<2;i++){
+    try{ const v=await sample.json(prompt+(err?"\n\nÖnceki yanıtın kullanılamadı: "+err+" Yalnızca şemaya uygun geçerli JSON döndür.":""),{cache:false,modelTier:tier,signal:ctrl.signal});
+      const r=pick(v); if(r) return r; err="Şema beklenen alanları içermiyordu." }
+    catch(e){ if(!e||e.code!=="invalid_json"||ctrl.signal.aborted) throw e; err="JSON ayrıştırılamadı." }
+  }
+  throw {code:"bad_output",message:"Geçerli çıktı alınamadı"};
+}
+async function work(a,label,fn,done){
+  if(ctrl.signal.aborted) throw {code:"cancelled"};
+  const m={...snap(a),text:"⏳ "+label+"…"}; P.log.push(m); const node=msgNode(m); $("feed").appendChild(node); scrollEnd();
+  thinking=a.id; renderRoster(); note(a,label+" başladı");
+  try{ const r=await fn(); m.text=done(r); fmt(node._body,m.text); note(a,"bitirdi: "+label); save(); return r }
+  catch(e){ m.text="Bu adım tamamlanamadı."; fmt(node._body,m.text); throw e }
+  finally{ thinking=null; renderRoster() }
+}
+const text=async(sample,p,tier)=>(await sample(p,{cache:false,modelTier:tier,signal:ctrl.signal})).text.trim();
+
+/* ---------- 0) proje ve ekip kurulumu ---------- */
+function knownRoles(){ return Object.keys(M.play).map(k=>{ const r=(M.lessons.find(l=>l.key===k)||{}).role||k; return `${r} (Sv.${1+Math.floor((M.xp[k]||0)/10)})` }).join(", ")||"(henüz yok)" }
+function recruitPrompt(brief){
+  const ls=M.lessons.filter(l=>l.key===RANA.key).slice(-4).map(l=>"- "+l.text).join("\n");
+  return `[GÖREV:EKİP]
+Sen Rana, yapay zekâ ekipleri kuran bir İK ajanısın. Kullanıcının projesine bakıp en uygun uzman ajanları işe al.
+Proje: ${brief}
+
+${memFor(RANA)}
+${ls?"Ekip kurma derslerin:\n"+ls+"\n":""}
+Daha önce deneyim kazanmış roller: ${knownRoles()}
+
+Kurallar:
+- 4 ile 6 ajan seç. Her biri projeye gerçekten gereken ayrı bir uzmanlık olsun; biri koordinatör/proje yöneticisi olsun.
+- Uygun bir rol daha önce deneyim kazanmışsa rol adını aynen yazarak yeniden kullan (deneyimini taşır).
+- Denetçiyi ekleme, sistem kendisi ekler. Adlar benzersiz Türkçe ilk adlar olsun, "Rana" ve "Deniz" olmasın.
+Biçim (yalnızca JSON): {"title":"kısa proje adı, 2-5 kelime","rationale":"ekibi neden böyle kurdun, 2 cümle","team":[{"name":"Ad","role":"Rol","brief":"uzmanlığı ve bu projedeki sorumluluğu, 1-2 cümle"}]}`;
+}
+async function startProject(sample,brief){ 
+  P={id:Date.now(),title:"Yeni proje",brief,team:[],off:[],log:[],tasks:[],acts:[],nextTask:1,sections:[],plan:null,reviews:[],done:[false,false,false,false,false]};
+  P.log.push({from:"me",text:brief}); renderAll(); note(null,"Proje başladı");
+  let r;
+  try{ r=await work(RANA,"ekibi kuruyor",()=>getJson(sample,recruitPrompt(brief),"default",v=>{
+      const l=(v&&Array.isArray(v.team)?v.team:[]).filter(t=>t&&t.name&&t.role); return l.length>=2?{title:String(v.title||"").slice(0,50),rationale:String(v.rationale||""),team:l}:null }),
+    r=>`${r.team.length} ajan işe aldım. ${r.rationale}`) }
+  catch(e){ const c=e&&e.code, msg=errTxt(e); P=null; $("input").value=brief; grow(); $("hint").textContent=msg; if(c==="cancelled") return; return }
+  P.title=r.title||brief.slice(0,40);
+  r.team.slice(0,MAXTEAM-1).forEach(t=>{ const a=addAgent(t); if(a) note(RANA,a.name+" ("+a.role+") işe alındı") });
+  const d=Object.assign({},DENIZ); P.team.push(d); note(RANA,"Denetçi Deniz odaya eklendi");
+  P.log.push({sys:true,text:"🏠 Oda kuruldu: "+P.team.map(a=>a.name).join(", ")+". Herkes özgürce konuşabilir."});
+  save(); renderAll();
+  const c=coord(); if(c&&P) await speak(sample,c,"idea",false);
+}
+
+/* ---------- 1-5) süreç adımları ---------- */
+async function stepIdea(sample){ await talkRounds(sample,2,"idea"); P.done[0]=true; save() }
+function planPrompt(c){
+  return `[GÖREV:PLAN]
+Sen ${c.name}, ${c.role}. ${c.brief}
+${memFor(c)}
+Proje: ${P.title}. ${P.brief}
+Ekip: ${teamLine()}.
+
+Ekibin fikir turundaki konuşması:
+${history(40)}
+
+Bu konuşmadan ekibin kararlarını özetle ve nihai çıktının bölümlerini planla. Her bölümü ekipten bir kişi yazacak; bölümler birleşince proje isteğini eksiksiz karşılamalı. 3-8 bölüm; bir kişiye birden fazla bölüm verebilirsin. Denetçi (Deniz) bölüm yazmaz.
+Biçim (yalnızca JSON): {"summary":"kararların özeti, 3-5 cümle","items":[{"agent":"Ad","title":"bölüm başlığı","spec":"bu bölümde tam olarak ne yazılacak/yapılacak, 1-2 cümle"}]} Bölümler son belgedeki sırayla yazılsın.`;
+}
+async function stepPlan(sample){
+  const c=coord(); const plan=await work(c,"planı çıkarıyor",()=>getJson(sample,planPrompt(c),"default",v=>{
+    const items=(v&&Array.isArray(v.items)?v.items:[]).map(i=>{ const a=i&&byName(i.agent); return a&&!a.reviewer&&!a.recruiter&&i.title?{agent:a.id,title:String(i.title).slice(0,80),spec:String(i.spec||"").slice(0,300)}:null }).filter(Boolean).slice(0,9);
+    return items.length>=2?{summary:String(v.summary||""),items}:null }),p=>`Plan hazır (${p.items.length} bölüm):\n${p.summary}\n`+p.items.map((i,n)=>`${n+1}. ${i.title} → ${byId(i.agent).name}`).join("\n"));
+  P.plan=plan; P.tasks=P.tasks.filter(t=>t.done); plan.items.forEach(i=>{ P.tasks.push({id:P.nextTask++,text:i.title,owner:i.agent,done:false,plan:true}) });
+  P.done[1]=true; P.done[2]=false; P.done[3]=false; P.sections=[]; P.reviews=[]; save(); renderAll();
+}
+function sectionPrompt(a,item,prev,issues){
+  const others=P.plan.items.filter(i=>i!==item).map(i=>"- "+i.title+" ("+byId(i.agent).name+")").join("\n");
+  return `[GÖREV:BÖLÜM]
+Sen ${a.name}, ${a.role}. ${a.brief}
+${memFor(a)}
+Proje: ${P.title}. ${P.brief}
+Ekibin kararları: ${P.plan.summary}
+
+Senin bölümün: "${item.title}" — ${item.spec}
+Diğer bölümler (tekrar etme, tutarlı kal):
+${others||"(yok)"}
+${prev?`\nÖnceki sürümün:\n${prev}\n\nDenetçinin senden istediği düzeltmeler:\n${issues}\nBölümü bu düzeltmelerle baştan, eksiksiz yaz.\n`:""}
+Kurallar:
+- Doğrudan kullanılabilir gerçek içerik yaz: metin, plan, tablo, adım listesi ya da çalışan kod. Boş vaat, genel laf, "buraya eklenecek" yazma.
+- 150-450 kelime, Markdown. Başlık yazma (başlığı sistem ekler); alt başlık için "####" kullan.
+- Kod yazarsan her kod bloğunu şu biçimde aç: \`\`\`dil klasör/dosyaadi.uzanti (örnek: \`\`\`html index.html).
+- Yalnızca bölüm içeriğini yaz, giriş ya da kapanış cümlesi ekleme.`;
+}
+async function stepBuild(sample){
+  if(!P.plan){ await stepPlan(sample) }
+  P.sections=[]; renderDocs();
+  for(const item of P.plan.items){
+    const a=byId(item.agent); if(!a) continue;
+    const md=await work(a,"“"+item.title+"” bölümünü yazıyor",()=>text(sample,sectionPrompt(a,item),"default"),r=>"Bölüm hazır: "+item.title+" ("+r.split(/\s+/).length+" kelime). Çıktı sekmesinde.");
+    P.sections.push({id:P.sections.length+1,agent:a.id,name:a.name,title:item.title,md,rev:0});
+    const t=P.tasks.find(k=>k.plan&&k.text===item.title&&k.owner===a.id&&!k.done); if(t) t.done=true;
+    save(); renderDocs(); renderTasks(); renderRoster();
+  }
+  P.done[2]=true; P.done[3]=false; save();
+}
+const fullDoc=()=>`# ${P.title}\n\n> ${P.brief}\n\n`+P.sections.map(s=>`## ${s.title}\n*${s.name}*\n\n${s.md}`).join("\n\n");
+function reviewPrompt(d){
+  const doc=P.sections.map(s=>`### [${s.id}] ${s.title} — ${s.name}\n${s.md.slice(0,2600)}`).join("\n\n");
+  return `[GÖREV:DENETİM]
+Sen ${d.name}, ${d.role}. ${d.brief}
+${memFor(d)}
+Proje isteği: ${P.brief}
+Ekibin kararları: ${P.plan?P.plan.summary:""}
+
+Denetlenecek çıktı:
+${doc}
+
+Çıktıyı sert ama adil denetle: istek eksiksiz karşılanmış mı, bölümler tutarlı mı, içerik gerçek ve uygulanabilir mi, hata ya da boşluk var mı. 0-10 arası puan ver (8 ve üstü = onay). Revize gerekiyorsa en fazla 4 somut madde yaz ve her maddede sorumlu ajanın adını belirt.
+Biçim (yalnızca JSON): {"score":0-10,"verdict":"onay|revize","summary":"2-3 cümle genel değerlendirme","issues":[{"agent":"Ad","issue":"somut düzeltme"}]}`;
+}
+async function stepReview(sample){
+  if(!P.sections.length) await stepBuild(sample);
+  const d=P.team.find(a=>a.reviewer); if(!d) return;
+  for(let round=0;round<3;round++){
+    const rv=await work(d,round?"yeniden denetliyor":"projeyi denetliyor",()=>getJson(sample,reviewPrompt(d),"default",v=>{
+      if(!v||typeof v!=="object") return null; const score=num(v.score,NaN,0,10); if(!Number.isFinite(score)) return null;
+      const issues=(Array.isArray(v.issues)?v.issues:[]).map(i=>{ const a=i&&byName(i.agent); return a&&!a.reviewer&&i.issue?{agent:a.name,aid:a.id,issue:String(i.issue).slice(0,240)}:null }).filter(Boolean).slice(0,4);
+      const ok=score>=8; return {score:Math.round(score*10)/10,verdict:ok?"onay":"revize",summary:String(v.summary||""),issues:ok?[]:issues} }),
+      r=>`${r.score}/10 — ${r.verdict==="onay"?"ONAY":"REVİZE GEREKLİ"}. ${r.summary}`+(r.issues.length?"\n"+r.issues.map(i=>"• "+i.agent+": "+i.issue).join("\n"):""));
+    P.reviews.push(Object.assign({round},rv)); renderDocs(); save();
+    if(rv.verdict==="onay"||round===2||!rv.issues.length) break;
+    const by={}; rv.issues.forEach(i=>{ (by[i.aid]=by[i.aid]||[]).push(i.issue) });
+    for(const aid of Object.keys(by)){
+      const a=byId(aid), secs=P.sections.filter(s=>s.agent===aid); if(!a||!secs.length) continue; const sec=secs[0], item=P.plan.items.find(i=>i.title===sec.title)||{title:sec.title,spec:""};
+      const md=await work(a,"“"+sec.title+"” bölümünü düzeltiyor",()=>text(sample,sectionPrompt(a,item,sec.md,by[aid].map(x=>"- "+x).join("\n")),"default"),()=>"Düzeltme tamam.");
+      sec.md=md; sec.rev++; save(); renderDocs();
+    }
+  }
+  P.done[3]=true; save();
+}
+const num=(v,d,lo,hi)=>{ v=+v; return Number.isFinite(v)?Math.min(hi,Math.max(lo,v)):d };
+function learnPrompt(a,train){
+  const last=(P.reviews||[]).slice(-1)[0], mine=P.sections.filter(s=>s.agent===a.id).map(s=>s.title).join(", ");
+  const rev=last?`Denetçi sonucu: ${last.score}/10 — ${last.summary}\nMaddeler: ${last.issues.map(i=>i.agent+": "+i.issue).join(" | ")||"yok"}`:"(denetim yok)";
+  return `[GÖREV:ÖĞREN]
+Sen ${a.name}, ${a.role}. ${a.brief}
+Eski yöntem notların:
+${M.play[a.key]||"(yok)"}
+
+Proje: ${P.title}. ${P.brief}
+Senin payın: ${mine||(a.recruiter?"ekibi kurmak":a.reviewer?"denetim":"sohbet ve fikirler")}
+${rev}
+${train?"Bu bir antrenman turu: yeni proje yok. Yöntem notlarını gözden geçirip daha keskin, daha uygulanabilir hâle getir; boşlukları kapat.":"Proje bitti. Bu projeden öğrendiklerini çıkar."}
+
+Kendini geliştir: ne iyi gitti, ne kötü gitti, bir sonraki projede ne yapacaksın? Yöntem notlarını bu derslerle güncelle: eskileri sıkıştır, tekrarı sil, yenilerini ekle, en fazla 6 madde.
+Biçim (yalnızca JSON): {"lesson":"tek cümle somut ders","playbook":"güncellenmiş yöntem notların, en fazla 600 karakter, madde madde"}`;
+}
+async function stepLearn(sample,train){
+  const last=(P.reviews||[]).slice(-1)[0], pts=train?2:Math.max(1,Math.round(last?last.score:5));
+  for(const a of [RANA,...P.team]){
+    try{
+      const r=await work(a,train?"kendini eğitiyor":"ders çıkarıyor",()=>getJson(sample,learnPrompt(a,train),"quick",v=>v&&v.playbook&&v.lesson?{lesson:String(v.lesson).slice(0,200),playbook:String(v.playbook).slice(0,700)}:null),r=>"Ders: "+r.lesson);
+      M.play[a.key]=r.playbook; M.lessons.push({key:a.key,role:a.role,text:r.lesson,proj:P.title,score:last?last.score:null,t:Date.now()});
+      M.xp[a.key]=(M.xp[a.key]||0)+pts; if(M.lessons.length>80) M.lessons.splice(0,M.lessons.length-80); save(); renderGrowth(); renderRoster();
+    }catch(e){ if(e&&e.code==="cancelled"||ctrl.signal.aborted) throw e; note(a,"ders çıkaramadı") }
+  }
+  if(!train){ P.done[4]=true; M.done++; M.archive.push({title:P.title,score:last?last.score:null,t:Date.now()}); M.archive=M.archive.slice(-30) }
+  save(); renderAll();
+}
+
+/* ---------- çalıştırıcı ---------- */
+async function getSample(){ try{ return (typeof claude!=="undefined"&&claude.use)?await claude.use("sample"):null }catch(e){ return null } }
+function setBusy(b){ busy=b; $("send").textContent=b?"Durdur":(P?"Gönder":"Başlat"); $("send").className="send"+(b?" stop":""); $("send").type=b?"button":"submit"; $("auto").disabled=b||!P; $("free").disabled=b||!P; renderSteps(); renderGrowth() }
+async function run(fn){
+  if(busy) return; busy=true; ctrl=new AbortController(); setBusy(true);
+  const sample=await getSample();
+  try{
+    if(!sample){ if(P) sysMsg("Bu görünümde yanıt üretilemiyor. Sayfayı claude.ai üzerinden artifact bağlantısıyla aç."); else alertNoSample(); }
+    else await fn(sample);
+  }catch(e){ if(P&&!(e&&(e.code==="cancelled"||e.code==="stop"))&&!ctrl.signal.aborted) sysMsg(errTxt(e)) }
+  thinking=null; ctrl=null; setBusy(false); save(); renderAll();
+}
+function alertNoSample(){ $("hint").textContent="Bu görünümde yanıt üretilemiyor. Sayfayı claude.ai üzerinden artifact bağlantısıyla aç." }
+const STEPFN=[stepIdea,stepPlan,stepBuild,stepReview,s=>stepLearn(s,false)];
+function runStep(i){ if(!P||busy) return; run(async s=>{ await STEPFN[i](s) }) }
+function autopilot(){ if(!P||busy) return; run(async s=>{ for(let i=0;i<5;i++){ if(!P.done[i]) await STEPFN[i](s); if(ctrl.signal.aborted) break } }) }
+
+function targets(t){ const f=fold(t), hit=live().concat([RANA]).filter(a=>new RegExp("@"+fold(a.name)+"(?![a-z])").test(f)); return {list:hit.length?hit:workers(),direct:hit.length>0} }
+async function send(){
+  const input=$("input"), t=input.value.trim();
+  if(busy){ if(ctrl) ctrl.abort(); return }
+  if(!t) return;
+  if(!P){ input.value=""; grow(); await run(async s=>{ await startProject(s,t); if(P) await talkRounds(s,+$("rounds").value>0?1:0,"idea") }); return }
+  input.value=""; grow();
+  await run(async s=>{
+    P.log.push({from:"me",text:t}); note(null,"Sen yeni bir mesaj yazdın"); renderFeed();
+    const tg=targets(t);
+    for(const a of tg.list){ const r=await speak(s,a,"user",tg.direct); if(r==="fatal"||r==="stop") throw {code:"stop"} }
+    await talkRounds(s,+$("rounds").value,"free");
+  });
+}
+
+/* ---------- dışa aktarma ---------- */
+function codeFiles(){
+  if(!P) return []; const out=[], used=new Set(); let n=0;
+  P.sections.forEach(s=>{ const re=/```([^\n]*)\n([\s\S]*?)```/g; let m;
+    while((m=re.exec(s.md))){ const parts=m[1].trim().split(/\s+/), lang=(parts[0]||"txt").toLowerCase(); let nm=parts[1]||""; nm=nm.replace(/[^\w./-]/g,"").replace(/^[./]+/,"").replace(/\.\.+/g,".");
+      const ext={javascript:"js",python:"py",typescript:"ts",markdown:"md"}[lang]||lang.replace(/[^a-z0-9]/g,"")||"txt"; if(!nm) nm="kod-"+(++n)+"."+ext; while(used.has(nm)) nm="k"+(++n)+"-"+nm; used.add(nm); out.push({name:nm,data:new TextEncoder().encode(m[2])}) } });
+  return out;
+}
+function crc32(u8){ if(!crc32.t){ crc32.t=[]; for(let n=0,c;n<256;n++){ c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; crc32.t[n]=c>>>0 } }
+  let crc=-1; for(let i=0;i<u8.length;i++) crc=crc32.t[(crc^u8[i])&255]^(crc>>>8); return (crc^-1)>>>0 }
+function zipStore(files){
+  const enc=new TextEncoder(), out=[], cen=[]; let off=0;
+  files.forEach(f=>{ const nm=enc.encode(f.name), crc=crc32(f.data), sz=f.data.length;
+    const h=new DataView(new ArrayBuffer(30)); h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(12,0x21,true); h.setUint32(14,crc,true); h.setUint32(18,sz,true); h.setUint32(22,sz,true); h.setUint16(26,nm.length,true);
+    out.push(new Uint8Array(h.buffer),nm,f.data);
+    const c=new DataView(new ArrayBuffer(46)); c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(14,0x21,true); c.setUint32(16,crc,true); c.setUint32(20,sz,true); c.setUint32(24,sz,true); c.setUint16(28,nm.length,true); c.setUint32(42,off,true);
+    cen.push(new Uint8Array(c.buffer),nm); off+=30+nm.length+sz });
+  const csz=cen.reduce((a,b)=>a+b.length,0), e=new DataView(new ArrayBuffer(22)); e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,csz,true); e.setUint32(16,off,true);
+  return new Blob([...out,...cen,new Uint8Array(e.buffer)],{type:"application/zip"});
+}
+async function saveFile(name,data){
+  let d=null; try{ d=(typeof claude!=="undefined"&&claude.use)?await claude.use("downloads"):null }catch(e){}
+  if(!d){ $("hint").textContent="Bu görünümde dosya kaydı kullanılamıyor."; return }
+  try{ await d.save({filename:name,data}); note(null,name+" kaydedildi") }catch(e){ if(!e||e.code!=="declined") $("hint").textContent="Dosya kaydedilemedi ["+(e&&e.code||"hata")+"]" }
+}
+$("dmd").onclick=()=>{ if(P&&P.sections.length) saveFile("cikti.md",fullDoc()) };
+$("dzip").onclick=()=>{ const f=codeFiles(); if(f.length) saveFile("kod-dosyalari.zip",zipStore(f)) };
+$("dcopy").onclick=async()=>{ try{ await navigator.clipboard.writeText(fullDoc()); $("hint").textContent="Çıktı panoya kopyalandı." }catch(e){ $("hint").textContent="Kopyalanamadı; Markdown indir düğmesini kullan." } };
+
+/* ---------- olaylar ---------- */
+const grow=()=>{ const i=$("input"); i.style.height="auto"; i.style.height=Math.min(i.scrollHeight,140)+"px" };
+$("input").addEventListener("input",grow);
+$("input").addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){ e.preventDefault(); send() } });
+$("form").addEventListener("submit",e=>{ e.preventDefault(); send() });
+$("send").addEventListener("click",()=>{ if(busy&&ctrl) ctrl.abort() });
+$("auto").onclick=autopilot;
+$("free").onclick=()=>{ if(P&&!busy) run(async s=>{ await talkRounds(s,4,"free") }) };
+$("train").onclick=()=>{ if(P&&!busy) run(async s=>{ await stepLearn(s,true) }) };
+function twice(id,key,label,fn){ const b=$(id); b.onclick=()=>{ if(busy) return; if(armed[key]){ armed[key]=0; b.textContent=label; fn() } else { armed[key]=1; b.textContent="Emin misin?"; setTimeout(()=>{ armed[key]=0; b.textContent=label },3500) } } }
+twice("newp","newp","Yeni proje",()=>{ P=null; save(); setView("oda"); renderAll(); setBusy(false) });
+twice("wipe","wipe","Hafızayı sıfırla",()=>{ M={play:{},lessons:[],xp:{},done:0,archive:[]}; save(); renderAll() });
+function setView(v){ $("app").dataset.view=v; $("tabs").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v)) }
+$("tabs").addEventListener("click",e=>{ const b=e.target.closest("button[data-v]"); if(b) setView(b.dataset.v) });
+
+if(P&&(!P.team||!P.log)) P=null;
+setBusy(false); renderAll();
+</script>
