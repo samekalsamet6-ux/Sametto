@@ -215,28 +215,46 @@ ${hist}
 Şimdi ${a.name} olarak sıradaki mesajını yaz.`;
 }
 
+const WHY = {
+  not_granted:"Claude kullanımı için izin gerekli. Sayfa izin penceresi açtıysa onayla; reddettiysen sayfayı yenileyip tekrar dene.",
+  rate_limited:"Çok hızlı gittik. Birkaç saniye bekleyip tekrar dene.",
+  cancelled:""
+};
+const sysMsg = text => { log.push({sys:true,text}); };
+
 async function send(){
   const input=$("input"), text=input.value.trim();
   if(!text || busy) return;
-  const sample = await claude.use("sample");
-  if(!sample){ log.push({sys:true,text:"Bu görünümde yapay zekâ yanıtı kullanılamıyor."}); renderFeed(); return }
-  input.value=""; grow(); busy=true; ctrl=new AbortController(); setBusy(true);
+  busy=true; setBusy(true);
+  let sample=null;
+  try{
+    log.push({sys:true,text:"Bağlanıyor…"}); renderFeed();
+    sample = (typeof claude!=="undefined" && claude.use) ? await claude.use("sample") : null;
+  }catch(e){ sample=null }
+  log = log.filter(m=>m.text!=="Bağlanıyor…");
+  if(!sample){
+    sysMsg("Bu görünümde yanıt üretilemiyor. Sayfayı claude.ai üzerinden, artifact bağlantısıyla aç (indirilmiş dosya veya önizleme çalışmaz).");
+    busy=false; setBusy(false); renderFeed(); return;
+  }
+  input.value=""; grow(); ctrl=new AbortController();
   log.push({from:"me",text}); const team=targets(text), room=AGENTS.filter(a=>active.has(a.id));
   renderFeed();
   for(const a of team){
     if(ctrl.signal.aborted) break;
     const m={from:a.id,text:""}; log.push(m);
-    const node=msgNode(m); $("feed").appendChild(node); typing=a.id; renderRoster();
+    const node=msgNode(m); node._body.textContent="Düşünüyor…"; $("feed").appendChild(node); typing=a.id; renderRoster();
+    $("feed").scrollTop=$("feed").scrollHeight;
     try{
       const res = await sample(prompt(a,room),{cache:false,modelTier:"quick",signal:ctrl.signal,
         onText:({text:t})=>{ m.text=t; fmt(node._body,t); $("feed").scrollTop=$("feed").scrollHeight }});
-      m.text=(res.text||"").replace(new RegExp("^\\s*"+a.name+"\\s*[:：-]\\s*","i"),"").trim();
+      m.text=(res&&res.text||"").replace(new RegExp("^\\s*"+a.name+"\\s*[:：-]\\s*","i"),"").trim();
+      if(!m.text){ log.pop(); sysMsg(a.name+" boş yanıt döndürdü."); break }
       fmt(node._body,m.text);
     }catch(e){
-      if(ctrl.signal.aborted){ if(!m.text) log.pop(); break }
-      log.pop();
+      if(m.text){ /* kısmi yanıt kalsın */ } else log.splice(log.indexOf(m),1);
       const code=e&&e.code;
-      log.push({sys:true,text: code==="not_granted" ? "Yanıt vermek için izin gerekiyor. Sayfa iznini onaylayıp tekrar dene." : code==="rate_limited" ? "Çok hızlı gittik, birkaç saniye sonra tekrar dene." : a.name+" şu an yanıt veremedi."});
+      if(code==="cancelled"||ctrl.signal.aborted) break;
+      sysMsg((WHY[code]||a.name+" yanıt veremedi.")+" ["+(code||"hata")+(e&&e.message?": "+e.message:"")+"]");
       break;
     }
     save();
