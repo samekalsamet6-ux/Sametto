@@ -3,18 +3,21 @@ import { Color, DoubleSide, Group, Material, MeshPhysicalMaterial, MeshStandardM
 import { addEye, canvasTexture, createFishViewer, finGeometry, loftBody, proxyFrom, put, swimify, tube, type FishBuilt, type SwimUniforms } from '../akvaryum/fish3d';
 import { mixHex } from '../akvaryum/fishmath';
 import type { SexId, SpeciesViewer, SpeciesViewerOptions } from '../akvaryum/types';
-import { bodyFor, eyeGeom, finsFor, mouthLine, operculumArc } from './model';
+import { FORM_IDS, type Form, bodyFor, eyeGeom, finsFor, mouthLine, operculumArc } from './model';
 import { partAnchors, partsFor } from './parts';
 import { paintBody } from './texture';
 import { variantById } from './variants';
+
+const formOf = (id?: string): Form => (FORM_IDS as readonly string[]).includes(id ?? '') ? (id as Form) : 'standart';
 
 export const VIEW_ANGLES: Record<string, [number, number]> = {
   yan: [0, Math.PI / 2 - 0.05], capraz: [-0.75, 1.15], ust: [0, 0.04], alt: [0, Math.PI - 0.04], on: [-Math.PI / 2, Math.PI / 2 - 0.08], arka: [Math.PI / 2, Math.PI / 2 - 0.08],
 };
 
-export function buildNeon(sex: SexId, variantId: string, u: SwimUniforms, texW: number): FishBuilt {
+export function buildNeon(sex: SexId, variantId: string, u: SwimUniforms, texW: number, formId?: string): FishBuilt {
+  const form = formOf(formId);
   const v = variantById(variantId);
-  const body = bodyFor(sex);
+  const body = bodyFor(sex, form);
   const group = new Group();
   const textures: FishBuilt['textures'] = [];
   const tex = paintBody(v, sex, texW);
@@ -27,13 +30,13 @@ export function buildNeon(sex: SexId, variantId: string, u: SwimUniforms, texW: 
   put(group, loftBody(body), skin);
 
   const std = (color: string, rough = 0.5, metal = 0): Material => swimify(new MeshStandardMaterial({ color: new Color(color), roughness: rough, metalness: metal }), u);
-  const e = eyeGeom(sex);
+  const e = eyeGeom(sex, form);
   for (const side of [1, -1] as const) {
     addEye(group, [e.center[0], e.center[1], e.center[2] * side], e.radius, [e.normal[0], e.normal[1], e.normal[2] * side], v.eye, std, 1.2, 0.8);
-    put(group, tube(mouthLine(sex, side), 0.0028, 10), std('#5a5148', 0.6));
-    put(group, tube(operculumArc(sex, side), 0.0028, 16), std(mixHex(v.body.yan, '#000000', 0.45), 0.5));
+    put(group, tube(mouthLine(sex, side, form), 0.0028, 10), std('#5a5148', 0.6));
+    put(group, tube(operculumArc(sex, side, 14, form), 0.0028, 16), std(mixHex(v.body.yan, '#000000', 0.45), 0.5));
   }
-  for (const f of finsFor(sex)) {
+  for (const f of finsFor(sex, form)) {
     const mat = swimify(new MeshStandardMaterial({ map: canvasTexture(tex.fins[f.id], true, textures), transparent: true, side: DoubleSide, depthWrite: false, roughness: 0.5, alphaTest: 0.01 }), u);
     for (const side of f.paired ? ([1, -1] as const) : ([1] as const)) put(group, finGeometry(f, side, 6), mat, 2);
   }
@@ -41,5 +44,5 @@ export function buildNeon(sex: SexId, variantId: string, u: SwimUniforms, texW: 
 }
 
 export function createViewer(opts: SpeciesViewerOptions): SpeciesViewer {
-  return createFishViewer(opts, { views: VIEW_ANGLES, home: 'capraz', parts: partsFor, anchors: partAnchors, build: buildNeon });
+  return createFishViewer(opts, { views: VIEW_ANGLES, home: 'capraz', parts: partsFor, anchors: (s, f) => partAnchors(s, formOf(f)), build: buildNeon });
 }

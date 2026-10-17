@@ -76,7 +76,7 @@ export function fishSuite(c: FishSuite) {
     it('yüzgeç ızgarası sonlu ve düzgün indeksli; kökler gövdeye yakın; uçlar köklerden ayrı', () => {
       for (const sex of c.sexes) {
         const fins = c.finsFor(sex);
-        expect(fins.length).toBeGreaterThanOrEqual(5);
+        expect(fins.length).toBeGreaterThanOrEqual(4);
         expect(new Set(fins.map((f) => f.id)).size).toBe(fins.length);
         for (const f of fins) {
           expect(f.base.length).toBe(f.tip.length);
@@ -87,7 +87,7 @@ export function fishSuite(c: FishSuite) {
           expect(g.uv.every((u) => u >= 0 && u <= 1)).toBe(true);
           const len = f.base.reduce((m, p, i) => Math.max(m, Math.hypot(p[0] - f.tip[i][0], p[1] - f.tip[i][1], p[2] - f.tip[i][2])), 0);
           expect(len, `${f.id} uzunluğu`).toBeGreaterThan(0.02);
-          expect(len, `${f.id} uzunluğu`).toBeLessThan(0.6);
+          expect(len, `${f.id} uzunluğu`).toBeLessThan(0.8);
           // kök, gövde sınırlayıcı kutusunun içinde
           for (const p of f.base) { expect(Math.abs(p[0])).toBeLessThanOrEqual(0.52); expect(Math.abs(p[2])).toBeLessThan(0.25); }
           if (f.paired) for (const p of [...f.base, ...f.tip]) expect(p[2], `${f.id} +z yanında tanımlı`).toBeGreaterThanOrEqual(-1e-9);

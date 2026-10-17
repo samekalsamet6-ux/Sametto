@@ -2,7 +2,7 @@
 import { lerp, norm3, surfaceAt, type Vec3 } from '../akvaryum/fishmath';
 import type { FishAnchor } from '../akvaryum/fish3d';
 import type { FishPart } from '../akvaryum/page';
-import { bodyFor, eyeGeom, finsFor, stripeW, type Sex } from './model';
+import { bodyFor, eyeGeom, finsFor, stripeW, type Form, type Sex } from './model';
 
 export type PartId =
   | 'govde' | 'agiz' | 'goz' | 'solungac-kapagi' | 'mavi-serit' | 'kirmizi-bolge' | 'serit-egri' | 'serit-duz'
@@ -42,34 +42,34 @@ export const PARTS: Part[] = [
     aciklama: 'Solungaç kapağının arkasında, gövdenin iki yanında bir çift küçük, saydam yüzgeçtir. Yerinde durmak, yavaş manevra yapmak ve fren için çırpılır.' },
 ];
 
-export const partsFor = (sex: Sex): Part[] => PARTS.filter((p) => !p.sex || p.sex === sex);
+export const partsFor = (sex: Sex, _form?: string): Part[] => PARTS.filter((p) => !p.sex || p.sex === sex);
 
-function finPoint(sex: Sex, id: string, u: number, v: number): Vec3 {
-  const f = finsFor(sex).find((x) => x.id === id)!;
+function finPoint(sex: Sex, id: string, u: number, v: number, form: Form = 'standart'): Vec3 {
+  const f = finsFor(sex, form).find((x) => x.id === id)!;
   const f0 = u * (f.base.length - 1), i = Math.min(f.base.length - 2, Math.floor(f0)), t = f0 - i;
   const at = (k: number): Vec3 => [lerp(f.base[k][0], f.tip[k][0], v), lerp(f.base[k][1], f.tip[k][1], v), lerp(f.base[k][2], f.tip[k][2], v)];
   const a = at(i), b = at(i + 1);
   return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
 }
 
-export function partAnchors(sex: Sex): Record<string, FishAnchor> {
-  const b = bodyFor(sex), out: Record<string, FishAnchor> = {};
+export function partAnchors(sex: Sex, form: Form = 'standart'): Record<string, FishAnchor> {
+  const b = bodyFor(sex, form), out: Record<string, FishAnchor> = {};
   const on = (s: number, phi: number, off = 0.012): FishAnchor => { const r = surfaceAt(b, s, phi, off); return { pos: r.pos, normal: r.normal, mirror: true }; };
   out.govde = on(0.62, 0.55);
   const n0 = b.section(0.003);
   out.agiz = { pos: [n0.x - 0.004, (n0.yTop + n0.yBot) / 2 - 0.002, 0.012], normal: norm3([-0.8, 0.05, 0.6]), mirror: true };
-  const e = eyeGeom(sex);
+  const e = eyeGeom(sex, form);
   out.goz = { pos: [e.center[0] + e.normal[0] * e.radius, e.center[1] + e.normal[1] * e.radius, e.center[2] + e.normal[2] * e.radius], normal: e.normal, mirror: true };
   out['solungac-kapagi'] = on(0.205, 1.7, 0.014);
   out['mavi-serit'] = on(0.32, Math.PI * stripeW(sex, 0.32), 0.016);
   out['kirmizi-bolge'] = on(0.7, Math.PI * 0.66, 0.014);
   if (sex === 'disi') out['serit-egri'] = on(0.56, Math.PI * stripeW(sex, 0.56), 0.016);
   else out['serit-duz'] = on(0.56, Math.PI * stripeW(sex, 0.56), 0.016);
-  out['sirt-yuzgeci'] = { pos: finPoint(sex, 'sirt', 0.5, 0.7), normal: null, mirror: false, flex: 0.2 };
-  out['yag-yuzgeci'] = { pos: finPoint(sex, 'yag', 0.5, 0.7), normal: null, mirror: false, flex: 0.1 };
-  out['kuyruk-yuzgeci'] = { pos: finPoint(sex, 'kuyruk', 0.25, 0.8), normal: null, mirror: false, flex: 0.9 };
-  out['anal-yuzgec'] = { pos: finPoint(sex, 'anal', 0.5, 0.7), normal: null, mirror: false, flex: 0.3 };
-  out['karin-yuzgeci'] = { pos: finPoint(sex, 'karin', 0.5, 0.7), normal: null, mirror: true, flex: 0.3 };
-  out['gogus-yuzgeci'] = { pos: finPoint(sex, 'gogus', 0.5, 0.7), normal: null, mirror: true, flex: 0.7 };
+  out['sirt-yuzgeci'] = { pos: finPoint(sex, 'sirt', 0.5, 0.7, form), normal: null, mirror: false, flex: 0.2 };
+  out['yag-yuzgeci'] = { pos: finPoint(sex, 'yag', 0.5, 0.7, form), normal: null, mirror: false, flex: 0.1 };
+  out['kuyruk-yuzgeci'] = { pos: finPoint(sex, 'kuyruk', 0.25, 0.8, form), normal: null, mirror: false, flex: 0.9 };
+  out['anal-yuzgec'] = { pos: finPoint(sex, 'anal', 0.5, 0.7, form), normal: null, mirror: false, flex: 0.3 };
+  out['karin-yuzgeci'] = { pos: finPoint(sex, 'karin', 0.5, 0.7, form), normal: null, mirror: true, flex: 0.3 };
+  out['gogus-yuzgeci'] = { pos: finPoint(sex, 'gogus', 0.5, 0.7, form), normal: null, mirror: true, flex: 0.7 };
   return out;
 }

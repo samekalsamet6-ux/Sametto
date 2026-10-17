@@ -1,15 +1,53 @@
 import { describe, expect, it } from 'vitest';
 import { fishSuite } from '../akvaryum/fish-contract';
-import { SEXES, STRIPE, bodyFor, eyeGeom, finsFor, mouthLine, operculumArc, silhouette, stripeW } from './model';
+import { FORM_IDS, FORM_PARAMS, SEXES, STRIPE, bodyFor, eyeGeom, finsFor, mouthLine, operculumArc, silhouette, stripeW } from './model';
 import { PARTS, partAnchors, partsFor } from './parts';
 import { VARIANTS, VARIANT_GROUPS, groupedVariants, variantById } from './variants';
 import { hexToRgb } from '../akvaryum/fishmath';
 import { species } from './index';
+import { FORMS } from './forms';
+import { bodyOutline } from '../akvaryum/fishmath';
 import { paintBody } from './texture';
 
-fishSuite({
-  ad: 'neon', sexes: [...SEXES], bodyFor, finsFor, silhouette, parts: PARTS, partsFor, partAnchors, variants: VARIANTS,
-  paint: (id, sex, W) => paintBody(variantById(id), sex, W), onSurface: ['govde', 'solungac-kapagi', 'mavi-serit', 'kirmizi-bolge', 'serit-egri', 'serit-duz'], aspect: [3.6, 5.2],
+const ASPECT = { standart: [3.6, 5.2], 'uzun-yuzgec': [3.6, 5.2], balon: [2.2, 4.4] } as const;
+for (const form of FORM_IDS) {
+  fishSuite({
+    ad: `neon/${form}`, sexes: [...SEXES], bodyFor: (s) => bodyFor(s, form), finsFor: (s) => finsFor(s, form), silhouette: (s) => silhouette(s, form), parts: PARTS, partsFor,
+    partAnchors: (s) => partAnchors(s, form), variants: VARIANTS, paint: (id, sex, W) => paintBody(variantById(id), sex, W),
+    onSurface: ['govde', 'solungac-kapagi', 'mavi-serit', 'kirmizi-bolge', 'serit-egri', 'serit-duz'], aspect: [...ASPECT[form]],
+  });
+}
+
+describe('neon: form (şekil) varyeteleri', () => {
+  const area = (pts: [number, number][]) => Math.abs(pts.reduce((a, p, i) => { const q = pts[(i + 1) % pts.length]; return a + (p[0] * q[1] - q[0] * p[1]); }, 0) / 2);
+  const finExtent = (form: (typeof FORM_IDS)[number], id: string) => { const f = finsFor('erkek', form).find((x) => x.id === id)!; return Math.max(...f.tip.map((p, i) => Math.hypot(p[0] - f.base[i][0], p[1] - f.base[i][1]))); };
+  it('standart ilk; üç gerçek form; kimlikler FORM_IDS ile aynı; açıklamalar dürüst', () => {
+    expect(FORMS.map((f) => f.id)).toEqual([...FORM_IDS]);
+    expect(FORMS[0].id).toBe('standart');
+    expect(species.forms).toBe(FORMS);
+    for (const f of FORMS) expect(f.aciklama.length).toBeGreaterThan(60);
+    for (const id of ['uzun-yuzgec', 'balon']) expect(FORMS.find((f) => f.id === id)?.dogrulanmali).toBe(true);
+  });
+  it('uzun yüzgeçli: sırt, anal, kuyruk ve karın yüzgeçleri standarttan belirgin uzun; gövde aynı', () => {
+    for (const id of ['sirt', 'anal', 'kuyruk', 'karin']) expect(finExtent('uzun-yuzgec', id), id).toBeGreaterThan(finExtent('standart', id) * 1.5);
+    const a = bodyFor('erkek', 'standart').section(0.45), b = bodyFor('erkek', 'uzun-yuzgec').section(0.45);
+    expect(b.yTop).toBeCloseTo(a.yTop, 9);
+  });
+  it('balon: gövde belirgin yuvarlak (derinlik ve genişlik fazla, özellikle karın); yüzgeçler biraz küçük; silüet alanı büyür', () => {
+    const s = bodyFor('erkek', 'standart').section(0.46), b = bodyFor('erkek', 'balon').section(0.46);
+    expect(b.yTop - b.yBot).toBeGreaterThan((s.yTop - s.yBot) * 1.4);
+    expect(b.hw).toBeGreaterThan(s.hw * 1.2);
+    expect(-b.yBot).toBeGreaterThan(-s.yBot * 1.5);
+    expect(area(silhouette('erkek', 'balon').body)).toBeGreaterThan(area(silhouette('erkek', 'standart').body) * 1.25);
+    expect(FORM_PARAMS.balon.fin.caudal).toBeLessThan(1);
+  });
+  it('her formun silüeti standarttan ölçülebilir biçimde farklı; bilinmeyen form standarda eşit değil hata vermez', () => {
+    const ext = (f: (typeof FORM_IDS)[number]) => { const s = silhouette('disi', f); const all = [...s.body, ...s.fins.flatMap((x) => x.pts)]; return [Math.max(...all.map((p) => p[0])) - Math.min(...all.map((p) => p[0])), Math.max(...all.map((p) => p[1])) - Math.min(...all.map((p) => p[1]))]; };
+    expect(ext('uzun-yuzgec')[0]).toBeGreaterThan(ext('standart')[0] * 1.08);
+    expect(ext('uzun-yuzgec')[1]).toBeGreaterThan(ext('standart')[1] * 1.15);
+    expect(ext('balon')[1]).toBeGreaterThan(ext('standart')[1] * 1.1);
+    expect(bodyOutline(bodyFor('erkek', 'balon'), 10).length).toBeGreaterThan(10);
+  });
 });
 
 describe('neon: cinsiyet ve şerit', () => {
@@ -26,7 +64,7 @@ describe('neon: cinsiyet ve şerit', () => {
     expect(partsFor('erkek').some((p) => p.id === 'serit-egri')).toBe(false);
     expect(partsFor('erkek').some((p) => p.id === 'serit-duz')).toBe(true);
   });
-  it('yüzgeçler: yağ yüzgeci var; kuyruk çatallı (ortası uçlardan kısa); hepsi küçük', () => {
+  it('yüzgeçler (standart): yağ yüzgeci var; kuyruk çatallı (ortası uçlardan kısa); hepsi küçük', () => {
     const f = finsFor('erkek');
     expect(f.map((x) => x.id).sort()).toEqual(['anal', 'gogus', 'karin', 'kuyruk', 'sirt', 'yag']);
     const k = f.find((x) => x.id === 'kuyruk')!;

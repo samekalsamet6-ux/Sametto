@@ -1,6 +1,7 @@
 ---
 import SpeciesPage from '../../components/SpeciesPage.astro';
 import { PARTS } from '../../lib/neon/parts';
+import { FORMS } from '../../lib/neon/forms';
 import { VARIANTS, groupedVariants } from '../../lib/neon/variants';
 import { SEXES, silhouette } from '../../lib/neon/model';
 import { svgFigure } from '../../lib/akvaryum/fishmath';
@@ -15,14 +16,16 @@ const figures = SEXES.map((s) => ({ label: sexName[s], ...svgFigure(silhouette(s
   views={[{ id: 'yan', ad: 'Yan' }, { id: 'ust', ad: 'Üst' }, { id: 'alt', ad: 'Alt' }, { id: 'on', ad: 'Ön' }, { id: 'arka', ad: 'Arka' }, { id: 'capraz', ad: 'Çapraz' }]}
   sexes={[{ id: 'erkek', ad: 'Erkek', not: '' }, { id: 'disi', ad: 'Dişi', not: '' }]}
   parts={PARTS}
+  forms={FORMS}
+  formIntro="Form, gövde ve yüzgeç geometrisini değiştirir; renk varyetesinden bağımsızdır, her form her renkle birleştirilebilir. Yalnızca ticarette gerçekten bilinen biçimler gösterilmiştir; ayrıntılar şematiktir ve kaynakla doğrulanmalıdır."
   groups={groupedVariants()}
-  variantIntro={`${VARIANTS.length} şematik renk biçimi; hepsi aynı gövdeyi paylaşır, yalnızca renk ve desen değişir. Yalnızca kaynaklarda anlatılan renk biçimleri gösterilmiştir; uzun yüzgeçli (“longfin/veiltail”) biçim bilerek yoktur. Adlandırma ve tanımlar kaynağa göre değişir; “kaynakla doğrulanmalı” işaretli kayıtlar belirsizdir.`}
+  variantIntro={`${VARIANTS.length} şematik renk biçimi; hepsi aynı gövdeyi paylaşır, yalnızca renk ve desen değişir. Yalnızca kaynaklarda anlatılan renk biçimleri gösterilmiştir; form (şekil) varyeteleri ayrı bir seçicidedir. Adlandırma ve tanımlar kaynağa göre değişir; “kaynakla doğrulanmalı” işaretli kayıtlar belirsizdir.`}
   figures={figures}
   fill="#a8b0a4"
   stageLabel="Neon tetranın etkileşimli 3B modeli."
 >
   <div class="callout callout-bilgi" slot="tur">
-    <strong>Kapsam.</strong> Bu model <em>Paracheirodon innesi</em> (neon tetra) gövdesini gösterir; benzer görünen kardinal tetra (<em>P. axelrodi</em>) gibi türler dahil değildir. Model <strong>şematiktir</strong>: oranlar, renkler ve şerit parıltısı eğitim amaçlı bir yorumdur; belirli bir bireyin ölçüsü ya da standardı değildir. Işık ve açıya göre değişen yapısal renk, burada yaklaşık olarak gösterilmiştir.
+    <strong>Kapsam.</strong> Bu model <em>Paracheirodon innesi</em> (neon tetra) gövdesini gösterir; benzer görünen kardinal tetra (<em>P. axelrodi</em>) gibi türler dahil değildir. Form (standart, uzun yüzgeçli, balon) ayrı seçilir ve her renkle birleşir. Model <strong>şematiktir</strong>: oranlar, renkler ve şerit parıltısı eğitim amaçlı bir yorumdur; belirli bir bireyin ölçüsü ya da standardı değildir. Işık ve açıya göre değişen yapısal renk, burada yaklaşık olarak gösterilmiştir.
   </div>
   <p class="muted" slot="ek">Neon tetralar sürü balıklarıdır; bir bireyi tek başına görmek davranışlarını yansıtmaz. Bu sayfa bakım rehberi değildir.</p>
   <p class="muted">Modellenmeyenler: boğaz dişleri, iç organlar, yüzme kesesi, ışığa/uyku durumuna göre şerit sönmesi ve yaşa bağlı renk değişimi. Cinsiyetler arası fark küçüktür ve şematik gösterilmiştir; genç bireylerde ayrım zordur.</p>
@@ -34,10 +37,11 @@ const figures = SEXES.map((s) => ({ label: sexName[s], ...svgFigure(silhouette(s
 <script>
   import { initSpeciesPage } from '../../lib/akvaryum/page';
   import { PARTS, partsFor } from '../../lib/neon/parts';
+  import { FORMS } from '../../lib/neon/forms';
   import { VARIANTS } from '../../lib/neon/variants';
 
   initSpeciesPage({
-    parts: PARTS, partsFor, variants: VARIANTS, defaultSex: 'erkek', defaultView: 'capraz',
+    parts: PARTS, partsFor, variants: VARIANTS, forms: FORMS, defaultSex: 'erkek', defaultView: 'capraz',
     sexNotes: {
       erkek: 'Erkek: gövde daha ince, mavi şerit daha düz (şematik). Fark küçüktür; genç bireylerde ayrım zordur.',
       disi: 'Dişi: karın daha dolgun, mavi şerit karın bölgesinde aşağı bükülür (şematik). Fark küçüktür; genç bireylerde ayrım zordur.',

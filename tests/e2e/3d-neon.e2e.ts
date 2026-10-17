@@ -12,4 +12,5 @@ speciesSuite({
     { view: 'alt', shown: ['anal-yuzgec', 'karin-yuzgeci'], hidden: ['sirt-yuzgeci', 'yag-yuzgeci'] },
   ],
   svgCount: 2,
+  forms: { ids: ['standart', 'uzun-yuzgec', 'balon'], colours: ['normal', 'gold'], counts: { standart: 13, 'uzun-yuzgec': 13, balon: 13 } },
 });

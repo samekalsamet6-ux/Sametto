@@ -21,6 +21,8 @@ export interface SpeciesE2E {
   /** Listeden seçilince kameranın döneceği parça (görünümde gizliyken) */
   turnTo?: { from: string; part: string; to: string };
   svgCount: number;
+  /** Form (şekil) varyeteleri: kimlikler (ilki standart), denenecek renkler, forma göre parça sayısı (varsayılan cinsiyette) */
+  forms?: { ids: string[]; colours: string[]; counts?: Record<string, number> };
 }
 
 const ready = (page: Page) => expect(page.locator('#stage')).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
@@ -155,6 +157,7 @@ export function speciesSuite(c: SpeciesE2E) {
       await expect(page.locator('#stage')).toHaveAttribute('data-swim', 'off');
       await page.check('#rot');
       await expect(page.locator('#stage')).toHaveAttribute('data-rotate', 'on');
+      await page.locator('#stage').scrollIntoViewIfNeeded(); // tuval görünmezken çizim durur
       const f0 = Number(await page.locator('#cv').getAttribute('data-frames'));
       await expect.poll(async () => Number(await page.locator('#cv').getAttribute('data-frames')), { timeout: 30_000 }).toBeGreaterThan(f0 + 2);
       await page.uncheck('#rot');
@@ -180,6 +183,60 @@ export function speciesSuite(c: SpeciesE2E) {
       }
       expect(errors).toEqual([]);
     });
+
+    if (c.forms) {
+      const F = c.forms;
+      test('form seçici: her form × birkaç renk hatasız yüklenir; form değişince renk korunur, form notu güncellenir', async ({ page }) => {
+        test.setTimeout(300_000);
+        const errors: string[] = [];
+        page.on('pageerror', (e) => errors.push(e.message));
+        await page.goto(URL);
+        await ready(page);
+        const ids = await page.locator('#form option').evaluateAll((els) => els.map((e) => (e as HTMLOptionElement).value));
+        expect(ids).toEqual(F.ids);
+        await expect(page.locator('#stage')).toHaveAttribute('data-form', F.ids[0]);
+        await expect(page.locator('#formnote')).not.toBeEmpty();
+        await page.uncheck('#swim');
+        for (const f of F.ids) {
+          await page.selectOption('#form', f);
+          await expect(page.locator('#stage')).toHaveAttribute('data-form', f);
+          for (const col of F.colours) {
+            await page.selectOption('#variant', col);
+            await expect(page.locator('#stage')).toHaveAttribute('data-variant', col);
+          }
+          // renk korunur
+          await expect(page.locator('#variant')).toHaveValue(F.colours[F.colours.length - 1]);
+        }
+        const note = await page.locator('#formnote').textContent();
+        expect(note).toContain('Form —');
+        await page.selectOption('#form', F.ids[0]);
+        await expect(page.locator('#variant')).toHaveValue(F.colours[F.colours.length - 1]);
+        await expect(page.locator('#formnote')).not.toHaveText(note ?? '');
+        expect(errors).toEqual([]);
+      });
+
+      test('form değişince parça listesi güncellenir; noktalar yeni geometriyi izler; numaralar kapatılabilir', async ({ page }) => {
+        test.setTimeout(240_000);
+        await page.goto(URL);
+        await ready(page);
+        await page.uncheck('#swim');
+        for (const [f, n] of Object.entries(F.counts ?? {})) {
+          await page.selectOption('#form', f);
+          await expect(page.locator('#stage')).toHaveAttribute('data-form', f);
+          await expect(page.locator('#parts li:not([hidden])')).toHaveCount(n);
+        }
+        const last = F.ids[F.ids.length - 1];
+        await page.selectOption('#form', last);
+        await goView(page, 'yan');
+        await expect.poll(async () => (await visibleParts(page)).length, { timeout: 30_000 }).toBeGreaterThan(3);
+        await page.uncheck('#hotspots');
+        await expect.poll(async () => (await visibleParts(page)).length).toBe(0);
+        await page.selectOption('#form', F.ids[1]);
+        await expect(page.locator('#hot')).toBeHidden();
+        await page.check('#hotspots');
+        await expect.poll(async () => (await visibleParts(page)).length, { timeout: 30_000 }).toBeGreaterThan(3);
+      });
+    }
 
     test('tuvale odaklanıp ok tuşları ile döndürülür (kare üretilir)', async ({ page }) => {
       await page.goto(URL);
