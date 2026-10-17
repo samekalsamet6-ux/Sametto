@@ -3,6 +3,7 @@ import { assembleBody, blob, flatBump, paintFin, rgba, scaleBump, type Ctx, type
 import { mixHex, mulberry32 } from '../akvaryum/fishmath';
 import type { SexId } from '../akvaryum/types';
 import { seedFor, sexTone, type Variant } from './variants';
+import { finsFor, formById, webFraction } from './model';
 
 export function toneFin(style: FinStyle, sex: SexId, v: Variant): FinStyle {
   if (sex !== 'disi') return style;
@@ -17,7 +18,7 @@ export function toneFin(style: FinStyle, sex: SexId, v: Variant): FinStyle {
 
 export interface BettaTextures { color: HTMLCanvasElement; bump: HTMLCanvasElement; fins: Record<string, HTMLCanvasElement> }
 
-export function paintBody(v: Variant, sex: SexId, W = 1024): BettaTextures {
+export function paintBody(v: Variant, sex: SexId, W = 1024, form?: string): BettaTextures {
   const Hh = W / 4;
   const T = (c: string) => sexTone(c, sex, v);
   const paint = (ctx: Ctx, w: number, h: number, side: 1 | -1) => {
@@ -95,8 +96,48 @@ export function paintBody(v: Variant, sex: SexId, W = 1024): BettaTextures {
   const color = assembleBody(W, Hh, paint);
   const bump = v.pul > 0.5 ? scaleBump(W, Hh, 46, 15, 0.7) : v.pul > 0 ? scaleBump(W, Hh, 40, 14, 0.18 + 0.2 * v.pul) : flatBump(W, Hh * 2);
   const fins: Record<string, HTMLCanvasElement> = {};
-  for (const id of ['sirt', 'anal', 'kuyruk']) fins[id] = paintFin(toneFin(v.fin, sex, v));
-  fins.karin = paintFin(toneFin(v.fin, sex, v));
-  fins.gogus = paintFin(toneFin(v.gogus, sex, v));
+  const spec = formById(form);
+  const web = webFraction(form, sex);
+  for (const f of finsFor(sex, form)) {
+    if (f.id === 'gogus') {
+      const g = toneFin(v.gogus, sex, v);
+      // fil kulakta göğüs yüzgeci kürek biçimini okunur kılmak için biraz daha opak
+      fins.gogus = paintFin(spec.pectoral > 1.5 ? { ...g, stops: g.stops.map(([p, c, al]): [number, string, number] => [p, c, Math.min(0.6, al * 1.7 + 0.1)]) } : g);
+      continue;
+    }
+    const cv = paintFin(toneFin(v.fin, sex, v));
+    const unpairedBig = f.id === 'sirt' || f.id === 'anal' || f.id.startsWith('kuyruk');
+    if (unpairedBig && spec.tex !== 'plain' && spec.tex !== 'rose') shapeWeb(cv, f.base.length, web, toneFin(v.fin, sex, v).rays?.color ?? '#000000', spec.tex === 'crown' ? 5 : 2.2);
+    else if (unpairedBig && spec.tex === 'rose') shapeWeb(cv, f.base.length, web, toneFin(v.fin, sex, v).rays?.color ?? '#000000', 1, true);
+    fins[f.id] = cv;
+  }
   return { color, bump, fins };
+}
+
+/** Işınlar arasındaki zarı geri çeker: sütun i = geometrideki i. ışın (u = i/(n−1)); ışın ucu v=1'de kalır, ara bölge `web` oranına kadar uzanır */
+export function webEdge(x01: number, columns: number, web: number, sharp: number): number {
+  const t = x01 * (columns - 1), fr = t - Math.floor(t);
+  const d = Math.abs(Math.cos(Math.PI * fr)); // ışında 1, aralığın ortasında 0
+  return web + (1 - web) * Math.pow(d, sharp);
+}
+
+function shapeWeb(cv: HTMLCanvasElement, columns: number, web: number, rayColor: string, sharp: number, frill = false) {
+  const ctx = cv.getContext('2d')!;
+  const W = cv.width, H = cv.height;
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(W, 0);
+  const steps = (columns - 1) * 8;
+  for (let i = steps; i >= 0; i--) ctx.lineTo((i / steps) * W, webEdge(i / steps, columns, web, sharp) * H);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  if (frill) return;
+  // ışın çizgileri (şeffaf varyetelerde bile okunur kalsın)
+  ctx.strokeStyle = rgba(rayColor, 0.7);
+  ctx.lineWidth = Math.max(1.5, W / (columns - 1) / 4);
+  for (let i = 0; i < columns; i++) { const x = (i / (columns - 1)) * W; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H * 0.995); ctx.stroke(); }
 }

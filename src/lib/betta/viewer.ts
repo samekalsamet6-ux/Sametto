@@ -17,12 +17,12 @@ export const VIEW_ANGLES: Record<string, [number, number]> = {
   arka: [Math.PI / 2, Math.PI / 2 - 0.08],
 };
 
-export function buildBetta(sex: SexId, variantId: string, u: SwimUniforms, texW: number): FishBuilt {
+export function buildBetta(sex: SexId, variantId: string, u: SwimUniforms, texW: number, form?: string): FishBuilt {
   const v = variantById(variantId);
-  const body = bodyFor(sex);
+  const body = bodyFor(sex, form);
   const group = new Group();
   const textures: FishBuilt['textures'] = [];
-  const tex = paintBody(v, sex, texW);
+  const tex = paintBody(v, sex, texW, form);
   const map = canvasTexture(tex.color, true, textures);
   const bump = canvasTexture(tex.bump, false, textures);
 
@@ -34,7 +34,7 @@ export function buildBetta(sex: SexId, variantId: string, u: SwimUniforms, texW:
   put(group, loftBody(body), skin);
 
   const std = (color: string, rough = 0.5, metal = 0): Material => swimify(new MeshStandardMaterial({ color: new Color(color), roughness: rough, metalness: metal }), u);
-  const e = eyeSpec(sex);
+  const e = eyeSpec(sex, form);
   for (const side of [1, -1] as const) {
     addEye(group, [e.center[0], e.center[1], e.center[2] * side], e.radius, [e.normal[0], e.normal[1], e.normal[2] * side], {
       ball: v.eye.ball, iris: mixHex(v.eye.iris, '#caa860', 0.35), pupil: v.eye.pupil,
@@ -44,14 +44,14 @@ export function buildBetta(sex: SexId, variantId: string, u: SwimUniforms, texW:
   // ağız ve solungaç kapağı kenarı
   const line = sexTone(mixHex(v.body.yan, '#000000', 0.62), sex, v);
   for (const side of [1, -1] as const) {
-    put(group, tube(mouthLine(sex, side), 0.0034, 12), std(line, 0.6));
-    put(group, tube(operculumArc(sex, side), 0.0032, 18), std(mixHex(v.body.yan, '#000000', 0.5), 0.55));
+    put(group, tube(mouthLine(sex, side, form), 0.0034, 12), std(line, 0.6));
+    put(group, tube(operculumArc(sex, side, 14, form), 0.0032, 18), std(mixHex(v.body.yan, '#000000', 0.5), 0.55));
   }
-  const ov = ovipositor(sex);
+  const ov = ovipositor(sex, form);
   if (ov) { const g = new SphereGeometry(ov.r, 14, 10); g.scale(1, 0.8, 1); g.translate(...ov.pos); put(group, g, std('#f6efe6', 0.5)); }
 
   // yüzgeçler (saydam, ışınlı doku)
-  for (const f of finsFor(sex)) {
+  for (const f of finsFor(sex, form)) {
     const mat = swimify(new MeshStandardMaterial({
       map: canvasTexture(tex.fins[f.id], true, textures), transparent: true, side: DoubleSide, depthWrite: false, roughness: 0.55, metalness: 0.05, alphaTest: 0.01,
     }), u);

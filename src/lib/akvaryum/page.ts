@@ -46,7 +46,7 @@ export function initSpeciesPage(cfg: PageConfig) {
 
   function renderDetail() {
     detail.textContent = '';
-    const p = cfg.parts.find((x) => x.id === selected);
+    const p = cfg.partsFor(sex, form).find((x) => x.id === selected) ?? cfg.parts.find((x) => x.id === selected);
     if (!p) {
       const m = document.createElement('p');
       m.className = 'muted';
@@ -119,6 +119,7 @@ export function initSpeciesPage(cfg: PageConfig) {
       stage.dataset.form = form;
       if (selected && !cfg.partsFor(sex, form).some((p) => p.id === selected)) select(null);
       renderList();
+      renderDetail();
       viewer?.setForm?.(form);
       if (formNote) formNote.textContent = describeForm();
     });
