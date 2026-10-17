@@ -23,7 +23,15 @@ export interface BodyParams {
   frontPow: number;
 }
 
-export interface TailSpec { rays: number; reach: number; halfAngle: number; bulge: number; /** 0 = düz arka kenar, 1 = daire yayı */ round: number }
+export interface TailSpec {
+  rays: number; reach: number; halfAngle: number; bulge: number; /** 0 = düz arka kenar, 1 = daire yayı */ round: number;
+  /** Lira: dış (üst/alt) ışınların ek uzaması (|s|³ ile artar) */
+  lyre?: number;
+  /** Orta ışınların kısalması (lira çatalı) */
+  fork?: number;
+  /** Pintail: orta ışınların ek uzaması ve genişliği (s biriminde) */
+  pin?: number; pinWidth?: number;
+}
 export interface DorsalSpec { t0: number; t1: number; rays: number; phiFront: number; phiRear: number; lenFront: number; lenRear: number }
 
 export interface LbConfig {
@@ -151,7 +159,11 @@ export function createModel(cfg: LbConfig) {
       base.push([x0, pr.cy + s * 0.85 * (s > 0 ? pr.up : pr.down), 0]);
       dir.push([Math.cos(th), Math.sin(th), 0]);
       // round=0: düz arka kenar (reach/cosθ); round=1: daire yayı (sabit uzunluk)
-      len.push(sp.reach * Math.pow(Math.cos(th), -(1 - sp.round)) * (1 + sp.bulge * (1 - s * s)));
+      let L = sp.reach * Math.pow(Math.cos(th), -(1 - sp.round)) * (1 + sp.bulge * (1 - s * s));
+      if (sp.lyre) L *= 1 + sp.lyre * Math.pow(Math.abs(s), 3);
+      if (sp.fork) L *= 1 - sp.fork * Math.exp(-((s / 0.4) ** 2));
+      if (sp.pin) L *= 1 + sp.pin * Math.exp(-((s / (sp.pinWidth ?? 0.18)) ** 2));
+      len.push(L);
     }
     return fanFin({ base, dir, len, segments: 22, branch: 0.62, tipSpread: 0.32 });
   }

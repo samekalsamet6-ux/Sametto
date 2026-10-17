@@ -17,8 +17,11 @@ export interface LbDeps {
   M: LbModel;
   /** CSS sınıf öneki (ör. 'lb3' -> 'lb3-hot') */
   cls: string;
-  partsFor(sex: Sex): Part[];
+  partsFor(sex: Sex, form?: string): Part[];
   partAnchors(sex: Sex): Partial<Record<PartId, Anchor>>;
+  /** Form (şekil) varyetesi: forma özgü model ve çapalar; yoksa M / partAnchors kullanılır */
+  modelFor?(form: string): LbModel;
+  anchorsFor?(form: string): (sex: Sex) => Partial<Record<PartId, Anchor>>;
   variantById(id: string): Variant;
   finColor(v: Variant, sex: Sex, kind: FinKind, u: number, s: number): RGBA;
   paintBody(v: Variant, sex: Sex, w: number): BodyTextures;
@@ -362,6 +365,7 @@ export interface ViewerOptions {
   canvas: HTMLCanvasElement;
   overlay: HTMLElement;
   sex: Sex;
+  form?: string;
   variant: string;
   reducedMotion: boolean;
   onSelect: (id: PartId | null, fromUser: boolean) => void;
@@ -370,6 +374,7 @@ export interface ViewerOptions {
 export interface Viewer {
   setSex(s: Sex): void;
   setVariant(v: string): void;
+  setForm(f: string): void;
   setAutoRotate(on: boolean): void;
   setSwim(on: boolean): void;
   /** Numaralı noktaları aç/kapat; kapalıyken gizli, aria-hidden ve tıklanamaz (parça listesi çalışır). */
@@ -386,8 +391,11 @@ export interface Viewer {
 const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 
 export function createLbViewer(D: LbDeps, opts: ViewerOptions): Viewer {
-  const { M, partsFor } = D;
-  const { BODY, swimOffsetZ } = M;
+  const { partsFor } = D;
+  const { swimOffsetZ } = D.M;
+  let form = opts.form ?? 'standart';
+  const curM = (): LbModel => (D.modelFor ? D.modelFor(form) : D.M);
+  const curD = (): LbDeps => (D.modelFor ? { ...D, M: curM(), partAnchors: D.anchorsFor ? D.anchorsFor(form) : D.partAnchors } : D);
   const { canvas, overlay } = opts;
   const small = matchMedia('(max-width: 700px)').matches || navigator.maxTouchPoints > 0;
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -418,7 +426,7 @@ export function createLbViewer(D: LbDeps, opts: ViewerOptions): Viewer {
   controls.rotateSpeed = 0.8;
   controls.autoRotateSpeed = 2.2;
 
-  const uniforms: SwimUniforms = { uTime: { value: 0 }, uAmp: { value: 0 }, uFlap: { value: 0 }, uLen: { value: BODY[opts.sex].length } };
+  const uniforms: SwimUniforms = { uTime: { value: 0 }, uAmp: { value: 0 }, uFlap: { value: 0 }, uLen: { value: curM().BODY[opts.sex].length } };
   let sex = opts.sex, variant = opts.variant;
   let built: Built | null = null;
   let swimOn = false, selected: PartId | null = null;
@@ -431,7 +439,7 @@ export function createLbViewer(D: LbDeps, opts: ViewerOptions): Viewer {
   const rebuildHotspots = () => {
     overlay.textContent = '';
     hotspots.clear();
-    partsFor(sex).forEach((p, i) => {
+    partsFor(sex, form).forEach((p, i) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = `${D.cls}-hot`;
@@ -467,8 +475,8 @@ export function createLbViewer(D: LbDeps, opts: ViewerOptions): Viewer {
   const load = (first: boolean) => {
     const old = built;
     if (old) { scene.remove(old.group); disposeGroup(old.group, old.textures); }
-    uniforms.uLen.value = BODY[sex].length;
-    built = buildFish(D, sex, variant, uniforms, texW);
+    uniforms.uLen.value = curM().BODY[sex].length;
+    built = buildFish(curD(), sex, variant, uniforms, texW);
     scene.add(built.group);
     radius = built.bounds.radius;
     const prevTarget = controls.target.clone();
@@ -501,7 +509,7 @@ export function createLbViewer(D: LbDeps, opts: ViewerOptions): Viewer {
     if (!built) return;
     // gizlenme (occlusion) hesabı yalnızca kamera/model değişince yenilenir
     const cp = camera.position;
-    const key = `${cp.x.toFixed(3)},${cp.y.toFixed(3)},${cp.z.toFixed(3)}|${sex}|${variant}`;
+    const key = `${cp.x.toFixed(3)},${cp.y.toFixed(3)},${cp.z.toFixed(3)}|${sex}|${variant}|${form}`;
     const nowMs = performance.now();
     // kamera sürekli dönerken (otomatik döndürme/sürükleme) en fazla ~8 Hz yenile; durunca son konumda kesin hesapla
     let recompute = false;
@@ -517,7 +525,7 @@ export function createLbViewer(D: LbDeps, opts: ViewerOptions): Viewer {
       if (!hotspotsOn) { btn.hidden = true; btn.setAttribute('aria-hidden', 'true'); continue; }
       if (!a) { btn.hidden = true; continue; }
       const mirror = a.mirror && side < 0;
-      const z = (mirror ? -a.pos[2] : a.pos[2]) + swimOffsetZ(a.pos[0], BODY[sex].length, uniforms.uTime.value, ampNow);
+      const z = (mirror ? -a.pos[2] : a.pos[2]) + swimOffsetZ(a.pos[0], curM().BODY[sex].length, uniforms.uTime.value, ampNow);
       tmp.set(a.pos[0], a.pos[1], z);
       let facing = true;
       if (a.normal) {
@@ -594,8 +602,9 @@ export function createLbViewer(D: LbDeps, opts: ViewerOptions): Viewer {
   };
 
   const api: Viewer = {
-    setSex(s) { if (s !== sex) { sex = s; if (selected && !partsFor(sex).some((p) => p.id === selected)) { selected = null; opts.onSelect(null, false); } load(false); } },
+    setSex(s) { if (s !== sex) { sex = s; if (selected && !partsFor(sex, form).some((p) => p.id === selected)) { selected = null; opts.onSelect(null, false); } load(false); } },
     setVariant(v) { if (v !== variant) { variant = v; load(false); } },
+    setForm(f) { if (f !== form) { form = f; occKey = ''; occAt = 0; load(false); } },
     setAutoRotate(on) { controls.autoRotate = on; invalidate(); },
     setSwim(on) { swimOn = on; invalidate(); },
     setHotspots(on) { hotspotsOn = on; overlay.dataset.off = on ? '' : 'true'; occKey = ''; occAt = 0; invalidate(); },

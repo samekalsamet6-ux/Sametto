@@ -1,6 +1,7 @@
 // Plati anatomi parçaları: Türkçe kısa açıklamalar ve model üzerindeki bağlantı noktaları (saf veri).
 import { makeAnchors, type Anchor, type Part, type PartId, type ViewId } from '../livebearer/anchors';
 import { M, BODY, type Sex } from './model';
+import { PART_OVERRIDES } from './forms';
 
 export type { Anchor, Part, PartId, ViewId };
 
@@ -33,6 +34,9 @@ export const PARTS: Part[] = [
     aciklama: 'Dişinin anal yüzgeci yakınındaki koyu lekedir; gebelik ilerledikçe belirginleşebilir ve karın genişler. Tek başına kesin gebelik kanıtı değildir; koyu renkli (ör. tuxedo) bireylerde görünmeyebilir.' },
 ];
 
-export const partsFor = (sex: Sex): Part[] => PARTS.filter((p) => !p.sex || p.sex === sex);
+export const partsFor = (sex: Sex, form?: string): Part[] => {
+  const ov = form ? PART_OVERRIDES[form] : undefined;
+  return PARTS.filter((p) => !p.sex || p.sex === sex).map((p) => (ov?.[p.id] ? { ...p, ...ov[p.id] } : p));
+};
 export const partAnchors = makeAnchors(M);
 export const bodyLength = (sex: Sex): number => BODY[sex].length;

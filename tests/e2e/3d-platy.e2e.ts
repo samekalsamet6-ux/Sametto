@@ -198,4 +198,39 @@ test.describe('3B plati modeli', () => {
     await page.locator('.lb3-part[data-part=goz]').click();
     await expect(page.locator('#detail h3')).toHaveText('Göz');
   });
+
+  test('her form x birkaç renk x iki cinsiyet hatasız yüklenir; form renk seçimini korur; numaralar çalışır', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(URL);
+    await ready(page);
+    const forms = await page.locator('#form option').evaluateAll((els) => els.map((e) => (e as HTMLOptionElement).value));
+    expect(forms.length).toBeGreaterThanOrEqual(4);
+    expect(forms[0]).toBe('standart');
+    const variants = await page.locator('#variant option').evaluateAll((els) => els.map((e) => (e as HTMLOptionElement).value));
+    const colours = [variants[0], variants[Math.floor(variants.length / 2)], variants[variants.length - 1]];
+    await page.uncheck('#swim');
+    for (const sex of ['Erkek', 'Dişi']) {
+      await page.getByRole('radio', { name: sex }).check();
+      for (const f of forms) {
+        await page.selectOption('#form', f);
+        await expect(page.locator('#stage')).toHaveAttribute('data-form', f);
+        for (const c of colours) {
+          await page.selectOption('#variant', c);
+          await expect(page.locator('#stage')).toHaveAttribute('data-variant', c);
+          await expect(page.locator('#stage')).toHaveAttribute('data-form', f);
+        }
+        await expect(page.locator('#parts li:not([hidden])')).not.toHaveCount(0);
+      }
+    }
+    await page.selectOption('#form', forms[1]);
+    await expect(page.locator('#sexnote')).toContainText('Form —');
+    await goView(page, 'yan');
+    expect((await visibleParts(page)).length).toBeGreaterThan(5);
+    await page.uncheck('#hotspots');
+    await expect(page.locator('.lb3-hot:not([hidden])')).toHaveCount(0);
+    await page.check('#hotspots');
+    await expect.poll(async () => (await visibleParts(page)).length).toBeGreaterThan(5);
+    expect(errors).toEqual([]);
+  });
 });

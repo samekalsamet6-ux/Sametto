@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { PARTS } from '../../lib/platy/parts';
+import { FORMS } from '../../lib/platy/forms';
 import { VARIANTS, groupedVariants } from '../../lib/platy/variants';
 import { silhouette, type Sex, type Vec2 } from '../../lib/platy/model';
 
@@ -25,7 +26,7 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
   <p class="muted">Erkek ve dişi platinin (<em>Xiphophorus maculatus</em> ve <em>X. variatus</em>) şematik, etkileşimli 3B modeli. Sürükleyerek döndürün, renk varyetelerini deneyin ve numaralı noktalara ya da listeye tıklayıp açıklamaları okuyun.</p>
 
   <div class="callout callout-bilgi">
-    <strong>Tür varsayımı.</strong> Ticari platilerin çoğu <em>X. maculatus</em> ve <em>X. variatus</em> ile bu iki türün melezlerinden gelir; bu model ikisini ayırmaz, standart (kılıçsız, kısa ve yuvarlak kuyruklu) <strong>şematik</strong> bir gövdedir. Kılıç/hifin ve balon gibi <strong>biçim varyeteleri</strong> modellenmemiştir; renk adları satıcıya göre değişebilir.
+    <strong>Tür varsayımı.</strong> Ticari platilerin çoğu <em>X. maculatus</em> ve <em>X. variatus</em> ile bu iki türün melezlerinden gelir; bu model ikisini ayırmaz, standart (kılıçsız, kısa ve yuvarlak kuyruklu) <strong>şematik</strong> bir gövdedir. <strong>Form</strong> seçicisi hifin, pintail, lyretail ve balon biçimlerini ayrıca gösterir (renkten bağımsızdır; lyretail ve balon kaynakla doğrulanmalıdır). “Comet” ve “wagtail” biçim değil renk desenidir; renk adları satıcıya göre değişebilir.
   </div>
 
   <div class="lb3-bar">
@@ -37,13 +38,16 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
     <label class="lb3-sel">Renk varyetesi
       <select id="variant">{groupedVariants().map((g) => <optgroup label={g.grup}>{g.items.map((v) => <option value={v.id}>{v.ad}</option>)}</optgroup>)}</select>
     </label>
+    <label class="lb3-sel">Form
+      <select id="form">{[...new Set(FORMS.map((f) => f.grup))].map((g) => <optgroup label={g}>{FORMS.filter((f) => f.grup === g).map((f) => <option value={f.id}>{f.ad}</option>)}</optgroup>)}</select>
+    </label>
     <label class="lb3-chk"><input type="checkbox" id="swim" /> Yüzme animasyonu</label>
     <label class="lb3-chk"><input type="checkbox" id="rot" /> Otomatik döndür</label>
     <label class="lb3-chk"><input type="checkbox" id="hotspots" checked /> Numaraları göster</label>
   </div>
   <p class="muted lb3-note" id="sexnote" aria-live="polite"></p>
 
-  <div class="lb3-stage" id="stage" data-sex="erkek" data-variant="red-wag" data-swim="off" data-rotate="off" data-view="capraz">
+  <div class="lb3-stage" id="stage" data-sex="erkek" data-form="standart" data-variant="red-wag" data-swim="off" data-rotate="off" data-view="capraz">
     <canvas id="cv" tabindex="0" role="img" aria-describedby="lb3-help"
       aria-label="Platinin etkileşimli 3B modeli. Ok tuşlarıyla döndürebilir, artı ve eksi tuşlarıyla yakınlaştırabilirsiniz."></canvas>
     <div class="lb3-hotwrap" id="hot" data-pagefind-ignore></div>
@@ -106,7 +110,7 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
   </details>
 
   <h2>Renk ve desen varyeteleri</h2>
-  <p class="muted">{VARIANTS.length} şematik varyete; hepsi aynı standart gövde ve kuyruk biçimini paylaşır, yalnızca renk ve desen değişir. Biçimi farklı olanlar (kılıç/hifin, balon) bu listede yoktur. Tanımlar hobi kaynaklarındaki ortak anlatımlara dayanan şematik yorumlardır; adlandırma ve renk tarifleri satıcıya göre değişir. “Kaynakla doğrulanmalı” işaretli kayıtların adı ya da görünümü belirsizdir.</p>
+  <p class="muted">{VARIANTS.length} şematik varyete; renk ve desen seçilen forma (hifin, pintail, lyretail, balon dahil) uygulanır; form ayrı seçilir. Tanımlar hobi kaynaklarındaki ortak anlatımlara dayanan şematik yorumlardır; adlandırma ve renk tarifleri satıcıya göre değişir. “Kaynakla doğrulanmalı” işaretli kayıtların adı ya da görünümü belirsizdir.</p>
   {groupedVariants().map((g) => (<><h3>{g.grup}</h3><ul>{g.items.map((v) => <li><strong>{v.ad}:</strong> {v.aciklama}{v.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</li>)}</ul></>))}
 
   <div class="callout callout-bilgi">
@@ -164,8 +168,9 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
 </style>
 
 <script>
-  import { PARTS, partsFor, type PartId, type ViewId } from '../../lib/platy/parts';
+  import { partsFor, type PartId, type ViewId } from '../../lib/platy/parts';
   import { variantById } from '../../lib/platy/variants';
+  import { formById } from '../../lib/platy/forms';
   import type { Sex } from '../../lib/platy/model';
   import type { Viewer } from '../../lib/platy/viewer';
 
@@ -175,6 +180,7 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let sex: Sex = 'erkek';
+  let form = 'standart';
   let selected: PartId | null = null;
   let viewer: Viewer | null = null;
 
@@ -184,7 +190,7 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
   };
 
   function renderList() {
-    const vis = partsFor(sex).map((p) => p.id);
+    const vis = partsFor(sex, form).map((p) => p.id);
     document.querySelectorAll<HTMLLIElement>('#parts li').forEach((li) => {
       const id = li.dataset.part as PartId;
       const i = vis.indexOf(id);
@@ -196,7 +202,7 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
 
   function renderDetail() {
     detail.textContent = '';
-    const p = PARTS.find((x) => x.id === selected);
+    const p = partsFor(sex, form).find((x) => x.id === selected);
     if (!p) {
       const m = document.createElement('p');
       m.className = 'muted';
@@ -241,7 +247,7 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
   function setSex(s: Sex) {
     sex = s;
     stage.dataset.sex = s;
-    sexnote.textContent = notes[s];
+    updateNote();
     if (selected && !partsFor(s).some((p) => p.id === selected)) select(null);
     renderList();
     viewer?.setSex(s);
@@ -250,11 +256,27 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
 
   const variantSel = $<HTMLSelectElement>('variant');
   variantSel.addEventListener('change', () => {
+    variantSel.dataset.touched = '1';
     stage.dataset.variant = variantSel.value;
     viewer?.setVariant(variantSel.value);
     status.textContent = '';
-    const v = variantById(variantSel.value);
-    sexnote.textContent = `${notes[sex]} Varyete — ${v.ad}: ${v.aciklama}${v.dogrulanmali ? ' (Kaynakla doğrulanmalı.)' : ''}`;
+    updateNote();
+  });
+  const formSel = $<HTMLSelectElement>('form');
+  function updateNote() {
+    const v = variantById(variantSel.value), f = formById(form);
+    const vt = variantSel.value === variantSel.options[0]?.value && !variantSel.dataset.touched ? '' : ` Varyete — ${v.ad}: ${v.aciklama}${v.dogrulanmali ? ' (Kaynakla doğrulanmalı.)' : ''}`;
+    const ft = form === 'standart' ? '' : ` Form — ${f.ad}: ${f.aciklama}${f.dogrulanmali ? ' (Kaynakla doğrulanmalı.)' : ''}`;
+    sexnote.textContent = `${notes[sex]}${ft}${vt}`;
+  }
+  formSel.addEventListener('change', () => {
+    form = formSel.value;
+    stage.dataset.form = form;
+    viewer?.setForm?.(form);
+    if (selected && !partsFor(sex, form).some((p) => p.id === selected)) select(null);
+    renderList();
+    renderDetail();
+    updateNote();
   });
 
   const swim = $<HTMLInputElement>('swim'), rot = $<HTMLInputElement>('rot');
@@ -316,7 +338,7 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
     try {
       const { createViewer } = await import('../../lib/platy/viewer');
       viewer = createViewer({
-        canvas: cv, overlay: hot, sex, variant: variantSel.value, reducedMotion: reduced,
+        canvas: cv, overlay: hot, sex, form, variant: variantSel.value, reducedMotion: reduced,
         onSelect: (id) => select(id),
       });
       viewer.setSwim(swim.checked);
