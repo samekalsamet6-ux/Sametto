@@ -12,4 +12,5 @@ speciesSuite({
     { view: 'alt', shown: ['anal-yuzgec', 'karin-yuzgeci'], hidden: ['sirt-yuzgeci'] },
   ],
   svgCount: 2,
+  forms: { ids: ['standart', 'comet', 'bristol', 'fantail', 'ryukin', 'oranda', 'lionhead', 'teleskop', 'balon-goz', 'inci'], colours: ['turuncu', 'shubunkin'], counts: { standart: 13, fantail: 13, oranda: 14, lionhead: 12, teleskop: 14, 'balon-goz': 13, ryukin: 14, inci: 14 } },
 });

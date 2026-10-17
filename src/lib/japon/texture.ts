@@ -2,13 +2,14 @@
 import { assembleBody, blob, flatBump, makeCanvas, paintFin, rgba, scaleBump, type Ctx } from '../akvaryum/fishtex';
 import { mixHex, mulberry32 } from '../akvaryum/fishmath';
 import type { SexId } from '../akvaryum/types';
-import { LATERAL } from './model';
+import { LATERAL, specOf, type Form } from './model';
 import { seedFor, type Variant } from './variants';
 
 export interface JaponTextures { color: HTMLCanvasElement; bump: HTMLCanvasElement; fins: Record<string, HTMLCanvasElement> }
 
-export function paintBody(v: Variant, sex: SexId, W = 1024): JaponTextures {
+export function paintBody(v: Variant, sex: SexId, W = 1024, form: Form = 'standart'): JaponTextures {
   const Hh = W / 4;
+  const inci = specOf(form).inci;
   const paint = (ctx: Ctx, w: number, h: number, side: 1 | -1) => {
     const rnd = mulberry32(seedFor(v, sex) + (side > 0 ? 0 : 211));
     const g = ctx.createLinearGradient(0, 0, 0, h);
@@ -32,7 +33,7 @@ export function paintBody(v: Variant, sex: SexId, W = 1024): JaponTextures {
       blob(ctx, w * 0.1, h * 0.3, w * 0.05, h * 0.2, P[0], 0.95, 0, 0.9);
     }
     // metalik pul parıltısı: her pulun üst kenarı hafif ışık, alt kenarı hafif gölge
-    const cols = 34, rows = 11, cw = w / cols, ch = h / rows;
+    const cols = inci ? 20 : 34, rows = inci ? 7 : 11, cw = w / cols, ch = h / rows;
     for (let r = 0; r < rows + 1; r++) for (let c = -1; c < cols + 1; c++) {
       const x = (c + (r % 2 ? 0.5 : 0)) * cw + cw * 0.5, y = r * ch;
       if (x < w * 0.19) continue;
@@ -59,7 +60,7 @@ export function paintBody(v: Variant, sex: SexId, W = 1024): JaponTextures {
   };
   const color = assembleBody(W, Hh, paint);
   void makeCanvas; void flatBump;
-  const bump = scaleBump(W, Hh, 34, 11, 0.55);
+  const bump = inci ? scaleBump(W, Hh, 20, 7, 1.0) : scaleBump(W, Hh, 34, 11, 0.55);
   const fins: Record<string, HTMLCanvasElement> = {};
   for (const id of ['sirt', 'anal', 'kuyruk', 'karin']) fins[id] = paintFin(v.fin);
   fins.gogus = paintFin(v.gogus);
