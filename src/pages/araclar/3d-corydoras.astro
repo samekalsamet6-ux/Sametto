@@ -1,0 +1,50 @@
+---
+import SpeciesPage from '../../components/SpeciesPage.astro';
+import { PARTS } from '../../lib/corydoras/parts';
+import { VARIANTS, groupedVariants } from '../../lib/corydoras/variants';
+import { SEXES, silhouette } from '../../lib/corydoras/model';
+import { svgFigure } from '../../lib/akvaryum/fishmath';
+
+const sexName = { erkek: 'Erkek corydoras', disi: 'Dişi corydoras' } as const;
+const figures = SEXES.map((s) => ({ label: sexName[s], ...svgFigure(silhouette(s)) }));
+---
+<SpeciesPage
+  title="3B corydoras modeli"
+  description="Corydoras kedibalığının (C. aeneus / C. paleatus tipi) etkileşimli 3B modeli: zırh plakaları, bıyıklar, alt yüzde ağız, yüzgeç dikenleri, erkek/dişi gövde farkı ve renk-desen varyeteleri."
+  intro="Akvaryumda en yaygın tutulan dip kedibalıklarından corydoras’ın (kori) şematik, etkileşimli 3B modeli. Sürükleyerek döndürün, <strong>Alt</strong> görünümde ağız ve bıyıklara, <strong>Üst</strong> görünümde dişi-erkek gövde genişliğine bakın; renk-desen varyetelerini deneyin; numaralı noktalara ya da listeye tıklayıp açıklamaları okuyun."
+  views={[{ id: 'yan', ad: 'Yan' }, { id: 'ust', ad: 'Üst' }, { id: 'alt', ad: 'Alt' }, { id: 'on', ad: 'Ön' }, { id: 'arka', ad: 'Arka' }, { id: 'capraz', ad: 'Çapraz' }]}
+  sexes={[{ id: 'erkek', ad: 'Erkek', not: '' }, { id: 'disi', ad: 'Dişi', not: '' }]}
+  parts={PARTS}
+  groups={groupedVariants()}
+  variantLabel="Renk / desen"
+  variantIntro={`${VARIANTS.length} şematik renk-desen; hepsi aynı C. aeneus/C. paleatus tipi gövdeyi paylaşır, yalnızca renk ve desen değişir. İlk üçü bu gövde tipinde yaygın görülen renk biçimlerine, sonuncusu başka bir türün (C. sterbai) desen tipine dayanır ve yalnızca desen örneği olarak gösterilmiştir; farklı gövde biçimli türler dahil değildir. Corydoras türlerinde desen bireyden bireye değişir; “kaynakla doğrulanmalı” işaretli kayıtların tanımı belirsizdir.`}
+  figures={figures}
+  fill="#a58450"
+  stageLabel="Corydoras kedibalığının etkileşimli 3B modeli."
+>
+  <div class="callout callout-bilgi" slot="tur">
+    <strong>Tür varsayımı.</strong> “Corydoras”, onlarca türü olan bir cinstir. Bu model <em>C. aeneus</em> (bronz kori) ve <em>C. paleatus</em> (benekli kori) gibi yaygın türlere benzer, <strong>şematik</strong> bir gövde oranı varsayar; uzun burunlu türler ve başka cinsler (ör. <em>Brochis</em>) dahil değildir. Oranlar, renkler ve zırh levha sayısı eğitim amaçlı bir yorumdur; belirli bir bireyin ya da türün ölçüsü değildir. <strong>Tür kimliği kaynakla doğrulanmalıdır.</strong>
+  </div>
+  <div class="callout callout-uyari" slot="ek" id="safety">
+    <strong>Dikenler.</strong> Sırt, yağ ve göğüs yüzgeçlerinin ön ışını sert bir dikendir; balık tehdit altında bunları açıp kilitleyebilir. Ağa takılabilir ve elde batabilir; bazı kaynaklar çevresindeki derinin hafif tahriş edici olabileceğini bildirir (kaynakla doğrulanmalı). Bu sayfa bakım rehberi değildir.
+  </div>
+  <p class="muted">Modellenmeyenler: boğaz dişleri, iç organlar (bağırsakla hava solunumu dahil), levhaların gerçek sayısı ve üst üste binme ayrıntısı ile bireye özgü desen düzeni. Cinsiyetler arası gövde genişliği farkı şematiktir; kesin cinsiyet ayrımı için tek ölçüt yeterli değildir ve kaynakla doğrulanmalıdır.</p>
+  <div class="callout callout-bilgi">
+    Aynı serideki diğer modeller: <a href="/araclar/3d-betta">3B betta</a>, <a href="/araclar/3d-neon">3B neon tetra</a>, <a href="/araclar/3d-lepistes">3B lepistes</a> ve <a href="/araclar/3d-vatoz">3B cüce vatoz</a>.
+  </div>
+</SpeciesPage>
+
+<script>
+  import { initSpeciesPage } from '../../lib/akvaryum/page';
+  import { PARTS, partsFor } from '../../lib/corydoras/parts';
+  import { VARIANTS } from '../../lib/corydoras/variants';
+
+  initSpeciesPage({
+    parts: PARTS, partsFor, variants: VARIANTS, defaultSex: 'erkek', defaultView: 'capraz',
+    sexNotes: {
+      erkek: 'Erkek: gövde dişiden daha ince ve küçük çizilmiştir (şematik). Üstten bakınca fark daha belirgindir; genç bireylerde ayrım güvenilir değildir.',
+      disi: 'Dişi: gövde daha geniş ve dolgun çizilmiştir (şematik); üstten bakınca fark daha belirgindir. Genç bireylerde ayrım güvenilir değildir.',
+    },
+    load: () => import('../../lib/corydoras/index'),
+  });
+</script>
