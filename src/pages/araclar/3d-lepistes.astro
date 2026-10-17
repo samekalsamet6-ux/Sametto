@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { PARTS } from '../../lib/guppy/parts';
+import { PARTS, FORM_PARTS } from '../../lib/guppy/parts';
+import { FORMS, groupedForms } from '../../lib/guppy/forms';
 import { VARIANTS, groupedVariants } from '../../lib/guppy/variants';
 import { silhouette, type Sex, type Vec2 } from '../../lib/guppy/model';
 
@@ -33,13 +34,16 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
     <label class="g3-sel">Renk varyetesi
       <select id="variant">{groupedVariants().map((g) => <optgroup label={g.grup}>{g.items.map((v) => <option value={v.id}>{v.ad}</option>)}</optgroup>)}</select>
     </label>
+    <label class="g3-sel">Form (şekil)
+      <select id="form">{groupedForms().map((g) => <optgroup label={g.grup}>{g.items.map((f) => <option value={f.id}>{f.ad}{f.dogrulanmali ? ' (doğrulanmalı)' : ''}</option>)}</optgroup>)}</select>
+    </label>
     <label class="g3-chk"><input type="checkbox" id="swim" /> Yüzme animasyonu</label>
     <label class="g3-chk"><input type="checkbox" id="rot" /> Otomatik döndür</label>
     <label class="g3-chk"><input type="checkbox" id="hotspots" checked /> Numaraları göster</label>
   </div>
   <p class="muted g3-note" id="sexnote" aria-live="polite"></p>
 
-  <div class="g3-stage" id="stage" data-sex="erkek" data-variant="mozaik" data-swim="off" data-rotate="off" data-view="capraz">
+  <div class="g3-stage" id="stage" data-sex="erkek" data-variant="mozaik" data-form="standart" data-swim="off" data-rotate="off" data-view="capraz">
     <canvas id="cv" tabindex="0" role="img" aria-describedby="g3-help"
       aria-label="Lepistesin etkileşimli 3B modeli. Ok tuşlarıyla döndürebilir, artı ve eksi tuşlarıyla yakınlaştırabilirsiniz."></canvas>
     <div class="g3-hotwrap" id="hot" data-pagefind-ignore></div>
@@ -85,8 +89,8 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
   <h2>Anatomi parçaları</h2>
   <div class="g3-info">
     <ul class="g3-parts" id="parts">
-      {PARTS.map((p) => (
-        <li data-part={p.id} data-sex={p.sex ?? ''}><button type="button" class="g3-part" aria-pressed="false" data-part={p.id}><span class="g3-n" aria-hidden="true"></span>{p.ad}</button></li>
+      {[...PARTS, ...FORM_PARTS].map((p) => (
+        <li hidden={FORM_PARTS.includes(p)} data-part={p.id} data-sex={p.sex ?? ''}><button type="button" class="g3-part" aria-pressed="false" data-part={p.id}><span class="g3-n" aria-hidden="true"></span>{p.ad}</button></li>
       ))}
     </ul>
     <div class="g3-detail" id="detail" aria-live="polite">
@@ -97,13 +101,17 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
   <details class="g3-all">
     <summary>Tüm parçaların metin açıklamaları</summary>
     <dl>
-      {PARTS.map((p) => (<><dt>{p.ad}{p.sex && <span class="muted"> ({sexName[p.sex].toLowerCase()})</span>}</dt><dd>{p.aciklama}{p.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</dd></>))}
+      {[...PARTS, ...FORM_PARTS].map((p) => (<><dt>{p.ad}{p.sex && <span class="muted"> ({sexName[p.sex].toLowerCase()})</span>}</dt><dd>{p.aciklama}{p.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</dd></>))}
     </dl>
   </details>
 
   <h2>Renk varyeteleri</h2>
-  <p class="muted">{VARIANTS.length} şematik renk varyetesi; hepsi aynı standart gövde ve delta kuyruk biçimini paylaşır, yalnızca renk ve desen değişir. Biçimi farklı olanlar (veiltail, lyretail, kılıç kuyruk, dumbo kulak, yuvarlak kuyruk, uzun yüzgeç vb.) bu listede yoktur. Tanımlar hobi kaynaklarındaki ortak anlatımlara dayanan şematik yorumlardır; adlandırma ve renk tarifleri yetiştiriciye göre değişebilir.</p>
+  <p class="muted">{VARIANTS.length} şematik renk varyetesi; renk ve desen biçimden bağımsızdır, yukarıdaki "Form (şekil)" seçiminin her seçeneğiyle birleştirilebilir (desenli yüzgeçler seçilen kuyruk ve sırt yüzgecinin biçimini izler). Tanımlar hobi kaynaklarındaki ortak anlatımlara dayanan şematik yorumlardır; adlandırma ve renk tarifleri yetiştiriciye göre değişebilir.</p>
   {groupedVariants().map((g) => (<><h3>{g.grup}</h3><ul>{g.items.map((v) => <li><strong>{v.ad}:</strong> {v.aciklama}</li>)}</ul></>))}
+
+  <h2>Form (şekil) varyeteleri</h2>
+  <p class="muted">{FORMS.length} form; gövde aynı kalır, kuyruk, sırt ve göğüs yüzgeçlerinin biçimi değişir. Şekil adları ve oranlar hobi kaynaklarında farklı tanımlanabilir; "doğrulanmalı" işaretliler kaynaklar arasında ayrışan ya da şematik yorum içeren biçimlerdir.</p>
+  {groupedForms().map((g) => (<><h3>{g.grup}</h3><ul>{g.items.map((f) => <li><strong>{f.ad}:</strong> {f.aciklama}{f.dogrulanmali && <> <em>(Doğrulanmalı.)</em></>}</li>)}</ul></>))}
 
   <div class="callout callout-bilgi">
     <strong>Bu model şematiktir.</strong> Oranlar ve renkler eğitim amaçlı bir yorumdur; gerçek bir balığın ölçüsü ya da yarışma standardı değildir. Erkek–dişi farkını ve anatomiyi anlamak için kullanın. Ayrıntılar: <a href="/wiki/gonopodium">Gonopodium</a>, <a href="/wiki/gravid-spot">Gravid spot</a>, <a href="/rehber/baslangic/01-lepistes-nedir">Lepistes nedir?</a>
@@ -160,8 +168,9 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
 </style>
 
 <script>
-  import { PARTS, partsFor, type PartId, type ViewId } from '../../lib/guppy/parts';
+  import { allPartsFor, partsFor, type PartId, type ViewId } from '../../lib/guppy/parts';
   import { variantById } from '../../lib/guppy/variants';
+  import { formById } from '../../lib/guppy/forms';
   import type { Sex } from '../../lib/guppy/model';
   import type { Viewer } from '../../lib/guppy/viewer';
 
@@ -171,6 +180,7 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let sex: Sex = 'erkek';
+  let form = 'standart';
   let selected: PartId | null = null;
   let viewer: Viewer | null = null;
 
@@ -180,7 +190,7 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
   };
 
   function renderList() {
-    const vis = partsFor(sex).map((p) => p.id);
+    const vis = partsFor(sex, form).map((p) => p.id);
     document.querySelectorAll<HTMLLIElement>('#parts li').forEach((li) => {
       const id = li.dataset.part as PartId;
       const i = vis.indexOf(id);
@@ -192,7 +202,7 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
 
   function renderDetail() {
     detail.textContent = '';
-    const p = PARTS.find((x) => x.id === selected);
+    const p = allPartsFor(form).find((x) => x.id === selected);
     if (!p) {
       const m = document.createElement('p');
       m.className = 'muted';
@@ -238,7 +248,7 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
     sex = s;
     stage.dataset.sex = s;
     sexnote.textContent = notes[s];
-    if (selected && !partsFor(s).some((p) => p.id === selected)) select(null);
+    if (selected && !partsFor(s, form).some((p) => p.id === selected)) select(null);
     renderList();
     viewer?.setSex(s);
   }
@@ -250,6 +260,17 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
     viewer?.setVariant(variantSel.value);
     status.textContent = '';
     sexnote.textContent = `${notes[sex]} Varyete — ${variantById(variantSel.value).ad}: ${variantById(variantSel.value).aciklama}`;
+  });
+
+  const formSel = $<HTMLSelectElement>('form');
+  formSel.addEventListener('change', () => {
+    form = formSel.value;
+    stage.dataset.form = form;
+    if (selected && !partsFor(sex, form).some((p) => p.id === selected)) select(null); else renderDetail();
+    renderList();
+    viewer?.setForm(form);
+    status.textContent = '';
+    sexnote.textContent = `${notes[sex]} Form — ${formById(form).ad}: ${formById(form).aciklama}`;
   });
 
   const swim = $<HTMLInputElement>('swim'), rot = $<HTMLInputElement>('rot');
@@ -311,7 +332,7 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
     try {
       const { createViewer } = await import('../../lib/guppy/viewer');
       viewer = createViewer({
-        canvas: cv, overlay: hot, sex, variant: variantSel.value, reducedMotion: reduced,
+        canvas: cv, overlay: hot, sex, variant: variantSel.value, form, reducedMotion: reduced,
         onSelect: (id) => select(id),
       });
       viewer.setSwim(swim.checked);

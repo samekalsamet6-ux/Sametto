@@ -2,9 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { existsSync } from 'node:fs';
 import {
   BODY, DORSAL, SEXES, SWIM, TAIL, analFin, bodyProfile, bodySurfacePoint, dorsalFin, envelope, eyeSpec, fanFin, gonopodium,
-  mouthLine, operculumEdge, pectoralFin, pelvicFin, silhouette, swimOffsetZ, tailFin, type Sex, type Vec3,
+  mouthLine, operculumEdge, FORM_SHAPES, hasSword, tailReach, pectoralFin, pelvicFin, silhouette, swimOffsetZ, tailFin, type Sex, type Vec3,
 } from './model';
 import { PARTS, partAnchors, partsFor } from './parts';
+import { FORMS, FORM_GROUPS, formById, groupedForms } from './forms';
 import { VARIANTS, VARIANT_GROUPS, groupedVariants, finColor, hexToRgb, mulberry32, variantById } from './variants';
 
 const finite = (v: readonly number[]) => v.every((n) => Number.isFinite(n));
@@ -205,7 +206,7 @@ describe('anatomi parçaları', () => {
   it('her görünür parçanın sonlu bir bağlantı noktası var ve model sınırları içinde', () => {
     for (const s of SEXES) {
       const anchors = partAnchors(s);
-      const reach = BODY[s].length / 2 + TAIL[s].reach * 1.3;
+      const reach = BODY[s].length / 2 + tailReach(s) * 1.3;
       for (const p of partsFor(s)) {
         const a = anchors[p.id];
         expect(a, `${s}/${p.id}`).toBeDefined();
@@ -323,5 +324,137 @@ describe('SVG yedeği için siluet', () => {
     expect(m.spot).toBeNull(); expect(f.spot).not.toBeNull();
     expect(m.gono.length).toBeGreaterThan(2); expect(f.gono).toHaveLength(0);
     expect(m.anal).toHaveLength(0); expect(f.anal.length).toBeGreaterThan(4);
+  });
+});
+
+describe('form (şekil) varyeteleri', () => {
+  const ids = FORMS.map((f) => f.id);
+  const ext = (f: ReturnType<typeof tailFin>) => {
+    const tips = f.rays.map((r) => r[r.length - 1]);
+    const x0 = f.rays[0][0][0];
+    return { w: Math.max(...tips.map((p) => p[0])) - x0, h: Math.max(...tips.map((p) => p[1])) - Math.min(...tips.map((p) => p[1])), tips };
+  };
+  it('meta veri: ilk form standart, kimlikler benzersiz, geometri belirtimi var, gruplar geçerli', () => {
+    expect(ids[0]).toBe('standart');
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.length).toBeGreaterThanOrEqual(14);
+    for (const want of ['delta', 'fantail', 'veiltail', 'lyretail', 'kilic-ust', 'kilic-alt', 'kilic-cift', 'pintail', 'round', 'spade', 'flag', 'ribbon', 'dumbo']) expect(ids).toContain(want);
+    for (const f of FORMS) { expect(FORM_SHAPES[f.id], f.id).toBeDefined(); expect(FORM_GROUPS as readonly string[]).toContain(f.grup); expect(f.aciklama.length).toBeGreaterThan(40); }
+    expect(formById('yok').id).toBe('standart');
+    expect(groupedForms().flatMap((g) => g.items)).toHaveLength(FORMS.length);
+  });
+  it('standart form özgün kuyruk geometrisiyle birebir aynı (renk varyeteleri değişmedi)', () => {
+    for (const s of SEXES) {
+      const a = tailFin(s), b = tailFin(s, 'standart');
+      expect(b.rays).toHaveLength(TAIL[s].rays);
+      expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+      const t = a.rays[a.rays.length - 1], sp = TAIL[s];
+      const dx = sp.reach * (1 + sp.bulge * 0);
+      expect(t[t.length - 1][0] - t[0][0]).toBeCloseTo(dx, 6);
+      expect(JSON.stringify(dorsalFin(s))).toBe(JSON.stringify(dorsalFin(s, 'standart')));
+      expect(JSON.stringify(pectoralFin(s, 1))).toBe(JSON.stringify(pectoralFin(s, 1, 'standart')));
+    }
+  });
+  it('her form ve cinsiyette sonlu geometri; kuyruk silueti standarttan ölçülebilir biçimde farklı', () => {
+    for (const s of SEXES) {
+      const std = tailFin(s);
+      for (const id of ids.filter((x) => x !== 'standart' && x !== 'dumbo')) {
+        const f = tailFin(s, id);
+        for (const r of f.rays) expect(r.every((p) => finite(p)), `${s}/${id}`).toBe(true);
+        for (const fin of [dorsalFin(s, id), pectoralFin(s, 1, id)]) for (const r of fin.rays) expect(r.every((p) => finite(p))).toBe(true);
+        if (hasSword(s, id) === false && id.startsWith('kilic')) continue; // dişide kılıç yok: standartla benzer taban
+        const tipsA = f.rays.map((r) => r[r.length - 1]).map((p) => Math.hypot(p[0] - f.rays[0][0][0], p[1]));
+        const tipsB = std.rays.map((r) => r[r.length - 1]).map((p) => Math.hypot(p[0] - std.rays[0][0][0], p[1]));
+        const n = Math.min(tipsA.length, tipsB.length);
+        let diff = 0;
+        for (let i = 0; i < n; i++) diff += Math.abs(tipsA[Math.round((i / (n - 1)) * (tipsA.length - 1))] - tipsB[Math.round((i / (n - 1)) * (tipsB.length - 1))]);
+        expect(diff / n, `${s}/${id}`).toBeGreaterThan(0.04);
+      }
+    }
+  });
+  it('doğal kısa; delta daha geniş ve uzun; veiltail ve ribbon daha uzun; yuvarlak/maça arka kenarı kavisli', () => {
+    const w = (id: string) => ext(tailFin('erkek', id));
+    expect(w('dogal').w).toBeLessThan(0.6 * w('standart').w);
+    expect(w('delta').w).toBeGreaterThan(1.1 * w('standart').w);
+    expect(w('delta').h).toBeGreaterThan(1.2 * w('standart').h);
+    expect(w('veiltail').w).toBeGreaterThan(1.2 * w('standart').w);
+    expect(w('ribbon').w).toBeGreaterThan(1.8 * w('standart').w);
+    for (const id of ['round', 'spade']) {
+      const xs = w(id).tips.map((p) => p[0]);
+      expect(Math.max(...xs) - Math.min(...xs), id).toBeGreaterThan(0.4 * w(id).w);
+    }
+    // flag arka kenarı düz, dikdörtgen
+    const fx = w('flag').tips.map((p) => p[0]);
+    expect(Math.max(...fx) - Math.min(...fx)).toBeLessThan(0.05 * w('flag').w);
+    expect(w('flag').h).toBeLessThan(w('delta').h);
+  });
+  it('lyretail: uç ışınlar ortadakinden uzun; pintail: ortadaki ışın en uzun', () => {
+    const tx = (id: string) => tailFin('erkek', id).rays.map((r) => r[r.length - 1][0]);
+    const lyre = tx('lyretail'), mid = Math.floor(lyre.length / 2);
+    expect(lyre[0]).toBeGreaterThan(lyre[mid] * 1.0 + 0.5);
+    expect(lyre[lyre.length - 1]).toBeGreaterThan(lyre[mid] + 0.5);
+    const pin = tx('pintail');
+    expect(pin[Math.floor(pin.length / 2)]).toBe(Math.max(...pin));
+  });
+  it('kılıç: yalnızca erkekte uzar; üst kılıç üstte, alt kılıç altta, çift ikisinde; kılıç yatay', () => {
+    const tips = (s: Sex, id: string) => tailFin(s, id).rays.map((r) => r[r.length - 1]);
+    const base = Math.max(...tips('erkek', 'standart').map((p) => p[0]));
+    for (const id of ['kilic-ust', 'kilic-alt', 'kilic-cift']) {
+      expect(hasSword('erkek', id)).toBe(true);
+      expect(hasSword('disi', id)).toBe(false);
+      const t = tips('erkek', id);
+      expect(Math.max(...t.map((p) => p[0]))).toBeGreaterThan(base + 0.6);
+      const f = tips('disi', id), fx = f.map((p) => p[0]);
+      expect(Math.max(...fx)).toBeLessThan(fx[Math.floor(fx.length / 2)] * 1.2 + 0.2); // dişide kılıç yok
+    }
+    const n = 31, up = tips('erkek', 'kilic-ust'), dn = tips('erkek', 'kilic-alt'), both = tips('erkek', 'kilic-cift');
+    expect(up[n - 1][0]).toBeGreaterThan(up[0][0] + 0.6);
+    expect(dn[0][0]).toBeGreaterThan(dn[n - 1][0] + 0.6);
+    expect(both[0][0]).toBeGreaterThan(both[Math.floor(n / 2)][0] + 0.6);
+    expect(both[n - 1][0]).toBeGreaterThan(both[Math.floor(n / 2)][0] + 0.6);
+    // kılıç ışını neredeyse yatay
+    const r = tailFin('erkek', 'kilic-ust').rays[n - 1];
+    expect(Math.abs(r[r.length - 1][1] - r[0][1])).toBeLessThan(0.9 * Math.abs(r[r.length - 1][0] - r[0][0]));
+  });
+  it('fil kulak: göğüs yüzgeçleri çok büyük ve ayna simetrik; diğer formlarda standart', () => {
+    const area = (f: ReturnType<typeof pectoralFin>) => { const pts = f.rays.map((r) => r[r.length - 1]); return Math.max(...pts.map((p) => Math.hypot(p[0] - f.rays[0][0][0], p[1] - f.rays[0][0][1]))); };
+    for (const s of SEXES) {
+      expect(area(pectoralFin(s, 1, 'dumbo'))).toBeGreaterThan(2 * area(pectoralFin(s, 1)));
+      expect(JSON.stringify(pectoralFin(s, 1, 'veiltail'))).toBe(JSON.stringify(pectoralFin(s, 1)));
+      const l = pectoralFin(s, 1, 'dumbo'), r = pectoralFin(s, -1, 'dumbo');
+      expect(l.rays[4][3][2]).toBeCloseTo(-r.rays[4][3][2], 6);
+    }
+  });
+  it('sırt yüzgeci formla ölçeklenir (doğal kısa, ribbon uzun)', () => {
+    const h = (id: string) => Math.max(...dorsalFin('erkek', id).rays.map((r) => r[r.length - 1][1] - r[0][1]));
+    expect(h('dogal')).toBeLessThan(0.8 * h('standart'));
+    expect(h('ribbon')).toBeGreaterThan(1.4 * h('standart'));
+  });
+  it('partsFor(form): kılıç parçası yalnızca kılıçlı formda erkekte; fil kulakta göğüs yüzgeci açıklaması değişir; çapalar tüm formlarda var', () => {
+    expect(partsFor('erkek', 'kilic-ust').map((p) => p.id)).toContain('kilic');
+    expect(partsFor('disi', 'kilic-ust').map((p) => p.id)).not.toContain('kilic');
+    expect(partsFor('erkek', 'delta').map((p) => p.id)).not.toContain('kilic');
+    expect(partsFor('erkek').length).toBe(11);
+    expect(partsFor('erkek', 'dumbo').find((p) => p.id === 'gogus-yuzgeci')!.aciklama).toContain('Fil kulak');
+    for (const s of SEXES) for (const id of ids) {
+      const a = partAnchors(s, id);
+      for (const p of partsFor(s, id)) {
+        expect(a[p.id], `${s}/${id}/${p.id}`).toBeDefined();
+        expect(finite(a[p.id]!.pos)).toBe(true);
+        expect(Math.abs(a[p.id]!.pos[0])).toBeLessThan(BODY[s].length / 2 + tailReach(s, id) * 1.3);
+      }
+    }
+    const std = partAnchors('erkek'), dumbo = partAnchors('erkek', 'dumbo');
+    expect(Math.abs(dumbo['gogus-yuzgeci']!.pos[1] - std['gogus-yuzgeci']!.pos[1]) + Math.abs(dumbo['gogus-yuzgeci']!.pos[0] - std['gogus-yuzgeci']!.pos[0])).toBeGreaterThan(0.1);
+  });
+  it('renk deseni yüzgeç biçimini izler: her ışın için u 0..1 (taban..uç), her formda renkler geçerli', () => {
+    const v = variantById('mozaik');
+    for (const id of ids) for (const s of SEXES) {
+      const f = tailFin(s, id);
+      for (let i = 0; i < f.rays.length; i++) for (const u of [0, 0.5, 1]) for (const c of finColor(v, s, 'kuyruk', u, i / (f.rays.length - 1))) { expect(c).toBeGreaterThanOrEqual(0); expect(c).toBeLessThanOrEqual(1); }
+    }
+  });
+  it('silueti her formda sonlu', () => {
+    for (const id of ids) for (const s of SEXES) { const sil = silhouette(s, id); for (const poly of [sil.tail, sil.dorsal, sil.pectoral]) expect(poly.every((p) => finite(p))).toBe(true); }
   });
 });

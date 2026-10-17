@@ -159,24 +159,110 @@ export const TAIL: Record<Sex, TailSpec> = {
 
 export const TAIL_BASE_T = 0.955;
 
-/** Büyük, delta biçimli kuyruk (erkekte uzun ve geniş; dişide kısa ve yelpaze biçimli). */
-export function tailFin(sex: Sex): Fin {
+// ---------------------------------------------------------------- form (şekil) varyeteleri
+
+export type FormId = string;
+export const DEFAULT_FORM: FormId = 'standart';
+
+/** Formun geometri belirtimi: kuyruk ışın uçlarını üreten işlev + diğer yüzgeç ölçekleri. Meta veri (ad, açıklama) forms.ts'te. */
+export interface FormShape {
+  /** Kuyruk ışın sayısı (yoksa cinsiyet varsayılanı) */
+  rays?: number;
+  /** Sırt yüzgeci uzunluk çarpanı */
+  dorsal: number;
+  /** Göğüs yüzgeci uzunluk çarpanı (fil kulak) */
+  pectoral: number;
+  /** Kuyrukta kılıç: yalnızca erkekte uzar */
+  sword?: 'ust' | 'alt' | 'cift';
+}
+
+export const FORM_SHAPES: Record<string, FormShape> = {
+  standart: { dorsal: 1, pectoral: 1 },
+  dogal: { dorsal: 0.6, pectoral: 1, rays: 13 },
+  delta: { dorsal: 1.15, pectoral: 1 },
+  fantail: { dorsal: 0.9, pectoral: 1 },
+  veiltail: { dorsal: 1.3, pectoral: 1 },
+  lyretail: { dorsal: 1.1, pectoral: 1, rays: 25 },
+  'kilic-ust': { dorsal: 1, pectoral: 1, rays: 31, sword: 'ust' },
+  'kilic-alt': { dorsal: 1, pectoral: 1, rays: 31, sword: 'alt' },
+  'kilic-cift': { dorsal: 1, pectoral: 1, rays: 31, sword: 'cift' },
+  pintail: { dorsal: 0.9, pectoral: 1 },
+  round: { dorsal: 0.85, pectoral: 1, rays: 19 },
+  spade: { dorsal: 0.9, pectoral: 1, rays: 19 },
+  flag: { dorsal: 1, pectoral: 1 },
+  ribbon: { dorsal: 1.9, pectoral: 1 },
+  dumbo: { dorsal: 1, pectoral: 2.4 },
+};
+
+export const formShape = (form?: FormId): FormShape => FORM_SHAPES[form ?? DEFAULT_FORM] ?? FORM_SHAPES[DEFAULT_FORM];
+export const hasSword = (sex: Sex, form?: FormId): boolean => sex === 'erkek' && !!formShape(form).sword;
+
+interface TailTip { dx: number; dy: number; cx?: number; cy?: number }
+const tn = Math.tan;
+const fanTip = (s: number, R: number, halfDeg: number, bulge: number): TailTip => {
+  const dx = R * (1 + bulge * (1 - s * s));
+  return { dx, dy: tn(rad(halfDeg) * s) * dx };
+};
+const smooth = (x: number) => Math.pow(Math.max(0, Math.min(1, x)), 1.4);
+
+/** Işın ucunun, ışın tabanına göre konumu (s: -1 alt .. +1 üst). 'standart' özgün biçimle birebir aynıdır. */
+function tailTip(form: FormId, sex: Sex, s: number): TailTip {
   const sp = TAIL[sex];
+  const R = sp.reach;
+  const w = Math.abs(s);
+  const male = sex === 'erkek';
+  switch (form) {
+    case 'dogal': return fanTip(s, R * 0.5, 30, 0.14);
+    case 'delta': return fanTip(s, R * 1.2, 41, 0.02);
+    case 'fantail': return fanTip(s, R * 0.85, 36, 0.3);
+    case 'veiltail': { const t = fanTip(s, R * 1.35, 26, 0.1); return { ...t, cy: -0.22 * t.dx * (1 - 0.3 * w) }; }
+    case 'lyretail': {
+      const dx = R * (0.5 + 1.0 * Math.pow(w, 2.2));
+      return { dx, dy: tn(rad(30) * s) * dx, cy: -s * 0.24 * dx * w };
+    }
+    case 'kilic-ust': case 'kilic-alt': case 'kilic-cift': {
+      const t = fanTip(s, R * 0.9, 30, 0.08);
+      const sw = formShape(form).sword;
+      const L = male ? 1.05 : 0;
+      const gUp = sw === 'ust' || sw === 'cift' ? smooth(1 - (1 - s) / 0.16) : 0;
+      const gDn = sw === 'alt' || sw === 'cift' ? smooth(1 - (1 + s) / 0.16) : 0;
+      return { dx: t.dx + L * Math.max(gUp, gDn), dy: t.dy };
+    }
+    case 'pintail': return { dx: R * (0.45 + 0.85 * (1 - Math.pow(w, 1.4))), dy: R * 0.26 * s };
+    case 'round': { const ph = rad(72) * s; return { dx: R * 0.95 * Math.cos(ph) + 0.05, dy: R * 0.7 * Math.sin(ph) }; }
+    case 'spade': { const ph = rad(68) * s; return { dx: R * 0.85 * Math.cos(ph) + 0.4 * R * Math.exp(-((s / 0.2) ** 2)), dy: R * 0.6 * Math.sin(ph) }; }
+    case 'flag': return { dx: R * 1.1 * (1 + 0.02 * (1 - s * s)), dy: R * 0.13 * s };
+    case 'ribbon': { const t = fanTip(s, R * 1.9, 15, 0.06); return { dx: t.dx, dy: t.dy * 0.7, cy: -0.35 * t.dx * (1 - 0.5 * w) }; }
+    default: return fanTip(s, R, sp.halfAngle, sp.bulge);
+  }
+}
+
+/** Büyük kuyruk yüzgeci: biçimi `form` belirler (varsayılan: özgün delta benzeri kuyruk). */
+export function tailFin(sex: Sex, form: FormId = DEFAULT_FORM): Fin {
+  const sp = TAIL[sex];
+  const n = formShape(form).rays ?? sp.rays;
   const pr = bodyProfile(sex, TAIL_BASE_T);
   const x0 = bodyX(sex, TAIL_BASE_T);
   const base: Vec3[] = [];
   const dir: Vec3[] = [];
   const len: number[] = [];
-  for (let i = 0; i < sp.rays; i++) {
-    const s = (i / (sp.rays - 1)) * 2 - 1;
-    const th = rad(sp.halfAngle) * s;
+  const curl: Vec3[] = [];
+  for (let i = 0; i < n; i++) {
+    const s = (i / (n - 1)) * 2 - 1;
     const y = pr.cy + s * 0.85 * (s > 0 ? pr.up : pr.down);
+    const t = tailTip(form, sex, s);
     base.push([x0, y, 0]);
-    dir.push([Math.cos(th), Math.sin(th), 0]);
-    // Düz arka kenar için uzunluk reach/cos(θ); hafif dışbükey kenar için bulge
-    len.push((sp.reach / Math.cos(th)) * (1 + sp.bulge * (1 - s * s)));
+    const l = Math.hypot(t.dx, t.dy);
+    dir.push([t.dx / l, t.dy / l, 0]);
+    len.push(l);
+    curl.push([t.cx ?? 0, t.cy ?? 0, 0]);
   }
-  return fanFin({ base, dir, len, segments: 22, branch: 0.62, tipSpread: 0.32 });
+  return fanFin({ base, dir, len, curl, segments: 22, branch: 0.62, tipSpread: 0.32 });
+}
+
+/** Kuyruk (ve kılıç) en uç x konumu: sınır ve test hesapları için */
+export function tailReach(sex: Sex, form: FormId = DEFAULT_FORM): number {
+  return Math.max(...tailFin(sex, form).rays.map((r) => r[r.length - 1][0])) - bodyX(sex, TAIL_BASE_T);
 }
 
 export interface DorsalSpec { t0: number; t1: number; rays: number; phiFront: number; phiRear: number; lenFront: number; lenRear: number }
@@ -185,17 +271,18 @@ export const DORSAL: Record<Sex, DorsalSpec> = {
   disi: { t0: 0.42, t1: 0.55, rays: 9, phiFront: 76, phiRear: 52, lenFront: 0.42, lenRear: 0.62 },
 };
 
-export function dorsalFin(sex: Sex): Fin {
+export function dorsalFin(sex: Sex, form: FormId = DEFAULT_FORM): Fin {
   const d = DORSAL[sex];
+  const k = formShape(form).dorsal;
   const base: Vec3[] = [], dir: Vec3[] = [], len: number[] = [], curl: Vec3[] = [];
   for (let i = 0; i < d.rays; i++) {
     const f = i / (d.rays - 1);
     const phi = rad(lerp(d.phiFront, d.phiRear, f));
-    const L = lerp(d.lenFront, d.lenRear, Math.pow(f, 0.8));
+    const L = lerp(d.lenFront, d.lenRear, Math.pow(f, 0.8)) * k;
     base.push(bodySurfacePoint(sex, lerp(d.t0, d.t1, f), Math.PI, -0.03));
     dir.push([Math.cos(phi), Math.sin(phi), 0]);
     len.push(L);
-    curl.push([0.06 * L, -0.1 * L, 0]);
+    curl.push([0.06 * L, -0.1 * L * (k > 1.5 ? 2.2 : 1), 0]);
   }
   return fanFin({ base, dir, len, curl, segments: 16, branch: 0.7, tipSpread: 0.28 });
 }
@@ -218,18 +305,20 @@ export function analFin(sex: Sex): Fin | null {
 }
 
 /** side: +1 = +z (kameraya bakan) yan, -1 = karşı yan */
-export function pectoralFin(sex: Sex, side: 1 | -1): Fin {
+export function pectoralFin(sex: Sex, side: 1 | -1, form: FormId = DEFAULT_FORM): Fin {
   const n = 9;
+  const k = formShape(form).pectoral;
+  const big = k > 1.2;
   const base: Vec3[] = [], dir: Vec3[] = [], len: number[] = [], curl: Vec3[] = [];
   for (let i = 0; i < n; i++) {
     const f = i / (n - 1);
     const a = side > 0 ? 1.18 + 0.62 * f : 2 * Math.PI - (1.18 + 0.62 * f);
-    const phi = rad(lerp(48, -38, f));
-    const L = (sex === 'erkek' ? 0.46 : 0.5) * (1 - 0.35 * Math.abs(f - 0.4) * 2);
+    const phi = big ? rad(lerp(42, -28, f)) : rad(lerp(48, -38, f));
+    const L = (sex === 'erkek' ? 0.46 : 0.5) * (1 - 0.35 * Math.abs(f - 0.4) * 2) * k;
     base.push(bodySurfacePoint(sex, 0.292, a, -0.015));
-    dir.push(norm([Math.cos(phi), Math.sin(phi) * 0.9, 0.34 * side]));
+    dir.push(norm([Math.cos(phi), Math.sin(phi) * 0.9, (big ? 0.7 : 0.34) * side]));
     len.push(L);
-    curl.push([0.04, -0.03, 0.05 * side]);
+    curl.push([0.04 * k, -0.03 * k, 0.05 * side * k]);
   }
   return fanFin({ base, dir, len, curl, segments: 6 });
 }
@@ -338,7 +427,7 @@ const finPoly = (f: Fin | null): Vec2[] => {
   return [...base, ...tip.reverse()].map((p) => [p[0], p[1]] as Vec2);
 };
 
-export function silhouette(sex: Sex): Silhouette {
+export function silhouette(sex: Sex, form: FormId = DEFAULT_FORM): Silhouette {
   const top: Vec2[] = [], bottom: Vec2[] = [];
   const N = 48;
   for (let i = 0; i <= N; i++) {
@@ -353,11 +442,11 @@ export function silhouette(sex: Sex): Silhouette {
   const spotC = bodySurfacePoint(sex, 0.6, 0.75);
   return {
     body: [...top, ...bottom.reverse()],
-    tail: finPoly(tailFin(sex)),
-    dorsal: finPoly(dorsalFin(sex)),
+    tail: finPoly(tailFin(sex, form)),
+    dorsal: finPoly(dorsalFin(sex, form)),
     anal: finPoly(analFin(sex)),
     pelvic: finPoly(pelvicFin(sex, 1)),
-    pectoral: finPoly(pectoralFin(sex, 1)),
+    pectoral: finPoly(pectoralFin(sex, 1, form)),
     gono: g ? g.path.map((p) => [p[0], p[1]] as Vec2) : [],
     eye: { x: eye.center[0], y: eye.center[1], r: eye.radius },
     spot: sex === 'disi' ? { x: spotC[0], y: spotC[1], rx: 0.17, ry: 0.1 } : null,

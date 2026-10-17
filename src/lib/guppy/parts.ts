@@ -1,9 +1,9 @@
 // Anatomi parçaları: Türkçe kısa açıklamalar ve model üzerindeki bağlantı noktaları (saf veri).
-import { BODY, analFin, bodySurfacePoint, dorsalFin, eyeSpec, gonopodium, pectoralFin, pelvicFin, tailFin, type Sex, type Vec3 } from './model';
+import { BODY, DEFAULT_FORM, formShape, hasSword, analFin, bodySurfacePoint, dorsalFin, eyeSpec, gonopodium, pectoralFin, pelvicFin, tailFin, type FormId, type Sex, type Vec3 } from './model';
 
 export type PartId =
   | 'agiz' | 'goz' | 'solungac-kapagi' | 'yan-cizgi' | 'pul' | 'gogus-yuzgeci' | 'karin-yuzgeci'
-  | 'sirt-yuzgeci' | 'anal-yuzgec' | 'gonopodium' | 'kuyruk-sapi' | 'kuyruk-yuzgeci' | 'gravid-spot';
+  | 'sirt-yuzgeci' | 'anal-yuzgec' | 'gonopodium' | 'kuyruk-sapi' | 'kuyruk-yuzgeci' | 'gravid-spot' | 'kilic';
 
 export type ViewId = 'yan' | 'ust' | 'on' | 'arka' | 'alt' | 'capraz';
 
@@ -52,7 +52,22 @@ export const PARTS: Part[] = [
     aciklama: 'Dişinin anal yüzgeci yakınındaki koyu lekedir. Gebelik ilerledikçe belirginleşebilir ve karın genişler. Tek başına kesin gebelik kanıtı değildir.' },
 ];
 
-export const partsFor = (sex: Sex): Part[] => PARTS.filter((p) => !p.sex || p.sex === sex);
+/** Yalnızca belirli formlarda bulunan ek parçalar. */
+export const FORM_PARTS: Part[] = [
+  { id: 'kilic', ad: 'Kılıç (kuyruk uzantısı)', ozet: 'Erkekte kuyruğun üst ve/veya alt kenarında uzayan ışınlar.', sex: 'erkek', view: 'yan',
+    aciklama: 'Kılıç kuyruklu (swordtail) formlarda erkeğin kuyruk yüzgecinin üst, alt ya da her iki kenarındaki ışınlar uzayarak kılıç biçimini alır. Bu modelde kılıç yalnızca erkekte gösterilir; kılıç uzunluğu ve dişide görülüp görülmediği soya göre değişebilir.', dogrulanmali: true },
+];
+
+/** Form göğüs yüzgeci açıklamasını değiştirebilir (fil kulak). */
+const dumboPectoral = { ozet: 'Fil kulak formunda kulak gibi büyümüş çift yüzgeç.', aciklama: 'Fil kulak (dumbo ear) formunda göğüs yüzgeçleri normalden çok daha büyüktür ve kulak gibi yanlara açılır; ad, balığın gerçekte kulağı olmadığı için hobi takma adıdır. Büyük yüzgeçler yavaş yüzmeye ve sakin suya uygundur; yüzgeç ısıran türlerle tutulmamalıdır.' };
+
+export const partsFor = (sex: Sex, form: FormId = DEFAULT_FORM): Part[] => {
+  const base = PARTS.filter((p) => !p.sex || p.sex === sex).map((p) => (form === 'dumbo' && p.id === 'gogus-yuzgeci' ? { ...p, ...dumboPectoral } : p));
+  return hasSword(sex, form) ? [...base, ...FORM_PARTS.filter((p) => !p.sex || p.sex === sex)] : base;
+};
+
+/** Sayfadaki tüm olası parçalar (form ek parçaları dahil), kimliğe göre */
+export const allPartsFor = (form: FormId = DEFAULT_FORM): Part[] => [...PARTS, ...FORM_PARTS].map((p) => (form === 'dumbo' && p.id === 'gogus-yuzgeci' ? { ...p, ...dumboPectoral } : p));
 
 export interface Anchor {
   pos: Vec3;
@@ -75,7 +90,7 @@ function surf(sex: Sex, t: number, a: number): Anchor {
 }
 
 /** Modelin dinlenme duruşundaki bağlantı noktaları (+z yan tarafı için) */
-export function partAnchors(sex: Sex): Partial<Record<PartId, Anchor>> {
+export function partAnchors(sex: Sex, form: FormId = DEFAULT_FORM): Partial<Record<PartId, Anchor>> {
   const eye = eyeSpec(sex);
   const R = eye.radius;
   const out: Partial<Record<PartId, Anchor>> = {};
@@ -85,16 +100,21 @@ export function partAnchors(sex: Sex): Partial<Record<PartId, Anchor>> {
   out['solungac-kapagi'] = surf(sex, 0.255, 1.75);
   out['yan-cizgi'] = surf(sex, 0.66, Math.PI / 2);
   out.pul = surf(sex, 0.5, 1.2);
-  out['gogus-yuzgeci'] = { pos: mid(pectoralFin(sex, 1).rays[4], 0.7), normal: null, mirror: true };
+  out['gogus-yuzgeci'] = { pos: mid(pectoralFin(sex, 1, form).rays[4], 0.7), normal: null, mirror: true };
   out['karin-yuzgeci'] = { pos: mid(pelvicFin(sex, 1).rays[2], 0.8), normal: null, mirror: true };
-  out['sirt-yuzgeci'] = { pos: mid(dorsalFin(sex).rays[Math.floor(dorsalFin(sex).rays.length * 0.65)], 0.8), normal: null, mirror: false };
+  out['sirt-yuzgeci'] = { pos: mid(dorsalFin(sex, form).rays[Math.floor(dorsalFin(sex, form).rays.length * 0.65)], 0.8), normal: null, mirror: false };
   const anal = analFin(sex);
   if (anal) out['anal-yuzgec'] = { pos: mid(anal.rays[3], 0.8), normal: null, mirror: false };
   const g = gonopodium(sex);
   if (g) out.gonopodium = { pos: [g.path[3][0], g.path[3][1] - 0.02, 0], normal: null, mirror: false };
   out['kuyruk-sapi'] = surf(sex, 0.9, Math.PI / 2);
-  const tail = tailFin(sex);
+  const tail = tailFin(sex, form);
   out['kuyruk-yuzgeci'] = { pos: mid(tail.rays[Math.round(tail.rays.length * 0.72)], 0.8), normal: null, mirror: false };
+  if (hasSword(sex, form)) {
+    const sw = formShape(form).sword;
+    const ray = sw === 'alt' ? tail.rays[0] : tail.rays[tail.rays.length - 1];
+    out.kilic = { pos: mid(ray, 0.92), normal: null, mirror: false };
+  }
   if (sex === 'disi') out['gravid-spot'] = surf(sex, 0.6, 0.78);
   return out;
 }

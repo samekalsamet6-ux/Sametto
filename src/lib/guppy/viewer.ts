@@ -9,7 +9,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import {
   BODY, OPERCULUM_A, SWIM, analFin, bodySurfacePoint, dorsalFin, eyeSpec, gonopodium, mouthLine, operculumEdge, operculumEdgeT,
-  operculumFront, pectoralFin, pelvicFin, swimOffsetZ, tailFin, type Fin, type Sex, type Vec3,
+  operculumFront, pectoralFin, pelvicFin, swimOffsetZ, tailFin, type Fin, type FormId, type Sex, type Vec3,
 } from './model';
 import { partAnchors, partsFor, type Anchor, type PartId, type ViewId } from './parts';
 import { paintBody } from './texture';
@@ -202,7 +202,7 @@ interface Built {
 
 const darker = (c: RGBA, f: number, a: number): RGBA => [c[0] * f, c[1] * f, c[2] * f, Math.min(1, c[3] * a + 0.1)];
 
-export function buildFish(sex: Sex, variantId: string, u: SwimUniforms, texW: number): Built {
+export function buildFish(sex: Sex, variantId: string, u: SwimUniforms, texW: number, form: FormId = 'standart'): Built {
   const variant = variantById(variantId);
   const pal = variant[sex];
   const group = new Group();
@@ -298,12 +298,12 @@ export function buildFish(sex: Sex, variantId: string, u: SwimUniforms, texW: nu
     add(finLines(fin, lcol, flap), lineMat(), 'lines', order + 0.5);
   };
   const waveFlap = (amp: number, phase = 0.5, power = 1.4): FlapFn => (i, uu) => [0, 0, amp * Math.pow(uu, power), i * phase + uu * 3];
-  addFin(tailFin(sex), 'kuyruk', waveFlap(0.055), 1, 0.01, 3);
-  addFin(dorsalFin(sex), 'sirt', waveFlap(0.04, 0.45), 2, 0.01, 3);
+  addFin(tailFin(sex, form), 'kuyruk', waveFlap(0.055), 1, 0.01, 3);
+  addFin(dorsalFin(sex, form), 'sirt', waveFlap(0.04, 0.45), 2, 0.01, 3);
   const anal = analFin(sex);
   if (anal) addFin(anal, 'anal', waveFlap(0.025, 0.4), 2);
   for (const side of [1, -1] as const) {
-    addFin(pectoralFin(sex, side), 'gogus', (_i, uu) => [0, 0.5 * 0.05 * uu, side * 0.075 * uu, 0], 4, 0.006);
+    addFin(pectoralFin(sex, side, form), 'gogus', (_i, uu) => [0, 0.5 * 0.05 * uu, side * 0.075 * uu, 0], 4, 0.006);
     addFin(pelvicFin(sex, side), 'karin', (_i, uu) => [0, 0, side * 0.035 * uu, 1.2], 4, 0.005);
   }
 
@@ -322,7 +322,7 @@ export function buildFish(sex: Sex, variantId: string, u: SwimUniforms, texW: nu
   const box = new Box3().setFromObject(group);
   const bounds = new Sphere();
   box.getBoundingSphere(bounds);
-  return { body: bodyMesh, group, anchors: partAnchors(sex), textures, bounds, center: box.getCenter(new Vector3()) };
+  return { body: bodyMesh, group, anchors: partAnchors(sex, form), textures, bounds, center: box.getCenter(new Vector3()) };
 }
 
 function disposeGroup(g: Group, textures: Texture[]) {
@@ -351,6 +351,7 @@ export interface ViewerOptions {
   overlay: HTMLElement;
   sex: Sex;
   variant: string;
+  form?: string;
   reducedMotion: boolean;
   onSelect: (id: PartId | null, fromUser: boolean) => void;
 }
@@ -358,6 +359,7 @@ export interface ViewerOptions {
 export interface Viewer {
   setSex(s: Sex): void;
   setVariant(v: string): void;
+  setForm(f: string): void;
   setAutoRotate(on: boolean): void;
   setSwim(on: boolean): void;
   /** Numaralı noktaları aç/kapat; kapalıyken gizli, aria-hidden ve tıklanamaz (parça listesi çalışır). */
@@ -405,7 +407,7 @@ export function createViewer(opts: ViewerOptions): Viewer {
   controls.autoRotateSpeed = 2.2;
 
   const uniforms: SwimUniforms = { uTime: { value: 0 }, uAmp: { value: 0 }, uFlap: { value: 0 }, uLen: { value: BODY[opts.sex].length } };
-  let sex = opts.sex, variant = opts.variant;
+  let sex = opts.sex, variant = opts.variant, form: string = opts.form ?? 'standart';
   let built: Built | null = null;
   let swimOn = false, selected: PartId | null = null;
   let radius = 3, visible = true, raf = 0, last = 0, disposed = false;
@@ -417,7 +419,7 @@ export function createViewer(opts: ViewerOptions): Viewer {
   const rebuildHotspots = () => {
     overlay.textContent = '';
     hotspots.clear();
-    partsFor(sex).forEach((p, i) => {
+    partsFor(sex, form).forEach((p, i) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'g3-hot';
@@ -450,11 +452,11 @@ export function createViewer(opts: ViewerOptions): Viewer {
   };
   const limits = () => { controls.minDistance = fitDistance() * 0.35; controls.maxDistance = fitDistance() * 1.9; };
 
-  const load = (first: boolean) => {
+  const load = (first: boolean, refit = false) => {
     const old = built;
     if (old) { scene.remove(old.group); disposeGroup(old.group, old.textures); }
     uniforms.uLen.value = BODY[sex].length;
-    built = buildFish(sex, variant, uniforms, texW);
+    built = buildFish(sex, variant, uniforms, texW, form);
     scene.add(built.group);
     radius = built.bounds.radius;
     const prevTarget = controls.target.clone();
@@ -463,6 +465,7 @@ export function createViewer(opts: ViewerOptions): Viewer {
       place(0.62, 1.28, fitDistance());
     } else {
       camera.position.add(controls.target.clone().sub(prevTarget));
+      if (refit) { const sp = spherical(); place(sp[0], sp[1], fitDistance()); }
     }
     limits();
     rebuildHotspots();
@@ -487,7 +490,7 @@ export function createViewer(opts: ViewerOptions): Viewer {
     if (!built) return;
     // gizlenme (occlusion) hesabı yalnızca kamera/model değişince yenilenir
     const cp = camera.position;
-    const key = `${cp.x.toFixed(3)},${cp.y.toFixed(3)},${cp.z.toFixed(3)}|${sex}|${variant}`;
+    const key = `${cp.x.toFixed(3)},${cp.y.toFixed(3)},${cp.z.toFixed(3)}|${sex}|${variant}|${form}`;
     const nowMs = performance.now();
     // kamera sürekli dönerken (otomatik döndürme/sürükleme) en fazla ~8 Hz yenile; durunca son konumda kesin hesapla
     let recompute = false;
@@ -580,8 +583,14 @@ export function createViewer(opts: ViewerOptions): Viewer {
   };
 
   const api: Viewer = {
-    setSex(s) { if (s !== sex) { sex = s; if (selected && !partsFor(sex).some((p) => p.id === selected)) { selected = null; opts.onSelect(null, false); } load(false); } },
+    setSex(s) { if (s !== sex) { sex = s; if (selected && !partsFor(sex, form).some((p) => p.id === selected)) { selected = null; opts.onSelect(null, false); } load(false); } },
     setVariant(v) { if (v !== variant) { variant = v; load(false); } },
+    setForm(f) {
+      if (f === form) return;
+      form = f;
+      if (selected && !partsFor(sex, form).some((p) => p.id === selected)) { selected = null; opts.onSelect(null, false); }
+      load(false, true);
+    },
     setAutoRotate(on) { controls.autoRotate = on; invalidate(); },
     setSwim(on) { swimOn = on; invalidate(); },
     setHotspots(on) { hotspotsOn = on; overlay.dataset.off = on ? '' : 'true'; if (!on) for (const b of hotspots.values()) { b.hidden = true; b.setAttribute('aria-hidden', 'true'); } occKey = ''; occAt = 0; invalidate(); },

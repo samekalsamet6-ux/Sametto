@@ -109,6 +109,48 @@ test.describe('3B lepistes modeli', () => {
     expect(errors).toEqual([]);
   });
 
+  test('form (şekil) seçimi: tüm formlar örneklenen renklerle hatasız yüklenir, renk korunur, noktalar çalışır', async ({ page }) => {
+    test.slow();
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(URL);
+    await ready(page);
+    await page.uncheck('#swim');
+    expect(await page.locator('#form optgroup').count()).toBeGreaterThanOrEqual(4);
+    const forms = await page.locator('#form option').evaluateAll((o) => o.map((x) => (x as HTMLOptionElement).value));
+    expect(forms[0]).toBe('standart');
+    expect(forms.length).toBeGreaterThanOrEqual(14);
+    expect(forms).toEqual(expect.arrayContaining(['delta', 'veiltail', 'lyretail', 'kilic-ust', 'kilic-cift', 'pintail', 'round', 'spade', 'flag', 'ribbon', 'dumbo']));
+    const colours = ['cobra', 'blue-grass', 'platinum'];
+    for (const [i, f] of forms.entries()) {
+      await page.selectOption('#variant', colours[i % colours.length]);
+      await page.selectOption('#form', f);
+      await expect(page.locator('#stage')).toHaveAttribute('data-form', f);
+      await expect(page.locator('#stage')).toHaveAttribute('data-variant', colours[i % colours.length]);
+      await expect(page.locator('#variant')).toHaveValue(colours[i % colours.length]);
+      await expect(page.locator('#sexnote')).toContainText('Form');
+      await page.waitForTimeout(60);
+    }
+    // kılıç parçası yalnızca kılıçlı formda erkekte listelenir
+    await page.selectOption('#form', 'kilic-ust');
+    await expect(page.locator('#parts li[data-part=kilic]')).toBeVisible();
+    await page.locator('.g3-part[data-part=kilic]').click();
+    await expect(page.locator('#detail h3')).toContainText('Kılıç');
+    await page.check('input[name=sex][value=disi]');
+    await expect(page.locator('#parts li[data-part=kilic]')).toBeHidden();
+    await expect(page.locator('#detail')).toContainText('Bir parça seçin');
+    await page.selectOption('#form', 'dumbo');
+    await page.locator('.g3-btn[data-view=yan]').click();
+    const visible = () => page.locator('.g3-hot:not([hidden])').evaluateAll((b) => b.map((x) => (x as HTMLElement).dataset.part));
+    await expect.poll(visible).toContain('gogus-yuzgeci');
+    await page.uncheck('#hotspots');
+    await expect.poll(visible).toEqual([]);
+    await page.check('#hotspots');
+    await expect.poll(async () => (await visible()).length, { timeout: 20_000 }).toBeGreaterThan(0);
+    await page.waitForTimeout(300);
+    expect(errors).toEqual([]);
+  });
+
   test('gövdenin arkasında kalan numaralı noktalar gizlenir', async ({ page }) => {
     await page.goto(URL);
     await ready(page);
