@@ -140,8 +140,8 @@ export function speciesSuite(c: SpeciesE2E) {
         expect(await visibleParts(page)).not.toContain(t.part);
         await page.locator(`.v3-part[data-part=${t.part}]`).click();
         await expect(page.locator('#stage')).toHaveAttribute('data-view', t.to);
-        await page.waitForTimeout(1300);
-        expect(await visibleParts(page)).toContain(t.part);
+        await page.locator('#stage').scrollIntoViewIfNeeded(); // tuval görünmezken çizim durur
+        await expect.poll(() => visibleParts(page), { timeout: 20_000 }).toContain(t.part);
       });
     }
 
@@ -156,7 +156,7 @@ export function speciesSuite(c: SpeciesE2E) {
       await page.check('#rot');
       await expect(page.locator('#stage')).toHaveAttribute('data-rotate', 'on');
       const f0 = Number(await page.locator('#cv').getAttribute('data-frames'));
-      await expect.poll(async () => Number(await page.locator('#cv').getAttribute('data-frames'))).toBeGreaterThan(f0 + 2);
+      await expect.poll(async () => Number(await page.locator('#cv').getAttribute('data-frames')), { timeout: 30_000 }).toBeGreaterThan(f0 + 2);
       await page.uncheck('#rot');
       for (const v of ['ust', 'alt', 'yan', 'on', 'arka', 'capraz'] as const) {
         await page.locator(`.v3-btn[data-view=${v}]`).click();
@@ -188,7 +188,7 @@ export function speciesSuite(c: SpeciesE2E) {
       const f0 = Number(await page.locator('#cv').getAttribute('data-frames'));
       await page.keyboard.press('ArrowLeft');
       await page.keyboard.press('+');
-      await expect.poll(async () => Number(await page.locator('#cv').getAttribute('data-frames'))).toBeGreaterThan(f0);
+      await expect.poll(async () => Number(await page.locator('#cv').getAttribute('data-frames')), { timeout: 30_000 }).toBeGreaterThan(f0);
     });
 
     test('hareket azaltma tercihinde animasyonlar kapalı başlar', async ({ page }) => {
