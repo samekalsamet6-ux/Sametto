@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 const PORT = 4173;
-const launchOptions = { executablePath: process.env.CHROME || undefined, args: ['--no-sandbox'] };
+const launchOptions = { executablePath: process.env.CHROME || undefined, args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] };
 
 export default defineConfig({
   testDir: 'tests/e2e',
