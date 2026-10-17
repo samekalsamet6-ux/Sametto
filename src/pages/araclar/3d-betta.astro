@@ -1,0 +1,54 @@
+---
+import SpeciesPage from '../../components/SpeciesPage.astro';
+import { PARTS } from '../../lib/betta/parts';
+import { VARIANTS, groupedVariants } from '../../lib/betta/variants';
+import { SEXES, silhouette } from '../../lib/betta/model';
+import { svgFigure } from '../../lib/akvaryum/fishmath';
+
+const sexName = { erkek: 'Erkek betta', disi: 'Dişi betta' } as const;
+const figures = SEXES.map((s) => ({ label: sexName[s], ...svgFigure(silhouette(s)) }));
+const sexes = [
+  { id: 'erkek', ad: 'Erkek', not: '' },
+  { id: 'disi', ad: 'Dişi', not: '' },
+];
+const first = groupedVariants();
+---
+<SpeciesPage
+  title="3B betta modeli"
+  description="Standart (plakat) gövdeli bettanın (Betta splendens) etkileşimli 3B modeli: labirent organı, yüzgeçler, erkek/dişi farkı ve renk varyeteleri."
+  intro="Betta splendens’in (Siyam dövüşçü balığı) şematik, etkileşimli 3B modeli. Sürükleyerek döndürün, erkek ve dişiyi karşılaştırın, renk varyetelerini deneyin; numaralı noktalara ya da listeye tıklayıp açıklamaları okuyun."
+  views={[{ id: 'yan', ad: 'Yan' }, { id: 'ust', ad: 'Üst' }, { id: 'alt', ad: 'Alt' }, { id: 'on', ad: 'Ön' }, { id: 'arka', ad: 'Arka' }, { id: 'capraz', ad: 'Çapraz' }]}
+  sexes={sexes}
+  parts={PARTS}
+  groups={first}
+  variantIntro={`${VARIANTS.length} şematik renk varyetesi; hepsi aynı standart (plakat) gövdeyi paylaşır, yalnızca renk ve desen değişir. Ticaret adları standart değildir ve aynı balık farklı satıcılarda farklı adla anılabilir; bu liste resmî bir sınıflama değildir. “Kaynakla doğrulanmalı” işaretli kayıtların adı ya da tanımı belirsizdir.`}
+  figures={figures}
+  fill="#c2182b"
+  stageLabel="Standart gövdeli bettanın etkileşimli 3B modeli."
+>
+  <div class="callout callout-bilgi" slot="tur">
+    <strong>Kapsam.</strong> Bu model, kısa yüzgeçli standart (“plakat”) gövdeli <em>Betta splendens</em>’i gösterir. Uzun yüzgeçli yetiştirme biçimleri (veiltail, halfmoon, crowntail vb.) <strong>bilerek dahil edilmemiştir</strong>. Model <strong>şematiktir</strong>: oranlar, renkler ve yüzgeç boyutları eğitim amaçlı bir yorumdur; belirli bir bireyin ya da standardın ölçüsü değildir.
+  </div>
+  <div class="callout callout-uyari" slot="ek" id="safety">
+    <strong>Erkekler birbirine saldırgandır.</strong> Erkek bettalar aynı su hacminde birbirini ciddi biçimde yaralayabilir; erkekler ortak tankta tutulmaz. Bu sayfa bakım ya da üretim rehberi değildir (kaynakla doğrulanmalı).
+  </div>
+  <p class="muted">Modellenmeyenler: boğaz dişleri, iç organlar (labirent organı yalnızca bir nokta olarak anlatılır), uzun yüzgeçli biçimler, çizgisel solungaç zarı açma hareketi ve yaşa/ruh haline bağlı renk değişimi. Erkek–dişi yüzgeç ve renk farkları şematiktir ve bireyden bireye ve varyeteye göre çok değişir; genç bireylerde ayrım zordur.</p>
+  <div class="callout callout-bilgi">
+    Aynı serideki diğer modeller: <a href="/araclar/3d-lepistes">3B lepistes</a> ve <a href="/araclar/3d-vatoz">3B cüce vatoz</a>.
+  </div>
+</SpeciesPage>
+
+<script>
+  import { initSpeciesPage } from '../../lib/akvaryum/page';
+  import { PARTS, partsFor } from '../../lib/betta/parts';
+  import { VARIANTS } from '../../lib/betta/variants';
+
+  initSpeciesPage({
+    parts: PARTS, partsFor, variants: VARIANTS, defaultSex: 'erkek', defaultView: 'capraz',
+    sexNotes: {
+      erkek: 'Erkek: sırt, anal, kuyruk ve karın yüzgeçleri belirgin büyük, renkler canlı çizilmiştir (şematik).',
+      disi: 'Dişi: yüzgeçler kısa, renkler soluk, gövde daha dolgun; karın altında yumurta borusu noktası ve soluk dikey şeritler çizilmiştir (şematik). Genç bireylerde ayrım zordur.',
+    },
+    load: () => import('../../lib/betta/index'),
+  });
+</script>

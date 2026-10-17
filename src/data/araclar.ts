@@ -1,4 +1,4 @@
-export interface Tool { slug: string; title: string; desc: string; group: 'Hesaplayıcı' | 'Planlayıcı' | 'Takip' | 'Genetik' }
+export interface Tool { slug: string; title: string; desc: string; group: 'Hesaplayıcı' | 'Planlayıcı' | 'Takip' | 'Genetik' | 'Görsel' }
 export const tools: Tool[] = [
   { slug: 'hacim', title: 'Akvaryum hacmi', desc: 'Brüt ve net litre hesabı.', group: 'Hesaplayıcı' },
   { slug: 'su-degisimi', title: 'Su değişimi', desc: 'Hedef nitrata göre değişim oranı.', group: 'Hesaplayıcı' },
@@ -13,4 +13,6 @@ export const tools: Tool[] = [
   { slug: 'pedigri', title: 'Pedigri çizici', desc: 'Soy ağacınızı çizer, her bireyin F değerini gösterir.', group: 'Genetik' },
   { slug: 'punnett', title: 'Punnett hesaplayıcı', desc: 'Otozomal, X- ve Y-bağlantılı olasılıklar.', group: 'Genetik' },
   { slug: 'inbreeding', title: 'İnbreeding (Wright F)', desc: 'Soy ağacından planlanan çiftleşmenin F değeri.', group: 'Genetik' },
+  { slug: '3d-lepistes', title: '3B lepistes modeli', desc: 'Erkek ve dişi lepistesin etkileşimli 3B modeli: anatomi, renk varyeteleri, yüzme animasyonu.', group: 'Görsel' },
+  { slug: '3d-vatoz', title: '3B tatlı su vatozu modeli', desc: 'Akvaryumda tutulan tatlı su vatozunun (Potamotrygon) şematik 3B modeli: üst/alt yüz anatomisi, klasper, kuyruk dikeni, motoro, leopoldi, cururu gibi desen varyeteleri.', group: 'Görsel' },
 ];

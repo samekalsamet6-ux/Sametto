@@ -10,12 +10,12 @@ Lepistes (guppy, *Poecilia reticulata*) üretimi için Türkçe **rehber**, **wi
 |---|---|---|
 | Rehber | `src/content/guide/{baslangic,orta,ileri}` | 3 yol × 15 ders (MDX) |
 | Wiki | `src/content/wiki` | 63 madde: terimler, su kimyası, ekipman, hastalıklar, beslenme, genetik… |
-| Araçlar | `src/pages/araclar`, `src/lib` | 13 araç (aşağıda) |
+| Araçlar | `src/pages/araclar`, `src/lib` | 15 araç (aşağıda) |
 | Sorun giderme | `/sorun-giderme` | Belirtiden olası nedene karar aracı |
 | Seviye testi | `/seviye-testi` | 18 soruluk yönlendirme testi |
 | SSS, Sözlük, Kaynaklar | `/sss`, `/sozluk`, `/kaynaklar` | |
 
-**Araçlar:** akvaryum hacmi · su değişimi · balık sayısı planlayıcı · gebelik/doğum takvimi · yem planlayıcı · bakım takvimi (.ics) · azot döngüsü takipçisi · yavru büyüme takipçisi · maliyet ve kârlılık · etiket oranı ölçekleyici (doz önermez) · pedigri çizici · Punnett hesaplayıcı · inbreeding (Wright F).
+**Araçlar:** akvaryum hacmi · su değişimi · balık sayısı planlayıcı · gebelik/doğum takvimi · yem planlayıcı · bakım takvimi (.ics) · azot döngüsü takipçisi · yavru büyüme takipçisi · maliyet ve kârlılık · etiket oranı ölçekleyici (doz önermez) · pedigri çizici · Punnett hesaplayıcı · inbreeding (Wright F) · 3B lepistes modeli (etkileşimli anatomi; 29 şematik renk varyetesi, aynı standart gövde ve kuyruk biçimiyle) · 3B tatlı su vatozu modeli (üst/alt yüz anatomisi, klasper, kuyruk dikeni; 6 şematik desen: motoro, leopoldi, cururu vb.; genel Potamotrygon benzeri disk, tür kimliği kaynakla doğrulanmalı).
 
 Tüm hesaplar tarayıcıda yapılır; hesap/giriş yoktur, veriler sunucuya gönderilmez (takipçi verisi yalnızca `localStorage`'da tutulur).
 
@@ -39,7 +39,7 @@ npm run dev        # geliştirme sunucusu (arama dizini yalnızca build sonrası
 | `npm run build` | Siteyi `dist/` içine derler ve Pagefind dizinini oluşturur |
 | `npm run preview` | Derlenmiş siteyi yerelde açar |
 | `npm run check:links` | `dist/` içindeki dahili bağlantıları denetler (önce `build`) |
-| `npm run e2e` | Playwright E2E testleri (106 test = 53 senaryo × masaüstü/mobil): araçlar, sorun giderme, seviye testi, gezinti, arama (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
+| `npm run e2e` | Playwright E2E testleri (154 test = 77 senaryo × masaüstü/mobil): araçlar, sorun giderme, seviye testi, gezinti, arama (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
 | `npm run a11y` | Tüm sayfalarda axe taraması, açık ve koyu tema (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
 | `npm run pwa` | Manifest, simgeler, hizmet çalışanı ve **gerçek çevrimdışı** gezinti/arama/araç denetimi (önce `build`) |
 | `npm run lighthouse` | Seçili 7 sayfada Lighthouse (mobil); performans ≥ 85, erişilebilirlik/en iyi uygulamalar/SEO ≥ 95 |
