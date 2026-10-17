@@ -2,7 +2,10 @@ import { expect, test } from '@playwright/test';
 
 const URL = '/araclar/3d-platy/';
 type P = import('@playwright/test').Page;
-const ready = (page: P) => expect(page.locator('#stage')).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
+const ready = async (page: P) => {
+  await page.locator('#stage').scrollIntoViewIfNeeded(); // dar ekranda sahne görünüm alanının altında kalır; tembel yükleme görünürlüğe bağlı
+  await expect(page.locator('#stage')).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
+};
 const visibleParts = (page: P) => page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.lb3-hot:not([hidden])')].map((b) => b.dataset.part));
 const goView = async (page: P, v: string) => {
   await page.uncheck('#swim');
@@ -191,6 +194,7 @@ test.describe('3B plati modeli', () => {
       } as typeof orig;
     });
     await page.goto(URL);
+    await page.locator('#stage').scrollIntoViewIfNeeded(); // tembel yükleme görünürlüğe bağlı
     await expect(page.locator('#fallback')).toBeVisible();
     await expect(page.locator('#fallback')).toContainText('3B görüntü bu tarayıcıda açılamadı');
     await expect(page.locator('#fallback svg')).toHaveCount(2);
