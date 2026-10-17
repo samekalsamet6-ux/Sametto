@@ -1,7 +1,8 @@
 // Anatomi parçaları: Türkçe kısa açıklamalar ve model üzerindeki bağlantı noktaları (saf veri).
 import type { SpeciesPart } from '../akvaryum/types';
 import { bodySurfaceZ, finPoint, flankAnchor, flankNormal, midAnchor, type Anchor } from '../akvaryum/yanal-model';
-import { BODY, SPEC } from './model';
+import { BODY, specFor, DEFAULT_FORM } from './model';
+import type { FishSpec } from '../akvaryum/yanal-model';
 
 export type PartId =
   | 'agiz' | 'goz' | 'burun' | 'solungac-kapagi' | 'govde' | 'seritler' | 'yan-cizgi' | 'sirt-yuzgeci' | 'anal-yuzgec'
@@ -48,28 +49,29 @@ export const PARTS: Part[] = [
     aciklama: 'Kuyruk yüzgeci hafif çatallı bir yelpaze biçimindedir; melek balıkları hızlı yüzücü değildir, kuyruk daha çok yön ve ani kaçışta kullanılır. Uzun kuyruklu “veil” (peçe) formları bu modelin dışındadır; bu model standart (kısa yüzgeçli) gövde varsayar.' },
 ];
 
-export const partsFor = (_sex?: string): Part[] => PARTS;
+export const partsFor = (_sex?: string, _form?: string): Part[] => PARTS;
 
-const finAt = (i: number, s: number, r: number): Anchor => { const p = finPoint(SPEC.fins[i], s, r); return midAnchor(p[0], p[1]); };
+const finAt = (spec: FishSpec, i: number, s: number, r: number): Anchor => { const p = finPoint(spec.fins[i], s, r); return midAnchor(p[0], p[1]); };
 
 /** Modelin dinlenme duruşundaki bağlantı noktaları (+z yanı için) */
-export function partAnchors(): Record<PartId, Anchor> {
-  const e = SPEC.eye;
-  const pec = finPoint(SPEC.pectoral, 0.5, 0.6);
-  const fil = SPEC.filaments[0].path[Math.floor(SPEC.filaments[0].path.length * 0.55)];
+export function partAnchors(form: string = DEFAULT_FORM): Record<PartId, Anchor> {
+  const spec = specFor(form);
+  const e = spec.eye;
+  const pec = finPoint(spec.pectoral, 0.5, 0.6);
+  const fil = spec.filaments[0].path[Math.floor(spec.filaments[0].path.length * 0.55)];
   return {
     agiz: midAnchor(-0.618, 0.03),
     goz: flankAnchor(BODY, e.x, e.y, e.r * 0.85),
-    burun: flankAnchor(BODY, SPEC.nostril[0], SPEC.nostril[1], 0.012),
+    burun: flankAnchor(BODY, spec.nostril[0], spec.nostril[1], 0.012),
     'solungac-kapagi': flankAnchor(BODY, -0.265, 0.14),
     govde: flankAnchor(BODY, 0.02, -0.12),
     seritler: flankAnchor(BODY, 0.14, 0.12),
     'yan-cizgi': flankAnchor(BODY, 0.18, 0.17),
-    'sirt-yuzgeci': finAt(0, 0.55, 0.7),
-    'anal-yuzgec': finAt(1, 0.55, 0.7),
-    'pelvik-iplik': { pos: [fil[0], fil[1], SPEC.filaments[0].z], normal: null, mirror: true, swim: true },
+    'sirt-yuzgeci': finAt(spec, 0, 0.55, 0.7),
+    'anal-yuzgec': finAt(spec, 1, 0.55, 0.7),
+    'pelvik-iplik': { pos: [fil[0], fil[1], spec.filaments[0].z], normal: null, mirror: true, swim: true },
     'gogus-yuzgeci': { pos: [pec[0], pec[1], bodySurfaceZ(BODY, pec[0], pec[1]) + 0.032], normal: flankNormal(BODY, pec[0], pec[1]), mirror: true, swim: true },
     'kuyruk-sapi': flankAnchor(BODY, 0.46, 0.0, 0.012),
-    'kuyruk-yuzgeci': finAt(2, 0.5, 0.75),
+    'kuyruk-yuzgeci': finAt(spec, 2, 0.5, 0.75),
   };
 }

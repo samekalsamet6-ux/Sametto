@@ -1,5 +1,4 @@
-// Renk / desen varyeteleri (şematik yorumlar; saf veri). Hepsi aynı standart (kısa yüzgeçli) gövde üzerinde gösterilir:
-// "veil" (peçe) gibi yüzgeç/gövde biçimini değiştiren formlar bilerek kapsam dışıdır.
+// Renk / desen varyeteleri (şematik yorumlar; saf veri). Şekil (form) varyeteleri ayrıdır: bkz. forms.ts. Her renk her formla birleşir.
 // Ticaret adları standart değildir; bir kısmı satıcıdan satıcıya değişir, bu kayıtlar "dogrulanmali" ile işaretlenmiştir.
 import { groupedVariants as groupBy, hexToRgb, mulberry32, seedFor, type FishVariant } from '../akvaryum/yanal-model';
 

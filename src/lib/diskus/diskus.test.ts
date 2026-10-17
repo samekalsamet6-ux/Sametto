@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { FINS, SPEC, bodyFns, hexToRgb, outline, silhouette, tOfX, xOfT } from './model';
 import { PARTS, VIEWS, partAnchors, partsFor } from './parts';
+import { FORMS } from './forms';
 import { VARIANTS, VARIANT_GROUPS, groupedVariants, variantById } from './variants';
 import { species } from './index';
 
@@ -41,6 +42,16 @@ describe('diskus geometrisi', () => {
     expect(SPEC.eye.r * 2).toBeGreaterThan(0.08 * (Math.max(...[...Array(101).keys()].map((i) => f.top(i / 100))) * 2));
     expect(SPEC.eye.x).toBeLessThan(xOfT(SPEC.body, 0.25));
     expect(SPEC.mouth[0][0]).toBeCloseTo(SPEC.body.xs, 1);
+  });
+});
+
+describe('formlar', () => {
+  it('kaynaklarda ayrı adlandırılmış form bulunamadığı için tek (standart) form; dürüst açıklama', () => {
+    expect(FORMS).toHaveLength(1);
+    expect(FORMS[0].id).toBe('standart');
+    expect(FORMS[0].aciklama).toMatch(/bulunamadı/);
+    expect(species.forms).toBe(FORMS);
+    expect(partsFor('disi', 'standart')).toBe(PARTS);
   });
 });
 

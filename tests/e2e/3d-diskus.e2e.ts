@@ -154,6 +154,23 @@ test.describe('3B diskus modeli', () => {
     expect(errors).toEqual([]);
   });
 
+  test('form seçimi: ayrı adlandırılmış form bulunamadığı için tek seçenek; açıklama dürüstçe söyler; renk seçimi etkilenmez', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(URL);
+    await ready(page);
+    await expect(page.locator('#form option')).toHaveCount(1);
+    await page.selectOption('#variant', 'leopar');
+    await page.selectOption('#form', 'standart');
+    await expect(page.locator('#stage')).toHaveAttribute('data-variant', 'leopar');
+    await expect(page.locator('#sexnote')).toContainText('bulunamadı');
+    await page.uncheck('#hotspots');
+    await expect.poll(async () => (await visibleParts(page)).length, { timeout: 15_000 }).toBe(0);
+    await page.check('#hotspots');
+    await expectParts(page, ['goz']);
+    expect(errors).toEqual([]);
+  });
+
   test('tuvale odaklanıp ok tuşları ile döndürülür (kare üretilir)', async ({ page }) => {
     await page.goto(URL);
     await ready(page);

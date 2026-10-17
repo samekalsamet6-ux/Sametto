@@ -140,7 +140,7 @@ test.describe('3B melek balığı modeli', () => {
     }
   });
 
-  test('her varyete seçilebilir ve hata vermeden yüklenir; veil (peçe) listede yok', async ({ page }) => {
+  test('her varyete seçilebilir ve hata vermeden yüklenir', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(URL);
@@ -151,8 +151,47 @@ test.describe('3B melek balığı modeli', () => {
       await page.selectOption('#variant', o);
       await expect(page.locator('#stage')).toHaveAttribute('data-variant', o);
     }
-    expect(opts.join(' ')).not.toMatch(/veil|pece/);
     expect(errors).toEqual([]);
+  });
+
+  test('form seçimi: dört form listelenir; form değişince renk korunur, hata olmaz; her form × birkaç renk yüklenir', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(URL);
+    await ready(page);
+    const forms = await page.locator('#form option').evaluateAll((els) => els.map((e) => (e as HTMLOptionElement).value));
+    expect(forms).toEqual(['standart', 'veil', 'halfmoon', 'super-veil']);
+    await page.selectOption('#variant', 'koi');
+    for (const f of forms) {
+      await page.selectOption('#form', f);
+      await expect(page.locator('#stage')).toHaveAttribute('data-form', f);
+      await expect(page.locator('#stage')).toHaveAttribute('data-variant', 'koi');
+      await expect(page.locator('#variant')).toHaveValue('koi');
+      for (const c of ['siyah', 'zebra']) { await page.selectOption('#variant', c); await expect(page.locator('#stage')).toHaveAttribute('data-variant', c); }
+      await page.selectOption('#variant', 'koi');
+    }
+    await expect(page.locator('#sexnote')).toContainText('Form');
+    expect(errors).toEqual([]);
+  });
+
+  test('form değişince noktalar yeni geometriyi izler: veilde kuyruk yüzgeci noktası daha geride; numara anahtarı çalışır', async ({ page }) => {
+    await page.goto(URL);
+    await ready(page);
+    await goView(page, 'yan');
+    const pos = (id: string) => page.evaluate((i) => { const b = document.querySelector<HTMLElement>(`.v3-hot[data-part=${i}]`); return b && !b.hidden ? b.style.transform : null; }, id);
+    await expectParts(page, ['kuyruk-yuzgeci', 'sirt-yuzgeci']);
+    const before = await pos('kuyruk-yuzgeci');
+    await page.selectOption('#form', 'veil');
+    await expectParts(page, ['kuyruk-yuzgeci', 'sirt-yuzgeci', 'anal-yuzgec']);
+    await page.waitForTimeout(600);
+    expect(await pos('kuyruk-yuzgeci')).not.toBe(before);
+    await page.uncheck('#hotspots');
+    await expect.poll(async () => (await visibleParts(page)).length, { timeout: 15_000 }).toBe(0);
+    await page.selectOption('#form', 'halfmoon');
+    await page.waitForTimeout(800);
+    expect(await visibleParts(page)).toEqual([]);
+    await page.check('#hotspots');
+    await expectParts(page, ['goz', 'kuyruk-yuzgeci']);
   });
 
   test('tuvale odaklanıp ok tuşları ile döndürülür (kare üretilir)', async ({ page }) => {

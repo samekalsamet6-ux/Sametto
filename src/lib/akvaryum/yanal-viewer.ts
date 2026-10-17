@@ -23,6 +23,8 @@ export interface FishDef {
   /** Kamera açıları [yatay, düşey] */
   views: Record<string, [number, number]>;
   defaultView: string;
+  /** Form (şekil) varyetesi desteği: forma göre geometri ve bağlantı noktaları (isteğe bağlı) */
+  forms?: { defaultForm: string; specFor(id: string): FishSpec; anchorsFor(id: string): Record<string, Anchor> };
 }
 
 interface SwimUniforms { uTime: { value: number }; uAmp: { value: number } }
@@ -155,8 +157,8 @@ interface Built {
   proxyBase: Float32Array;
 }
 
-export function buildFish(def: FishDef, variantId: string, u: SwimUniforms, texW: number): Built {
-  const spec = def.spec, v = def.variantById(variantId), sw = spec.swim;
+export function buildFish(def: FishDef, variantId: string, u: SwimUniforms, texW: number, specIn?: FishSpec): Built {
+  const spec = specIn ?? def.spec, v = def.variantById(variantId), sw = spec.swim;
   const group = new Group();
   const textures: Texture[] = [];
   const add = (geo: BufferGeometry, mat: Material, order = 0) => { const m = new Mesh(geo, mat); m.renderOrder = order; group.add(m); return m; };
@@ -253,7 +255,9 @@ const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2,
 
 export function createFishViewer(def: FishDef, opts: SpeciesViewerOptions): SpeciesViewer {
   const { canvas, overlay } = opts;
-  const spec = def.spec;
+  let form = opts.form ?? def.forms?.defaultForm ?? '';
+  let spec = def.forms ? def.forms.specFor(form) : def.spec;
+  let anchors = def.forms ? def.forms.anchorsFor(form) : def.anchors;
   const small = matchMedia('(max-width: 700px)').matches || navigator.maxTouchPoints > 0;
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2));
@@ -340,7 +344,7 @@ export function createFishViewer(def: FishDef, opts: SpeciesViewerOptions): Spec
   const load = (first: boolean) => {
     const old = built;
     if (old) { scene.remove(old.group); disposeGroup(old.group, old.textures, old.proxy); }
-    built = buildFish(def, variant, uniforms, texW);
+    built = buildFish(def, variant, uniforms, texW, spec);
     scene.add(built.group);
     built.box.getSize(dims);
     const prevTarget = controls.target.clone();
@@ -381,7 +385,7 @@ export function createFishViewer(def: FishDef, opts: SpeciesViewerOptions): Spec
     const t = uniforms.uTime.value, amp = uniforms.uAmp.value;
     updateProxy();
     for (const [id, btn] of hotspots) {
-      const a = def.anchors[id];
+      const a = anchors[id];
       if (!a) { shown.set(id, false); btn.hidden = true; continue; }
       const mirror = a.mirror && side < 0;
       const px = a.pos[0];
@@ -470,6 +474,17 @@ export function createFishViewer(def: FishDef, opts: SpeciesViewerOptions): Spec
   const api: SpeciesViewer = {
     setSex(_s: SexId) { /* bu türde dış görünüşte güvenilir cinsiyet ayrımı yok; model değişmez */ },
     setVariant(v) { if (v !== variant) { variant = v; load(false); } },
+    setForm(f) {
+      if (!def.forms || f === form) return;
+      form = f;
+      spec = def.forms.specFor(form);
+      anchors = def.forms.anchorsFor(form);
+      load(false);
+      const s = spherical();
+      place(s[0], s[1], fitDistance());
+      controls.update();
+      invalidate();
+    },
     setAutoRotate(on) { controls.autoRotate = on; invalidate(); },
     setSwim(on) { swimOn = on; invalidate(); },
     setHotspots(on) {

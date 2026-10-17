@@ -1,12 +1,13 @@
 ---
 import Base from '../../layouts/Base.astro';
 import Fish3D from '../../components/Fish3D.astro';
+import { FORMS } from '../../lib/diskus/forms';
 import { PARTS, VIEWS } from '../../lib/diskus/parts';
 import { groupedVariants } from '../../lib/diskus/variants';
 import { SPEC, silhouette } from '../../lib/diskus/model';
 ---
 <Base title="3B diskus modeli" description="Diskusun (Symphysodon) etkileşimli 3B modeli: dairesel yanlardan basık gövde, kısa uzun tabanlı yüzgeçler, iri göz, deri mukusu ve yabani ile seçmeli renk hatları.">
-  <Fish3D id="diskus" ad="diskus" latin="Symphysodon spp."
+  <Fish3D forms={FORMS} id="diskus" ad="diskus" latin="Symphysodon spp."
     sexNote={{ ad: 'Ayrım yok / belirgin değil', not: 'Diskusta cinsiyet dışarıdan güvenilir biçimde ayırt edilemez; yalnızca üreme döneminde yumurtlama papili (dişide daha geniş ve küt, erkekte daha ince ve sivri) görülebilir. Baş biçimi ya da renk gibi ipuçları kanıtlı değildir; bu yüzden model tek biçimlidir.' }}
     views={VIEWS} parts={PARTS} groups={groupedVariants()} defaultVariant="heckel" silhouette={silhouette(SPEC)}
     colors={{ body: '#c98f5e', fin: '#b0603a', stroke: '#3a1c10' }}

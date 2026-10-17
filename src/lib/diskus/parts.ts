@@ -48,7 +48,7 @@ export const PARTS: Part[] = [
     aciklama: 'Kuyruk yüzgeci gövdeye göre küçük ve yuvarlak hatlıdır; diskus hızlı yüzücü değildir, kuyruk daha çok yön ve ani kaçışta kullanılır. Tatlı su çiklitlerinde bu biçim yaygındır.' },
 ];
 
-export const partsFor = (_sex?: string): Part[] => PARTS;
+export const partsFor = (_sex?: string, _form?: string): Part[] => PARTS;
 
 const finAt = (i: number, s: number, r: number): Anchor => { const p = finPoint(SPEC.fins[i], s, r); return midAnchor(p[0], p[1]); };
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { FINS, SPEC, bodyFns, hexToRgb, outline, silhouette, xOfT } from './model';
+import { DEFAULT_FORM, FINS, FORM_IDS, SPEC, specFor, bodyFns, hexToRgb, outline, silhouette, xOfT } from './model';
 import { PARTS, VIEWS, partAnchors, partsFor } from './parts';
+import { FORMS, formById } from './forms';
 import { VARIANTS, VARIANT_GROUPS, groupedVariants, variantById } from './variants';
 import { species } from './index';
 
@@ -44,6 +45,62 @@ describe('melek balığı geometrisi', () => {
     expect(SPEC.eye.r * 2).toBeGreaterThan(0.08 * (Math.max(...[...Array(101).keys()].map((i) => f.top(i / 100))) * 2));
     expect(SPEC.eye.x).toBeLessThan(xOfT(SPEC.body, 0.25));
     expect(SPEC.mouth[0][0]).toBeCloseTo(SPEC.body.xs, 1);
+  });
+});
+
+describe('formlar (şekil varyeteleri)', () => {
+  const ext = (id: string) => {
+    const sp = specFor(id);
+    const pts = sp.fins.flatMap((f) => [...f.base, ...f.edge]);
+    return { w: Math.max(...pts.map((p) => p[0])) - Math.min(...pts.map((p) => p[0])), top: Math.max(...sp.fins[0].edge.map((p) => p[1])), bot: Math.min(...sp.fins[1].edge.map((p) => p[1])), tail: Math.max(...sp.fins[2].edge.map((p) => p[0])), fil: sp.filaments[0].path[sp.filaments[0].path.length - 1][1] };
+  };
+  it('kimlikler forms.ts ile model arasında eşleşir; standart ilk; her formun açıklaması dolu; altum yok', () => {
+    expect(FORMS.map((f) => f.id).sort()).toEqual([...FORM_IDS].sort());
+    expect(FORMS[0].id).toBe(DEFAULT_FORM);
+    expect(specFor('yok')).toBe(specFor(DEFAULT_FORM));
+    expect(formById('yok').id).toBe('standart');
+    for (const f of FORMS) { expect(f.aciklama.length).toBeGreaterThan(60); expect(f.ad.toLowerCase()).not.toContain('altum'); }
+    expect(formById('halfmoon').dogrulanmali).toBe(true);
+  });
+  it('veil standarttan ölçülebilir biçimde büyüktür: daha yüksek sırt, daha alçak anal, daha uzun kuyruk ve iplik; süper veil daha da', () => {
+    const s = ext('standart'), v = ext('veil'), sv = ext('super-veil');
+    expect(v.top).toBeGreaterThan(s.top + 0.2); expect(v.bot).toBeLessThan(s.bot - 0.2);
+    expect(v.tail).toBeGreaterThan(s.tail + 0.25); expect(v.fil).toBeLessThan(s.fil - 0.3);
+    expect(sv.top).toBeGreaterThan(v.top); expect(sv.tail).toBeGreaterThan(v.tail); expect(sv.fil).toBeLessThan(v.fil);
+  });
+  it('halfmoon: kuyruk standarttan geniş ve dışbükey (orta uç köşelerden dışarıda); veilden kısa', () => {
+    const h = specFor('halfmoon').fins[2].edge;
+    const mid = h.reduce((m, p) => (Math.abs(p[1]) < Math.abs(m[1]) ? p : m), h[0]);
+    expect(mid[0]).toBeGreaterThanOrEqual(Math.max(...h.map((p) => p[0])) - 0.02);
+    expect(Math.max(...h.map((p) => p[1]))).toBeGreaterThan(Math.max(...specFor('standart').fins[2].edge.map((p) => p[1])) * 1.5);
+    expect(ext('halfmoon').tail).toBeLessThan(ext('veil').tail);
+  });
+  it('gövde ve göz her formda aynı; atlas tüm yüzgeçleri kapsar; noktalar sonlu; bağlantı noktaları forma uyar', () => {
+    for (const id of FORM_IDS) {
+      const sp = specFor(id);
+      expect(sp.body).toBe(SPEC.body); expect(sp.eye).toEqual(SPEC.eye);
+      for (const f of sp.fins) for (const p of [...f.base, ...f.edge]) {
+        expect(finite(p)).toBe(true);
+        expect(p[0]).toBeGreaterThanOrEqual(sp.atlas.x0); expect(p[0]).toBeLessThanOrEqual(sp.atlas.x1);
+        expect(p[1]).toBeGreaterThanOrEqual(sp.atlas.y0); expect(p[1]).toBeLessThanOrEqual(sp.atlas.y1);
+      }
+      for (const f of sp.fins) expect(f.base).toHaveLength(f.edge.length);
+    }
+    expect(partAnchors('veil')['kuyruk-yuzgeci'].pos[0]).toBeGreaterThan(partAnchors('standart')['kuyruk-yuzgeci'].pos[0] + 0.1);
+    expect(partAnchors('super-veil')['sirt-yuzgeci'].pos[1]).toBeGreaterThan(partAnchors('standart')['sirt-yuzgeci'].pos[1]);
+    expect(partsFor('disi', 'veil')).toBe(PARTS);
+  });
+  it('SpeciesModule.forms ve renk/forma bağımsız dokuma (her form × renk sahte canvasta boyanır)', async () => {
+    expect(species.forms).toBe(FORMS);
+    const ctx: any = new Proxy({}, { get: (t: any, k) => (k in t ? t[k] : k === 'createLinearGradient' || k === 'createRadialGradient' ? () => ({ addColorStop: () => {} }) : () => {}), set: (t: any, k, val) => { t[k] = val; return true; } });
+    vi.stubGlobal('document', { createElement: () => ({ width: 0, height: 0, getContext: () => ctx }) });
+    try {
+      const { paintAtlas } = await import('../akvaryum/yanal-texture');
+      for (const id of FORM_IDS) for (const v of [VARIANTS[0], VARIANTS[10], VARIANTS[11]]) {
+        const t = paintAtlas(specFor(id), v, 128);
+        expect(t.map.width).toBe(128); expect(t.map.height).toBeGreaterThan(100);
+      }
+    } finally { vi.unstubAllGlobals(); }
   });
 });
 

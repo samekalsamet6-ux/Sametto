@@ -323,3 +323,14 @@ export function silhouette(s: FishSpec): Silhouette {
     bbox: s.atlas,
   };
 }
+
+/** Gövde, yüzgeç ve iplik uçlarını kapsayan atlas sınırı (form değişince geometri büyüyebilir) */
+export function atlasFor(body: BodySpec, fins: FinSpec[], filaments: FilamentSpec[], pectoral: PairedFinSpec, margin = 0.04): FishSpec['atlas'] {
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  const take = (p: Pt) => { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); };
+  outline(body, 24).forEach(take);
+  for (const f of fins) { f.base.forEach(take); f.edge.forEach(take); }
+  pectoral.base.forEach(take); pectoral.edge.forEach(take);
+  for (const f of filaments) f.path.forEach(take);
+  return { x0: x0 - margin, x1: x1 + margin, y0: y0 - margin, y1: y1 + margin };
+}

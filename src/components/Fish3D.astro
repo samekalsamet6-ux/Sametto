@@ -5,8 +5,10 @@ import type { Silhouette, Pt } from '../lib/akvaryum/yanal-model';
 
 interface PartData { id: string; ad: string; ozet: string; aciklama: string; view: string; dogrulanmali?: boolean; uyari?: boolean }
 interface VariantData { id: string; ad: string; aciklama: string; dogrulanmali: boolean }
+interface FormData { id: string; ad: string; aciklama: string; grup?: string; dogrulanmali?: boolean }
 interface Props {
   id: string;
+  forms: FormData[];
   /** Kısa tür adı (ör. "Melek balığı") ve etiket */
   ad: string;
   latin: string;
@@ -25,7 +27,7 @@ interface Props {
   /** Diğer 3B modellere bağlantı */
   seeAlso: { href: string; ad: string }[];
 }
-const { id, ad, latin, sexNote, views, parts, groups, defaultVariant, silhouette: sil, colors, variantIntro, limits, seeAlso } = Astro.props;
+const { id, forms, ad, latin, sexNote, views, parts, groups, defaultVariant, silhouette: sil, colors, variantIntro, limits, seeAlso } = Astro.props;
 const total = groups.reduce((n, g) => n + g.items.length, 0);
 
 const P = (p: Pt) => `${p[0].toFixed(3)},${(-p[1]).toFixed(3)}`;
@@ -33,7 +35,8 @@ const poly = (pts: Pt[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${P(p)}`).join(' 
 const line = (pts: Pt[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${P(p)}`).join(' ');
 const bb = sil.bbox;
 const vb = `${bb.x0} ${-bb.y1} ${(bb.x1 - bb.x0).toFixed(2)} ${(bb.y1 - bb.y0).toFixed(2)}`;
-const data = JSON.stringify({ id, parts, variants: groups.flatMap((g) => g.items), defaultVariant, sexNote });
+const formGroups = forms.some((f) => f.grup) ? [...new Set(forms.map((f) => f.grup ?? ''))].map((g) => ({ grup: g, items: forms.filter((f) => (f.grup ?? '') === g) })) : [{ grup: '', items: forms }];
+const data = JSON.stringify({ id, forms, parts, variants: groups.flatMap((g) => g.items), defaultVariant, sexNote });
 ---
 <p><a href="/araclar">← Araçlar</a></p>
 <h1>3B {ad} modeli</h1>
@@ -46,6 +49,9 @@ const data = JSON.stringify({ id, parts, variants: groups.flatMap((g) => g.items
     <legend>Cinsiyet</legend>
     <label><input type="radio" name="sex" value="yok" checked /> {sexNote.ad}</label>
   </fieldset>
+  <label class="v3-sel">Form (şekil)
+    <select id="form">{formGroups.map((g) => g.grup ? <optgroup label={g.grup}>{g.items.map((f) => <option value={f.id}>{f.ad}{f.dogrulanmali ? ' (doğrulanmalı)' : ''}</option>)}</optgroup> : g.items.map((f) => <option value={f.id}>{f.ad}{f.dogrulanmali ? ' (doğrulanmalı)' : ''}</option>))}</select>
+  </label>
   <label class="v3-sel">Renk / desen
     <select id="variant">{groups.map((g) => <optgroup label={g.grup}>{g.items.map((v) => <option value={v.id} selected={v.id === defaultVariant}>{v.ad}{v.dogrulanmali ? ' (doğrulanmalı)' : ''}</option>)}</optgroup>)}</select>
   </label>
@@ -55,7 +61,7 @@ const data = JSON.stringify({ id, parts, variants: groups.flatMap((g) => g.items
 </div>
 <p class="muted v3-note" id="sexnote" aria-live="polite">{sexNote.not}</p>
 
-<div class="v3-stage" id="stage" data-species={id} data-sex="yok" data-variant={defaultVariant} data-swim="off" data-rotate="off" data-view="capraz" data-hotspots="on">
+<div class="v3-stage" id="stage" data-species={id} data-sex="yok" data-form={forms[0].id} data-variant={defaultVariant} data-swim="off" data-rotate="off" data-view="capraz" data-hotspots="on">
   <canvas id="cv" tabindex="0" role="img" aria-describedby="v3-help"
     aria-label={`${ad} etkileşimli 3B modeli. Ok tuşlarıyla döndürebilir, artı ve eksi tuşlarıyla yakınlaştırabilirsiniz.`}></canvas>
   <div class="v3-hotwrap" id="hot" data-pagefind-ignore></div>
@@ -106,6 +112,10 @@ const data = JSON.stringify({ id, parts, variants: groups.flatMap((g) => g.items
     {parts.map((p) => (<><dt>{p.ad}</dt><dd>{p.aciklama}{p.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</dd></>))}
   </dl>
 </details>
+
+<h2>Form (şekil) varyeteleri</h2>
+<p class="muted">Form, yüzgeç ve kuyruk geometrisini değiştirir; renk varyetesinden bağımsızdır ve her form her renkle birleştirilebilir. “Kaynakla doğrulanmalı” işaretli kayıtların adı, genetiği ya da tarifi kaynaklarda tutarsızdır.</p>
+<ul>{forms.map((f) => <li><strong>{f.ad}:</strong> {f.aciklama}{f.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</li>)}</ul>
 
 <h2>Renk ve desen varyeteleri</h2>
 <p class="muted">{total} şematik varyete; hepsi aynı standart gövdeyi paylaşır, yalnızca renk ve desen değişir. {variantIntro} “Kaynakla doğrulanmalı” işaretli kayıtların adı, varlığı ya da tarifi belirsizdir.</p>
@@ -174,7 +184,7 @@ const data = JSON.stringify({ id, parts, variants: groups.flatMap((g) => g.items
 
   interface PartData { id: string; ad: string; aciklama: string; view: string; dogrulanmali?: boolean; uyari?: boolean }
   const data = JSON.parse(document.getElementById('fish-data')!.textContent || '{}') as {
-    id: 'melek' | 'diskus'; parts: PartData[]; variants: { id: string; ad: string; aciklama: string; dogrulanmali: boolean }[]; defaultVariant: string; sexNote: { ad: string; not: string };
+    id: 'melek' | 'diskus'; forms: { id: string; ad: string; aciklama: string; dogrulanmali?: boolean }[]; parts: PartData[]; variants: { id: string; ad: string; aciklama: string; dogrulanmali: boolean }[]; defaultVariant: string; sexNote: { ad: string; not: string };
   };
   // Tür modülleri tembel yüklenir (three.js yalnızca bu sayfa için gerekir).
   const loaders = { melek: () => import('../lib/melek'), diskus: () => import('../lib/diskus') };
@@ -228,13 +238,26 @@ const data = JSON.stringify({ id, parts, variants: groups.flatMap((g) => g.items
     select(selected === id ? null : id, true);
   }));
 
-  const variantSel = $<HTMLSelectElement>('variant');
+  const variantSel = $<HTMLSelectElement>('variant'), formSel = $<HTMLSelectElement>('form');
+  let noteForm = false, noteVariant = false;
+  function updateNote() {
+    let t = data.sexNote.not;
+    if (noteForm) { const f = data.forms.find((x) => x.id === formSel.value)!; t += ` Form — ${f.ad}: ${f.aciklama}${f.dogrulanmali ? ' (Kaynakla doğrulanmalı.)' : ''}`; }
+    if (noteVariant) { const v = data.variants.find((x) => x.id === variantSel.value)!; t += ` Varyete — ${v.ad}: ${v.aciklama}${v.dogrulanmali ? ' (Kaynakla doğrulanmalı.)' : ''}`; }
+    sexnote.textContent = t;
+  }
   variantSel.addEventListener('change', () => {
     stage.dataset.variant = variantSel.value;
     viewer?.setVariant(variantSel.value);
     status.textContent = '';
-    const v = data.variants.find((x) => x.id === variantSel.value)!;
-    sexnote.textContent = `${data.sexNote.not} Varyete — ${v.ad}: ${v.aciklama}${v.dogrulanmali ? ' (Kaynakla doğrulanmalı.)' : ''}`;
+    noteVariant = true;
+    updateNote();
+  });
+  formSel.addEventListener('change', () => {
+    stage.dataset.form = formSel.value;
+    viewer?.setForm?.(formSel.value);
+    noteForm = true;
+    updateNote();
   });
 
   const swim = $<HTMLInputElement>('swim'), rot = $<HTMLInputElement>('rot');
@@ -296,7 +319,7 @@ const data = JSON.stringify({ id, parts, variants: groups.flatMap((g) => g.items
     try {
       const { species } = await loaders[data.id]();
       viewer = species.createViewer({
-        canvas: cv, overlay: hot, sex: species.sexes[0].id, variant: variantSel.value, reducedMotion: reduced,
+        canvas: cv, overlay: hot, sex: species.sexes[0].id, form: formSel.value, variant: variantSel.value, reducedMotion: reduced,
         onSelect: (id) => select(id),
       });
       viewer.setSwim(swim.checked);
