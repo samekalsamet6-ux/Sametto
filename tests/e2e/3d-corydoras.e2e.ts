@@ -13,4 +13,5 @@ speciesSuite({
   ],
   turnTo: { from: 'yan', part: 'agiz', to: 'alt' },
   svgCount: 2,
+  forms: { ids: ['standart', 'uzun-yuzgec', 'balon'], colours: ['bronz', 'sterbai'], counts: { standart: 15, 'uzun-yuzgec': 15, balon: 15 } },
 });

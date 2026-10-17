@@ -1,5 +1,6 @@
 // Corydoras tür modülü: ortak SpeciesModule sözleşmesini sağlar.
 import type { SpeciesModule, SpeciesView } from '../akvaryum/types';
+import { FORMS } from './forms';
 import { PARTS, partsFor } from './parts';
 import { VARIANTS } from './variants';
 import { createViewer } from './viewer';
@@ -12,7 +13,7 @@ export const species: SpeciesModule = {
   id: 'corydoras',
   ad: 'Corydoras',
   latin: 'Corydoras aeneus / C. paleatus tipi',
-  kisaAciklama: 'Zırh plakalı, bıyıklı, dikenli küçük dip kedibalığı; bronz, albino, benekli ve sterbai tipi desenler.',
+  kisaAciklama: 'Zırh plakalı, bıyıklı, dikenli küçük dip kedibalığı; bronz, albino, benekli ve sterbai tipi renkler; standart, uzun yüzgeçli ve balon formları.',
   sexes: [
     { id: 'erkek', ad: 'Erkek', not: 'Erkek: gövde dişiden daha ince ve küçük çizilmiştir (şematik). Üstten bakınca fark daha belirgindir; genç bireylerde ayrım güvenilir değildir.' },
     { id: 'disi', ad: 'Dişi', not: 'Dişi: gövde daha geniş ve dolgun çizilmiştir (şematik); üstten bakınca fark daha belirgindir. Genç bireylerde ayrım güvenilir değildir.' },
@@ -22,5 +23,6 @@ export const species: SpeciesModule = {
   partsFor,
   parts: PARTS,
   variants: VARIANTS,
+  forms: FORMS,
   createViewer,
 };

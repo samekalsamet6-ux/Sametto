@@ -1,6 +1,7 @@
 ---
 import SpeciesPage from '../../components/SpeciesPage.astro';
 import { PARTS } from '../../lib/corydoras/parts';
+import { FORMS } from '../../lib/corydoras/forms';
 import { VARIANTS, groupedVariants } from '../../lib/corydoras/variants';
 import { SEXES, silhouette } from '../../lib/corydoras/model';
 import { svgFigure } from '../../lib/akvaryum/fishmath';
@@ -15,6 +16,8 @@ const figures = SEXES.map((s) => ({ label: sexName[s], ...svgFigure(silhouette(s
   views={[{ id: 'yan', ad: 'Yan' }, { id: 'ust', ad: 'Üst' }, { id: 'alt', ad: 'Alt' }, { id: 'on', ad: 'Ön' }, { id: 'arka', ad: 'Arka' }, { id: 'capraz', ad: 'Çapraz' }]}
   sexes={[{ id: 'erkek', ad: 'Erkek', not: '' }, { id: 'disi', ad: 'Dişi', not: '' }]}
   parts={PARTS}
+  forms={FORMS}
+  formIntro="Form, gövde ve yüzgeç geometrisini değiştirir; renk-desen seçiminden bağımsızdır, her form her renkle birleştirilebilir. Yalnızca ticarette gerçekten bilinen biçimler gösterilmiştir; ayrıntılar şematiktir ve kaynakla doğrulanmalıdır."
   groups={groupedVariants()}
   variantLabel="Renk / desen"
   variantIntro={`${VARIANTS.length} şematik renk-desen; hepsi aynı C. aeneus/C. paleatus tipi gövdeyi paylaşır, yalnızca renk ve desen değişir. İlk üçü bu gövde tipinde yaygın görülen renk biçimlerine, sonuncusu başka bir türün (C. sterbai) desen tipine dayanır ve yalnızca desen örneği olarak gösterilmiştir; farklı gövde biçimli türler dahil değildir. Corydoras türlerinde desen bireyden bireye değişir; “kaynakla doğrulanmalı” işaretli kayıtların tanımı belirsizdir.`}
@@ -37,10 +40,11 @@ const figures = SEXES.map((s) => ({ label: sexName[s], ...svgFigure(silhouette(s
 <script>
   import { initSpeciesPage } from '../../lib/akvaryum/page';
   import { PARTS, partsFor } from '../../lib/corydoras/parts';
+  import { FORMS } from '../../lib/corydoras/forms';
   import { VARIANTS } from '../../lib/corydoras/variants';
 
   initSpeciesPage({
-    parts: PARTS, partsFor, variants: VARIANTS, defaultSex: 'erkek', defaultView: 'capraz',
+    parts: PARTS, partsFor, variants: VARIANTS, forms: FORMS, defaultSex: 'erkek', defaultView: 'capraz',
     sexNotes: {
       erkek: 'Erkek: gövde dişiden daha ince ve küçük çizilmiştir (şematik). Üstten bakınca fark daha belirgindir; genç bireylerde ayrım güvenilir değildir.',
       disi: 'Dişi: gövde daha geniş ve dolgun çizilmiştir (şematik); üstten bakınca fark daha belirgindir. Genç bireylerde ayrım güvenilir değildir.',

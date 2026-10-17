@@ -2,7 +2,7 @@
 import { lerp, norm3, surfaceAt, type Vec3 } from '../akvaryum/fishmath';
 import type { FishAnchor } from '../akvaryum/fish3d';
 import type { FishPart } from '../akvaryum/page';
-import { barbels, bodyFor, eyeGeom, finsFor, lipsLoop, spines, type Sex } from './model';
+import { barbels, bodyFor, eyeGeom, finsFor, lipsLoop, spines, type Form, type Sex } from './model';
 
 export type PartId =
   | 'govde' | 'zirh' | 'bas-kalkani' | 'goz' | 'agiz' | 'biyik' | 'solungac-kapagi' | 'dikenler' | 'sirt-yuzgeci' | 'yag-yuzgeci'
@@ -46,37 +46,37 @@ export const PARTS: Part[] = [
     aciklama: 'Erkekler dişilere göre genellikle daha küçük ve daha ince gövdelidir; üstten bakınca fark belirgindir. Bu fark tek başına güvenilir bir cinsiyet göstergesi değildir; bireye, yaşa ve beslenmeye göre değişir (kaynakla doğrulanmalı). Bu modelde gövde genişliği şematik olarak değiştirilmiştir.' },
 ];
 
-export const partsFor = (sex: Sex): Part[] => PARTS.filter((p) => !p.sex || p.sex === sex);
+export const partsFor = (sex: Sex, _form?: string): Part[] => PARTS.filter((p) => !p.sex || p.sex === sex);
 
-function finPoint(sex: Sex, id: string, u: number, v: number): Vec3 {
-  const f = finsFor(sex).find((x) => x.id === id)!;
+function finPoint(sex: Sex, id: string, u: number, v: number, form: Form = 'standart'): Vec3 {
+  const f = finsFor(sex, form).find((x) => x.id === id)!;
   const f0 = u * (f.base.length - 1), i = Math.min(f.base.length - 2, Math.floor(f0)), t = f0 - i;
   const at = (k: number): Vec3 => [lerp(f.base[k][0], f.tip[k][0], v), lerp(f.base[k][1], f.tip[k][1], v), lerp(f.base[k][2], f.tip[k][2], v)];
   const a = at(i), b = at(i + 1);
   return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
 }
 
-export function partAnchors(sex: Sex): Record<string, FishAnchor> {
-  const b = bodyFor(sex), out: Record<string, FishAnchor> = {};
+export function partAnchors(sex: Sex, form: Form = 'standart'): Record<string, FishAnchor> {
+  const b = bodyFor(sex, form), out: Record<string, FishAnchor> = {};
   const on = (s: number, phi: number, off = 0.012): FishAnchor => { const r = surfaceAt(b, s, phi, off); return { pos: r.pos, normal: r.normal, mirror: true }; };
   out.govde = on(0.62, 0.7);
   out.zirh = on(0.5, 1.2);
   out['bas-kalkani'] = on(0.1, 0.35, 0.014);
-  const e = eyeGeom(sex);
+  const e = eyeGeom(sex, form);
   out.goz = { pos: [e.center[0] + e.normal[0] * e.radius, e.center[1] + e.normal[1] * e.radius, e.center[2] + e.normal[2] * e.radius], normal: e.normal, mirror: true };
-  const lp = lipsLoop(sex), mx = lp.reduce((m, p) => m + p[0], 0) / lp.length, my = lp.reduce((m, p) => m + p[1], 0) / lp.length;
+  const lp = lipsLoop(sex, 16, form), mx = lp.reduce((m, p) => m + p[0], 0) / lp.length, my = lp.reduce((m, p) => m + p[1], 0) / lp.length;
   out.agiz = { pos: [mx, my - 0.012, 0], normal: [0, -1, 0], mirror: false };
-  const bb = barbels(sex)[0].path;
+  const bb = barbels(sex, form)[0].path;
   out.biyik = { pos: [bb[2][0], bb[2][1] - 0.008, bb[2][2]], normal: norm3([-0.3, -1, 0.2]), mirror: true, flex: 0 };
   out['solungac-kapagi'] = on(0.225, 1.6, 0.016);
-  const sp = spines(sex).find((x) => x.id === 'sirt')!;
+  const sp = spines(sex, form).find((x) => x.id === 'sirt')!;
   out.dikenler = { pos: [sp.path[1][0], sp.path[1][1] + 0.012, 0.012], normal: null, mirror: true, flex: 0.2 };
-  out['sirt-yuzgeci'] = { pos: finPoint(sex, 'sirt', 0.55, 0.42), normal: null, mirror: true, flex: 0.2 };
-  out['yag-yuzgeci'] = { pos: finPoint(sex, 'yag', 0.5, 0.75), normal: null, mirror: true, flex: 0.1 };
-  out['kuyruk-yuzgeci'] = { pos: finPoint(sex, 'kuyruk', 0.2, 0.8), normal: null, mirror: false, flex: 0.9 };
-  out['anal-yuzgec'] = { pos: finPoint(sex, 'anal', 0.5, 0.7), normal: null, mirror: false, flex: 0.3 };
-  out['karin-yuzgeci'] = { pos: finPoint(sex, 'karin', 0.5, 0.7), normal: null, mirror: true, flex: 0.3 };
-  out['gogus-yuzgeci'] = { pos: finPoint(sex, 'gogus', 0.5, 0.7), normal: null, mirror: true, flex: 0.6 };
+  out['sirt-yuzgeci'] = { pos: finPoint(sex, 'sirt', 0.55, 0.42, form), normal: null, mirror: true, flex: 0.2 };
+  out['yag-yuzgeci'] = { pos: finPoint(sex, 'yag', 0.5, 0.75, form), normal: null, mirror: true, flex: 0.1 };
+  out['kuyruk-yuzgeci'] = { pos: finPoint(sex, 'kuyruk', 0.2, 0.8, form), normal: null, mirror: false, flex: 0.9 };
+  out['anal-yuzgec'] = { pos: finPoint(sex, 'anal', 0.5, 0.7, form), normal: null, mirror: false, flex: 0.3 };
+  out['karin-yuzgeci'] = { pos: finPoint(sex, 'karin', 0.5, 0.7, form), normal: null, mirror: true, flex: 0.3 };
+  out['gogus-yuzgeci'] = { pos: finPoint(sex, 'gogus', 0.5, 0.7, form), normal: null, mirror: true, flex: 0.6 };
   if (sex === 'disi') out['govde-genis'] = on(0.45, 0.35, 0.016);
   else out['govde-dar'] = on(0.45, 0.35, 0.016);
   return out;

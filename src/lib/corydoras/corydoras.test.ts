@@ -1,15 +1,51 @@
 import { describe, expect, it } from 'vitest';
 import { fishSuite } from '../akvaryum/fish-contract';
 import { hexToRgb, luma } from '../akvaryum/fishmath';
-import { ARMOR, SEXES, barbels, bodyFor, eyeGeom, finsFor, lipsLoop, operculumArc, silhouette, spines } from './model';
+import { ARMOR, FORM_IDS, FORM_PARAMS, SEXES, barbels, bodyFor, eyeGeom, finsFor, lipsLoop, operculumArc, silhouette, spines } from './model';
 import { PARTS, partAnchors, partsFor } from './parts';
 import { VARIANTS, VARIANT_GROUPS, groupedVariants, variantById } from './variants';
 import { species } from './index';
+import { FORMS } from './forms';
 import { paintBody, plateEdges } from './texture';
 
-fishSuite({
-  ad: 'corydoras', sexes: [...SEXES], bodyFor, finsFor, silhouette, parts: PARTS, partsFor, partAnchors, variants: VARIANTS,
-  paint: (id, sex, W) => paintBody(variantById(id), sex, W), onSurface: ['govde', 'zirh', 'bas-kalkani', 'solungac-kapagi', 'govde-genis', 'govde-dar'], aspect: [2.7, 4.8],
+const ASPECT = { standart: [2.7, 4.8], 'uzun-yuzgec': [2.7, 4.8], balon: [1.8, 3.8] } as const;
+for (const form of FORM_IDS) {
+  fishSuite({
+    ad: `corydoras/${form}`, sexes: [...SEXES], bodyFor: (s) => bodyFor(s, form), finsFor: (s) => finsFor(s, form), silhouette: (s) => silhouette(s, form), parts: PARTS, partsFor,
+    partAnchors: (s) => partAnchors(s, form), variants: VARIANTS, paint: (id, sex, W) => paintBody(variantById(id), sex, W),
+    onSurface: ['govde', 'zirh', 'bas-kalkani', 'solungac-kapagi', 'govde-genis', 'govde-dar'], aspect: [...ASPECT[form]],
+  });
+}
+
+describe('corydoras: form (şekil) varyeteleri', () => {
+  const area = (pts: [number, number][]) => Math.abs(pts.reduce((a, p, i) => { const q = pts[(i + 1) % pts.length]; return a + (p[0] * q[1] - q[0] * p[1]); }, 0) / 2);
+  const ext = (form: (typeof FORM_IDS)[number], id: string) => { const f = finsFor('erkek', form).find((x) => x.id === id)!; return Math.max(...f.tip.map((p, i) => Math.hypot(p[0] - f.base[i][0], p[1] - f.base[i][1]))); };
+  it('standart ilk; üç gerçek form; FORM_IDS ile uyumlu; dürüst açıklamalar', () => {
+    expect(FORMS.map((f) => f.id)).toEqual([...FORM_IDS]);
+    expect(species.forms).toBe(FORMS);
+    for (const f of FORMS) expect(f.aciklama.length).toBeGreaterThan(60);
+    expect(FORMS[1].dogrulanmali && FORMS[2].dogrulanmali).toBe(true);
+  });
+  it('uzun yüzgeçli: tüm yüzgeçler belirgin uzun; gövde ve zırh aynı; dikenler yüzgeçle birlikte uzar', () => {
+    for (const id of ['sirt', 'anal', 'kuyruk', 'karin', 'gogus']) expect(ext('uzun-yuzgec', id), id).toBeGreaterThan(ext('standart', id) * 1.4);
+    expect(bodyFor('erkek', 'uzun-yuzgec').section(0.4).yTop).toBeCloseTo(bodyFor('erkek', 'standart').section(0.4).yTop, 9);
+    const sp = (f: (typeof FORM_IDS)[number]) => { const p = spines('erkek', f).find((x) => x.id === 'sirt')!.path; return Math.hypot(p[2][0] - p[0][0], p[2][1] - p[0][1]); };
+    expect(sp('uzun-yuzgec')).toBeGreaterThan(sp('standart') * 1.3);
+  });
+  it('balon: gövde yuvarlak ve geniş, karın düz değil (nBot aynı ama derin); silüet alanı büyür; yüzgeç biraz küçük', () => {
+    const s = bodyFor('erkek', 'standart').section(0.45), b = bodyFor('erkek', 'balon').section(0.45);
+    expect(b.yTop - b.yBot).toBeGreaterThan((s.yTop - s.yBot) * 1.3);
+    expect(b.hw).toBeGreaterThan(s.hw * 1.2);
+    expect(-b.yBot).toBeGreaterThan(-s.yBot * 1.6);
+    expect(area(silhouette('erkek', 'balon').body)).toBeGreaterThan(area(silhouette('erkek', 'standart').body) * 1.25);
+    expect(FORM_PARAMS.balon.fin.dorsal).toBeLessThan(1);
+  });
+  it('her form silüeti standarttan ölçülebilir biçimde farklı', () => {
+    const e = (f: (typeof FORM_IDS)[number]) => { const s = silhouette('disi', f); const all = [...s.body, ...s.fins.flatMap((x) => x.pts)]; return [Math.max(...all.map((p) => p[0])) - Math.min(...all.map((p) => p[0])), Math.max(...all.map((p) => p[1])) - Math.min(...all.map((p) => p[1]))]; };
+    expect(e('uzun-yuzgec')[0]).toBeGreaterThan(e('standart')[0] * 1.08);
+    expect(e('uzun-yuzgec')[1]).toBeGreaterThan(e('standart')[1] * 1.12);
+    expect(e('balon')[1]).toBeGreaterThan(e('standart')[1] * 1.05);
+  });
 });
 
 describe('corydoras: gövde ve cinsiyet', () => {
