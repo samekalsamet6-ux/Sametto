@@ -32,7 +32,7 @@ export function paintBody(v: Variant, sex: SexId, W = 1024, form: Form = 'standa
       for (let i = 0; i < 6; i++) blob(ctx, rnd() * w, rnd() * h * 0.7, (0.05 + rnd() * 0.09) * w, (0.12 + rnd() * 0.25) * h, P[0], 0.95, rnd() * 3, 0.92);
       blob(ctx, w * 0.1, h * 0.3, w * 0.05, h * 0.2, P[0], 0.95, 0, 0.9);
     }
-    // metalik pul parıltısı: her pulun üst kenarı hafif ışık, alt kenarı hafif gölge
+    // metalik pul parıltısı: her pulun üst kenarı hafif ışık, alt kenarı hafif gölge; serbest (arka) kenarda ince koyu yay
     const cols = inci ? 20 : 34, rows = inci ? 7 : 11, cw = w / cols, ch = h / rows;
     for (let r = 0; r < rows + 1; r++) for (let c = -1; c < cols + 1; c++) {
       const x = (c + (r % 2 ? 0.5 : 0)) * cw + cw * 0.5, y = r * ch;
@@ -44,7 +44,26 @@ export function paintBody(v: Variant, sex: SexId, W = 1024, form: Form = 'standa
       sg.addColorStop(1, rgba('#000000', 0.18 + 0.05 * k));
       ctx.fillStyle = sg;
       ctx.beginPath(); ctx.arc(x, y, cw * 0.62, 0, Math.PI * 2); ctx.fill();
+      // arka kenar yayı (pul kenarı) + hemen önünde ince parlak çizgi
+      ctx.lineWidth = Math.max(1, w / 900);
+      ctx.strokeStyle = rgba(mixHex(v.body.yan, '#000000', 0.6), 0.2 + 0.06 * k);
+      ctx.beginPath(); ctx.arc(x - cw * 0.3, y, cw * 0.62, -0.95, 0.95); ctx.stroke();
+      ctx.strokeStyle = rgba('#ffffff', 0.05 + 0.12 * v.parlak * k);
+      ctx.beginPath(); ctx.arc(x - cw * 0.3 - cw * 0.05, y, cw * 0.6, -0.8, 0.8); ctx.stroke();
     }
+    // metalik parlama kuşağı: üst yanda yatay ışık bandı, karında soluk yansıma
+    const sh = ctx.createLinearGradient(0, 0, 0, h);
+    sh.addColorStop(0, rgba('#ffffff', 0)); sh.addColorStop(0.22, rgba('#ffffff', 0.05 + 0.22 * v.parlak));
+    sh.addColorStop(0.4, rgba('#ffffff', 0.02 + 0.06 * v.parlak)); sh.addColorStop(0.62, rgba('#ffffff', 0));
+    sh.addColorStop(0.86, rgba(mixHex(v.body.karin, '#ffffff', 0.5), 0.1 + 0.12 * v.parlak)); sh.addColorStop(1, rgba('#ffffff', 0));
+    ctx.fillStyle = sh; ctx.fillRect(w * 0.2, 0, w * 0.8, h);
+    // solungaç kapağı: metalik yama + kenar gölgesi
+    const og = ctx.createRadialGradient(w * 0.15, h * 0.5, 0, w * 0.15, h * 0.5, w * 0.075);
+    og.addColorStop(0, rgba(mixHex(v.body.yan, '#ffffff', 0.6), 0.1 + 0.28 * v.parlak)); og.addColorStop(1, rgba('#ffffff', 0));
+    ctx.fillStyle = og; ctx.fillRect(w * 0.05, h * 0.1, w * 0.15, h * 0.8);
+    // ağız çevresi: hafif koyu dudak
+    ctx.fillStyle = rgba(mixHex(v.body.sirt, '#000000', 0.4), 0.28);
+    ctx.beginPath(); ctx.ellipse(w * 0.005, h * 0.5, w * 0.02, h * 0.1, 0, 0, Math.PI * 2); ctx.fill();
     // yan çizgi
     ctx.strokeStyle = rgba('#000000', 0.2);
     ctx.lineWidth = Math.max(1, w / 500);
@@ -62,7 +81,26 @@ export function paintBody(v: Variant, sex: SexId, W = 1024, form: Form = 'standa
   void makeCanvas; void flatBump;
   const bump = inci ? scaleBump(W, Hh, 20, 7, 1.0) : scaleBump(W, Hh, 34, 11, 0.55);
   const fins: Record<string, HTMLCanvasElement> = {};
-  for (const id of ['sirt', 'anal', 'kuyruk', 'karin']) fins[id] = paintFin(v.fin);
-  fins.gogus = paintFin(v.gogus);
+  for (const id of ['sirt', 'anal', 'kuyruk', 'karin']) fins[id] = detailRays(paintFin(v.fin), v.fin.rays?.color ?? '#000000', id === 'kuyruk');
+  fins.gogus = detailRays(paintFin(v.gogus), v.gogus.rays?.color ?? '#000000', false);
   return { color, bump, fins };
+}
+
+/** Yüzgeç ışın ayrıntısı: kökten uca ince ışınlar, uca doğru çatallanma ve uçlarda saydam zar */
+function detailRays(cv: HTMLCanvasElement, color: string, branched: boolean): HTMLCanvasElement {
+  const ctx = cv.getContext('2d')!, W = cv.width, H = cv.height;
+  const rnd = mulberry32(W * 31 + H + (branched ? 7 : 3));
+  ctx.lineWidth = Math.max(1, W / 256);
+  const N = 44;
+  for (let i = 0; i < N; i++) {
+    const x = ((i + 0.5) / N) * W;
+    ctx.strokeStyle = rgba(color, 0.12 + 0.12 * rnd());
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H * 0.55); ctx.stroke();
+    // 0.55'ten sonra iki dala ayrılır
+    const d = W / N * 0.35;
+    for (const sg of [-1, 1]) { ctx.beginPath(); ctx.moveTo(x, H * 0.55); ctx.lineTo(x + sg * d, H); ctx.stroke(); }
+  }
+  // ışınlar arası zarın hafif ışık/gölge dalgalanması
+  for (let i = 0; i < N * 2; i++) { ctx.fillStyle = rgba('#ffffff', 0.025 * (i % 2)); ctx.fillRect((i / (N * 2)) * W, 0, W / (N * 2), H); }
+  return cv;
 }

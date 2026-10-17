@@ -36,6 +36,7 @@ const VB = '-1.3 -0.75 3.9 1.5';
     <label class="v3-chk" id="berrywrap"><input type="checkbox" id="berry" checked /> Yumurtalı (berry)</label>
   </div>
   <p class="muted v3-note" id="sexnote" aria-live="polite"></p>
+  <p class="muted v3-note" id="formnote">Bu türde tanınan şekil varyetesi yok. Neocaridina karideslerinde akvaryum ticaretinde tanınan bir şekil (form) varyetesi yoktur; “cherry”, “sakura”, “rili”, “blue dream” gibi adlar renk derecesi ve desen hatlarıdır ve renk seçicisinde gösterilir. Uzun yüzgeçli vb. bir yetiştirme biçimi bilinmediği için form seçici bulunmaz (kaynakla doğrulanmalı).</p>
 
   <div class="v3-stage" id="stage" data-sex="disi" data-variant="dogal" data-swim="off" data-rotate="off" data-view="capraz" data-hotspots="on">
     <canvas id="cv" tabindex="0" role="img" aria-describedby="v3-help"
@@ -69,11 +70,11 @@ const VB = '-1.3 -0.75 3.9 1.5';
   <noscript><p class="callout callout-uyari">3B model için JavaScript gerekir. Parça açıklamaları aşağıda metin olarak da verilmiştir.</p></noscript>
 
   <div class="v3-bar" role="group" aria-label="Görünüm ve yakınlaştırma">
-    <button type="button" class="v3-btn" data-view="ust">Üst</button>
-    <button type="button" class="v3-btn" data-view="alt">Alt</button>
     <button type="button" class="v3-btn" data-view="yan">Yan</button>
+    <button type="button" class="v3-btn" data-view="ust">Üst</button>
     <button type="button" class="v3-btn" data-view="on">Ön</button>
     <button type="button" class="v3-btn" data-view="arka">Arka</button>
+    <button type="button" class="v3-btn" data-view="alt">Alt</button>
     <button type="button" class="v3-btn" data-view="capraz">Çapraz</button>
     <button type="button" class="v3-btn" id="zin" aria-label="Yakınlaştır">+</button>
     <button type="button" class="v3-btn" id="zout" aria-label="Uzaklaştır">−</button>
@@ -120,7 +121,7 @@ const VB = '-1.3 -0.75 3.9 1.5';
   .v3-note{margin:0 0 10px;min-height:1.6em;font-size:.92rem}
   .v3-btn{min-width:44px;min-height:40px;padding:6px 14px}
   .v3-btn[aria-pressed=true]{outline:3px solid var(--accent)}
-  .v3-stage{position:relative;border-radius:var(--r);overflow:hidden;background:radial-gradient(120% 90% at 50% 15%,#3f8a73 0%,#1b5546 45%,#0a2b26 100%);border:1px solid var(--line);min-height:320px}
+  .v3-stage{position:relative;border-radius:var(--r);overflow:hidden;background:radial-gradient(120% 90% at 50% 18%,#2a8499 0%,#145067 42%,#06232f 100%);border:1px solid var(--line);min-height:320px}
   .v3-stage canvas{display:block;width:100%;height:clamp(340px,64vh,580px);touch-action:none;cursor:grab;outline-offset:-4px}
   .v3-stage canvas:active{cursor:grabbing}
   .v3-stage[data-fallback] canvas,.v3-stage[data-fallback] .v3-hotwrap,.v3-stage[data-fallback] .v3-status{display:none}

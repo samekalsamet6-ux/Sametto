@@ -1,6 +1,6 @@
 // Japon balığı (Carassius auratus) 3B modeli için SAF geometri parametreleri; renkten bağımsız FORM (şekil) varyeteleriyle.
-// Formlar: common, comet, Bristol shubunkin (tek kuyruklu); fantail, ryukin, oranda, lionhead, telescope (moor), bubble eye,
-// pearlscale (çift kuyruklu süs biçimleri). Şematik: gerçek ırk standartları değildir.
+// Formlar: common, comet, Bristol shubunkin (tek kuyruklu); fantail, veiltail, ryukin, oranda, lionhead, ranchu, pompom, telescope (moor),
+// celestial, bubble eye, pearlscale (çift kuyruklu süs biçimleri). Şematik: gerçek ırk standartları değildir.
 // Koordinatlar: bkz. ../akvaryum/fishmath.ts (gövde uzunluğu 1; burun -x).
 import { bodyOutline, finOutline, lerp, lineOnBody, makeBody, norm3, spline, surfaceAt, type Body, type FinDef, type Silhouette, type Vec3 } from '../akvaryum/fishmath';
 import type { SexId } from '../akvaryum/types';
@@ -8,8 +8,8 @@ import type { SexId } from '../akvaryum/types';
 export type Sex = SexId;
 export const SEXES: readonly Sex[] = ['erkek', 'disi'];
 
-export type Form = 'standart' | 'comet' | 'bristol' | 'fantail' | 'ryukin' | 'oranda' | 'lionhead' | 'teleskop' | 'balon-goz' | 'inci';
-export const FORM_IDS: readonly Form[] = ['standart', 'comet', 'bristol', 'fantail', 'ryukin', 'oranda', 'lionhead', 'teleskop', 'balon-goz', 'inci'];
+export type Form = 'standart' | 'comet' | 'bristol' | 'fantail' | 'veiltail' | 'ryukin' | 'oranda' | 'lionhead' | 'ranchu' | 'pompom' | 'teleskop' | 'celestial' | 'balon-goz' | 'inci';
+export const FORM_IDS: readonly Form[] = ['standart', 'comet', 'bristol', 'fantail', 'veiltail', 'ryukin', 'oranda', 'lionhead', 'ranchu', 'pompom', 'teleskop', 'celestial', 'balon-goz', 'inci'];
 
 type Knots = [number, number][];
 export interface FormSpec {
@@ -22,8 +22,10 @@ export interface FormSpec {
   doubleAnal: boolean;
   pelvic: number; pect: number;
   /** Baş büyümesi (wen): 0 yok, 1 oranda başlığı, 2 lionhead */
-  wen: 0 | 1 | 2;
-  eyes: 'normal' | 'teleskop' | 'balon';
+  wen: 0 | 1 | 2 | 3;
+  eyes: 'normal' | 'teleskop' | 'balon' | 'gokyuzu';
+  /** Burun tomurcukları (pompom): 0 yok, aksi halde tomurcuk yarıçapı */
+  pompom: number;
   /** Kubbeli (inci) pullar */
   inci: boolean;
 }
@@ -41,35 +43,50 @@ const FANTAIL: Pick<FormSpec, 'top' | 'bot' | 'hw'> = {
 const DBL = (len: number, spread: number, droop: number) => ({ double: true, len, spread, fork: 0.3, droop });
 
 export const FORM_SPECS: Record<Form, FormSpec> = {
-  standart: { top: COMMON_TOP, bot: COMMON_BOT, hw: COMMON_HW, dorsal: { H: 0.185, s0: 0.3, s1: 0.7, upright: 0.3 }, tail: { double: false, len: 0.33, spread: 2.7, fork: 0.62, droop: 0 }, doubleAnal: false, pelvic: 1, pect: 1, wen: 0, eyes: 'normal', inci: false },
-  comet: { top: scaleK(COMMON_TOP, 0.88), bot: scaleK(COMMON_BOT, 0.85), hw: scaleK(COMMON_HW, 0.9), dorsal: { H: 0.17, s0: 0.3, s1: 0.68, upright: 0.25 }, tail: { double: false, len: 0.6, spread: 2.2, fork: 0.5, droop: 0 }, doubleAnal: false, pelvic: 1.1, pect: 1.05, wen: 0, eyes: 'normal', inci: false },
-  bristol: { top: COMMON_TOP, bot: COMMON_BOT, hw: COMMON_HW, dorsal: { H: 0.19, s0: 0.3, s1: 0.7, upright: 0.3 }, tail: { double: false, len: 0.36, spread: 3.5, fork: 1.35, droop: 0 }, doubleAnal: false, pelvic: 1.1, pect: 1.1, wen: 0, eyes: 'normal', inci: false },
-  fantail: { ...FANTAIL, dorsal: { H: 0.26, s0: 0.3, s1: 0.66, upright: 0.8 }, tail: DBL(0.56, 3.0, 0.1), doubleAnal: true, pelvic: 1.25, pect: 1.15, wen: 0, eyes: 'normal', inci: false },
+  standart: { top: COMMON_TOP, bot: COMMON_BOT, hw: COMMON_HW, dorsal: { H: 0.185, s0: 0.3, s1: 0.7, upright: 0.3 }, tail: { double: false, len: 0.33, spread: 2.7, fork: 0.62, droop: 0 }, doubleAnal: false, pelvic: 1, pect: 1, wen: 0, eyes: 'normal', inci: false, pompom: 0 },
+  comet: { top: scaleK(COMMON_TOP, 0.88), bot: scaleK(COMMON_BOT, 0.85), hw: scaleK(COMMON_HW, 0.9), dorsal: { H: 0.17, s0: 0.3, s1: 0.68, upright: 0.25 }, tail: { double: false, len: 0.6, spread: 2.2, fork: 0.5, droop: 0 }, doubleAnal: false, pelvic: 1.1, pect: 1.05, wen: 0, eyes: 'normal', inci: false, pompom: 0 },
+  bristol: { top: COMMON_TOP, bot: COMMON_BOT, hw: COMMON_HW, dorsal: { H: 0.19, s0: 0.3, s1: 0.7, upright: 0.3 }, tail: { double: false, len: 0.36, spread: 3.5, fork: 1.35, droop: 0 }, doubleAnal: false, pelvic: 1.1, pect: 1.1, wen: 0, eyes: 'normal', inci: false, pompom: 0 },
+  fantail: { ...FANTAIL, dorsal: { H: 0.26, s0: 0.3, s1: 0.66, upright: 0.8 }, tail: DBL(0.56, 3.0, 0.1), doubleAnal: true, pelvic: 1.25, pect: 1.15, wen: 0, eyes: 'normal', inci: false, pompom: 0 },
+  veiltail: { ...FANTAIL, dorsal: { H: 0.36, s0: 0.3, s1: 0.68, upright: 0.45 }, tail: DBL(0.74, 3.0, 0.22), doubleAnal: true, pelvic: 1.5, pect: 1.3, wen: 0, eyes: 'normal', inci: false, pompom: 0 },
+  ranchu: {
+    // yumurta biçimli, güçlü kavisli sırt; sırt yüzgeci yok; kuyruk kısa ve aşağı eğik, kuyruk sapı alçak
+    top: [[0, 0.012], [0.08, 0.1], [0.2, 0.235], [0.42, 0.31], [0.68, 0.27], [0.88, 0.14], [1, 0.03]],
+    bot: [[0, -0.025], [0.08, -0.09], [0.2, -0.17], [0.45, -0.225], [0.68, -0.2], [0.88, -0.12], [1, -0.085]],
+    hw: [[0, 0.03], [0.08, 0.1], [0.25, 0.16], [0.45, 0.185], [0.7, 0.12], [1, 0.04]],
+    dorsal: null, tail: DBL(0.4, 2.5, 0.34), doubleAnal: true, pelvic: 1.2, pect: 1.15, wen: 3, eyes: 'normal', inci: false, pompom: 0,
+  },
+  pompom: { ...FANTAIL, dorsal: { H: 0.24, s0: 0.3, s1: 0.66, upright: 0.8 }, tail: DBL(0.55, 3.0, 0.1), doubleAnal: true, pelvic: 1.25, pect: 1.15, wen: 0, eyes: 'normal', inci: false, pompom: 0.042 },
+  celestial: {
+    top: [[0, 0.012], [0.08, 0.085], [0.2, 0.18], [0.4, 0.24], [0.6, 0.22], [0.82, 0.125], [1, 0.06]],
+    bot: [[0, -0.024], [0.08, -0.08], [0.2, -0.15], [0.45, -0.195], [0.65, -0.175], [0.85, -0.09], [1, -0.048]],
+    hw: [[0, 0.03], [0.08, 0.09], [0.25, 0.14], [0.45, 0.16], [0.7, 0.1], [1, 0.036]],
+    dorsal: null, tail: DBL(0.5, 2.9, 0.09), doubleAnal: true, pelvic: 1.2, pect: 1.15, wen: 0, eyes: 'gokyuzu', inci: false, pompom: 0,
+  },
   ryukin: {
     top: [[0, 0.012], [0.08, 0.1], [0.2, 0.26], [0.33, 0.36], [0.5, 0.3], [0.75, 0.15], [1, 0.07]],
     bot: [[0, -0.025], [0.08, -0.09], [0.2, -0.17], [0.45, -0.225], [0.65, -0.2], [0.85, -0.1], [1, -0.05]],
     hw: [[0, 0.03], [0.08, 0.1], [0.25, 0.165], [0.45, 0.18], [0.7, 0.115], [1, 0.04]],
-    dorsal: { H: 0.33, s0: 0.27, s1: 0.6, upright: 0.9 }, tail: DBL(0.6, 3.1, 0.12), doubleAnal: true, pelvic: 1.3, pect: 1.2, wen: 0, eyes: 'normal', inci: false,
+    dorsal: { H: 0.33, s0: 0.27, s1: 0.6, upright: 0.9 }, tail: DBL(0.6, 3.1, 0.12), doubleAnal: true, pelvic: 1.3, pect: 1.2, wen: 0, eyes: 'normal', inci: false, pompom: 0,
   },
-  oranda: { ...FANTAIL, dorsal: { H: 0.25, s0: 0.3, s1: 0.65, upright: 0.8 }, tail: DBL(0.66, 3.2, 0.14), doubleAnal: true, pelvic: 1.3, pect: 1.2, wen: 1, eyes: 'normal', inci: false },
+  oranda: { ...FANTAIL, dorsal: { H: 0.25, s0: 0.3, s1: 0.65, upright: 0.8 }, tail: DBL(0.66, 3.2, 0.14), doubleAnal: true, pelvic: 1.3, pect: 1.2, wen: 1, eyes: 'normal', inci: false, pompom: 0 },
   lionhead: {
     top: [[0, 0.012], [0.08, 0.1], [0.2, 0.2], [0.4, 0.235], [0.6, 0.22], [0.82, 0.13], [1, 0.065]],
     bot: [[0, -0.025], [0.08, -0.085], [0.2, -0.165], [0.45, -0.21], [0.65, -0.185], [0.85, -0.1], [1, -0.05]],
     hw: [[0, 0.03], [0.08, 0.1], [0.25, 0.15], [0.45, 0.17], [0.7, 0.11], [1, 0.04]],
-    dorsal: null, tail: DBL(0.42, 2.7, 0.07), doubleAnal: true, pelvic: 1.2, pect: 1.15, wen: 2, eyes: 'normal', inci: false,
+    dorsal: null, tail: DBL(0.42, 2.7, 0.07), doubleAnal: true, pelvic: 1.2, pect: 1.15, wen: 2, eyes: 'normal', inci: false, pompom: 0,
   },
-  teleskop: { ...FANTAIL, dorsal: { H: 0.23, s0: 0.3, s1: 0.66, upright: 0.8 }, tail: DBL(0.56, 3.0, 0.1), doubleAnal: true, pelvic: 1.25, pect: 1.15, wen: 0, eyes: 'teleskop', inci: false },
+  teleskop: { ...FANTAIL, dorsal: { H: 0.23, s0: 0.3, s1: 0.66, upright: 0.8 }, tail: DBL(0.56, 3.0, 0.1), doubleAnal: true, pelvic: 1.25, pect: 1.15, wen: 0, eyes: 'teleskop', inci: false, pompom: 0 },
   'balon-goz': {
     top: [[0, 0.012], [0.08, 0.085], [0.2, 0.18], [0.4, 0.235], [0.6, 0.215], [0.82, 0.125], [1, 0.065]],
     bot: [[0, -0.024], [0.08, -0.08], [0.2, -0.15], [0.45, -0.19], [0.65, -0.17], [0.85, -0.09], [1, -0.048]],
     hw: [[0, 0.03], [0.08, 0.09], [0.25, 0.14], [0.45, 0.155], [0.7, 0.1], [1, 0.036]],
-    dorsal: null, tail: DBL(0.46, 2.8, 0.08), doubleAnal: true, pelvic: 1.2, pect: 1.15, wen: 0, eyes: 'balon', inci: false,
+    dorsal: null, tail: DBL(0.46, 2.8, 0.08), doubleAnal: true, pelvic: 1.2, pect: 1.15, wen: 0, eyes: 'balon', inci: false, pompom: 0,
   },
   inci: {
     top: [[0, 0.012], [0.08, 0.12], [0.2, 0.27], [0.4, 0.32], [0.6, 0.3], [0.82, 0.17], [1, 0.08]],
     bot: [[0, -0.03], [0.08, -0.11], [0.2, -0.22], [0.45, -0.29], [0.65, -0.26], [0.85, -0.12], [1, -0.06]],
     hw: [[0, 0.03], [0.08, 0.11], [0.25, 0.18], [0.45, 0.205], [0.7, 0.14], [1, 0.045]],
-    dorsal: { H: 0.22, s0: 0.3, s1: 0.64, upright: 0.75 }, tail: DBL(0.48, 2.8, 0.08), doubleAnal: true, pelvic: 1.25, pect: 1.15, wen: 0, eyes: 'normal', inci: true,
+    dorsal: { H: 0.22, s0: 0.3, s1: 0.64, upright: 0.75 }, tail: DBL(0.48, 2.8, 0.08), doubleAnal: true, pelvic: 1.25, pect: 1.15, wen: 0, eyes: 'normal', inci: true, pompom: 0,
   },
 };
 
@@ -101,6 +118,11 @@ export function eyeGeom(sex: Sex, form: Form = 'standart'): { center: Vec3; norm
     const sf = surfaceAt(b, 0.1, 1.2, 0.0);
     return { center: [sf.pos[0] - 0.012, sf.pos[1] + 0.012, sf.pos[2] + 0.075], normal: norm3([-0.2, 0.1, 1]), radius: 0.046 };
   }
+  if (kind === 'gokyuzu') {
+    // celestial: gözler başın üstünde, teleskop gibi çıkıntılı ve dümdüz yukarı bakar
+    const sf = surfaceAt(b, 0.1, 0.5, 0.0);
+    return { center: [sf.pos[0], sf.pos[1] + 0.04, sf.pos[2] + 0.002], normal: norm3([-0.05, 1, 0.12]), radius: 0.043 };
+  }
   if (kind === 'balon') {
     // gözler yukarı bakar; altlarında sıvı keseleri sarkar
     const sf = surfaceAt(b, 0.1, 0.62, 0.0);
@@ -115,6 +137,10 @@ export function eyeExtras(sex: Sex, form: Form = 'standart'): { stalk?: { path: 
   const kind = FORM_SPECS[form].eyes;
   if (kind === 'normal') return {};
   const e = eyeGeom(sex, form), b = bodyFor(sex, form);
+  if (kind === 'gokyuzu') {
+    const sf = surfaceAt(b, 0.1, 0.5, -0.012).pos;
+    return { stalk: { path: [[sf[0], sf[1], sf[2]], [(sf[0] + e.center[0]) / 2, (sf[1] + e.center[1]) / 2, (sf[2] + e.center[2]) / 2], [e.center[0], e.center[1] - 0.012, e.center[2]]], radii: [0.05, 0.045, 0.04] } };
+  }
   if (kind === 'teleskop') {
     const sf = surfaceAt(b, 0.1, 1.2, -0.01).pos;
     return { stalk: { path: [[sf[0], sf[1] - 0.01, sf[2] - 0.01], [(sf[0] + e.center[0]) / 2, (sf[1] + e.center[1]) / 2 - 0.005, (sf[2] + e.center[2]) / 2], [e.center[0], e.center[1], e.center[2] - 0.01]], radii: [0.052, 0.046, 0.04] } };
@@ -129,6 +155,7 @@ export function wenSpec(sex: Sex, form: Form = 'standart'): null | { center: Vec
   const b = bodyFor(sex, form);
   const top = b.section(0.1);
   if (w === 1) return { center: [top.x - 0.005, top.yTop - 0.01, 0], radii: [0.105, 0.078, 0.105], bumps: 7, amp: 0.12 };
+  if (w === 3) return { center: [top.x + 0.012, top.yTop - 0.012, 0], radii: [0.105, 0.075, 0.105], bumps: 8, amp: 0.13 };
   const sec = b.section(0.12);
   return { center: [sec.x - 0.01, sec.yTop - 0.045, 0], radii: [0.16, 0.13, sec.hw * 1.12], bumps: 9, amp: 0.15 };
 }
@@ -152,6 +179,20 @@ export function operculumArc(sex: Sex, side: 1 | -1, n = 16, form: Form = 'stand
     out.push([p[0], p[1], p[2] * side]);
   }
   return out;
+}
+
+/** Pompom: burun deliklerinden çıkan yumuşak tomurcuk (burun septumu uzantısı) kümeleri; yalnızca z>0 yanı verilir (ayna ile çiftlenir) */
+export function pompomSpec(sex: Sex, form: Form = 'standart'): null | { puffs: { center: Vec3; r: number }[] } {
+  const R = FORM_SPECS[form].pompom;
+  if (!R) return null;
+  const b = bodyFor(sex, form);
+  const base = surfaceAt(b, 0.026, 0.5, 0.0).pos;
+  const puffs: { center: Vec3; r: number }[] = [
+    { center: [base[0] - 0.012, base[1] + R * 0.5, 0.018 + R * 0.4], r: R },
+    { center: [base[0] + 0.01, base[1] + R * 0.9, 0.016 + R * 0.5], r: R * 0.78 },
+    { center: [base[0] - 0.026, base[1] + R * 0.1, 0.016 + R * 0.55], r: R * 0.7 },
+  ];
+  return { puffs };
 }
 
 /** Üreme tüberkülleri (yalnızca erkekte) */

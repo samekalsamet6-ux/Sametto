@@ -22,6 +22,8 @@ test.describe('3B Neocaridina karidesi modeli', () => {
     await ready(page);
     await expect(page.locator('#cv')).toHaveAttribute('aria-label', /3B model/);
     await expect(page.locator('#swim')).toBeChecked();
+    await expect(page.locator('#formnote')).toContainText('şekil varyetesi yok');
+    await expect(page.locator('#form')).toHaveCount(0);
     await expect(page.locator('#hots')).toBeChecked();
     await expect(page.locator('.v3-hot:not([hidden])').first()).toBeVisible();
   });

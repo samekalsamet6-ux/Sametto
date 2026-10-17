@@ -23,6 +23,8 @@ test.describe('3B tatlı su vatozu modeli', () => {
     await ready(page);
     await expect(page.locator('#cv')).toHaveAttribute('aria-label', /3B model/);
     await expect(page.locator('#swim')).toBeChecked();
+    await expect(page.locator('#formnote')).toContainText('şekil varyetesi yok');
+    await expect(page.locator('#form')).toHaveCount(0);
     await expect(page.locator('.v3-hot:not([hidden])').first()).toBeVisible();
   });
 
@@ -98,11 +100,11 @@ test.describe('3B tatlı su vatozu modeli', () => {
     await ready(page);
     await page.getByRole('radio', { name: 'Erkek' }).check();
     await goView(page, 'alt');
-    expect(await visibleParts(page)).toContain('klasper');
+    await expect.poll(() => visibleParts(page), { timeout: 20_000 }).toContain('klasper'); // mobilde kare döngüsü gecikebilir
     await page.locator('.v3-part[data-part=spirakul]').click();
     await expect(page.locator('#stage')).toHaveAttribute('data-view', 'ust');
-    await page.waitForTimeout(1300);
-    expect(await visibleParts(page)).toContain('spirakul');
+    await page.evaluate(() => document.getElementById('stage')?.scrollIntoView()); // liste tıklaması sahneyi görünüm dışına kaydırabilir
+    await expect.poll(() => visibleParts(page), { timeout: 20_000 }).toContain('spirakul');
   });
 
   test('desen seçimi, yüzme ve otomatik döndürme anahtarları, görünüm düğmeleri', async ({ page }) => {

@@ -1,9 +1,9 @@
 // Japon balığı three.js sahnesi: yalnızca 3B japon sayfasında, tembel (dynamic import) yüklenir.
-import { Color, DoubleSide, Group, Material, MeshPhysicalMaterial, MeshStandardMaterial, RepeatWrapping, SphereGeometry } from 'three';
+import { Color, DoubleSide, Group, IcosahedronGeometry, Material, MeshPhysicalMaterial, MeshStandardMaterial, RepeatWrapping, SphereGeometry } from 'three';
 import { addEye, canvasTexture, createFishViewer, finGeometry, loftBody, proxyFrom, put, swimify, taperedTube, tube, type FishBuilt, type SwimUniforms } from '../akvaryum/fish3d';
 import { mixHex } from '../akvaryum/fishmath';
 import type { SexId, SpeciesViewer, SpeciesViewerOptions } from '../akvaryum/types';
-import { FORM_IDS, bodyFor, eyeExtras, eyeGeom, finsFor, mouthLine, nostrils, operculumArc, specOf, tubercles, wenSpec, type Form } from './model';
+import { FORM_IDS, bodyFor, eyeExtras, eyeGeom, finsFor, mouthLine, nostrils, operculumArc, pompomSpec, specOf, tubercles, wenSpec, type Form } from './model';
 import { partAnchors, partsFor } from './parts';
 import { paintBody } from './texture';
 import { variantById } from './variants';
@@ -62,6 +62,17 @@ export function buildJapon(sex: SexId, variantId: string, u: SwimUniforms, texW:
     g.computeVertexNormals();
     const wenColor = v.desen === 'sarasa' ? v.yamalar[0] : v.desen === 'panda' ? v.yamalar[0] : v.desen === 'shubunkin' ? v.yamalar[1] : mixHex(v.body.sirt, v.body.yan, 0.5);
     put(group, g, swimify(new MeshStandardMaterial({ color: new Color(wenColor), roughness: 0.6, metalness: 0.05 }), u));
+  }
+  // pompon: burun tomurcukları (yumuşak, hafif tüylü küre kümeleri)
+  const pp = pompomSpec(sex, form);
+  if (pp) {
+    const ppColor = v.desen === 'sarasa' || v.desen === 'panda' ? v.yamalar[0] : mixHex(v.body.yan, '#ffffff', 0.12);
+    for (const side of [1, -1] as const) for (const q of pp.puffs) {
+      const g = new IcosahedronGeometry(q.r, 3), pos = g.getAttribute('position');
+      for (let i = 0; i < pos.count; i++) { const k = 1 + 0.16 * Math.sin(pos.getX(i) * 260 + pos.getY(i) * 190) * Math.cos(pos.getZ(i) * 230); pos.setXYZ(i, pos.getX(i) * k, pos.getY(i) * k, pos.getZ(i) * k); }
+      g.computeVertexNormals(); g.translate(q.center[0], q.center[1], q.center[2] * side);
+      put(group, g, std(ppColor, 0.75));
+    }
   }
   for (const p of tubercles(sex, form)) for (const side of [1, -1] as const) { const g = new SphereGeometry(0.0055, 8, 6); g.translate(p[0], p[1], p[2] * side); put(group, g, std('#f6f3ea', 0.6)); }
   for (const f of finsFor(sex, form)) {

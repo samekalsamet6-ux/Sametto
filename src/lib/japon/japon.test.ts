@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { fishSuite } from '../akvaryum/fish-contract';
 import { hexToRgb, luma } from '../akvaryum/fishmath';
-import { FORM_IDS, FORM_SPECS, LATERAL, SEXES, bodyFor, eyeExtras, eyeGeom, finsFor, lateralLine, mouthLine, nostrils, operculumArc, silhouette, tubercles, wenSpec } from './model';
+import { FORM_IDS, FORM_SPECS, LATERAL, SEXES, bodyFor, eyeExtras, eyeGeom, finsFor, lateralLine, mouthLine, nostrils, operculumArc, pompomSpec, silhouette, tubercles, wenSpec } from './model';
 import { FORMS } from './forms';
 import { PARTS, partAnchors, partsFor } from './parts';
 import { VARIANTS, VARIANT_GROUPS, groupedVariants, variantById } from './variants';
 import { species } from './index';
 import { paintBody } from './texture';
 
-const ASPECT: Record<string, [number, number]> = { standart: [2.2, 3.4], comet: [2.4, 3.8], bristol: [2.2, 3.4], fantail: [1.8, 2.7], ryukin: [1.6, 2.4], oranda: [1.8, 2.7], lionhead: [1.9, 2.8], teleskop: [1.8, 2.7], 'balon-goz': [2.0, 3.0], inci: [1.4, 2.0] };
+const ASPECT: Record<string, [number, number]> = { standart: [2.2, 3.4], comet: [2.4, 3.8], bristol: [2.2, 3.4], fantail: [1.8, 2.7], veiltail: [1.8, 2.7], ranchu: [1.7, 2.6], pompom: [1.8, 2.7], celestial: [2.0, 3.0], ryukin: [1.6, 2.4], oranda: [1.8, 2.7], lionhead: [1.9, 2.8], teleskop: [1.8, 2.7], 'balon-goz': [2.0, 3.0], inci: [1.4, 2.0] };
 for (const form of FORM_IDS) {
   fishSuite({
     ad: `japon/${form}`, sexes: [...SEXES], bodyFor: (s) => bodyFor(s, form), finsFor: (s) => finsFor(s, form), silhouette: (s) => silhouette(s, form), parts: PARTS, partsFor: (s) => partsFor(s, form),
@@ -21,7 +21,7 @@ describe('japon: form (şekil) varyeteleri', () => {
   const area = (pts: [number, number][]) => Math.abs(pts.reduce((a, p, i) => { const q = pts[(i + 1) % pts.length]; return a + (p[0] * q[1] - q[0] * p[1]); }, 0) / 2);
   const height = (f: (typeof FORM_IDS)[number]) => { const b = bodyFor('erkek', f); let h = 0; for (let i = 0; i <= 60; i++) { const s = b.section(i / 60); h = Math.max(h, s.yTop - s.yBot); } return h; };
   const tailLen = (f: (typeof FORM_IDS)[number]) => { const k = finsFor('erkek', f).find((x) => x.id === 'kuyruk')!; return Math.max(...k.tip.map((p) => p[0])) - 0.5; };
-  it('standart ilk; on form; FORM_IDS/FORMS/FORM_SPECS tutarlı; iki grup; açıklamalar dürüst', () => {
+  it('standart ilk; on dört form; FORM_IDS/FORMS/FORM_SPECS tutarlı; iki grup; açıklamalar dürüst', () => {
     expect(FORMS.map((f) => f.id)).toEqual([...FORM_IDS]);
     expect(FORMS[0].id).toBe('standart');
     expect(species.forms).toBe(FORMS);
@@ -32,7 +32,7 @@ describe('japon: form (şekil) varyeteleri', () => {
   });
   it('tek kuyruklu formlar: tek kuyruk ve tek anal; çift kuyruklu formlar: kuyruk ve anal çift (paired)', () => {
     for (const id of ['standart', 'comet', 'bristol'] as const) { const f = finsFor('erkek', id); expect(f.find((x) => x.id === 'kuyruk')!.paired).toBe(false); expect(f.find((x) => x.id === 'anal')!.paired).toBe(false); }
-    for (const id of ['fantail', 'ryukin', 'oranda', 'lionhead', 'teleskop', 'balon-goz', 'inci'] as const) { const f = finsFor('erkek', id); expect(f.find((x) => x.id === 'kuyruk')!.paired, id).toBe(true); expect(f.find((x) => x.id === 'anal')!.paired, id).toBe(true); }
+    for (const id of ['fantail', 'veiltail', 'ryukin', 'oranda', 'lionhead', 'ranchu', 'pompom', 'teleskop', 'celestial', 'balon-goz', 'inci'] as const) { const f = finsFor('erkek', id); expect(f.find((x) => x.id === 'kuyruk')!.paired, id).toBe(true); expect(f.find((x) => x.id === 'anal')!.paired, id).toBe(true); }
   });
   it('fancy gövdeler common’dan belirgin derin; ryukin ve inci en derin; comet en ince', () => {
     expect(height('comet')).toBeLessThan(height('standart'));
@@ -43,7 +43,8 @@ describe('japon: form (şekil) varyeteleri', () => {
     expect(hump('ryukin')).toBeGreaterThan(hump('fantail') + 0.05); // omuz kamburu
   });
   it('sırt yüzgeci: lionhead ve bubble eye’da yok; ryukin’de en yüksek; comet kuyruğu en uzun, Bristol kuyruğu en geniş', () => {
-    for (const id of ['lionhead', 'balon-goz'] as const) expect(finsFor('erkek', id).some((x) => x.id === 'sirt'), id).toBe(false);
+    for (const id of ['lionhead', 'balon-goz', 'ranchu', 'celestial'] as const) expect(finsFor('erkek', id).some((x) => x.id === 'sirt'), id).toBe(false);
+    for (const id of ['veiltail', 'pompom'] as const) expect(finsFor('erkek', id).some((x) => x.id === 'sirt'), id).toBe(true);
     const dH = (f: (typeof FORM_IDS)[number]) => { const d = finsFor('erkek', f).find((x) => x.id === 'sirt')!; return Math.max(...d.tip.map((p, i) => p[1] - d.base[i][1])); };
     expect(dH('ryukin')).toBeGreaterThan(dH('fantail'));
     expect(dH('fantail')).toBeGreaterThan(dH('standart'));
@@ -55,12 +56,35 @@ describe('japon: form (şekil) varyeteleri', () => {
     const kb = finsFor('erkek', 'bristol').find((x) => x.id === 'kuyruk')!;
     expect(kb.tip[Math.floor(kb.tip.length / 2)][0]).toBeGreaterThan(kb.tip[0][0]); // yuvarlak, çatalsız
   });
+  it('veiltail kuyruğu fantail’inkinden belirgin uzun; ranchu kuyruğu kısa ve aşağı eğik, sırtı yumurta biçimli kavisli', () => {
+    expect(tailLen('veiltail')).toBeGreaterThan(tailLen('fantail') * 1.25);
+    expect(tailLen('ranchu')).toBeLessThan(tailLen('fantail'));
+    const ytip = (f: (typeof FORM_IDS)[number]) => { const k = finsFor('erkek', f).find((x) => x.id === 'kuyruk')!; return k.tip.reduce((a, p) => a + p[1], 0) / k.tip.length - k.base.reduce((a, p) => a + p[1], 0) / k.base.length; };
+    expect(ytip('ranchu')).toBeLessThan(ytip('fantail') - 0.03);
+    const b = bodyFor('erkek', 'ranchu'), l = bodyFor('erkek', 'lionhead');
+    expect(b.section(0.42).yTop - b.section(0.95).yTop).toBeGreaterThan(l.section(0.42).yTop - l.section(0.95).yTop + 0.03); // güçlü sırt kavisi
+    const dh = (f: (typeof FORM_IDS)[number]) => { const d = finsFor('erkek', f).find((x) => x.id === 'sirt')!; return Math.max(...d.tip.map((p, i) => p[1] - d.base[i][1])); };
+    expect(dh('veiltail')).toBeGreaterThan(dh('fantail') * 1.25);
+  });
+  it('pompom: yalnızca pompom formunda burun tomurcukları; celestial gözleri yukarı bakar, çıkıntılı, sapı var, kese yok', () => {
+    for (const id of FORM_IDS) expect(!!pompomSpec('erkek', id), id).toBe(id === 'pompom');
+    const pp = pompomSpec('erkek', 'pompom')!;
+    expect(pp.puffs.length).toBeGreaterThanOrEqual(3);
+    const e = eyeGeom('erkek', 'pompom');
+    for (const q of pp.puffs) { expect(q.center[0]).toBeLessThan(e.center[0]); expect(q.center[2]).toBeGreaterThan(0); }
+    const c = eyeGeom('erkek', 'celestial'), n = eyeGeom('erkek', 'standart');
+    expect(c.normal[1]).toBeGreaterThan(0.9);
+    expect(c.radius).toBeGreaterThan(n.radius * 1.3);
+    expect(c.center[1]).toBeGreaterThan(bodyFor('erkek', 'celestial').section(0.1).yTop);
+    const x = eyeExtras('erkek', 'celestial');
+    expect(x.stalk?.path.length).toBeGreaterThan(1); expect(x.sac).toBeUndefined();
+  });
   it('çift kuyruk: iki lob z ekseninde ayrışır; kuyruk uç z > taban z', () => {
     const k = finsFor('erkek', 'fantail').find((x) => x.id === 'kuyruk')!;
     expect(Math.max(...k.tip.map((p) => p[2]))).toBeGreaterThan(0.1);
   });
-  it('wen: yalnızca oranda ve lionhead; lionhead’de daha büyük; sapma yumruları; diğer formlarda yok', () => {
-    for (const id of FORM_IDS) expect(!!wenSpec('erkek', id), id).toBe(id === 'oranda' || id === 'lionhead');
+  it('wen: yalnızca oranda, lionhead ve ranchu; lionhead’de daha büyük; sapma yumruları; diğer formlarda yok', () => {
+    for (const id of FORM_IDS) expect(!!wenSpec('erkek', id), id).toBe(id === 'oranda' || id === 'lionhead' || id === 'ranchu');
     const o = wenSpec('erkek', 'oranda')!, l = wenSpec('erkek', 'lionhead')!;
     expect(l.radii[0] * l.radii[1] * l.radii[2]).toBeGreaterThan(o.radii[0] * o.radii[1] * o.radii[2] * 1.5);
     expect(o.bumps).toBeGreaterThan(3);
@@ -80,6 +104,7 @@ describe('japon: form (şekil) varyeteleri', () => {
     expect(ids('standart')).toHaveLength(13);
     expect(ids('oranda')).toContain('wen'); expect(ids('lionhead')).toContain('wen'); expect(ids('fantail')).not.toContain('wen');
     expect(ids('teleskop')).toContain('teleskop-goz'); expect(ids('balon-goz')).toContain('balon-kesesi'); expect(ids('ryukin')).toContain('omuz-kamburu'); expect(ids('inci')).toContain('inci-pul');
+    expect(ids('ranchu')).toContain('wen'); expect(ids('pompom')).toContain('pompom'); expect(ids('pompom')).not.toContain('burun-delikleri'); expect(ids('celestial')).toContain('gokyuzu-goz'); expect(ids('celestial')).not.toContain('sirt-yuzgeci'); expect(ids('ranchu')).not.toContain('sirt-yuzgeci');
     expect(ids('lionhead')).not.toContain('sirt-yuzgeci'); expect(ids('balon-goz')).not.toContain('sirt-yuzgeci'); expect(ids('fantail')).toContain('sirt-yuzgeci');
     expect(partsFor('erkek', 'bilinmeyen').length).toBe(13);
   });
@@ -171,6 +196,6 @@ describe('japon: tür modülü', () => {
     expect(species.sexes.map((s) => s.id)).toEqual(['erkek', 'disi']);
     for (const s of species.sexes) expect(s.not).toMatch(/çok benzer/);
     expect(species.not).toMatch(/oranda/);
-    expect(species.forms?.length).toBe(10);
+    expect(species.forms?.length).toBe(14);
   });
 });
