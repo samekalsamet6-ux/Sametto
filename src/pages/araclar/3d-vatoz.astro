@@ -21,13 +21,13 @@ const figures = (['disi', 'erkek'] as Sex[]).flatMap((sex) => {
 });
 const viewName = { ust: 'üstten', alt: 'alttan' } as const;
 ---
-<Base title="3B cüce vatoz modeli" description="Cüce tatlı su vatozunun (Potamotrygon) etkileşimli 3B modeli: disk, gözler, spirakül, alt yüzde ağız ve solungaç yarıkları, klasper, kuyruk dikeni ve desen varyeteleri.">
+<Base title="3B tatlı su vatozu modeli" description="Akvaryumda tutulan tatlı su vatozunun (Potamotrygon) şematik, etkileşimli 3B modeli: disk, gözler, spirakül, alt yüzde ağız ve solungaç yarıkları, klasper, kuyruk dikeni ve desen varyeteleri.">
   <p><a href="/araclar">← Araçlar</a></p>
-  <h1>3B cüce vatoz modeli</h1>
-  <p class="muted">Akvaryumda tutulan küçük tatlı su vatozunun şematik, etkileşimli 3B modeli. Sürükleyerek döndürün, <strong>Alt</strong> görünümde ağız ve solungaç yarıklarına bakın, desen varyetelerini deneyin ve numaralı noktalara ya da listeye tıklayıp açıklamaları okuyun.</p>
+  <h1>3B tatlı su vatozu modeli</h1>
+  <p class="muted">Akvaryumlarda tutulan tatlı su vatozunun (<em>Potamotrygon</em>) şematik, etkileşimli 3B modeli. Sürükleyerek döndürün, <strong>Alt</strong> görünümde ağız ve solungaç yarıklarına bakın, desen varyetelerini deneyin ve numaralı noktalara ya da listeye tıklayıp açıklamaları okuyun.</p>
 
   <div class="callout callout-bilgi">
-    <strong>Tür varsayımı.</strong> “Cüce vatoz”, ticarette tek bir türün adı değildir; çoğunlukla <em>Potamotrygon</em> cinsinin küçük türleri (en çok <em>P. wallacei</em>, “cururu”; disk genişliği yaklaşık 25–40 cm, kaynaklara göre değişir) için kullanılır. Bu model <em>P. wallacei</em>’ye benzer, <strong>şematik</strong> bir gövde oranı varsayar; belirli bir bireyin ya da türün kesin ölçüsü değildir. Ticaretteki tür adları sık karışır; <strong>tür kimliği kaynakla doğrulanmalıdır</strong>.
+    <strong>Tür varsayımı.</strong> Bu model, akvaryumda en sık tutulan <em>Potamotrygon</em> türlerine (motoro, leopoldi, cururu vb.) benzeyen <strong>genel ve şematik</strong> bir disk biçimidir; belirli bir türün, bireyin ya da ölçünün gösterimi değildir. Seçtiğiniz desen, ilgili türün tipik görünümüne dayanır (ör. “Motoro” deseni <em>P. motoro</em>’yu, “Leopoldi” deseni <em>P. leopoldi</em>’yi anlatır). Ticaretteki tür adları sık karışır; <strong>tür kimliği kaynakla doğrulanmalıdır</strong>. Deniz vatozları ve kum vatozları (başka ailelerde) bu modelin kapsamı dışındadır.
   </div>
 
   <div class="v3-bar">
@@ -41,12 +41,13 @@ const viewName = { ust: 'üstten', alt: 'alttan' } as const;
     </label>
     <label class="v3-chk"><input type="checkbox" id="swim" /> Yüzme animasyonu</label>
     <label class="v3-chk"><input type="checkbox" id="rot" /> Otomatik döndür</label>
+    <label class="v3-chk"><input type="checkbox" id="hotspots" checked /> Numaraları göster</label>
   </div>
   <p class="muted v3-note" id="sexnote" aria-live="polite"></p>
 
   <div class="v3-stage" id="stage" data-sex="disi" data-variant="wallacei" data-swim="off" data-rotate="off" data-view="capraz">
     <canvas id="cv" tabindex="0" role="img" aria-describedby="v3-help"
-      aria-label="Cüce vatozun etkileşimli 3B modeli. Ok tuşlarıyla döndürebilir, artı ve eksi tuşlarıyla yakınlaştırabilirsiniz."></canvas>
+      aria-label="Tatlı su vatozunun etkileşimli 3B modeli. Ok tuşlarıyla döndürebilir, artı ve eksi tuşlarıyla yakınlaştırabilirsiniz."></canvas>
     <div class="v3-hotwrap" id="hot" data-pagefind-ignore></div>
     <p class="v3-status" id="status" role="status">3B model, görünür olunca yüklenecek…</p>
     <div class="v3-fallback" id="fallback" hidden>
@@ -54,7 +55,7 @@ const viewName = { ust: 'üstten', alt: 'alttan' } as const;
       <div class="v3-figs">
         {figures.map((f) => (
           <figure>
-            <svg viewBox={f.vb} role="img" aria-label={`${sexName[f.sex]} cüce vatoz, ${viewName[f.view]} şematik çizim`} class="v3-svg">
+            <svg viewBox={f.vb} role="img" aria-label={`${sexName[f.sex]} tatlı su vatozu, ${viewName[f.view]} şematik çizim`} class="v3-svg">
               <path class="svg-tail" d={f.d.tail} />
               <path class="svg-disc" d={poly(f.s.disc)} />
               {f.d.pelvic.map((d) => <path class="svg-pelvic" d={d} />)}
@@ -92,7 +93,7 @@ const viewName = { ust: 'üstten', alt: 'alttan' } as const;
   </div>
 
   <div class="callout callout-uyari" id="safety">
-    <strong>Güvenlik: kuyruk dikeni.</strong> Vatozların kuyruğunda dişli ve zehirli bir diken bulunur. Yaralanma çok acı verici olabilir ve enfeksiyon riski taşır. Vatozu çıplak elle tutmayın, ağa sıkıştırmayın; yaralanırsanız bekletmeden tıbbi yardım alın. Bu sayfa bakım ya da müdahale rehberi değildir, 3B model yalnızca eğitim amaçlıdır. Tatlı su vatozları büyük, olgun ve çok temiz su gerektiren zor bakım hayvanlarıdır; edinmeden önce yerel mevzuatı ve güvenilir kaynakları kontrol edin (kaynakla doğrulanmalı).
+    <strong>Güvenlik: kuyruk dikeni.</strong> Vatozların kuyruğunda dişli ve zehirli bir diken bulunur. Yaralanma çok acı verici olabilir ve enfeksiyon riski taşır. Vatozu çıplak elle tutmayın, ağa sıkıştırmayın; yaralanırsanız bekletmeden tıbbi yardım alın. Bu sayfa bakım ya da müdahale rehberi değildir, 3B model yalnızca eğitim amaçlıdır. Tatlı su vatozları büyür, olgun ve çok temiz su gerektiren zor bakım hayvanlarıdır; edinmeden önce yerel mevzuatı ve güvenilir kaynakları kontrol edin (kaynakla doğrulanmalı).
   </div>
 
   <h2>Anatomi parçaları</h2>
@@ -115,7 +116,7 @@ const viewName = { ust: 'üstten', alt: 'alttan' } as const;
   </details>
 
   <h2>Renk ve desen varyeteleri</h2>
-  <p class="muted">{VARIANTS.length} şematik desen; hepsi aynı standart gövdeyi paylaşır, yalnızca renk ve desen değişir. Vatoz desenleri bireyden bireye ve yaşla çok değişir, ticaret adları karışıktır; bu liste resmî bir sınıflama değildir. <strong>İlk iki desen</strong> küçük (cüce) türlerde anlatılan görünümlere, <strong>sonraki üçü</strong> daha büyük türlerde bilinen desen tiplerine dayanır ve yalnızca desen örneği olarak gösterilmiştir. “Kaynakla doğrulanmalı” işaretli kayıtların türe/varlığına dair bilgi belirsizdir.</p>
+  <p class="muted">{VARIANTS.length} şematik desen; hepsi aynı standart gövdeyi paylaşır, yalnızca renk ve desen değişir. Vatoz desenleri bireyden bireye ve yaşla çok değişir, ticaret adları karışıktır; bu liste resmî bir sınıflama değildir. <strong>İlk üç desen</strong> akvaryumda sık tutulan <em>P. motoro</em>, <em>P. leopoldi</em> ve <em>P. wallacei</em> türlerinin kaynaklarda anlatılan görünümüne, diğerleri ağ desenli tip ve ticari formlara dayanır. “Kaynakla doğrulanmalı” işaretli kayıtların türe/varlığına dair bilgi belirsizdir.</p>
   {groupedVariants().map((g) => (<><h3>{g.grup}</h3><ul>{g.items.map((v) => <li><strong>{v.ad}:</strong> {v.aciklama}{v.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</li>)}</ul></>))}
   <p class="muted">Modellenmeyenler: kuyruk ucundaki deri kıvrımının ayrıntısı, Lorenzini ampulleri ve diş yapısı gösterilmemiştir. Cinsiyetler arası disk biçimi farkı (dişi biraz daha büyük ve dolgun) şematiktir; kesin oran farkı kaynakla doğrulanmalıdır.</p>
 
@@ -274,6 +275,14 @@ const viewName = { ust: 'üstten', alt: 'alttan' } as const;
   rot.addEventListener('change', () => { stage.dataset.rotate = rot.checked ? 'on' : 'off'; viewer?.setAutoRotate(rot.checked); });
   stage.dataset.swim = swim.checked ? 'on' : 'off';
 
+  // Numaralı noktalar: tercih yalnızca bu tarayıcıda hatırlanır (localStorage yoksa varsayılan açık).
+  const HS_KEY = 'vatoz-numaralar';
+  const hs = $<HTMLInputElement>('hotspots');
+  try { if (localStorage.getItem(HS_KEY) === 'off') hs.checked = false; } catch { /* depolama kapalı */ }
+  const applyHs = () => { stage.dataset.hotspots = hs.checked ? 'on' : 'off'; viewer?.setHotspots(hs.checked); };
+  hs.addEventListener('change', () => { applyHs(); try { localStorage.setItem(HS_KEY, hs.checked ? 'on' : 'off'); } catch { /* yok say */ } });
+  stage.dataset.hotspots = hs.checked ? 'on' : 'off';
+
   document.querySelectorAll<HTMLButtonElement>('.v3-btn[data-view]').forEach((b) => b.addEventListener('click', () => {
     stage.dataset.view = b.dataset.view!;
     viewer?.setView(b.dataset.view as ViewId);
@@ -324,6 +333,7 @@ const viewName = { ust: 'üstten', alt: 'alttan' } as const;
       });
       viewer.setSwim(swim.checked);
       viewer.setAutoRotate(rot.checked);
+      viewer.setHotspots(hs.checked);
       if (selected) viewer.select(selected);
     } catch (err) {
       console.error(err);

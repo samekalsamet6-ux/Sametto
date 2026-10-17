@@ -35,6 +35,7 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
     </label>
     <label class="g3-chk"><input type="checkbox" id="swim" /> Yüzme animasyonu</label>
     <label class="g3-chk"><input type="checkbox" id="rot" /> Otomatik döndür</label>
+    <label class="g3-chk"><input type="checkbox" id="hotspots" checked /> Numaraları göster</label>
   </div>
   <p class="muted g3-note" id="sexnote" aria-live="polite"></p>
 
@@ -257,6 +258,14 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
   rot.addEventListener('change', () => { stage.dataset.rotate = rot.checked ? 'on' : 'off'; viewer?.setAutoRotate(rot.checked); });
   stage.dataset.swim = swim.checked ? 'on' : 'off';
 
+  // Numaralı noktalar: tercih yalnızca bu tarayıcıda hatırlanır (localStorage yoksa varsayılan açık).
+  const HS_KEY = 'lepistes-numaralar';
+  const hs = $<HTMLInputElement>('hotspots');
+  try { if (localStorage.getItem(HS_KEY) === 'off') hs.checked = false; } catch { /* depolama kapalı */ }
+  const applyHs = () => { stage.dataset.hotspots = hs.checked ? 'on' : 'off'; viewer?.setHotspots(hs.checked); };
+  hs.addEventListener('change', () => { applyHs(); try { localStorage.setItem(HS_KEY, hs.checked ? 'on' : 'off'); } catch { /* yok say */ } });
+  stage.dataset.hotspots = hs.checked ? 'on' : 'off';
+
   document.querySelectorAll<HTMLButtonElement>('.g3-btn[data-view]').forEach((b) => b.addEventListener('click', () => {
     stage.dataset.view = b.dataset.view!;
     viewer?.setView(b.dataset.view as ViewId);
@@ -307,6 +316,7 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
       });
       viewer.setSwim(swim.checked);
       viewer.setAutoRotate(rot.checked);
+      viewer.setHotspots(hs.checked);
       if (selected) viewer.select(selected);
     } catch (err) {
       console.error(err);

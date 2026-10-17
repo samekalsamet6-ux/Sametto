@@ -87,6 +87,7 @@ test.describe('3B lepistes modeli', () => {
   });
 
   test('tüm varyeteler gruplu listede; her biri hatasız yüklenir', async ({ page }) => {
+    test.slow();
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(URL);
@@ -156,6 +157,29 @@ test.describe('3B lepistes modeli', () => {
     await expect(page.locator('#cv')).toBeHidden();
     await page.locator('.g3-part[data-part=sirt-yuzgeci]').click();
     await expect(page.locator('#detail h3')).toHaveText('Sırt yüzgeci');
+  });
+
+  test('Numaraları göster: kapatınca noktalar gizlenir, liste seçimi çalışır, tercih hatırlanır', async ({ page }) => {
+    test.slow();
+    await page.goto(URL);
+    await expect(page.locator('#stage')).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
+    const visible = () => page.locator('.g3-hot:not([hidden])').evaluateAll((b) => b.map((x) => (x as HTMLElement).dataset.part));
+    await page.uncheck('#swim');
+    await expect(page.locator('#hotspots')).toBeChecked();
+    await expect.poll(async () => (await visible()).length, { timeout: 20_000 }).toBeGreaterThan(0);
+    await page.uncheck('#hotspots');
+    await expect(page.locator('#stage')).toHaveAttribute('data-hotspots', 'off');
+    await expect.poll(visible).toEqual([]);
+    await page.locator('.g3-part[data-part=sirt-yuzgeci]').click();
+    await expect(page.locator('#detail h3')).toHaveText('Sırt yüzgeci');
+    await page.reload();
+    await page.evaluate(() => document.getElementById('stage')?.scrollIntoView()); // geri yüklenen kaydırma konumu modeli tembel yüklemeden uzak tutabilir
+    await expect(page.locator('#stage')).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
+    await expect(page.locator('#hotspots')).not.toBeChecked();
+    expect(await visible()).toEqual([]);
+    await page.check('#hotspots');
+    await page.evaluate(() => document.getElementById('stage')?.scrollIntoView()); // kare döngüsü yalnızca görünürken çalışır
+    await expect.poll(async () => (await visible()).length, { timeout: 20_000 }).toBeGreaterThan(0);
   });
 
   test('sayfa ve araç dizini; ilgili sayfalardan bağlantı', async ({ page }) => {

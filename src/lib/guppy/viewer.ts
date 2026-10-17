@@ -360,6 +360,8 @@ export interface Viewer {
   setVariant(v: string): void;
   setAutoRotate(on: boolean): void;
   setSwim(on: boolean): void;
+  /** Numaralı noktaları aç/kapat; kapalıyken gizli, aria-hidden ve tıklanamaz (parça listesi çalışır). */
+  setHotspots(on: boolean): void;
   setView(v: ViewId): void;
   zoom(factor: number): void;
   rotate(dTheta: number, dPhi: number): void;
@@ -410,6 +412,7 @@ export function createViewer(opts: ViewerOptions): Viewer {
   let tween: { from: [number, number, number]; to: [number, number, number]; t0: number; dur: number } | null = null;
   let texW = small ? 512 : 1024;
 
+  let hotspotsOn = true;
   const hotspots = new Map<PartId, HTMLButtonElement>();
   const rebuildHotspots = () => {
     overlay.textContent = '';
@@ -497,6 +500,7 @@ export function createViewer(opts: ViewerOptions): Viewer {
     const ampNow = uniforms.uAmp.value;
     for (const [id, btn] of hotspots) {
       const a = built.anchors[id];
+      if (!hotspotsOn) { btn.hidden = true; btn.setAttribute('aria-hidden', 'true'); continue; }
       if (!a) { btn.hidden = true; continue; }
       const mirror = a.mirror && side < 0;
       const z = (mirror ? -a.pos[2] : a.pos[2]) + swimOffsetZ(a.pos[0], BODY[sex].length, uniforms.uTime.value, ampNow);
@@ -580,6 +584,7 @@ export function createViewer(opts: ViewerOptions): Viewer {
     setVariant(v) { if (v !== variant) { variant = v; load(false); } },
     setAutoRotate(on) { controls.autoRotate = on; invalidate(); },
     setSwim(on) { swimOn = on; invalidate(); },
+    setHotspots(on) { hotspotsOn = on; overlay.dataset.off = on ? '' : 'true'; if (!on) for (const b of hotspots.values()) { b.hidden = true; b.setAttribute('aria-hidden', 'true'); } occKey = ''; occAt = 0; invalidate(); },
     setView(v) { const [th, ph] = VIEW_ANGLES[v]; go(th, ph, fitDistance()); },
     zoom(f) { const s = spherical(); const r = Math.min(controls.maxDistance, Math.max(controls.minDistance, s[2] * f)); place(s[0], s[1], r); controls.update(); invalidate(); },
     rotate(dTh, dPh) { const s = spherical(); place(s[0] + dTh, Math.min(Math.PI - 0.03, Math.max(0.03, s[1] + dPh)), s[2]); controls.update(); invalidate(); },

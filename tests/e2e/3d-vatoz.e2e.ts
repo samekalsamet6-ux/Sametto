@@ -8,15 +8,16 @@ const goView = async (page: import('@playwright/test').Page, v: string) => {
   await page.uncheck('#swim');
   await page.locator(`.v3-btn[data-view=${v}]`).click();
   await expect(page.locator('#stage')).toHaveAttribute('data-view', v);
+  await page.evaluate(() => document.getElementById('stage')?.scrollIntoView()); // kare döngüsü yalnızca görünürken çalışır
   await page.waitForTimeout(1300); // geçiş animasyonu + kare
 };
 
-test.describe('3B cüce vatoz modeli', () => {
+test.describe('3B tatlı su vatozu modeli', () => {
   test('sayfa açılır, model yüklenir, araç dizininde bağlantısı var; tür varsayımı ve güvenlik notu görünür', async ({ page }) => {
     await page.goto('/araclar/');
-    await page.getByRole('link', { name: /3B cüce vatoz modeli/ }).click();
+    await page.getByRole('link', { name: /3B tatlı su vatozu modeli/ }).click();
     await expect(page).toHaveURL(/3d-vatoz/);
-    await expect(page.locator('h1')).toHaveText('3B cüce vatoz modeli');
+    await expect(page.locator('h1')).toHaveText('3B tatlı su vatozu modeli');
     await expect(page.getByText('Tür varsayımı.')).toBeVisible();
     await expect(page.locator('#safety')).toContainText('kuyruk dikeni');
     await ready(page);
@@ -92,6 +93,7 @@ test.describe('3B cüce vatoz modeli', () => {
   });
 
   test('alt görünümde erkekte klasper görünür; listeden üst yüz parçası seçilince kamera üste döner', async ({ page }) => {
+    test.slow();
     await page.goto(URL);
     await ready(page);
     await page.getByRole('radio', { name: 'Erkek' }).check();
@@ -104,12 +106,16 @@ test.describe('3B cüce vatoz modeli', () => {
   });
 
   test('desen seçimi, yüzme ve otomatik döndürme anahtarları, görünüm düğmeleri', async ({ page }) => {
+    test.slow();
     await page.goto(URL);
     await ready(page);
     await page.selectOption('#variant', 'motoro');
     await expect(page.locator('#stage')).toHaveAttribute('data-variant', 'motoro');
     await expect(page.locator('#sexnote')).toContainText('Motoro');
+    await expect(page.locator('#sexnote')).not.toContainText('Kaynakla doğrulanmalı');
+    await page.selectOption('#variant', 'albino');
     await expect(page.locator('#sexnote')).toContainText('Kaynakla doğrulanmalı');
+    await page.selectOption('#variant', 'motoro');
     await page.uncheck('#swim');
     await expect(page.locator('#stage')).toHaveAttribute('data-swim', 'off');
     await page.check('#rot');
@@ -121,6 +127,29 @@ test.describe('3B cüce vatoz modeli', () => {
       await page.locator(`.v3-btn[data-view=${v}]`).click();
       await expect(page.locator('#stage')).toHaveAttribute('data-view', v);
     }
+  });
+
+  test('Numaraları göster: kapatınca noktalar gizlenir, liste seçimi çalışır, tercih hatırlanır', async ({ page }) => {
+    test.slow();
+    await page.goto(URL);
+    await ready(page);
+    await goView(page, 'ust');
+    await expect(page.locator('#hotspots')).toBeChecked();
+    expect((await visibleParts(page)).length).toBeGreaterThan(0);
+    await page.uncheck('#hotspots');
+    await expect(page.locator('#stage')).toHaveAttribute('data-hotspots', 'off');
+    await expect.poll(() => visibleParts(page)).toEqual([]);
+    await expect(page.locator('.v3-hot[aria-hidden=true]:not([hidden])')).toHaveCount(0);
+    await page.locator('.v3-part[data-part=goz]').click();
+    await expect(page.locator('#detail h3')).toHaveText('Gözler (üstte)');
+    await page.reload();
+    await page.evaluate(() => document.getElementById('stage')?.scrollIntoView()); // geri yüklenen kaydırma konumu modeli tembel yüklemeden uzak tutabilir
+    await ready(page);
+    await expect(page.locator('#hotspots')).not.toBeChecked();
+    expect(await visibleParts(page)).toEqual([]);
+    await page.check('#hotspots');
+    await page.evaluate(() => document.getElementById('stage')?.scrollIntoView()); // kare döngüsü yalnızca görünürken çalışır
+    await expect.poll(async () => (await visibleParts(page)).length, { timeout: 20_000 }).toBeGreaterThan(0);
   });
 
   test('her desen seçilebilir ve hata vermeden yüklenir', async ({ page }) => {

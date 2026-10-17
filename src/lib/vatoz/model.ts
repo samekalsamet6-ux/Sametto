@@ -1,4 +1,4 @@
-// Cüce vatoz (Potamotrygon cinsinin küçük türleri; şematik) 3B modeli için SAF geometri parametreleri.
+// Tatlı su vatozu (genel Potamotrygon benzeri disk; şematik) 3B modeli için SAF geometri parametreleri.
 // DOM ve three.js kullanılmaz: böylece birim testlenebilir, SVG yedeği de aynı sayılardan üretilir.
 //
 // Koordinatlar: x gövde ekseni (burun -x, kuyruk +x), y yukarı (sırt yüzü +y, karın yüzü -y), z yanal.

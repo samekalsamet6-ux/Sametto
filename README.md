@@ -15,7 +15,7 @@ Lepistes (guppy, *Poecilia reticulata*) üretimi için Türkçe **rehber**, **wi
 | Seviye testi | `/seviye-testi` | 18 soruluk yönlendirme testi |
 | SSS, Sözlük, Kaynaklar | `/sss`, `/sozluk`, `/kaynaklar` | |
 
-**Araçlar:** akvaryum hacmi · su değişimi · balık sayısı planlayıcı · gebelik/doğum takvimi · yem planlayıcı · bakım takvimi (.ics) · azot döngüsü takipçisi · yavru büyüme takipçisi · maliyet ve kârlılık · etiket oranı ölçekleyici (doz önermez) · pedigri çizici · Punnett hesaplayıcı · inbreeding (Wright F) · 3B lepistes modeli (etkileşimli anatomi; 29 şematik renk varyetesi, aynı standart gövde ve kuyruk biçimiyle) · 3B cüce vatoz modeli (üst/alt yüz anatomisi, klasper, kuyruk dikeni; 6 şematik desen, "cüce" tür varsayımı sayfada belirtilir).
+**Araçlar:** akvaryum hacmi · su değişimi · balık sayısı planlayıcı · gebelik/doğum takvimi · yem planlayıcı · bakım takvimi (.ics) · azot döngüsü takipçisi · yavru büyüme takipçisi · maliyet ve kârlılık · etiket oranı ölçekleyici (doz önermez) · pedigri çizici · Punnett hesaplayıcı · inbreeding (Wright F) · 3B lepistes modeli (etkileşimli anatomi; 29 şematik renk varyetesi, aynı standart gövde ve kuyruk biçimiyle) · 3B tatlı su vatozu modeli (üst/alt yüz anatomisi, klasper, kuyruk dikeni; 6 şematik desen: motoro, leopoldi, cururu vb.; genel Potamotrygon benzeri disk, tür kimliği kaynakla doğrulanmalı).
 
 Tüm hesaplar tarayıcıda yapılır; hesap/giriş yoktur, veriler sunucuya gönderilmez (takipçi verisi yalnızca `localStorage`'da tutulur).
 

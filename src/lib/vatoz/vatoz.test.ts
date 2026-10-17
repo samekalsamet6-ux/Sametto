@@ -233,7 +233,7 @@ describe('varyeteler', () => {
     expect(new Set(ids).size).toBe(ids.length);
     expect(new Set(VARIANTS.map((v) => v.ad)).size).toBe(ids.length);
     expect(ids.length).toBeGreaterThanOrEqual(5);
-    expect(VARIANTS[0].id).toBe('wallacei');
+    expect(VARIANTS[0].id).toBe('motoro');
     for (const v of VARIANTS) {
       expect(v.id).toMatch(/^[a-z]+(-[a-z]+)*$/);
       expect(VARIANT_GROUPS as readonly string[]).toContain(v.grup);
@@ -245,20 +245,19 @@ describe('varyeteler', () => {
       for (const l of v.desen) expect(l.rho[0]).toBeLessThan(l.rho[1]), expect(l.rho[1]).toBeLessThanOrEqual(1);
     }
   });
-  it('yalnızca tür tanımına dayanan ilk varyete doğrulanmalı değil; başka türlere ait desen tipleri dürüstçe işaretli', () => {
-    expect(variantById('wallacei').dogrulanmali).toBe(false);
-    for (const id of ['motoro', 'leopoldi', 'retikule', 'albino', 'koyu-benekli']) {
-      const v = variantById(id);
-      expect(v.dogrulanmali, id).toBe(true);
-    }
-    for (const id of ['motoro', 'leopoldi']) expect(variantById(id).aciklama).toMatch(/daha büyük|cüce türün olağan deseni değil/);
-    expect(variantById('albino').goz.iris).not.toBe(variantById('wallacei').goz.iris);
+  it('kaynakla desteklenen türler doğrulanmalı değil; belirsiz adlar ve albino işaretli; "cüce" varsayımı yok', () => {
+    for (const id of ['motoro', 'leopoldi', 'wallacei']) expect(variantById(id).dogrulanmali, id).toBe(false);
+    for (const id of ['retikule', 'marmorlu', 'albino']) expect(variantById(id).dogrulanmali, id).toBe(true);
+    for (const v of VARIANTS) expect(`${v.ad} ${v.aciklama}`, v.id).not.toMatch(/cüce/i);
+    expect(variantById('leopoldi').aciklama).toMatch(/Black Diamond/);
+    expect(variantById('wallacei').aciklama).toMatch(/hystrix/);
+    expect(variantById('albino').goz.iris).not.toBe(variantById('motoro').goz.iris);
   });
   it('gruplama ve bilinmeyen kimlik davranışı', () => {
     const g = groupedVariants();
     expect(g.flatMap((x) => x.items).length).toBe(VARIANTS.length);
     for (const x of g) expect(x.items.length).toBeGreaterThan(0);
-    expect(variantById('yok').id).toBe('wallacei');
+    expect(variantById('yok').id).toBe('motoro');
     expect(hexToRgb('#ff8000')).toEqual([1, 128 / 255, 0]);
     expect(() => hexToRgb('kırmızı')).toThrow(RangeError);
   });
