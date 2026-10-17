@@ -65,63 +65,65 @@ export function paintBody(variant: Variant, sex: Sex, W = 1024): BodyTextures {
   c.fillRect(0, half * 0.7, W, half * 0.3);
 
   // ---- renkli desen (erkekte arka yarı güçlü; dişide çok hafif)
-  const x0 = W * 0.3; // desen başlangıcı
+  const [mBas, mGenis] = variant.maske ?? [0.3, 0.45];
+  const x0 = W * mBas; // desen başlangıcı
   const span = W - x0;
   const strength = male ? 1 : 0.18;
   c.save();
   // arka yarıya doğru artan maske için çizimleri ayrı katmanda yap
   const layer = makeCanvas(W, half);
   const l = layer.getContext('2d')!;
-  const id = variant.id;
-  if (id === 'mozaik') {
-    for (let i = 0; i < 120; i++) {
-      const col = variant.vurgu[Math.floor(rnd() * variant.vurgu.length)];
-      blob(l, x0 + rnd() * span, rnd() * half, 16 + rnd() * 46, 12 + rnd() * 30, col, 0.5 + rnd() * 0.35);
-    }
-  } else if (id === 'cobra') {
-    l.fillStyle = hexA(variant.erkek.yan, 0.9);
-    l.fillRect(x0, 0, span, half);
-    blob(l, W * 0.62, half * 0.62, 190, 70, '#f6c15a', 0.75);
-    l.strokeStyle = hexA('#101010', 0.62);
-    l.lineWidth = 3.2;
-    for (let row = 0; row < 7; row++) {
-      for (let col = 0; col < 18; col++) {
-        const cx = x0 + col * 34 + (row % 2 ? 17 : 0) + (rnd() - 0.5) * 4;
-        const cy = row * 40 + 14 + (rnd() - 0.5) * 3;
-        l.beginPath();
-        l.ellipse(cx, cy, 12 + rnd() * 3, 12.5 + rnd() * 3, 0, 0, Math.PI * 2);
-        l.stroke();
-        if (rnd() > 0.55) { l.fillStyle = hexA('#101010', 0.5); l.beginPath(); l.arc(cx, cy, 3, 0, Math.PI * 2); l.fill(); }
+  for (const ly of variant.desen) {
+    if (ly.t === 'zemin') {
+      l.fillStyle = hexA(ly.renk, ly.a);
+      l.fillRect(x0, 0, span, half);
+    } else if (ly.t === 'blob') {
+      blob(l, W * ly.x, half * ly.y, ly.rx, ly.ry, ly.renk, ly.a);
+    } else if (ly.t === 'leke') {
+      const cols = ly.renkler ?? variant.vurgu;
+      for (let i = 0; i < ly.n; i++) {
+        const col = cols.length > 1 ? cols[Math.floor(rnd() * cols.length)] : cols[0];
+        const bx = x0 + rnd() * span, by = rnd() * half;
+        const rx = ly.rx[0] + rnd() * ly.rx[1], ry = ly.ry[0] + rnd() * ly.ry[1];
+        const al = ly.a[0] + (ly.a[1] > 0 ? rnd() * ly.a[1] : 0);
+        blob(l, bx, by, rx, ry, col, al);
+      }
+    } else if (ly.t === 'nokta') {
+      for (let i = 0; i < ly.n; i++) {
+        const r = ly.r[0] + rnd() * ly.r[1];
+        l.fillStyle = hexA(ly.renk, ly.a[0] + rnd() * ly.a[1]);
+        l.beginPath(); l.arc(x0 + rnd() * span, rnd() * half, r, 0, Math.PI * 2); l.fill();
+      }
+    } else if (ly.t === 'halka') {
+      const adim = ly.adim ?? 34, yr = ly.yaricap ?? 12, dy = (adim * 40) / 34, rows = Math.ceil(half / dy), cols = Math.round(612 / adim);
+      l.strokeStyle = hexA(ly.renk, ly.a);
+      l.lineWidth = 3.2;
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const cx = x0 + col * adim + (row % 2 ? adim / 2 : 0) + (rnd() - 0.5) * 4;
+          const cy = row * dy + 14 + (rnd() - 0.5) * 3;
+          l.beginPath();
+          l.ellipse(cx, cy, yr + rnd() * 3, yr + 0.5 + rnd() * 3, 0, 0, Math.PI * 2);
+          l.stroke();
+          if (rnd() > 0.55) { l.fillStyle = hexA(ly.renk, ly.a * 0.806); l.beginPath(); l.arc(cx, cy, 3, 0, Math.PI * 2); l.fill(); }
+        }
+      }
+    } else if (ly.t === 'cubuk') {
+      l.fillStyle = hexA(ly.renk, ly.a);
+      l.beginPath(); l.ellipse(W * ly.x, half * ly.y, ly.rx, half * ly.ry, 0, 0, Math.PI * 2); l.fill();
+    } else if (ly.t === 'leopar') {
+      for (let i = 0; i < ly.n; i++) {
+        const bx = x0 + 30 + rnd() * (span - 60), by = 24 + rnd() * (half - 48), r = 11 + rnd() * 10;
+        blob(l, bx, by, r * 0.9, r * 0.8, ly.ic, 0.6);
+        l.strokeStyle = hexA(ly.renk, 0.88);
+        l.lineWidth = 3.4 + rnd() * 1.6;
+        l.beginPath(); l.ellipse(bx, by, r, r * 0.88, rnd() * 3, 0.3, Math.PI * 2 - 0.3 + rnd() * 0.5); l.stroke();
       }
     }
-  } else if (id === 'blue-grass') {
-    l.fillStyle = hexA(variant.erkek.yan, 0.9);
-    l.fillRect(x0, 0, span, half);
-    blob(l, W * 0.7, half * 0.5, 210, 80, '#3f74e8', 0.8);
-    for (let i = 0; i < 1800; i++) {
-      const r = 1.1 + rnd() * 2.1;
-      l.fillStyle = hexA('#060b22', 0.45 + rnd() * 0.5);
-      l.beginPath(); l.arc(x0 + rnd() * span, rnd() * half, r, 0, Math.PI * 2); l.fill();
-    }
-    for (let i = 0; i < 60; i++) blob(l, x0 + rnd() * span, rnd() * half, 10 + rnd() * 18, 8 + rnd() * 10, '#9fc4ff', 0.35);
-  } else if (id === 'albino') {
-    blob(l, W * 0.72, half * 0.55, 240, 90, '#f7dba8', 0.6);
-    blob(l, W * 0.55, half * 0.2, 160, 50, '#f4c4b2', 0.35);
-  } else if (id === 'endler') {
-    blob(l, W * 0.62, half * 0.62, 200, 64, '#ff7a12', 0.92);
-    blob(l, W * 0.8, half * 0.45, 130, 50, '#ff8a1f', 0.85);
-    blob(l, W * 0.46, half * 0.8, 120, 36, '#2fd06a', 0.75);
-    blob(l, W * 0.55, half * 0.32, 150, 36, '#35c9e8', 0.5);
-    for (let i = 0; i < 3; i++) {
-      const bx = W * (0.5 + i * 0.13);
-      l.fillStyle = hexA('#0a0a0a', 0.78);
-      l.beginPath(); l.ellipse(bx, half * 0.7, 9, half * 0.34, 0, 0, Math.PI * 2); l.fill();
-    }
-    blob(l, W * 0.4, half * 0.62, 24, 22, '#0a0a0a', 0.85);
   }
   // maske: x0'dan itibaren artan
   l.globalCompositeOperation = 'destination-in';
-  const mask = l.createLinearGradient(x0, 0, x0 + span * 0.45, 0);
+  const mask = l.createLinearGradient(x0, 0, x0 + span * mGenis, 0);
   mask.addColorStop(0, 'rgba(0,0,0,0)');
   mask.addColorStop(1, 'rgba(0,0,0,1)');
   l.fillStyle = mask;

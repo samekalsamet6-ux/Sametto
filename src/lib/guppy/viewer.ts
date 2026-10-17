@@ -3,7 +3,7 @@ import {
   ACESFilmicToneMapping, AmbientLight, BufferAttribute, BufferGeometry, CatmullRomCurve3, Color, DirectionalLight, DoubleSide,
   Float32BufferAttribute, Group, HemisphereLight, LineBasicMaterial, LineSegments, Material, Mesh, MeshPhysicalMaterial,
   MeshStandardMaterial, PerspectiveCamera, PMREMGenerator, Quaternion, Scene, SRGBColorSpace, SphereGeometry, TubeGeometry, Vector3,
-  WebGLRenderer, CanvasTexture, Box3, Texture, Sphere,
+  WebGLRenderer, CanvasTexture, Box3, Texture, Sphere, Raycaster,
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
@@ -178,7 +178,21 @@ function tubeFrom(points: Vec3[], radius: number, segs = 24): BufferGeometry {
 
 // ------------------------------------------------------------------ balığı kur
 
+/**
+ * Kameradan hedef noktaya çizilen ışın, hedefe varmadan `occluder` ağını kesiyorsa nokta gizlidir.
+ * `tol`: hedefin kendi yüzeyinde olması durumunda yanlış gizlemeyi önleyen pay (dünya birimi).
+ */
+export function isOccluded(occluder: Mesh, from: Vector3, to: Vector3, tol: number, rc = new Raycaster()): boolean {
+  const dir = to.clone().sub(from);
+  const dist = dir.length();
+  if (dist <= tol) return false;
+  rc.set(from, dir.divideScalar(dist));
+  rc.near = 0; rc.far = dist - tol;
+  return rc.intersectObject(occluder, false).length > 0;
+}
+
 interface Built {
+  body: Mesh;
   group: Group;
   anchors: Partial<Record<PartId, Anchor>>;
   textures: Texture[];
@@ -208,10 +222,10 @@ export function buildFish(sex: Sex, variantId: string, u: SwimUniforms, texW: nu
   bump.anisotropy = 4; bump.flipY = false;
   textures.push(map, bump);
   const body = swimify(new MeshPhysicalMaterial({
-    map, bumpMap: bump, bumpScale: 1.6, roughness: 0.34, metalness: 0.08,
-    clearcoat: 0.4, clearcoatRoughness: 0.3, iridescence: 0.25, iridescenceIOR: 1.35, envMapIntensity: 0.55,
+    map, bumpMap: bump, bumpScale: 1.6, roughness: 0.34 - 0.14 * (variant.metal ?? 0), metalness: 0.08 + 0.5 * (variant.metal ?? 0),
+    clearcoat: 0.4, clearcoatRoughness: 0.3, iridescence: 0.25 + 0.3 * (variant.metal ?? 0), iridescenceIOR: 1.35, envMapIntensity: 0.55,
   }), u);
-  add(bodyGeometry(sex), body);
+  const bodyMesh = add(bodyGeometry(sex), body) as Mesh;
 
   // göz
   const eye = eyeSpec(sex);
@@ -308,7 +322,7 @@ export function buildFish(sex: Sex, variantId: string, u: SwimUniforms, texW: nu
   const box = new Box3().setFromObject(group);
   const bounds = new Sphere();
   box.getBoundingSphere(bounds);
-  return { group, anchors: partAnchors(sex), textures, bounds, center: box.getCenter(new Vector3()) };
+  return { body: bodyMesh, group, anchors: partAnchors(sex), textures, bounds, center: box.getCenter(new Vector3()) };
 }
 
 function disposeGroup(g: Group, textures: Texture[]) {
@@ -463,8 +477,21 @@ export function createViewer(opts: ViewerOptions): Viewer {
   };
 
   const tmp = new Vector3();
+  const rc = new Raycaster();
+  const occ = new Map<PartId, boolean>();
+  let occKey = '', occAt = 0;
   const updateHotspots = () => {
     if (!built) return;
+    // gizlenme (occlusion) hesabı yalnızca kamera/model değişince yenilenir
+    const cp = camera.position;
+    const key = `${cp.x.toFixed(3)},${cp.y.toFixed(3)},${cp.z.toFixed(3)}|${sex}|${variant}`;
+    const nowMs = performance.now();
+    // kamera sürekli dönerken (otomatik döndürme/sürükleme) en fazla ~8 Hz yenile; durunca son konumda kesin hesapla
+    let recompute = false;
+    if (key !== occKey) {
+      if (nowMs - occAt > 120) { recompute = true; occKey = key; occAt = nowMs; built.group.updateMatrixWorld(true); }
+      else invalidate(); // son konumda kesin hesap için bir kare daha iste
+    }
     const w = canvas.clientWidth, h = canvas.clientHeight;
     const side = camera.position.z >= 0 ? 1 : -1;
     const ampNow = uniforms.uAmp.value;
@@ -477,11 +504,18 @@ export function createViewer(opts: ViewerOptions): Viewer {
       let facing = true;
       if (a.normal) {
         const n = new Vector3(a.normal[0], a.normal[1], mirror ? -a.normal[2] : a.normal[2]);
-        facing = n.dot(camera.position.clone().sub(tmp).normalize()) > -0.28;
+        facing = n.dot(camera.position.clone().sub(tmp).normalize()) > 0;
       }
+      if (recompute && !facing) occ.set(id, false);
+      if (facing && recompute) {
+        // yüzeydeki/yüzeye yakın çapa gövdenin arkasında kalıyorsa gizle (yüzme sapması yok sayılır)
+        occ.set(id, isOccluded(built.body, camera.position, new Vector3(a.pos[0], a.pos[1], mirror ? -a.pos[2] : a.pos[2]), radius * 0.045, rc));
+      }
+      if (facing && occ.get(id)) facing = false;
       tmp.project(camera);
       const onScreen = tmp.z < 1 && Math.abs(tmp.x) < 1.02 && Math.abs(tmp.y) < 1.02;
       btn.hidden = !(facing && onScreen);
+      btn.setAttribute('aria-hidden', 'true');
       if (!btn.hidden) btn.style.transform = `translate(${((tmp.x * 0.5 + 0.5) * w).toFixed(1)}px, ${((-tmp.y * 0.5 + 0.5) * h).toFixed(1)}px) translate(-50%, -50%)`;
     }
   };

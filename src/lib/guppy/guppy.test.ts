@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { existsSync } from 'node:fs';
 import {
   BODY, DORSAL, SEXES, SWIM, TAIL, analFin, bodyProfile, bodySurfacePoint, dorsalFin, envelope, eyeSpec, fanFin, gonopodium,
   mouthLine, operculumEdge, pectoralFin, pelvicFin, silhouette, swimOffsetZ, tailFin, type Sex, type Vec3,
 } from './model';
 import { PARTS, partAnchors, partsFor } from './parts';
-import { VARIANTS, finColor, hexToRgb, mulberry32, variantById } from './variants';
+import { VARIANTS, VARIANT_GROUPS, groupedVariants, finColor, hexToRgb, mulberry32, variantById } from './variants';
 
 const finite = (v: readonly number[]) => v.every((n) => Number.isFinite(n));
 
@@ -226,14 +226,55 @@ describe('anatomi parçaları', () => {
 });
 
 describe('renk varyeteleri', () => {
-  it('beş varyete, kimlikler benzersiz, tüm renkler geçerli', () => {
-    expect(VARIANTS.map((v) => v.id).sort()).toEqual(['albino', 'blue-grass', 'cobra', 'endler', 'mozaik']);
+  it('varyete sayısı, kimlikler benzersiz, eski beş varyete duruyor, tüm renkler geçerli', () => {
+    const ids = VARIANTS.map((v) => v.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.length).toBeGreaterThanOrEqual(25);
+    for (const id of ['mozaik', 'cobra', 'blue-grass', 'albino', 'endler', 'full-red', 'red-tuxedo', 'moscow-blue', 'leopard', 'platinum']) expect(ids).toContain(id);
+    expect(VARIANTS[0].id).toBe('mozaik');
+    const adlar = VARIANTS.map((v) => v.ad);
+    expect(new Set(adlar).size).toBe(adlar.length);
     for (const v of VARIANTS) {
+      expect(v.id, v.id).toMatch(/^[a-z]+(-[a-z]+)*$/);
+      expect(VARIANT_GROUPS as readonly string[], v.id).toContain(v.grup);
       const hex = [...Object.values(v.goz), ...Object.values(v.erkek), ...Object.values(v.disi), v.yuzgec.taban, v.yuzgec.uc, v.yuzgec.benek, ...v.vurgu];
-      for (const h of hex) expect(() => hexToRgb(h), `${v.id} ${h}`).not.toThrow();
+      const layers = v.desen.flatMap((l) => ('renk' in l ? [l.renk] : []).concat('ic' in l ? [l.ic] : []).concat('renkler' in l && l.renkler ? l.renkler : []));
+      for (const h of [...hex, ...layers]) expect(() => hexToRgb(h), `${v.id} ${h}`).not.toThrow();
       expect(v.aciklama.length).toBeGreaterThan(20);
+      expect(v.yuzgec.opaklik).toBeGreaterThan(0.3); expect(v.yuzgec.opaklik).toBeLessThanOrEqual(1);
+      if (v.metal !== undefined) { expect(v.metal).toBeGreaterThanOrEqual(0); expect(v.metal).toBeLessThanOrEqual(1); }
+      if (v.maske) { expect(v.maske[0]).toBeGreaterThanOrEqual(0.2); expect(v.maske[0]).toBeLessThan(0.9); expect(v.maske[1]).toBeGreaterThan(0); expect(v.maske[1]).toBeLessThanOrEqual(1); }
       if (v.wiki) expect(existsSync(`src/content/wiki/${v.wiki}.mdx`)).toBe(true);
     }
+  });
+  it('dişi paletleri erkekten daha soluk (renk doygunluğu düşük)', () => {
+    const chroma = (h: string) => { const c = hexToRgb(h); return Math.max(...c) - Math.min(...c); };
+    for (const v of VARIANTS) {
+      expect(chroma(v.disi.yan), `${v.id} yan`).toBeLessThanOrEqual(chroma(v.erkek.yan) + 0.02);
+      expect(chroma(v.disi.sirt), `${v.id} sırt`).toBeLessThanOrEqual(chroma(v.erkek.sirt) + 0.05);
+      expect(chroma(v.disi.yan), `${v.id} mutlak`).toBeLessThan(0.3);
+    }
+  });
+  it('gruplama: her varyete tam bir grupta, boş grup yok', () => {
+    const g = groupedVariants();
+    expect(g.flatMap((x) => x.items).length).toBe(VARIANTS.length);
+    for (const x of g) expect(x.items.length).toBeGreaterThan(0);
+  });
+  it('tüm varyeteler her iki cinsiyette gövde dokusunu hatasız boyar (sahte canvas)', async () => {
+    const calls = { n: 0 };
+    const ctx: any = new Proxy({}, {
+      get: (t: any, k) => (k in t ? t[k] : k === 'createLinearGradient' || k === 'createRadialGradient' ? () => ({ addColorStop: () => {} }) : () => { calls.n++; }),
+      set: (t: any, k, val) => { t[k] = val; return true; },
+    });
+    vi.stubGlobal('document', { createElement: () => ({ width: 0, height: 0, getContext: () => ctx }) });
+    try {
+      const { paintBody } = await import('./texture');
+      for (const v of VARIANTS) for (const sex of ['erkek', 'disi'] as const) {
+        const t = paintBody(v, sex, 256);
+        expect(t.map.width, `${v.id} ${sex}`).toBe(256);
+      }
+      expect(calls.n).toBeGreaterThan(1000);
+    } finally { vi.unstubAllGlobals(); }
   });
   it('hexToRgb ve bilinmeyen kimlik davranışı', () => {
     expect(hexToRgb('#ff8000')).toEqual([1, 128 / 255, 0]);
@@ -256,6 +297,19 @@ describe('renk varyeteleri', () => {
     expect(finColor(v, 'erkek', 'kuyruk', 0.4, 0.3)).toEqual(finColor(v, 'erkek', 'kuyruk', 0.4, 0.3));
     const a = mulberry32(7), b = mulberry32(7);
     for (let i = 0; i < 5; i++) { const x = a(); expect(x).toBe(b()); expect(x).toBeGreaterThanOrEqual(0); expect(x).toBeLessThan(1); }
+  });
+});
+
+describe('çapa gizlenmesi (occlusion)', () => {
+  it('kürenin arkasındaki nokta gizli, önündeki ve yüzeyindeki görünür', async () => {
+    const { Mesh, SphereGeometry, Vector3 } = await import('three');
+    const { isOccluded } = await import('./viewer');
+    const m = new Mesh(new SphereGeometry(1, 24, 16)); m.updateMatrixWorld(true);
+    const cam = new Vector3(0, 0, 5);
+    expect(isOccluded(m, cam, new Vector3(0, 0, -1), 0.05)).toBe(true);   // arka yüzey
+    expect(isOccluded(m, cam, new Vector3(0, 0, 1), 0.05)).toBe(false);   // ön yüzey
+    expect(isOccluded(m, cam, new Vector3(0, 0, 1.2), 0.05)).toBe(false); // yüzeyin biraz önü
+    expect(isOccluded(m, cam, new Vector3(3, 0, 0), 0.05)).toBe(false);   // yan, ışın küreyi kesmez
   });
 });
 

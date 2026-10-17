@@ -1,7 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { PARTS } from '../../lib/guppy/parts';
-import { VARIANTS } from '../../lib/guppy/variants';
+import { VARIANTS, groupedVariants } from '../../lib/guppy/variants';
 import { silhouette, type Sex, type Vec2 } from '../../lib/guppy/model';
 
 // WebGL kullanılamadığında gösterilen statik SVG: 3B modelle aynı sayılardan türetilir.
@@ -31,7 +31,7 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
       <label><input type="radio" name="sex" value="disi" /> Dişi</label>
     </fieldset>
     <label class="g3-sel">Renk varyetesi
-      <select id="variant">{VARIANTS.map((v) => <option value={v.id}>{v.ad}</option>)}</select>
+      <select id="variant">{groupedVariants().map((g) => <optgroup label={g.grup}>{g.items.map((v) => <option value={v.id}>{v.ad}</option>)}</optgroup>)}</select>
     </label>
     <label class="g3-chk"><input type="checkbox" id="swim" /> Yüzme animasyonu</label>
     <label class="g3-chk"><input type="checkbox" id="rot" /> Otomatik döndür</label>
@@ -101,7 +101,8 @@ const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
   </details>
 
   <h2>Renk varyeteleri</h2>
-  <ul>{VARIANTS.map((v) => <li><strong>{v.ad}:</strong> {v.aciklama}</li>)}</ul>
+  <p class="muted">{VARIANTS.length} şematik renk varyetesi; hepsi aynı standart gövde ve delta kuyruk biçimini paylaşır, yalnızca renk ve desen değişir. Biçimi farklı olanlar (veiltail, lyretail, kılıç kuyruk, dumbo kulak, yuvarlak kuyruk, uzun yüzgeç vb.) bu listede yoktur. Tanımlar hobi kaynaklarındaki ortak anlatımlara dayanan şematik yorumlardır; adlandırma ve renk tarifleri yetiştiriciye göre değişebilir.</p>
+  {groupedVariants().map((g) => (<><h3>{g.grup}</h3><ul>{g.items.map((v) => <li><strong>{v.ad}:</strong> {v.aciklama}</li>)}</ul></>))}
 
   <div class="callout callout-bilgi">
     <strong>Bu model şematiktir.</strong> Oranlar ve renkler eğitim amaçlı bir yorumdur; gerçek bir balığın ölçüsü ya da yarışma standardı değildir. Erkek–dişi farkını ve anatomiyi anlamak için kullanın. Ayrıntılar: <a href="/wiki/gonopodium">Gonopodium</a>, <a href="/wiki/gravid-spot">Gravid spot</a>, <a href="/rehber/baslangic/01-lepistes-nedir">Lepistes nedir?</a>

@@ -75,6 +75,7 @@ test.describe('3B lepistes modeli', () => {
     await page.uncheck('#swim');
     await expect(page.locator('#stage')).toHaveAttribute('data-swim', 'off');
     await page.check('#rot');
+    await page.locator('#stage').scrollIntoViewIfNeeded(); // dar ekranda sahne ilk açılışta görünüm alanının altında kalabilir
     await expect(page.locator('#stage')).toHaveAttribute('data-rotate', 'on');
     const f0 = Number(await page.locator('#cv').getAttribute('data-frames'));
     await expect.poll(async () => Number(await page.locator('#cv').getAttribute('data-frames'))).toBeGreaterThan(f0 + 2);
@@ -83,6 +84,42 @@ test.describe('3B lepistes modeli', () => {
       await page.locator(`.g3-btn[data-view=${v}]`).click();
       await expect(page.locator('#stage')).toHaveAttribute('data-view', v);
     }
+  });
+
+  test('tüm varyeteler gruplu listede; her biri hatasız yüklenir', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(URL);
+    await ready(page);
+    expect(await page.locator('#variant optgroup').count()).toBeGreaterThanOrEqual(4);
+    const ids = await page.locator('#variant option').evaluateAll((o) => o.map((x) => (x as HTMLOptionElement).value));
+    expect(ids.length).toBeGreaterThanOrEqual(25);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(await page.locator('main li strong').count()).toBeGreaterThanOrEqual(ids.length);
+    await page.uncheck('#swim');
+    for (const id of ids) {
+      await page.selectOption('#variant', id);
+      await expect(page.locator('#stage')).toHaveAttribute('data-variant', id);
+      await page.waitForTimeout(60);
+    }
+    await page.check('input[name=sex][value=disi]');
+    await page.selectOption('#variant', 'moscow-blue');
+    await page.waitForTimeout(300);
+    expect(errors).toEqual([]);
+  });
+
+  test('gövdenin arkasında kalan numaralı noktalar gizlenir', async ({ page }) => {
+    await page.goto(URL);
+    await ready(page);
+    await page.uncheck('#swim');
+    const visible = () => page.locator('.g3-hot:not([hidden])').evaluateAll((b) => b.map((x) => (x as HTMLElement).dataset.part));
+    await page.locator('.g3-btn[data-view=yan]').click();
+    await expect.poll(visible).toContain('gonopodium');
+    await page.locator('.g3-btn[data-view=ust]').click();
+    await expect.poll(visible).not.toContain('gonopodium');
+    await page.locator('.g3-btn[data-view=alt]').click();
+    await expect.poll(visible).not.toContain('sirt-yuzgeci');
+    for (const b of await page.locator('.g3-hot[hidden]').all()) await expect(b).toHaveAttribute('aria-hidden', 'true');
   });
 
   test('tuvale odaklanıp ok tuşları ile döndürülür (kare üretilir)', async ({ page }) => {
