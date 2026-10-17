@@ -27,12 +27,12 @@ test.describe('3B molly modeli', () => {
     await page.goto(URL);
     await ready(page);
     const list = page.locator('#parts li:not([hidden])');
-    await expect(list).toHaveCount(12);
+    await expect(list).toHaveCount(11);
     await expect(page.locator('#parts li[data-part=gonopodium]')).toBeVisible();
     await expect(page.locator('#parts li[data-part=gravid-spot]')).toBeHidden();
     await page.getByRole('radio', { name: 'Dişi' }).check();
     await expect(page.locator('#stage')).toHaveAttribute('data-sex', 'disi');
-    await expect(list).toHaveCount(13);
+    await expect(list).toHaveCount(12);
     await expect(page.locator('#parts li[data-part=gravid-spot]')).toBeVisible();
     await expect(page.locator('#parts li[data-part=gonopodium]')).toBeHidden();
     await expect(page.locator('#sexnote')).toContainText('gravid spot');
