@@ -2,7 +2,7 @@
 // Balık 3B araç sayfalarının ortak iskeleti (betta, neon, corydoras, japon ...). Tür verisi props ile gelir;
 // 3B paket sayfa betiğinde tembel yüklenir (bkz. src/lib/akvaryum/page.ts).
 import Base from '../layouts/Base.astro';
-import type { SpeciesView, SpeciesVariant } from '../lib/akvaryum/types';
+import type { SpeciesView, SpeciesVariant, SpeciesForm } from '../lib/akvaryum/types';
 import type { FishPart } from '../lib/akvaryum/page';
 
 export interface Props {
@@ -23,9 +23,16 @@ export interface Props {
   helpExtra?: string;
   stageLabel: string;
   groupLabels?: boolean;
+  /** Form (şekil) varyeteleri; verilirse "Form" seçicisi ve form listesi gösterilir */
+  forms?: SpeciesForm[];
+  formLabel?: string;
+  formIntro?: string;
 }
 const { title, description, intro, views, sexes, parts, groups, variantIntro, figures, fill, stageLabel } = Astro.props;
 const variantLabel = Astro.props.variantLabel ?? 'Renk / varyete';
+const forms = Astro.props.forms ?? [];
+const formLabel = Astro.props.formLabel ?? 'Form';
+const formGroups = forms.length ? [...new Set(forms.map((f) => f.grup ?? ''))].map((g) => ({ grup: g, items: forms.filter((f) => (f.grup ?? '') === g) })) : [];
 const total = groups.reduce((n, g) => n + g.items.length, 0);
 const first = groups[0].items[0].id;
 const sexName = Object.fromEntries(sexes.map((s) => [s.id, s.ad]));
@@ -47,13 +54,21 @@ const sexName = Object.fromEntries(sexes.map((s) => [s.id, s.ad]));
     <label class="v3-sel">{variantLabel}
       <select id="variant">{groups.map((g) => <optgroup label={g.grup}>{g.items.map((v) => <option value={v.id}>{v.ad}</option>)}</optgroup>)}</select>
     </label>
+    {forms.length > 0 && (
+      <label class="v3-sel">{formLabel}
+        <select id="form">{formGroups.map((g) => g.grup
+          ? <optgroup label={g.grup}>{g.items.map((f) => <option value={f.id}>{f.ad}</option>)}</optgroup>
+          : g.items.map((f) => <option value={f.id}>{f.ad}</option>))}</select>
+      </label>
+    )}
     <label class="v3-chk"><input type="checkbox" id="swim" /> Yüzme animasyonu</label>
     <label class="v3-chk"><input type="checkbox" id="rot" /> Otomatik döndür</label>
     <label class="v3-chk"><input type="checkbox" id="hotspots" checked /> Numaraları göster</label>
   </div>
   <p class="muted v3-note" id="sexnote" aria-live="polite"></p>
+  {forms.length > 0 && <p class="muted v3-note" id="formnote" aria-live="polite"></p>}
 
-  <div class="v3-stage" id="stage" data-sex={sexes[0].id} data-variant={first} data-swim="off" data-rotate="off" data-view="capraz" data-hotspots="on">
+  <div class="v3-stage" id="stage" data-sex={sexes[0].id} data-variant={first} data-form={forms[0]?.id} data-swim="off" data-rotate="off" data-view="capraz" data-hotspots="on">
     <canvas id="cv" tabindex="0" role="img" aria-describedby="v3-help"
       aria-label={`${stageLabel} Etkileşimli 3B model. Ok tuşlarıyla döndürebilir, artı ve eksi tuşlarıyla yakınlaştırabilirsiniz.`}></canvas>
     <div class="v3-hotwrap" id="hot" data-pagefind-ignore></div>
@@ -108,6 +123,12 @@ const sexName = Object.fromEntries(sexes.map((s) => [s.id, s.ad]));
   <h2>Renk varyeteleri</h2>
   <p class="muted" set:html={variantIntro.replace('{n}', String(total))} />
   {groups.map((g) => (<><h3>{g.grup}</h3><ul>{g.items.map((v) => <li><strong>{v.ad}:</strong> {v.aciklama}{v.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</li>)}</ul></>))}
+
+  {forms.length > 0 && (<>
+    <h2>Form (şekil) varyeteleri</h2>
+    {Astro.props.formIntro && <p class="muted" set:html={Astro.props.formIntro} />}
+    {formGroups.map((g) => (<>{g.grup && <h3>{g.grup}</h3>}<ul>{g.items.map((f) => <li><strong>{f.ad}:</strong> {f.aciklama}{f.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</li>)}</ul></>))}
+  </>)}
 
   <slot />
 </Base>

@@ -1,5 +1,5 @@
 // Balık 3B araç sayfalarının ortak istemci mantığı (SpeciesPage.astro ile birlikte çalışır).
-import type { SexId, SpeciesModule, SpeciesPart, SpeciesVariant, SpeciesViewer } from './types';
+import type { SexId, SpeciesForm, SpeciesModule, SpeciesPart, SpeciesVariant, SpeciesViewer } from './types';
 
 export interface FishPart extends SpeciesPart {
   /** Parçayı en iyi gösteren kamera görünümü */
@@ -7,9 +7,11 @@ export interface FishPart extends SpeciesPart {
 }
 
 export interface PageConfig {
-  partsFor(sex: SexId): FishPart[];
+  partsFor(sex: SexId, form?: string): FishPart[];
   parts: FishPart[];
   variants: SpeciesVariant[];
+  /** Form (şekil) varyeteleri; verilirse sayfada #form seçicisi beklenir */
+  forms?: SpeciesForm[];
   sexNotes: Record<SexId, string>;
   defaultSex: SexId;
   defaultView: string;
@@ -27,10 +29,13 @@ export function initSpeciesPage(cfg: PageConfig) {
   let selected: string | null = null;
   let viewer: SpeciesViewer | null = null;
   const variantSel = $<HTMLSelectElement>('variant');
+  const formSel = document.getElementById('form') as HTMLSelectElement | null;
+  const formNote = document.getElementById('formnote');
+  let form: string | undefined = cfg.forms?.[0]?.id;
   const hotChk = $<HTMLInputElement>('hotspots');
 
   function renderList() {
-    const vis = cfg.partsFor(sex).map((p) => p.id);
+    const vis = cfg.partsFor(sex, form).map((p) => p.id);
     document.querySelectorAll<HTMLLIElement>('#parts li').forEach((li) => {
       const i = vis.indexOf(li.dataset.part!);
       li.hidden = i < 0;
@@ -89,7 +94,7 @@ export function initSpeciesPage(cfg: PageConfig) {
     sex = s;
     stage.dataset.sex = s;
     sexnote.textContent = cfg.sexNotes[s] + (announce && stage.dataset.variantTouched ? describeVariant() : '');
-    if (selected && !cfg.partsFor(s).some((p) => p.id === selected)) select(null);
+    if (selected && !cfg.partsFor(s, form).some((p) => p.id === selected)) select(null);
     renderList();
     viewer?.setSex(s);
   }
@@ -102,6 +107,22 @@ export function initSpeciesPage(cfg: PageConfig) {
     status.textContent = '';
     sexnote.textContent = cfg.sexNotes[sex] + describeVariant();
   });
+
+  function describeForm() {
+    const f = cfg.forms?.find((x) => x.id === form);
+    return f ? `Form — ${f.ad}: ${f.aciklama}${f.dogrulanmali ? ' (Kaynakla doğrulanmalı.)' : ''}` : '';
+  }
+  if (formSel && cfg.forms) {
+    if (formNote) formNote.textContent = describeForm();
+    formSel.addEventListener('change', () => {
+      form = formSel.value;
+      stage.dataset.form = form;
+      if (selected && !cfg.partsFor(sex, form).some((p) => p.id === selected)) select(null);
+      renderList();
+      viewer?.setForm?.(form);
+      if (formNote) formNote.textContent = describeForm();
+    });
+  }
 
   const swim = $<HTMLInputElement>('swim'), rot = $<HTMLInputElement>('rot');
   swim.checked = !reduced;
@@ -154,7 +175,7 @@ export function initSpeciesPage(cfg: PageConfig) {
     try {
       const { species } = await cfg.load();
       viewer = species.createViewer({
-        canvas: cv, overlay: hot, sex, variant: variantSel.value, reducedMotion: reduced,
+        canvas: cv, overlay: hot, sex, form, variant: variantSel.value, reducedMotion: reduced,
         onSelect: (id) => select(id),
       });
       viewer.setSwim(swim.checked);

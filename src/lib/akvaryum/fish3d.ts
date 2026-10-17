@@ -55,13 +55,13 @@ export function loftBody(body: Body, NS = 72, NA = 44): BufferGeometry {
   }
   for (let i = 0; i < NS; i++) for (let j = 0; j < NA; j++) {
     const a = i * (NA + 1) + j, b = a + 1, c = a + NA + 1, d = c + 1;
-    idx.push(a, c, b, b, c, d);
+    idx.push(a, b, c, b, d, c);
   }
   // kuyruk sapı kapağı
   const sec = body.section(1), cy = (sec.yTop + sec.yBot) / 2, base = pos.length / 3;
   pos.push(sec.x, cy, 0); uv.push(0.999, 0.25);
   const last = NS * (NA + 1);
-  for (let j = 0; j < NA; j++) idx.push(base, last + j, last + j + 1);
+  for (let j = 0; j < NA; j++) idx.push(base, last + j + 1, last + j);
   const g = new BufferGeometry();
   g.setAttribute('position', new Float32BufferAttribute(pos, 3));
   g.setAttribute('uv', new Float32BufferAttribute(uv, 2));
@@ -169,9 +169,9 @@ export interface FishViewerConfig {
   /** Görünüm kimliği -> [yatay açı, düşey açı] */
   views: Record<string, [number, number]>;
   home: string;
-  parts(sex: SexId): SpeciesPart[];
-  anchors(sex: SexId): Record<string, FishAnchor>;
-  build(sex: SexId, variant: string, u: SwimUniforms, texW: number): FishBuilt;
+  parts(sex: SexId, form?: string): SpeciesPart[];
+  anchors(sex: SexId, form?: string): Record<string, FishAnchor>;
+  build(sex: SexId, variant: string, u: SwimUniforms, texW: number, form?: string): FishBuilt;
 }
 
 export function proxyFrom(geo: BufferGeometry): { mesh: Mesh; base: Float32Array } {
@@ -200,8 +200,8 @@ export function createFishViewer(opts: SpeciesViewerOptions, cfg: FishViewerConf
   const key = new DirectionalLight(0xffffff, 1.7);
   key.position.set(2, 5, 4);
   scene.add(key);
-  const fill = new DirectionalLight(0xffe8c8, 0.7);
-  fill.position.set(-3, -2, 3);
+  const fill = new DirectionalLight(0xffe8c8, 0.95);
+  fill.position.set(-1, -5, 2);
   scene.add(fill);
   const rim = new DirectionalLight(0x9fd8ff, 0.9);
   rim.position.set(-4, 2, -4);
@@ -216,7 +216,7 @@ export function createFishViewer(opts: SpeciesViewerOptions, cfg: FishViewerConf
   controls.autoRotateSpeed = 2.2;
 
   const uniforms: SwimUniforms = { uTime: { value: 0 }, uAmp: { value: 0 } };
-  let sex = opts.sex, variant = opts.variant;
+  let sex = opts.sex, variant = opts.variant, form = opts.form;
   let built: FishBuilt | null = null;
   let anchors: Record<string, FishAnchor> = {};
   let swimOn = false, selected: string | null = null, hotOn = true;
@@ -229,7 +229,7 @@ export function createFishViewer(opts: SpeciesViewerOptions, cfg: FishViewerConf
   const rebuildHotspots = () => {
     overlay.textContent = '';
     hotspots.clear();
-    cfg.parts(sex).forEach((p, i) => {
+    cfg.parts(sex, form).forEach((p, i) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'v3-hot';
@@ -267,8 +267,8 @@ export function createFishViewer(opts: SpeciesViewerOptions, cfg: FishViewerConf
   const load = (first: boolean) => {
     const old = built;
     if (old) { scene.remove(old.group); disposeGroup(old.group, old.textures, old.proxy.map((p) => p.mesh)); }
-    built = cfg.build(sex, variant, uniforms, texW);
-    anchors = cfg.anchors(sex);
+    built = cfg.build(sex, variant, uniforms, texW, form);
+    anchors = cfg.anchors(sex, form);
     scene.add(built.group);
     const box = new Box3().setFromObject(built.group);
     const sph = new Sphere();
@@ -378,7 +378,7 @@ export function createFishViewer(opts: SpeciesViewerOptions, cfg: FishViewerConf
   controls.addEventListener('change', invalidate);
   const ro = new ResizeObserver(resize);
   ro.observe(canvas);
-  const io = new IntersectionObserver((e) => { visible = e[0]?.isIntersecting ?? true; if (visible) invalidate(); });
+  const io = new IntersectionObserver((e) => { visible = e[e.length - 1]?.isIntersecting ?? true; if (visible) invalidate(); });
   io.observe(canvas);
   const onVis = () => { if (!document.hidden) invalidate(); };
   document.addEventListener('visibilitychange', onVis);
@@ -400,7 +400,13 @@ export function createFishViewer(opts: SpeciesViewerOptions, cfg: FishViewerConf
     setSex(s) {
       if (s === sex) return;
       sex = s;
-      if (selected && !cfg.parts(sex).some((p) => p.id === selected)) { selected = null; opts.onSelect(null, false); }
+      if (selected && !cfg.parts(sex, form).some((p) => p.id === selected)) { selected = null; opts.onSelect(null, false); }
+      load(false);
+    },
+    setForm(f) {
+      if (f === form) return;
+      form = f;
+      if (selected && !cfg.parts(sex, form).some((p) => p.id === selected)) { selected = null; opts.onSelect(null, false); }
       load(false);
     },
     setVariant(v) { if (v !== variant) { variant = v; load(false); } },
