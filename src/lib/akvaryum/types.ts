@@ -22,10 +22,24 @@ export interface SpeciesVariant {
   dogrulanmali?: boolean;
 }
 
+/**
+ * Form (şekil) varyetesi: vücut/yüzgeç/kuyruk geometrisini değiştirir (ör. lepistes: delta, fil kulak, lyretail;
+ * betta: plakat, halfmoon, crowntail). Renk varyetesinden bağımsızdır: her form her renkle birleştirilebilir.
+ */
+export interface SpeciesForm {
+  id: string;
+  ad: string;
+  aciklama: string;
+  grup?: string;
+  dogrulanmali?: boolean;
+}
+
 export interface SpeciesViewerOptions {
   canvas: HTMLCanvasElement;
   overlay: HTMLElement;
   sex: SexId;
+  /** Form varyetesi kimliği (SpeciesModule.forms[].id); yoksa standart form */
+  form?: string;
   variant: string;
   reducedMotion: boolean;
   onSelect: (id: string | null, fromUser: boolean) => void;
@@ -34,6 +48,8 @@ export interface SpeciesViewerOptions {
 export interface SpeciesViewer {
   setSex(s: SexId): void;
   setVariant(v: string): void;
+  /** Form (şekil) varyetesini değiştirir; renk varyetesi korunur. */
+  setForm?(f: string): void;
   setAutoRotate(on: boolean): void;
   setSwim(on: boolean): void;
   /** Numaralı noktaları aç/kapat. Kapalıyken noktalar görünmez ve tıklanamaz; parça listesi çalışmaya devam eder. */
@@ -62,7 +78,9 @@ export interface SpeciesModule {
   views: SpeciesView[];
   /** Tür hakkında dürüstlük/güvenlik notu (şematik, tür kimliği, uyarı vb.) */
   not?: string;
-  partsFor(sex: SexId): SpeciesPart[];
+  /** Standart (doğal) form ilk sırada olmalı. Şekil farkı olmayan türlerde tek öğe ya da boş bırakılabilir. */
+  forms?: SpeciesForm[];
+  partsFor(sex: SexId, form?: string): SpeciesPart[];
   parts: SpeciesPart[];
   variants: SpeciesVariant[];
   createViewer(opts: SpeciesViewerOptions): SpeciesViewer;
