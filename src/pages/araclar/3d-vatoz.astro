@@ -1,0 +1,340 @@
+---
+import Base from '../../layouts/Base.astro';
+import { PARTS } from '../../lib/vatoz/parts';
+import { VARIANTS, groupedVariants } from '../../lib/vatoz/variants';
+import { silhouette, type Sex, type Vec2 } from '../../lib/vatoz/model';
+
+// WebGL kullanılamadığında gösterilen statik SVG: 3B modelle aynı sayılardan türetilir.
+// Üstten ve alttan görünüşte burun yukarıda; SVG x = z, SVG y = x.
+const P = (p: Vec2) => `${p[1].toFixed(3)},${p[0].toFixed(3)}`;
+const poly = (pts: Vec2[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${P(p)}`).join(' ') + ' Z';
+const line = (pts: Vec2[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${P(p)}`).join(' ');
+const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
+const figures = (['disi', 'erkek'] as Sex[]).flatMap((sex) => {
+  const s = silhouette(sex);
+  const tailEnd = s.tail[s.tail.length - 1];
+  const vb = `-1.25 -1.1 2.5 ${(tailEnd[0] + 1.25).toFixed(2)}`;
+  return (['ust', 'alt'] as const).map((view) => ({ sex, view, s, vb, d: {
+    disc: poly(s.disc), tail: line(s.tail), pelvic: s.pelvic.map(poly), claspers: s.claspers.map(line), spiracles: s.spiracles.map(poly),
+    mouth: line(s.mouth), gills: s.gills.map(line), nares: s.nares.map(poly),
+  } }));
+});
+const viewName = { ust: 'üstten', alt: 'alttan' } as const;
+---
+<Base title="3B cüce vatoz modeli" description="Cüce tatlı su vatozunun (Potamotrygon) etkileşimli 3B modeli: disk, gözler, spirakül, alt yüzde ağız ve solungaç yarıkları, klasper, kuyruk dikeni ve desen varyeteleri.">
+  <p><a href="/araclar">← Araçlar</a></p>
+  <h1>3B cüce vatoz modeli</h1>
+  <p class="muted">Akvaryumda tutulan küçük tatlı su vatozunun şematik, etkileşimli 3B modeli. Sürükleyerek döndürün, <strong>Alt</strong> görünümde ağız ve solungaç yarıklarına bakın, desen varyetelerini deneyin ve numaralı noktalara ya da listeye tıklayıp açıklamaları okuyun.</p>
+
+  <div class="callout callout-bilgi">
+    <strong>Tür varsayımı.</strong> “Cüce vatoz”, ticarette tek bir türün adı değildir; çoğunlukla <em>Potamotrygon</em> cinsinin küçük türleri (en çok <em>P. wallacei</em>, “cururu”; disk genişliği yaklaşık 25–40 cm, kaynaklara göre değişir) için kullanılır. Bu model <em>P. wallacei</em>’ye benzer, <strong>şematik</strong> bir gövde oranı varsayar; belirli bir bireyin ya da türün kesin ölçüsü değildir. Ticaretteki tür adları sık karışır; <strong>tür kimliği kaynakla doğrulanmalıdır</strong>.
+  </div>
+
+  <div class="v3-bar">
+    <fieldset class="v3-seg">
+      <legend>Cinsiyet</legend>
+      <label><input type="radio" name="sex" value="disi" checked /> Dişi</label>
+      <label><input type="radio" name="sex" value="erkek" /> Erkek</label>
+    </fieldset>
+    <label class="v3-sel">Renk / desen
+      <select id="variant">{groupedVariants().map((g) => <optgroup label={g.grup}>{g.items.map((v) => <option value={v.id}>{v.ad}</option>)}</optgroup>)}</select>
+    </label>
+    <label class="v3-chk"><input type="checkbox" id="swim" /> Yüzme animasyonu</label>
+    <label class="v3-chk"><input type="checkbox" id="rot" /> Otomatik döndür</label>
+  </div>
+  <p class="muted v3-note" id="sexnote" aria-live="polite"></p>
+
+  <div class="v3-stage" id="stage" data-sex="disi" data-variant="wallacei" data-swim="off" data-rotate="off" data-view="capraz">
+    <canvas id="cv" tabindex="0" role="img" aria-describedby="v3-help"
+      aria-label="Cüce vatozun etkileşimli 3B modeli. Ok tuşlarıyla döndürebilir, artı ve eksi tuşlarıyla yakınlaştırabilirsiniz."></canvas>
+    <div class="v3-hotwrap" id="hot" data-pagefind-ignore></div>
+    <p class="v3-status" id="status" role="status">3B model, görünür olunca yüklenecek…</p>
+    <div class="v3-fallback" id="fallback" hidden>
+      <p><strong>3B görüntü bu tarayıcıda açılamadı.</strong> WebGL desteklenmiyor ya da kapalı olabilir. Aşağıda şematik üst ve alt görünüş ile parça açıklamaları yer alıyor.</p>
+      <div class="v3-figs">
+        {figures.map((f) => (
+          <figure>
+            <svg viewBox={f.vb} role="img" aria-label={`${sexName[f.sex]} cüce vatoz, ${viewName[f.view]} şematik çizim`} class="v3-svg">
+              <path class="svg-tail" d={f.d.tail} />
+              <path class="svg-disc" d={poly(f.s.disc)} />
+              {f.d.pelvic.map((d) => <path class="svg-pelvic" d={d} />)}
+              {f.sex === 'erkek' && f.d.claspers.map((d) => <path class="svg-clasper" d={d} />)}
+              {f.view === 'ust' && <>
+                {f.s.eyes.map((e) => <circle class="svg-eye" cx={e.z} cy={e.x} r={e.r} />)}
+                {f.d.spiracles.map((d) => <path class="svg-hole" d={d} />)}
+                <circle class="svg-spine" cx={f.s.spine.z} cy={f.s.spine.x} r="0.035" />
+              </>}
+              {f.view === 'alt' && <>
+                <path class="svg-mouth" d={f.d.mouth} />
+                {f.d.nares.map((d) => <path class="svg-hole" d={d} />)}
+                {f.d.gills.map((d) => <path class="svg-gill" d={d} />)}
+              </>}
+            </svg>
+            <figcaption>{sexName[f.sex]}, {viewName[f.view]}{f.view === 'ust' && <> (kuyruk dikeni: turuncu nokta)</>}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </div>
+  </div>
+  <p class="muted" id="v3-help">Sürükleyin ya da ok tuşlarıyla döndürün; fare tekerleği, çimdik hareketi veya + / − tuşlarıyla yakınlaştırın; <kbd>0</kbd> görünümü sıfırlar. Sayfayı kaydırmak için modelin dışına dokunun. Numaralı noktalar yalnızca o an görünen yüzdeki parçalar için gösterilir: üstten bakınca alt yüzdeki parçalar, alttan bakınca üst yüzdekiler gizlenir. Hareket azaltma tercihiniz açıksa animasyonlar kapalı başlar.</p>
+  <noscript><p class="callout callout-uyari">3B model için JavaScript gerekir. Parça açıklamaları aşağıda metin olarak da verilmiştir.</p></noscript>
+
+  <div class="v3-bar" role="group" aria-label="Görünüm ve yakınlaştırma">
+    <button type="button" class="v3-btn" data-view="ust">Üst</button>
+    <button type="button" class="v3-btn" data-view="alt">Alt</button>
+    <button type="button" class="v3-btn" data-view="yan">Yan</button>
+    <button type="button" class="v3-btn" data-view="on">Ön</button>
+    <button type="button" class="v3-btn" data-view="arka">Arka</button>
+    <button type="button" class="v3-btn" data-view="capraz">Çapraz</button>
+    <button type="button" class="v3-btn" id="zin" aria-label="Yakınlaştır">+</button>
+    <button type="button" class="v3-btn" id="zout" aria-label="Uzaklaştır">−</button>
+    <button type="button" class="v3-btn" id="zreset">Sıfırla</button>
+  </div>
+
+  <div class="callout callout-uyari" id="safety">
+    <strong>Güvenlik: kuyruk dikeni.</strong> Vatozların kuyruğunda dişli ve zehirli bir diken bulunur. Yaralanma çok acı verici olabilir ve enfeksiyon riski taşır. Vatozu çıplak elle tutmayın, ağa sıkıştırmayın; yaralanırsanız bekletmeden tıbbi yardım alın. Bu sayfa bakım ya da müdahale rehberi değildir, 3B model yalnızca eğitim amaçlıdır. Tatlı su vatozları büyük, olgun ve çok temiz su gerektiren zor bakım hayvanlarıdır; edinmeden önce yerel mevzuatı ve güvenilir kaynakları kontrol edin (kaynakla doğrulanmalı).
+  </div>
+
+  <h2>Anatomi parçaları</h2>
+  <div class="v3-info">
+    <ul class="v3-parts" id="parts">
+      {PARTS.map((p) => (
+        <li data-part={p.id} data-sex={p.sex ?? ''}><button type="button" class="v3-part" aria-pressed="false" data-part={p.id}><span class="v3-n" aria-hidden="true"></span><span>{p.ad}<small class="muted">{p.yuz === 'ust' ? ' · üst yüz' : p.yuz === 'alt' ? ' · alt yüz' : ''}</small></span></button></li>
+      ))}
+    </ul>
+    <div class="v3-detail" id="detail" aria-live="polite">
+      <p class="muted">Bir parça seçin: modelde numaralı noktaya ya da listeden bir öğeye tıklayın.</p>
+    </div>
+  </div>
+
+  <details class="v3-all">
+    <summary>Tüm parçaların metin açıklamaları</summary>
+    <dl>
+      {PARTS.map((p) => (<><dt>{p.ad}{p.sex && <span class="muted"> ({sexName[p.sex].toLowerCase()})</span>}</dt><dd>{p.aciklama}{p.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</dd></>))}
+    </dl>
+  </details>
+
+  <h2>Renk ve desen varyeteleri</h2>
+  <p class="muted">{VARIANTS.length} şematik desen; hepsi aynı standart gövdeyi paylaşır, yalnızca renk ve desen değişir. Vatoz desenleri bireyden bireye ve yaşla çok değişir, ticaret adları karışıktır; bu liste resmî bir sınıflama değildir. <strong>İlk iki desen</strong> küçük (cüce) türlerde anlatılan görünümlere, <strong>sonraki üçü</strong> daha büyük türlerde bilinen desen tiplerine dayanır ve yalnızca desen örneği olarak gösterilmiştir. “Kaynakla doğrulanmalı” işaretli kayıtların türe/varlığına dair bilgi belirsizdir.</p>
+  {groupedVariants().map((g) => (<><h3>{g.grup}</h3><ul>{g.items.map((v) => <li><strong>{v.ad}:</strong> {v.aciklama}{v.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</li>)}</ul></>))}
+  <p class="muted">Modellenmeyenler: kuyruk ucundaki deri kıvrımının ayrıntısı, Lorenzini ampulleri ve diş yapısı gösterilmemiştir. Cinsiyetler arası disk biçimi farkı (dişi biraz daha büyük ve dolgun) şematiktir; kesin oran farkı kaynakla doğrulanmalıdır.</p>
+
+  <div class="callout callout-bilgi">
+    <strong>Bu model şematiktir.</strong> Oranlar, desenler ve renkler eğitim amaçlı bir yorumdur; gerçek bir bireyin ölçüsü, türü ya da bir standart değildir. Aynı türden lepistes için <a href="/araclar/3d-lepistes">3B lepistes modeline</a> bakabilirsiniz.
+  </div>
+</Base>
+
+<style is:global>
+  .v3-bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:14px 0}
+  .v3-seg{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:var(--r);padding:2px 10px 6px;margin:0;background:var(--card)}
+  .v3-seg legend{font-size:.85rem;padding:0 4px;color:var(--muted)}
+  .v3-seg label,.v3-chk{display:inline-flex;gap:6px;align-items:center;min-height:36px;padding:0 6px;cursor:pointer;font-weight:600}
+  .v3-seg input,.v3-chk input{width:20px;height:20px;accent-color:var(--brand)}
+  .v3-sel{display:grid;gap:2px;font-weight:600;font-size:.9rem;max-width:100%}
+  .v3-sel select{min-height:40px;max-width:100%}
+  .v3-note{margin:0 0 10px;min-height:1.6em;font-size:.92rem}
+  .v3-btn{min-width:44px;min-height:40px;padding:6px 14px}
+  .v3-btn[aria-pressed=true]{outline:3px solid var(--accent)}
+  .v3-stage{position:relative;border-radius:var(--r);overflow:hidden;background:radial-gradient(120% 90% at 50% 20%,#2f7f8c 0%,#164b5c 45%,#082530 100%);border:1px solid var(--line);min-height:320px}
+  .v3-stage canvas{display:block;width:100%;height:clamp(340px,64vh,580px);touch-action:none;cursor:grab;outline-offset:-4px}
+  .v3-stage canvas:active{cursor:grabbing}
+  .v3-stage[data-fallback] canvas,.v3-stage[data-fallback] .v3-hotwrap,.v3-stage[data-fallback] .v3-status{display:none}
+  .v3-hotwrap{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .v3-hot{position:absolute;left:0;top:0;pointer-events:auto;width:26px;height:26px;padding:0;border-radius:50%;background:rgba(11,31,43,.82);color:#fff;border:2px solid #ffa94d;font-size:.72rem;font-weight:800;line-height:1;cursor:pointer;display:grid;place-items:center;will-change:transform}
+  .v3-hot[hidden]{display:none}
+  .v3-hot.on{background:#ffa94d;color:#0c1822;box-shadow:0 0 0 4px rgba(255,169,77,.35)}
+  .v3-hot::after{content:attr(data-label);position:absolute;bottom:125%;left:50%;transform:translateX(-50%);white-space:nowrap;background:#0b1f2b;color:#fff;padding:2px 8px;border-radius:6px;font-size:.8rem;font-weight:600;opacity:0;pointer-events:none}
+  .v3-hot:hover::after,.v3-hot.on::after{opacity:1}
+  .v3-status{position:absolute;left:12px;bottom:8px;margin:0;color:#e6f3f8;font-size:.9rem;text-shadow:0 1px 2px #000}
+  .v3-stage[data-ready] .v3-status{display:none}
+  .v3-fallback{padding:16px;color:#e6f3f8}
+  .v3-figs{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+  .v3-figs figure{margin:0;text-align:center}
+  .v3-svg{width:100%;height:auto;max-height:340px}
+  .v3-svg .svg-disc{fill:#c4a878;stroke:#f1e8d6;stroke-width:.02}
+  .v3-svg .svg-tail{fill:none;stroke:#9a7a52;stroke-width:.07;stroke-linecap:round}
+  .v3-svg .svg-pelvic{fill:#a58a64;stroke:#f1e8d6;stroke-width:.015}
+  .v3-svg .svg-clasper{fill:none;stroke:#e6b9a0;stroke-width:.05;stroke-linecap:round}
+  .v3-svg .svg-eye{fill:#111;stroke:#d8c18a;stroke-width:.015}
+  .v3-svg .svg-hole{fill:#2a1a10;stroke:none}
+  .v3-svg .svg-spine{fill:#ff8a3d}
+  .v3-svg .svg-mouth,.v3-svg .svg-gill{fill:none;stroke:#2a1a10;stroke-width:.02;stroke-linecap:round}
+  .v3-info{display:grid;gap:16px;grid-template-columns:minmax(0,1fr);align-items:start}
+  @media(min-width:760px){.v3-info{grid-template-columns:minmax(0,5fr) minmax(0,6fr)}}
+  .v3-parts{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  .v3-parts li[hidden]{display:none}
+  .v3-part{width:100%;min-height:44px;text-align:left;display:flex;gap:10px;align-items:center;background:var(--card);color:var(--fg);border:1px solid var(--line);padding:6px 12px;font-weight:600}
+  .v3-part[aria-pressed=true]{border-color:var(--accent);outline:2px solid var(--accent)}
+  .v3-part small{font-weight:400}
+  .v3-n{display:inline-grid;flex:none;place-items:center;min-width:26px;height:26px;border-radius:50%;background:#0b1f2b;color:#fff;border:2px solid #ffa94d;font-size:.78rem;font-weight:800}
+  .v3-detail{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px;min-height:120px}
+  .v3-detail h3{margin:.2em 0}
+  .v3-detail .badge{color:var(--mid)}
+  .v3-detail .warn{border-left:4px solid #d9480f;padding-left:10px;font-weight:600}
+  .v3-all{margin:14px 0}
+  .v3-all summary{cursor:pointer;min-height:32px;font-weight:600}
+  .v3-all dt{font-weight:700;margin-top:.6em}.v3-all dd{margin:0 0 .4em}
+  @media (prefers-reduced-motion:no-preference){.v3-hot.on{animation:v3pulse 1.6s ease-in-out infinite}@keyframes v3pulse{50%{box-shadow:0 0 0 8px rgba(255,169,77,.1)}}}
+</style>
+
+<script>
+  import { PARTS, partsFor, type PartId, type ViewId } from '../../lib/vatoz/parts';
+  import { variantById } from '../../lib/vatoz/variants';
+  import type { Sex } from '../../lib/vatoz/model';
+  import type { Viewer } from '../../lib/vatoz/viewer';
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const stage = $('stage'), cv = $<HTMLCanvasElement>('cv'), hot = $('hot'), status = $('status'), fallback = $('fallback');
+  const detail = $('detail'), sexnote = $('sexnote');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let sex: Sex = 'disi';
+  let selected: PartId | null = null;
+  let viewer: Viewer | null = null;
+
+  const notes: Record<Sex, string> = {
+    erkek: 'Erkek: pelvik yüzgeçlerin iç kenarında iki klasper (eşleşme organı) bulunur; disk biraz daha küçük çizilmiştir (şematik).',
+    disi: 'Dişi: klasper yoktur; disk biraz daha büyük ve dolgun çizilmiştir (şematik). Cinsiyet ayrımının güvenilir işareti klasperdir.',
+  };
+
+  function renderList() {
+    const vis = partsFor(sex).map((p) => p.id);
+    document.querySelectorAll<HTMLLIElement>('#parts li').forEach((li) => {
+      const id = li.dataset.part as PartId;
+      const i = vis.indexOf(id);
+      li.hidden = i < 0;
+      const n = li.querySelector('.v3-n');
+      if (n && i >= 0) n.textContent = String(i + 1);
+    });
+  }
+
+  function renderDetail() {
+    detail.textContent = '';
+    const p = PARTS.find((x) => x.id === selected);
+    if (!p) {
+      const m = document.createElement('p');
+      m.className = 'muted';
+      m.textContent = 'Bir parça seçin: modelde numaralı noktaya ya da listeden bir öğeye tıklayın.';
+      detail.appendChild(m);
+      return;
+    }
+    const h = document.createElement('h3');
+    h.textContent = p.ad;
+    const t = document.createElement('p');
+    t.textContent = p.aciklama;
+    if (p.uyari) t.className = 'warn';
+    detail.append(h, t);
+    if (p.dogrulanmali) {
+      const b = document.createElement('p');
+      b.innerHTML = '<span class="badge">Kaynakla doğrulanmalı</span>';
+      detail.appendChild(b);
+    }
+  }
+
+  function select(id: PartId | null, fromList = false) {
+    selected = id;
+    stage.dataset.selected = id ?? '';
+    document.querySelectorAll<HTMLButtonElement>('.v3-part').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.part === id)));
+    renderDetail();
+    viewer?.select(id);
+    if (id && fromList && viewer && !viewer.isPartVisible(id)) {
+      const v = PARTS.find((x) => x.id === id)!.view;
+      stage.dataset.view = v;
+      viewer.setView(v);
+    }
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.v3-part').forEach((b) => b.addEventListener('click', () => {
+    const id = b.dataset.part as PartId;
+    select(selected === id ? null : id, true);
+  }));
+
+  function setSex(s: Sex) {
+    sex = s;
+    stage.dataset.sex = s;
+    sexnote.textContent = notes[s];
+    if (selected && !partsFor(s).some((p) => p.id === selected)) select(null);
+    renderList();
+    viewer?.setSex(s);
+  }
+  document.querySelectorAll<HTMLInputElement>('input[name=sex]').forEach((r) => r.addEventListener('change', () => { if (r.checked) setSex(r.value as Sex); }));
+
+  const variantSel = $<HTMLSelectElement>('variant');
+  variantSel.addEventListener('change', () => {
+    stage.dataset.variant = variantSel.value;
+    viewer?.setVariant(variantSel.value);
+    status.textContent = '';
+    const v = variantById(variantSel.value);
+    sexnote.textContent = `${notes[sex]} Desen — ${v.ad}: ${v.aciklama}${v.dogrulanmali ? ' (Kaynakla doğrulanmalı.)' : ''}`;
+  });
+
+  const swim = $<HTMLInputElement>('swim'), rot = $<HTMLInputElement>('rot');
+  swim.checked = !reduced;
+  swim.addEventListener('change', () => { stage.dataset.swim = swim.checked ? 'on' : 'off'; viewer?.setSwim(swim.checked); });
+  rot.addEventListener('change', () => { stage.dataset.rotate = rot.checked ? 'on' : 'off'; viewer?.setAutoRotate(rot.checked); });
+  stage.dataset.swim = swim.checked ? 'on' : 'off';
+
+  document.querySelectorAll<HTMLButtonElement>('.v3-btn[data-view]').forEach((b) => b.addEventListener('click', () => {
+    stage.dataset.view = b.dataset.view!;
+    viewer?.setView(b.dataset.view as ViewId);
+  }));
+  $('zin').addEventListener('click', () => viewer?.zoom(0.8));
+  $('zout').addEventListener('click', () => viewer?.zoom(1.25));
+  $('zreset').addEventListener('click', () => { stage.dataset.view = 'capraz'; viewer?.reset(); });
+
+  cv.addEventListener('keydown', (e) => {
+    if (!viewer) return;
+    const step = 0.16;
+    const k = e.key;
+    if (k === 'ArrowLeft') viewer.rotate(-step, 0);
+    else if (k === 'ArrowRight') viewer.rotate(step, 0);
+    else if (k === 'ArrowUp') viewer.rotate(0, -step);
+    else if (k === 'ArrowDown') viewer.rotate(0, step);
+    else if (k === '+' || k === '=') viewer.zoom(0.85);
+    else if (k === '-' || k === '_') viewer.zoom(1.18);
+    else if (k === '0' || k === 'Home') viewer.reset();
+    else return;
+    e.preventDefault();
+  });
+
+  function showFallback(msg?: string) {
+    stage.setAttribute('data-fallback', '');
+    fallback.hidden = false;
+    status.textContent = msg ?? '';
+  }
+
+  function hasWebGL(): boolean {
+    try {
+      const c = document.createElement('canvas');
+      return !!(c.getContext('webgl2') || c.getContext('webgl'));
+    } catch { return false; }
+  }
+
+  let started = false;
+  async function start() {
+    if (started) return;
+    started = true;
+    if (!hasWebGL()) { showFallback(); return; }
+    status.textContent = '3B model yükleniyor…';
+    try {
+      const { createViewer } = await import('../../lib/vatoz/viewer');
+      viewer = createViewer({
+        canvas: cv, overlay: hot, sex, variant: variantSel.value, reducedMotion: reduced,
+        onSelect: (id) => select(id),
+      });
+      viewer.setSwim(swim.checked);
+      viewer.setAutoRotate(rot.checked);
+      if (selected) viewer.select(selected);
+    } catch (err) {
+      console.error(err);
+      showFallback();
+    }
+  }
+
+  setSex('disi');
+  renderDetail();
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) { io.disconnect(); start(); } }, { rootMargin: '1400px' });
+    io.observe(stage);
+  } else start();
+</script>

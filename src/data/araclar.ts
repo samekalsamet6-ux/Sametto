@@ -14,4 +14,5 @@ export const tools: Tool[] = [
   { slug: 'punnett', title: 'Punnett hesaplayıcı', desc: 'Otozomal, X- ve Y-bağlantılı olasılıklar.', group: 'Genetik' },
   { slug: 'inbreeding', title: 'İnbreeding (Wright F)', desc: 'Soy ağacından planlanan çiftleşmenin F değeri.', group: 'Genetik' },
   { slug: '3d-lepistes', title: '3B lepistes modeli', desc: 'Erkek ve dişi lepistesin etkileşimli 3B modeli: anatomi, renk varyeteleri, yüzme animasyonu.', group: 'Görsel' },
+  { slug: '3d-vatoz', title: '3B cüce vatoz modeli', desc: 'Küçük tatlı su vatozunun etkileşimli 3B modeli: üst/alt yüz anatomisi, klasper, kuyruk dikeni, desen varyeteleri.', group: 'Görsel' },
 ];

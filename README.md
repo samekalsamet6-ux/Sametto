@@ -39,7 +39,7 @@ npm run dev        # geliştirme sunucusu (arama dizini yalnızca build sonrası
 | `npm run build` | Siteyi `dist/` içine derler ve Pagefind dizinini oluşturur |
 | `npm run preview` | Derlenmiş siteyi yerelde açar |
 | `npm run check:links` | `dist/` içindeki dahili bağlantıları denetler (önce `build`) |
-| `npm run e2e` | Playwright E2E testleri (120 test = 60 senaryo × masaüstü/mobil): araçlar, sorun giderme, seviye testi, gezinti, arama (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
+| `npm run e2e` | Playwright E2E testleri (154 test = 77 senaryo × masaüstü/mobil): araçlar, sorun giderme, seviye testi, gezinti, arama (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
 | `npm run a11y` | Tüm sayfalarda axe taraması, açık ve koyu tema (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
 | `npm run pwa` | Manifest, simgeler, hizmet çalışanı ve **gerçek çevrimdışı** gezinti/arama/araç denetimi (önce `build`) |
 | `npm run lighthouse` | Seçili 7 sayfada Lighthouse (mobil); performans ≥ 85, erişilebilirlik/en iyi uygulamalar/SEO ≥ 95 |
