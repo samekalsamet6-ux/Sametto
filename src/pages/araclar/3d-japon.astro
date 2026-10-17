@@ -1,0 +1,49 @@
+---
+import SpeciesPage from '../../components/SpeciesPage.astro';
+import { PARTS } from '../../lib/japon/parts';
+import { VARIANTS, groupedVariants } from '../../lib/japon/variants';
+import { SEXES, silhouette } from '../../lib/japon/model';
+import { svgFigure } from '../../lib/akvaryum/fishmath';
+
+const sexName = { erkek: 'Erkek japon balığı', disi: 'Dişi japon balığı' } as const;
+const figures = SEXES.map((s) => ({ label: sexName[s], ...svgFigure(silhouette(s)) }));
+---
+<SpeciesPage
+  title="3B japon balığı modeli"
+  description="Common/comet tipi tek kuyruklu japon balığının (Carassius auratus) etkileşimli 3B modeli: pullar, yan çizgi, burun delikleri, uzun sırt yüzgeci, üreme dönemi farkları ve renk varyeteleri."
+  intro="Common/comet tipi tek kuyruklu japon balığının (Carassius auratus) şematik, etkileşimli 3B modeli. Sürükleyerek döndürün, üreme dönemi erkek ve dişi farkını görün, renk varyetelerini (turuncu, sarasa, shubunkin ...) deneyin; numaralı noktalara ya da listeye tıklayıp açıklamaları okuyun."
+  views={[{ id: 'yan', ad: 'Yan' }, { id: 'ust', ad: 'Üst' }, { id: 'alt', ad: 'Alt' }, { id: 'on', ad: 'Ön' }, { id: 'arka', ad: 'Arka' }, { id: 'capraz', ad: 'Çapraz' }]}
+  sexes={[{ id: 'erkek', ad: 'Erkek (üreme dönemi)', not: '' }, { id: 'disi', ad: 'Dişi (üreme dönemi)', not: '' }]}
+  parts={PARTS}
+  groups={groupedVariants()}
+  variantIntro={`${VARIANTS.length} şematik renk varyetesi; hepsi aynı common/comet tipi tek kuyruklu gövdeyi paylaşır, yalnızca renk ve desen değişir. Oranda, ryukin, telescope gibi süs biçimleri ve çift kuyruklu biçimler bilerek dahil değildir. Renk adları kaynağa göre değişir (ör. sarasa, shubunkin, “limon”) ve aynı balık farklı satıcılarda farklı adla anılabilir; “kaynakla doğrulanmalı” işaretli kayıtların tanımı belirsizdir.`}
+  figures={figures}
+  fill="#f08a22"
+  stageLabel="Common tipi tek kuyruklu japon balığının etkileşimli 3B modeli."
+>
+  <div class="callout callout-bilgi" slot="tur">
+    <strong>Kapsam.</strong> Bu model, yabani sazana yakın <em>common/comet</em> tipi <strong>tek kuyruklu</strong> japon balığını gösterir: tek sırt, tek anal ve tek (çatallı) kuyruk yüzgeci. Süs (fancy) biçimleri bilerek dahil değildir. Model <strong>şematiktir</strong>: oranlar ve renkler eğitim amaçlı bir yorumdur; belirli bir bireyin ya da standardın ölçüsü değildir.
+  </div>
+  <div class="callout callout-uyari" slot="ek" id="safety">
+    <strong>Cinsiyet ayrımı sınırlıdır.</strong> Erkek ve dişi japon balığı üreme dışında dışarıdan çok benzer; ayrım güvenilir biçimde ancak üreme mevsiminde (erkekte beyaz tüberküller, yumurtalı dişide dolgun karın) yapılabilir. Beyaz noktalar hastalık belirtisi de olabilir; bu sayfa bakım ya da teşhis rehberi değildir. Japon balıkları büyük ve uzun ömürlü olabilir; edinmeden önce güvenilir kaynaklara bakın (kaynakla doğrulanmalı).
+  </div>
+  <p class="muted">Modellenmeyenler: boğaz dişleri, iç organlar, yüzme kesesi, pul sayısı ve dizilişinin gerçek ayrıntısı, yaşa ve beslenmeye bağlı renk değişimi. Cinsiyetler arası farklar yalnızca üreme dönemi için şematik gösterilmiştir.</p>
+  <div class="callout callout-bilgi">
+    Aynı serideki diğer modeller: <a href="/araclar/3d-betta">3B betta</a>, <a href="/araclar/3d-neon">3B neon tetra</a>, <a href="/araclar/3d-corydoras">3B corydoras</a>, <a href="/araclar/3d-lepistes">3B lepistes</a> ve <a href="/araclar/3d-vatoz">3B cüce vatoz</a>.
+  </div>
+</SpeciesPage>
+
+<script>
+  import { initSpeciesPage } from '../../lib/akvaryum/page';
+  import { PARTS, partsFor } from '../../lib/japon/parts';
+  import { VARIANTS } from '../../lib/japon/variants';
+
+  initSpeciesPage({
+    parts: PARTS, partsFor, variants: VARIANTS, defaultSex: 'erkek', defaultView: 'capraz',
+    sexNotes: {
+      erkek: 'Erkek (üreme dönemi): solungaç kapağında ve göğüs yüzgecinde beyaz tüberküller çizilmiştir (şematik). Üreme dışında erkek ve dişi dışarıdan çok benzer; cinsiyet ayrımı güçtür.',
+      disi: 'Dişi (üreme dönemi): yumurtalı dişinin karnı daha dolgun çizilmiştir (şematik). Üreme dışında erkek ve dişi dışarıdan çok benzer; cinsiyet ayrımı güçtür.',
+    },
+    load: () => import('../../lib/japon/index'),
+  });
+</script>
