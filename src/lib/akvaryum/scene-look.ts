@@ -52,7 +52,7 @@ interface RigLight { light: DirectionalLight; /** kamera uzayında yön: x sağ,
 
 /**
  * Ton eşleme + ortam haritası + ışık düzeni. Renderer'ı da ayarlar (ACES, sRGB).
- * Anahtar ışık sıcak-beyaz (üst-sağ-ön), dolgu serin (sol-alt), kenar ışığı turkuaz (arkadan), alttan sıcak sıçrama.
+ * Anahtar ışık sıcak-beyaz (üst-sağ-ön), dolgu serin (sol-alt), kenar ışığı turkuaz (arkadan); alttan sıcak yansıma ortam haritasında.
  */
 export function applyLook(renderer: WebGLRenderer, scene: Scene): Look {
   renderer.toneMapping = ACESFilmicToneMapping;
@@ -77,7 +77,6 @@ export function applyLook(renderer: WebGLRenderer, scene: Scene): Look {
     mk(0xfff2e2, 1.7, [0.55, 0.85, 0.75]),   // anahtar
     mk(0xb8dcf5, 0.55, [-0.9, -0.15, 0.55]),  // dolgu
     mk(0x8fd6ff, 1.15, [-0.35, 0.45, -1]),    // kenar (arkadan)
-    mk(0xffe2c4, 0.45, [0.2, -1, 0.35]),      // alttan sıcak sıçrama
   ];
 
   const right = new Vector3(), up = new Vector3(), fwd = new Vector3(), v = new Vector3();
