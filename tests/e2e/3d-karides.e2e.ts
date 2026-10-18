@@ -127,6 +127,7 @@ test.describe('3B Neocaridina karidesi modeli', () => {
     await goView(page, 'ust');
     await page.locator('.v3-part[data-part=yuzme-bacagi]').click();
     await expect(page.locator('#stage')).toHaveAttribute('data-view', 'alt');
+    await page.evaluate(() => document.getElementById('stage')?.scrollIntoView()); // liste tıklaması sahneyi görünüm dışına kaydırabilir
     await expect.poll(async () => await visibleParts(page), { timeout: 20_000 }).toContain('yuzme-bacagi');
     await page.uncheck('#berry');
     await expect(page.locator('#stage')).toHaveAttribute('data-berry', 'off');
@@ -143,8 +144,10 @@ test.describe('3B Neocaridina karidesi modeli', () => {
     await expect(page.locator('#stage')).toHaveAttribute('data-swim', 'off');
     await page.check('#rot');
     await expect(page.locator('#stage')).toHaveAttribute('data-rotate', 'on');
+    await page.evaluate(() => document.getElementById('stage')?.scrollIntoView()); // mobilde tuval ekran altında kalır; döngü yalnız görünürken çalışır
+    await page.waitForTimeout(500);
     const f0 = Number(await page.locator('#cv').getAttribute('data-frames'));
-    await expect.poll(async () => Number(await page.locator('#cv').getAttribute('data-frames'))).toBeGreaterThan(f0 + 2);
+    await expect.poll(async () => Number(await page.locator('#cv').getAttribute('data-frames')), { timeout: 20_000 }).toBeGreaterThan(f0 + 2);
     await page.uncheck('#rot');
     for (const v of ['ust', 'alt', 'yan', 'on', 'arka', 'capraz'] as const) {
       await page.locator(`.v3-btn[data-view=${v}]`).click();
