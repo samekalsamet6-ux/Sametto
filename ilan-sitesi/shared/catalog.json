@@ -2199,5 +2199,62 @@
     "dogrulanmali": true
    }
   ]
+ },
+ {
+  "id": "amano",
+  "ad": "Amano karidesi (Yamato karidesi)",
+  "latin": "Caridina multidentata",
+  "kisaAciklama": "Amano (Yamato) karidesinin yarı saydam gri-yeşil gövdesi, yan benek sırası (erkekte nokta, dişide çizgi), sırt çizgisi, çok dişli rostrum, fırça kıskaçlar, antenler, kuyruk yelpazesi ve dişide eyer/yumurta; tanınan ayrı renk hattı ya da şekil varyetesi yok.",
+  "not": "Şematik bir Caridina multidentata gövdesidir (eski adı C. japonica); belirli bir bireyin ölçüsü değildir. Tanınan ayrı bir renk hattı ya da şekil varyetesi yoktur; erkekte nokta / dişide tire ayrımı yaygın bir anlatımdır ve bireyde kesin değildir (doğrulanmalı). Larvalar acı su ister, bu yüzden tatlı suda genellikle üremez. Bu sayfa bakım rehberi değildir.",
+  "sexes": [
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   },
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   }
+  ],
+  "views": [
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart (tek biçim)",
+    "grup": "Doğal biçim"
+   }
+  ],
+  "variants": [
+   {
+    "id": "dogal",
+    "ad": "Doğal görünüm (tek renk)",
+    "grup": "Doğal görünüm"
+   }
+  ]
  }
 ]

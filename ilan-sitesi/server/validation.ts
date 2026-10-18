@@ -123,6 +123,8 @@ export function validateReport(f: Record<string, unknown>): Result<{ reason: str
 export const MAX_FISH = 12;
 /** Karides modeli çok parçalıdır (~240 çizim çağrısı/adet): en çok 3. */
 export const MAX_KARIDES = 3;
+/** Karides sınırına sayılan türler (Neocaridina ve Amano aynı havuzdan sayılır). */
+export const SHRIMP_SPECIES = ['karides', 'amano'] as const;
 /** Ağır modeller (japon, pleco, vatoz: 35-60 çizim çağrısı ve büyük yüzgeçler): toplamda en çok 4. */
 export const HEAVY_SPECIES = ['japon', 'pleco', 'vatoz'] as const;
 export const MAX_HEAVY = 4;
@@ -151,7 +153,7 @@ export function validateFish(f: Record<string, unknown>): Result<FishInput> {
 /** Eklemeden önce üst sınır denetimi: sorun varsa Türkçe mesaj, yoksa null. `current` mevcut balıkların tür kimlikleri. */
 export function aquariumCapError(current: string[], add: string): string | null {
   if (current.length >= MAX_FISH) return `Akvaryumda en fazla ${MAX_FISH} balık olabilir. Yeni balık eklemek için birini kaldırın.`;
-  if (add === 'karides' && current.filter((x) => x === 'karides').length >= MAX_KARIDES) return `Akvaryumda en fazla ${MAX_KARIDES} karides olabilir (karides modeli çok parçalıdır).`;
+  if ((SHRIMP_SPECIES as readonly string[]).includes(add) && current.filter((x) => (SHRIMP_SPECIES as readonly string[]).includes(x)).length >= MAX_KARIDES) return `Akvaryumda en fazla ${MAX_KARIDES} karides olabilir (karides modeli çok parçalıdır).`;
   if ((HEAVY_SPECIES as readonly string[]).includes(add) && current.filter((x) => (HEAVY_SPECIES as readonly string[]).includes(x)).length >= MAX_HEAVY) return `Japon, pleco ve vatoz toplamda en fazla ${MAX_HEAVY} tane olabilir (büyük modeller).`;
   return null;
 }

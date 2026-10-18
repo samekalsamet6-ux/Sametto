@@ -20,6 +20,7 @@ const LOADERS: Record<string, () => Promise<{ species: SpeciesModule }>> = {
   zebradanio: () => import('../../src/lib/zebradanio/index.ts'),
   kardinal: () => import('../../src/lib/kardinal/index.ts'),
   ram: () => import('../../src/lib/ram/index.ts'),
+  amano: () => import('../../src/lib/amano/index.ts'),
 };
 
 /** Tür modülünü tembel yükler (aynı modül tekrar istenirse tarayıcı önbelleği kullanılır); 3B modeli olmayan tür için undefined. */

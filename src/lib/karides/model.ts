@@ -40,8 +40,7 @@ export const PLEON_PIVOT: Vec3 = [0.33, -0.015, 0];
 export interface Ring { cx: number; cy: number; ry: number; rz: number }
 
 /** Karapaksın u (0 = baş ucu, 1 = arka kenar) konumundaki kesit yarıçapları */
-export function carapaceRing(sex: Sex, u: number): Ring {
-  const b = BODY[sex];
+export function carapaceRing(sex: Sex, u: number, b: BodyParams = BODY[sex]): Ring {
   const prof = (0.3 + 0.7 * Math.pow(Math.sin(clamp(u / 0.6, 0, 1) * Math.PI / 2), 0.75)) * (1 - 0.1 * smooth((u - 0.7) / 0.3));
   return {
     cx: CARAPACE.x0 + CARAPACE.len * u,
@@ -65,8 +64,7 @@ export const TELSON = { len: 0.26, halfWidth: 0.085 };
 export const UROPOD = { len: 0.36, halfWidth: 0.115, spread: 0.34 };
 
 /** Halka kesiti içindeki u konumunda yarıçaplar; plöron dolgunluğu cinsiyete bağlı */
-export function segRing(sex: Sex, i: number, u: number): Ring {
-  const b = BODY[sex];
+export function segRing(sex: Sex, i: number, u: number, b: BodyParams = BODY[sex]): Ring {
   const groove = 1 - 0.07 * Math.exp(-Math.pow(u / 0.06, 2));
   const taper = 1 - 0.07 * u;
   return {
@@ -192,19 +190,19 @@ export interface Silhouette {
   eggs: { x: number; y: number; r: number }[];
 }
 
-export function silhouette(sex: Sex): Silhouette {
+export function silhouette(sex: Sex, b: BodyParams = BODY[sex]): Silhouette {
   const N = 14;
   const cp: Vec2[] = [];
-  for (let k = 0; k <= N; k++) { const r = carapaceRing(sex, k / N); cp.push([r.cx, r.cy + r.ry]); }
-  for (let k = N; k >= 0; k--) { const r = carapaceRing(sex, k / N); cp.push([r.cx, r.cy - r.ry]); }
+  for (let k = 0; k <= N; k++) { const r = carapaceRing(sex, k / N, b); cp.push([r.cx, r.cy + r.ry]); }
+  for (let k = N; k >= 0; k--) { const r = carapaceRing(sex, k / N, b); cp.push([r.cx, r.cy - r.ry]); }
   const frames = spineFrames(sex);
   const segments: Vec2[][] = [];
   for (let i = 0; i < SEG.count; i++) {
     const top: Vec2[] = [], bot: Vec2[] = [];
     for (let k = 0; k <= 6; k++) {
-      const u = k / 6, r = segRing(sex, i, u);
+      const u = k / 6, r = segRing(sex, i, u, b);
       top.push(toBody(frames[i], r.cx, r.ry));
-      bot.push(toBody(frames[i], r.cx, -r.ry * (1 - 0.16 * BODY[sex].flare)));
+      bot.push(toBody(frames[i], r.cx, -r.ry * (1 - 0.16 * b.flare)));
     }
     segments.push([...top, ...bot.reverse()]);
   }

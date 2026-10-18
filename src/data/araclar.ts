@@ -30,5 +30,6 @@ export const tools: Tool[] = [
   { slug: '3d-neon', title: '3B neon tetra modeli', desc: 'Neon tetranın şematik 3B modeli: iridofor şerit, kırmızı alt yarı; standart, uzun yüzgeçli ve balon formları.', group: 'Görsel' },
   { slug: '3d-corydoras', title: '3B corydoras modeli', desc: 'Corydorasın şematik 3B modeli: zırh plakaları, bıyıklar, alt ağız, dikenler; bronz, albino, benekli renkleri ve formları.', group: 'Görsel' },
   { slug: '3d-japon', title: '3B japon balığı modeli', desc: 'Japon balığının 10 şematik formu (common, comet, fantail, ryukin, oranda, lionhead, telescope, bubble eye, pearlscale...) ve 9 renk varyetesi.', group: 'Görsel' },
+  { slug: '3d-amano-karidesi', title: '3B Amano karidesi modeli', desc: 'Amano (Yamato) karidesinin, Caridina multidentata, şematik 3B modeli: yarı saydam gri-yeşil gövde, erkekte nokta / dişide çizgi yan işaretleri, sırt çizgisi, çok dişli rostrum, fırça kıskaçlar, dişide eyer/yumurta; tanınan renk hattı ya da şekil varyetesi yok.', group: 'Görsel' },
   { slug: '3d-karides', title: '3B Neocaridina karides modeli', desc: 'Neocaridina davidi karidesinin şematik 3B modeli: eklemli karın, antenler, bacaklar, dişide eyer/yumurta ve 16 renk varyetesi.', group: 'Görsel' },
 ];

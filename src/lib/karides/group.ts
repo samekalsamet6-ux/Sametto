@@ -5,13 +5,19 @@ import { LOD_SETTINGS, instantiate, type GroupTemplateSpec } from '../akvaryum/f
 import type { FishGroup, FishGroupOptions } from '../akvaryum/types';
 import { ANIM } from './model';
 import { buildShrimp } from './viewer';
+import { NEOCARIDINA_PROFILE, type ShrimpProfile } from './profile';
 
 /** 'low': gövde uzunluğunun %2'sinden küçük ayrıntılar (eklem küreleri, parmak uçları) çizilmez: çizim çağrısı azalır. */
 const TINY = 0.02;
 
 export function createKaridesGroup(opts: FishGroupOptions): FishGroup {
-  return instantiate('karides', opts, (lod): GroupTemplateSpec => {
-    const built = buildShrimp(opts.sex, opts.variant, LOD_SETTINGS[lod].tex);
+  return createShrimpGroup('karides', NEOCARIDINA_PROFILE, opts);
+}
+
+/** Karides hattının ortak grup üreticisi: tür kimliği (önbellek anahtarı) ve profil verilir. */
+export function createShrimpGroup(speciesId: string, profile: ShrimpProfile, opts: FishGroupOptions): FishGroup {
+  return instantiate(speciesId, opts, (lod): GroupTemplateSpec => {
+    const built = buildShrimp(opts.sex, opts.variant, LOD_SETTINGS[lod].tex, profile);
     if (lod === 'low') {
       built.root.updateMatrixWorld(true);
       const tiny: Mesh[] = [], s = new Sphere();

@@ -31,6 +31,11 @@ describe('üst sınırlar', () => {
     expect(aquariumCapError(Array(MAX_FISH).fill('neon'), 'neon')).toMatch(/en fazla 12/);
     expect(aquariumCapError(Array(MAX_KARIDES).fill('karides'), 'karides')).toMatch(/karides/);
     expect(aquariumCapError(Array(MAX_KARIDES - 1).fill('karides'), 'karides')).toBeNull();
+    // Amano karidesi de aynı karides sınırına sayılır
+    expect(aquariumCapError(['karides', 'amano', 'amano'], 'amano')).toMatch(/karides/);
+    expect(aquariumCapError(['karides', 'amano', 'amano'], 'karides')).toMatch(/karides/);
+    expect(aquariumCapError(['karides', 'amano'], 'amano')).toBeNull();
+    expect(aquariumCapError(['amano', 'amano', 'amano'], 'neon')).toBeNull();
     expect(aquariumCapError(['japon', 'pleco', 'vatoz', 'japon'], 'pleco')).toMatch(/en fazla 4/);
     expect(aquariumCapError(['japon', 'pleco', 'vatoz'], 'japon')).toBeNull();
     expect(aquariumCapError(['japon', 'pleco', 'vatoz', 'japon'], 'neon')).toBeNull();
@@ -54,6 +59,7 @@ describe('akvaryum DB katmanı', () => {
   it('karides ve ağır tür sınırı DB katmanında zorlanır', () => {
     for (let i = 0; i < 3; i++) add('karides');
     expect(() => add('karides')).toThrow(AquariumCapError);
+    expect(() => add('amano')).toThrow(AquariumCapError);
     add('japon'); add('pleco'); add('vatoz'); add('japon');
     expect(() => add('vatoz')).toThrow(AquariumCapError);
   });

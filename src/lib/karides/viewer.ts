@@ -1,7 +1,7 @@
 // three.js sahnesi: yalnızca 3B karides sayfasında, tembel (dynamic import) yüklenir.
 // Gövde bir eklem zinciri olarak kurulur: karapaks -> 6 karın halkası -> telson/uropod; bacaklar, antenler ve yüzme bacakları zincirlerdir.
 import {
-  BufferGeometry, CanvasTexture, Color, CylinderGeometry, ExtrudeGeometry, Float32BufferAttribute,
+  BufferGeometry, CanvasTexture, Color, ConeGeometry, CylinderGeometry, ExtrudeGeometry, Float32BufferAttribute,
   Group, InstancedMesh, Material, Matrix4, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, Object3D, PerspectiveCamera, 
   Raycaster, Scene, Shape, SphereGeometry, SRGBColorSpace, Texture, Vector3, WebGLRenderer, Box3, Sphere, Quaternion, Euler,
 } from 'three';
@@ -9,12 +9,12 @@ import { applyLook, createFitter } from '../akvaryum/scene-look';
 import { seg } from '../akvaryum/fishgroup';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
-  ANIM, BODY, CARAPACE, LEGS, LEG_Y, LEG_Z, PLEON_PIVOT, REST_ANGLES, SEG, TELSON, UROPOD, antennaSway, carapaceRing, clamp, eggPositions, jointAngle,
+  ANIM, CARAPACE, LEGS, LEG_Y, LEG_Z, PLEON_PIVOT, REST_ANGLES, SEG, TELSON, UROPOD, antennaSway, carapaceRing, clamp, eggPositions, jointAngle,
   pleopodAngle, ringYZ, segRing, type Ring, type Sex,
 } from './model';
-import { partsFor, type PartId, type ViewId } from './parts';
-import { paintShell } from './texture';
-import { hexToRgb, sexTone, variantById, type Variant } from './variants';
+import type { PartId, ViewId } from './parts';
+import { hexToRgb, sexTone, type Variant } from './variants';
+import { NEOCARIDINA_PROFILE, type ShrimpProfile } from './profile';
 
 // ------------------------------------------------------------------ geometri yardımcıları
 
@@ -82,13 +82,14 @@ function leafGeometry(len: number, half: number, thick: number, tipPoint: number
   return g;
 }
 
-function rostrumGeometry(): BufferGeometry {
-  const L = 0.4;
+function rostrumGeometry(r = NEOCARIDINA_PROFILE.rostrum): BufferGeometry {
+  const L = r.len;
   const up: [number, number][] = [], lo: [number, number][] = [];
-  for (let k = 0; k <= 16; k++) {
-    const s = k / 16, x = -L * s;
-    const lift = 0.1 * s * s;
-    const tooth = s > 0.08 && s < 0.85 ? (k % 3 === 0 ? 0.022 * (1 - s) : 0) : 0;
+  const NK = 16;
+  for (let k = 0; k <= NK; k++) {
+    const s = k / NK, x = -L * s;
+    const lift = r.lift * s * s;
+    const tooth = s > 0.08 && s < 0.85 ? (k % r.teethEvery === 0 ? r.toothH * (1 - s) : 0) : 0;
     up.push([x, 0.05 * (1 - s) + 0.008 + lift + tooth]);
     lo.push([x, -0.025 * (1 - s) + lift - 0.004 - (s > 0.2 && s < 0.7 && k % 5 === 0 ? 0.014 : 0)]);
   }
@@ -147,7 +148,7 @@ interface Built {
   center: Vector3;
   textures: Texture[];
   occluders: Mesh[];
-  anchors: Map<PartId, Candidate[]>;
+  anchors: Map<string, Candidate[]>;
   eggs: Group;
   pose: (t: number, amp: number) => void;
 }
@@ -161,16 +162,17 @@ function tex(c: HTMLCanvasElement, list: Texture[]): Texture {
   return t;
 }
 
-export function buildShrimp(sex: Sex, variantId: string, texW: number): Built {
-  const v: Variant = variantById(variantId);
-  const B = BODY[sex];
+export function buildShrimp(sex: Sex, variantId: string, texW: number, profile: ShrimpProfile = NEOCARIDINA_PROFILE): Built {
+  const v: Variant = profile.variantById(variantId);
+  const B = profile.body[sex];
+  const paintShell = profile.paintShell;
   const textures: Texture[] = [];
   const root = new Group();
   root.scale.setScalar(B.scale);
   const body = new Group();
   root.add(body);
-  const anchors = new Map<PartId, Candidate[]>();
-  const anchor = (id: PartId, obj: Object3D, pos: Vec3Like, normal: Vec3Like | null = null) => {
+  const anchors = new Map<string, Candidate[]>();
+  const anchor = (id: string, obj: Object3D, pos: Vec3Like, normal: Vec3Like | null = null) => {
     const l = anchors.get(id) ?? [];
     l.push({ obj, pos, normal });
     anchors.set(id, l);
@@ -192,25 +194,26 @@ export function buildShrimp(sex: Sex, variantId: string, texW: number): Built {
   const eyeMat = new MeshPhysicalMaterial({ color: new Color(v.goz), roughness: 0.15, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.2 });
   const stalkMat = new MeshStandardMaterial({ color: tone(v.renk.karin).lerp(new Color('#ffffff'), 0.2), roughness: 0.5 });
   const mandMat = new MeshStandardMaterial({ color: new Color('#6a5640'), roughness: 0.5 });
+  const brushMat = new MeshStandardMaterial({ color: limbColor.clone().lerp(new Color('#e9e4d2'), 0.45), roughness: 0.9 });
 
   // ---- karapaks
-  const carapace = new Mesh(shellGeometry((u) => carapaceRing(sex, u), B.flare * 0.3, 0, 1, 0, 24, 28, { front: true, rear: true }), carMat);
+  const carapace = new Mesh(shellGeometry((u) => carapaceRing(sex, u, B), B.flare * 0.3, 0, 1, 0, 24, 28, { front: true, rear: true }), carMat);
   body.add(carapace);
   occluders.push(carapace);
 
   // rostrum
-  const rostrum = new Mesh(rostrumGeometry(), new MeshPhysicalMaterial({ color: tone(v.renk.yan).lerp(tone(v.renk.karin), 0.45), roughness: 0.35, clearcoat: 0.5 }));
+  const rostrum = new Mesh(rostrumGeometry(profile.rostrum), new MeshPhysicalMaterial({ color: tone(v.renk.yan).lerp(tone(v.renk.karin), 0.45), roughness: 0.35, clearcoat: 0.5 }));
   rostrum.position.set(CARAPACE.x0 + 0.1, 0.075, 0);
   rostrum.rotation.z = 0.12;
   rostrum.scale.set(1.25, 1.2, 1);
   body.add(rostrum);
   anchor('rostrum', rostrum, [-0.22, 0.04, 0.012], [0, 0, 1]);
   anchor('rostrum', rostrum, [-0.22, 0.04, -0.012], [0, 0, -1]);
-  anchor('karapaks', carapace, [0.0, carapaceRing(sex, 0.5).ry * 0.98, 0], [0, 1, 0]);
-  anchor('karapaks', carapace, [0.0, 0.03, carapaceRing(sex, 0.5).rz * 1.0], [0, 0, 1]);
-  anchor('karapaks', carapace, [0.0, 0.03, -carapaceRing(sex, 0.5).rz * 1.0], [0, 0, -1]);
+  anchor('karapaks', carapace, [0.0, carapaceRing(sex, 0.5, B).ry * 0.98, 0], [0, 1, 0]);
+  anchor('karapaks', carapace, [0.0, 0.03, carapaceRing(sex, 0.5, B).rz * 1.0], [0, 0, 1]);
+  anchor('karapaks', carapace, [0.0, 0.03, -carapaceRing(sex, 0.5, B).rz * 1.0], [0, 0, -1]);
   if (sex === 'disi') {
-    anchor('eyer', carapace, [0.17, carapaceRing(sex, 0.7).ry * 0.97, 0], [0, 1, 0]);
+    anchor('eyer', carapace, [0.17, carapaceRing(sex, 0.7, B).ry * 0.97, 0], [0, 1, 0]);
   }
 
   // ---- gözler
@@ -309,6 +312,13 @@ export function buildShrimp(sex: Sex, variantId: string, texW: number): Built {
           last.add(fg);
           fingers.push(fg);
         }
+        if (profile.brushChela && i < 2) {
+          // fırça benzeri kıl demeti: parmak uçlarında yelpaze biçimli şematik tutam
+          const brush = new Mesh(new ConeGeometry(0.03, 0.06, seg(8, 5), 1).rotateZ(Math.PI / 2).translate(0.07, 0, 0), brushMat);
+          brush.scale.set(1, 1, 1.3);
+          brush.position.x = tipX + 0.01;
+          last.add(brush);
+        }
       } else {
         const claw = new Mesh(new CylinderGeometry(0.001, 0.007, 0.04, 6).rotateZ(-Math.PI / 2).translate(0.02, 0, 0), limbMat);
         claw.position.x = spec.links[n - 1];
@@ -330,7 +340,7 @@ export function buildShrimp(sex: Sex, variantId: string, texW: number): Built {
     g.position.set(i === 0 ? PLEON_PIVOT[0] : SEG.len[i - 1], i === 0 ? PLEON_PIVOT[1] : 0, 0);
     parent.add(g);
     const clear = !!v.rili && v.rili.acik.includes(i);
-    const geo = shellGeometry((u) => segRing(sex, i, u), B.flare, -0.12, 1.02, SEG.len[i], 12, 26, { rear: i === SEG.count - 1 });
+    const geo = shellGeometry((u) => segRing(sex, i, u, B), B.flare, -0.12, 1.02, SEG.len[i], 12, 26, { rear: i === SEG.count - 1 });
     const m = new Mesh(geo, clear ? clrMat : abdMat);
     g.add(m);
     segGroups.push(g);
@@ -338,16 +348,16 @@ export function buildShrimp(sex: Sex, variantId: string, texW: number): Built {
     occluders.push(m);
     parent = g;
   }
-  anchor('karin', segMeshes[2], [SEG.len[2] * 0.5, segRing(sex, 2, 0.5).ry * 1.0, 0], [0, 1, 0]);
-  anchor('karin', segMeshes[2], [SEG.len[2] * 0.5, -0.02, segRing(sex, 2, 0.5).rz * 1.02], [0, 0, 1]);
-  anchor('karin', segMeshes[2], [SEG.len[2] * 0.5, -0.02, -segRing(sex, 2, 0.5).rz * 1.02], [0, 0, -1]);
+  anchor('karin', segMeshes[2], [SEG.len[2] * 0.5, segRing(sex, 2, 0.5, B).ry * 1.0, 0], [0, 1, 0]);
+  anchor('karin', segMeshes[2], [SEG.len[2] * 0.5, -0.02, segRing(sex, 2, 0.5, B).rz * 1.02], [0, 0, 1]);
+  anchor('karin', segMeshes[2], [SEG.len[2] * 0.5, -0.02, -segRing(sex, 2, 0.5, B).rz * 1.02], [0, 0, -1]);
 
   // ---- yüzme bacakları
   const pleo: { g: Group; i: number }[] = [];
   for (let i = 0; i < 5; i++) {
     for (const s of [1, -1] as const) {
       const g = new Group();
-      const r = segRing(sex, i, 0.5);
+      const r = segRing(sex, i, 0.5, B);
       g.position.set(SEG.len[i] * 0.52, -r.ry * 0.8, s * r.rz * 0.5);
       segGroups[i].add(g);
       const stem = new Mesh(new CylinderGeometry(0.014, 0.018, 0.05, 6).translate(0, -0.025, 0), limbMat);
@@ -425,6 +435,8 @@ export function buildShrimp(sex: Sex, variantId: string, texW: number): Built {
     anchor('uropod', ug, [0.2, 0.012, s * 0.07], [0, 1, 0]);
   }
 
+  profile.extraAnchors?.({ anchor, sex, carapace, segMeshes, segGroups });
+
   // ---- poz
   const wobble = ANIM;
   const pose = (t: number, amp: number) => {
@@ -500,7 +512,9 @@ export interface ViewerOptions {
   sex: Sex;
   variant: string;
   reducedMotion: boolean;
-  onSelect: (id: PartId | null, fromUser: boolean) => void;
+  onSelect: (id: any, fromUser: boolean) => void;
+  /** İsteğe bağlı karides türü profili (varsayılan Neocaridina) */
+  profile?: ShrimpProfile;
 }
 
 export interface Viewer {
@@ -514,9 +528,9 @@ export interface Viewer {
   zoom(factor: number): void;
   rotate(dTheta: number, dPhi: number): void;
   reset(): void;
-  select(id: PartId | null): void;
-  isPartVisible(id: PartId): boolean;
-  visibleParts(): PartId[];
+  select(id: string | null): void;
+  isPartVisible(id: string): boolean;
+  visibleParts(): string[];
   dispose(): void;
 }
 
@@ -524,6 +538,7 @@ const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2,
 
 export function createViewer(opts: ViewerOptions): Viewer {
   const { canvas, overlay } = opts;
+  const profile = opts.profile ?? NEOCARIDINA_PROFILE;
   const small = matchMedia('(max-width: 700px)').matches || navigator.maxTouchPoints > 0;
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2));
@@ -542,20 +557,20 @@ export function createViewer(opts: ViewerOptions): Viewer {
 
   let sex = opts.sex, variant = opts.variant;
   let built: Built | null = null;
-  let swimOn = false, selected: PartId | null = null, hotsOn = true, berryOn = true;
+  let swimOn = false, selected: string | null = null, hotsOn = true, berryOn = true;
   let amp = 0, time = 0;
   let visible = true, raf = 0, last = 0, disposed = false;
   let tween: { from: [number, number, number]; to: [number, number, number]; t0: number; dur: number } | null = null;
   const texW = small ? 512 : 1024;
   const ray = new Raycaster();
 
-  const hotspots = new Map<PartId, HTMLButtonElement>();
-  const shown = new Set<PartId>();
+  const hotspots = new Map<string, HTMLButtonElement>();
+  const shown = new Set<string>();
   const rebuildHotspots = () => {
     overlay.textContent = '';
     hotspots.clear();
     shown.clear();
-    partsFor(sex).forEach((p, i) => {
+    profile.partsFor(sex).forEach((p, i) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'v3-hot';
@@ -598,7 +613,7 @@ export function createViewer(opts: ViewerOptions): Viewer {
   const load = (first: boolean) => {
     const old = built;
     if (old) { scene.remove(old.root); disposeGroup(old.root, old.textures); }
-    built = buildShrimp(sex, variant, texW);
+    built = buildShrimp(sex, variant, texW, profile);
     built.pose(time, amp);
     scene.add(built.root);
     applyBerry();
@@ -717,7 +732,7 @@ export function createViewer(opts: ViewerOptions): Viewer {
   };
 
   const api: Viewer = {
-    setSex(s) { if (s !== sex) { sex = s; if (selected && !partsFor(sex).some((p) => p.id === selected)) { selected = null; opts.onSelect(null, false); } load(false); } },
+    setSex(s) { if (s !== sex) { sex = s; if (selected && !profile.partsFor(sex).some((p) => p.id === selected)) { selected = null; opts.onSelect(null, false); } load(false); } },
     setVariant(v) { if (v !== variant) { variant = v; load(false); } },
     setAutoRotate(on) { controls.autoRotate = on; invalidate(); },
     setSwim(on) { swimOn = on; invalidate(); },
