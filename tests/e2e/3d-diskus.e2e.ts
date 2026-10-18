@@ -131,6 +131,8 @@ test.describe('3B diskus modeli', () => {
     await expect(page.locator('#stage')).toHaveAttribute('data-swim', 'off');
     await page.check('#rot');
     await expect(page.locator('#stage')).toHaveAttribute('data-rotate', 'on');
+    await page.locator('#stage').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
     const f0 = Number(await page.locator('#cv').getAttribute('data-frames'));
     await expect.poll(async () => Number(await page.locator('#cv').getAttribute('data-frames')), { timeout: 30_000 }).toBeGreaterThan(f0 + 2);
     await page.uncheck('#rot');
