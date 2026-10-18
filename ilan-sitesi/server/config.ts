@@ -17,7 +17,7 @@ export function loadDotEnv(file = path.join(ROOT, '.env')): void {
 export interface Config {
   port: number; host: string; adminEmail: string; cookieSecure: boolean; dataDir: string; uploadDir: string; dbPath: string; production: boolean;
   /** Test için hız sınırlarını gevşetmek */
-  loginMaxFails: number;
+  loginMaxFails: number; registerMax: number;
 }
 
 export function readConfig(env = process.env): Config {
@@ -27,6 +27,6 @@ export function readConfig(env = process.env): Config {
     adminEmail: (env.ADMIN_EMAIL || '').trim().toLowerCase(),
     cookieSecure: env.COOKIE_SECURE === 'true', dataDir,
     uploadDir: path.join(dataDir, 'uploads'), dbPath: path.join(dataDir, 'app.db'),
-    production: env.NODE_ENV === 'production', loginMaxFails: Number(env.LOGIN_MAX_FAILS || 5),
+    production: env.NODE_ENV === 'production', loginMaxFails: Number(env.LOGIN_MAX_FAILS || 5), registerMax: Number(env.REGISTER_MAX || 10),
   };
 }

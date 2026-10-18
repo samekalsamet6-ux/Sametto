@@ -11,7 +11,7 @@ export default defineConfig({
   webServer: {
     command: 'rm -rf data/e2e && npm run build --silent && node scripts/seed.ts --quiet && NODE_ENV=production node server/main.ts',
     url: `http://127.0.0.1:${PORT}/`, reuseExistingServer: false, timeout: 180_000,
-    env: { PORT: String(PORT), DATA_DIR: './data/e2e', ADMIN_EMAIL: 'yonetici@example.test', LOGIN_MAX_FAILS: '5' },
+    env: { PORT: String(PORT), DATA_DIR: './data/e2e', ADMIN_EMAIL: 'yonetici@example.test', LOGIN_MAX_FAILS: '5', REGISTER_MAX: '1000' },
   },
   projects: [
     { name: 'masaüstü', use: { viewport: { width: 1280, height: 800 } } },

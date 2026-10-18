@@ -53,8 +53,9 @@ async function parseBody(req: IncomingMessage, kind: 'form' | 'upload'): Promise
 
 export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?: string): App {
   const limiters = {
-    login: new RateLimiter(cfg.loginMaxFails, 10 * 60_000),
-    register: new RateLimiter(10, 60 * 60_000),
+    login: new RateLimiter(cfg.loginMaxFails, 10 * 60_000), // e-posta başına
+    loginIp: new RateLimiter(cfg.loginMaxFails * 6, 10 * 60_000), // IP başına (daha gevşek)
+    register: new RateLimiter(cfg.registerMax, 60 * 60_000),
     listing: new RateLimiter(20, 60 * 60_000),
     report: new RateLimiter(20, 60 * 60_000),
   };
@@ -231,15 +232,15 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
         checkCsrf(fields);
         const email = normalizeEmail(fields.email);
         const kIp = 'ip:' + ip, kEm = 'em:' + email;
-        if (limiters.login.blocked(kIp) || limiters.login.blocked(kEm)) {
-          const wait = Math.max(limiters.login.retryAfterSec(kIp), limiters.login.retryAfterSec(kEm));
+        if (limiters.loginIp.blocked(kIp) || limiters.login.blocked(kEm)) {
+          const wait = Math.max(limiters.loginIp.retryAfterSec(kIp), limiters.login.retryAfterSec(kEm));
           res.setHeader('Retry-After', String(wait));
           return page(V.loginPage(ctx, { email, next: safeNext(fields.next), error: `Çok fazla başarısız deneme. Yaklaşık ${Math.ceil(wait / 60)} dakika sonra tekrar deneyin.` }), 429);
         }
         const row = repo.findUserByEmail(db, email);
         const ok = await verifyPassword(typeof fields.password === 'string' ? fields.password.slice(0, 200) : '', row?.password_hash ?? DUMMY_HASH);
         if (!row || !ok) {
-          limiters.login.hit(kIp); limiters.login.hit(kEm);
+          limiters.loginIp.hit(kIp); limiters.login.hit(kEm);
           return page(V.loginPage(ctx, { email, next: safeNext(fields.next), error: 'E-posta ya da parola hatalı.' }), 401);
         }
         limiters.login.reset(kEm);
