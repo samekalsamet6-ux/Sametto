@@ -2,7 +2,7 @@ import { html, raw, esc, type SafeHtml } from './html.ts';
 import { layout, csrfField, SITE_NAME, type PageCtx } from './layout.ts';
 import { CATALOG, OTHER_ID, speciesById, speciesLabel, sexOptions, UNKNOWN_SEX } from '../../shared/catalog.ts';
 import { CITIES } from '../../shared/cities.ts';
-import { formatPrice, formatPhone, REPORT_REASONS, type Errors } from '../validation.ts';
+import { formatPrice, formatPhone, formatPhoneLocal, REPORT_REASONS, type Errors } from '../validation.ts';
 import { PAGE_SIZE, SORTS, type SearchParams } from '../search.ts';
 import type { Listing, Photo, ReportRow } from '../db.ts';
 
@@ -18,7 +18,7 @@ export function listingFacts(l: Listing): { species: string; form: string | null
   return { species: speciesLabel(l.species_id, l.species_other), form: sp ? itemName(sp.forms, l.form_id) : null, variant: sp ? itemName(sp.variants, l.variant_id) : null, sex: sexLabel(l.species_id, l.sex) };
 }
 
-const local = (n?: string | null) => (n ? '0' + n.slice(2) : '');
+const local = (n?: string | null) => (n ? formatPhoneLocal(n) : '');
 const err = (errors: Errors, k: string) => (errors[k] ? html`<p class="field-err" id="${k}-err">${errors[k]}</p>` : '');
 const invalid = (errors: Errors, k: string) => (errors[k] ? raw(` aria-invalid="true" aria-describedby="${k}-err"`) : '');
 
@@ -123,7 +123,7 @@ export function listingsPage(ctx: PageCtx, o: { params: SearchParams; result: { 
 </form>
 <p class="result-count" role="status" aria-live="polite" data-testid="sonuc-sayisi">${r.total} ilan bulundu</p>
 <p class="muted small">Liste görünümünde yalnızca satıcının gerçek fotoğrafı gösterilir; 3B model ilan sayfasındadır.</p>
-${r.items.length ? cardGrid(r.items) : html`<p class="empty">Bu ölçütlere uyan ilan yok. Filtreleri gevşetmeyi deneyin.</p>`}
+${r.items.length ? cardGrid(r.items) : html`<p class="empty">Bu ölçütlere uyan ilan bulunamadı. Filtreleri gevşetmeyi deneyin ya da <a href="/ilanlar">tüm ilanlara bakın</a>.</p>`}
 ${r.pages > 1 ? html`<nav class="pager" aria-label="Sayfalar">
   ${r.page > 1 ? html`<a class="btn btn-ghost" rel="prev" href="/ilanlar?${qs({ sayfa: r.page - 1 })}">‹ Önceki</a>` : ''}
   <span>Sayfa ${r.page} / ${r.pages}</span>
@@ -145,6 +145,23 @@ export function detailPage(ctx: PageCtx, o: { l: Listing; photos: Photo[]; alrea
   if (f.form) facts.push(['Şekil', f.form]);
   if (f.variant) facts.push(['Renk', f.variant]);
   facts.push(['Cinsiyet', f.sex], ['Adet', String(l.quantity)], ['Şehir', l.city], ['İlan tarihi', fmtDate(l.created_at)]);
+  const canReport = !o.alreadyReported && !isOwner;
+  const reportInner = html`${o.reported ? html`<p class="flash flash-ok" role="status">Şikayetiniz alındı. İlan incelenmek üzere işaretlendi, teşekkürler.</p>` : ''}${o.alreadyReported && !o.reported ? html`<p class="muted">Bu ilanı daha önce şikayet ettiniz.</p>` : ''}${canReport
+      ? ctx.user
+        ? html`<details${o.reportErrors && Object.keys(o.reportErrors).length ? raw(' open') : ''}><summary id="sik-b" class="linklike">Şikayet et</summary>
+          <form method="post" action="/ilan/${l.id}/sikayet" class="stack">
+            ${csrfField(ctx)}
+            <label for="s-neden">Neden</label>
+            <select id="s-neden" name="reason" required${invalid(o.reportErrors ?? {}, 'reason')}><option value="">Seçin…</option>${REPORT_REASONS.map((r) => html`<option value="${r.id}">${r.ad}</option>`)}</select>
+            ${err(o.reportErrors ?? {}, 'reason')}
+            <label for="s-not">Ek açıklama (isteğe bağlı)</label>
+            <textarea id="s-not" name="note" rows="3" maxlength="500"></textarea>
+            <button class="btn btn-danger btn-small" type="submit">Şikayeti gönder</button>
+          </form></details>`
+        : html`<p id="sik-b"><a href="/giris?next=/ilan/${l.id}">Şikayet etmek için giriş yapın</a></p>`
+      : ''}`;
+  // Boş kutu oluşmasın: içerik yoksa bölüm hiç çizilmez.
+  const reportBlock = reportInner.value.trim() ? html`<section class="report" aria-label="Şikayet">${reportInner}</section>` : '';
   const body = html`
 <nav class="crumbs" aria-label="Sayfa yolu"><a href="/ilanlar">İlanlar</a> <span aria-hidden="true">/</span> <a href="/ilanlar?tur=${l.species_id}">${f.species}</a></nav>
 <article class="detail" data-listing="${l.id}">
@@ -192,24 +209,7 @@ export function detailPage(ctx: PageCtx, o: { l: Listing; photos: Photo[]; alrea
       ${isOwner ? html`<form method="post" action="/ilan/${l.id}/kaldir" onsubmit="return confirm('İlan kaldırılsın mı? Fotoğrafları da silinir.')">${csrfField(ctx)}<button class="btn btn-danger btn-small" type="submit">İlanı kaldır</button></form>` : ''}
     </aside>
   </div>
-  ${isOwner && !o.reported ? '' : html`<section class="report" aria-labelledby="sik-b">
-    ${o.reported ? html`<p class="flash flash-ok" role="status">Şikayetiniz alındı. İlan incelenmek üzere işaretlendi, teşekkürler.</p>` : ''}
-    ${o.alreadyReported && !o.reported ? html`<p class="muted">Bu ilanı daha önce şikayet ettiniz.</p>` : ''}
-    ${!o.alreadyReported && !isOwner
-      ? ctx.user
-        ? html`<details${o.reportErrors && Object.keys(o.reportErrors).length ? raw(' open') : ''}><summary id="sik-b" class="linklike">Şikayet et</summary>
-          <form method="post" action="/ilan/${l.id}/sikayet" class="stack">
-            ${csrfField(ctx)}
-            <label for="s-neden">Neden</label>
-            <select id="s-neden" name="reason" required${invalid(o.reportErrors ?? {}, 'reason')}><option value="">Seçin…</option>${REPORT_REASONS.map((r) => html`<option value="${r.id}">${r.ad}</option>`)}</select>
-            ${err(o.reportErrors ?? {}, 'reason')}
-            <label for="s-not">Ek açıklama (isteğe bağlı)</label>
-            <textarea id="s-not" name="note" rows="3" maxlength="500"></textarea>
-            <button class="btn btn-danger btn-small" type="submit">Şikayeti gönder</button>
-          </form></details>`
-        : html`<p id="sik-b"><a href="/giris?next=/ilan/${l.id}">Şikayet etmek için giriş yapın</a></p>`
-      : ''}
-  </section>`}
+  ${reportBlock}
 </article>`;
   return layout(ctx, { title: l.title, description: `${f.species}${f.variant ? ' · ' + f.variant : ''} — ${l.city}, ${formatPrice(l.price_kurus)}`, body, entry: 'ilanDetay' });
 }
@@ -278,7 +278,7 @@ ${Object.keys(e).length ? html`<div class="flash flash-err" role="alert" tabinde
   </div>
   <aside class="lf-preview" aria-labelledby="onizleme-b">
     <div class="sticky">
-      <h2 id="onizleme-b">Temsili 3B önizleme</h2>
+      <h2 id="onizleme-b">Temsili 3B görünüm (önizleme)</h2>
       <div class="stage" id="sahne">
         <canvas id="cv" tabindex="0" role="img" aria-label="Seçtiğiniz tür, şekil ve renk için temsili 3B önizleme"></canvas>
         <div class="hot" id="ov" hidden></div>
@@ -339,6 +339,6 @@ ${rows.map((r) => html`<tr><td>${new Date(r.created_at).toLocaleString('tr-TR')}
 }
 
 export function messagePage(ctx: PageCtx, title: string, text: string): string {
-  return layout(ctx, { title, body: html`<section class="auth"><h1>${title}</h1><p>${text}</p><p><a class="btn" href="/">Ana sayfa</a></p></section>`, main: 'wrap narrow' });
+  return layout(ctx, { title, body: html`<section class="auth"><h1>${title}</h1><p>${text}</p><p><a class="btn" href="/">Ana sayfa</a></p></section>`, main: 'wrap' });
 }
 void esc;

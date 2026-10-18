@@ -36,6 +36,8 @@ export function normalizePhone(v: unknown): string | null {
   return null;
 }
 export function formatPhone(n: string): string { return `+${n.slice(0, 2)} ${n.slice(2, 5)} ${n.slice(5, 8)} ${n.slice(8, 10)} ${n.slice(10)}`; }
+/** Form alanı için: 905550000001 -> 0555 000 00 01 (normalizePhone ile geri çevrilebilir). */
+export function formatPhoneLocal(n: string): string { return `0${n.slice(2, 5)} ${n.slice(5, 8)} ${n.slice(8, 10)} ${n.slice(10)}`; }
 
 /** "1.250,50" / "1250" / "12,5" -> kuruş (tamsayı). */
 export function parsePriceKurus(v: unknown): number | null {

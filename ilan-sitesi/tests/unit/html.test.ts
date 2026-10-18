@@ -36,4 +36,20 @@ describe('ilan detay sayfası', () => {
     const out = detailPage(ctx, { l: listing(), photos, alreadyReported: false });
     expect(out).toContain('https://wa.me/905550000000'); expect(out).toContain('+90 555 000 00 00');
   });
+  it('boş kutu regresyonu: hiçbir durumda içeriksiz şikayet bölümü çizilmez', () => {
+    const base = { l: listing(), photos };
+    const owner = { ...ctx, user: { id: 2 } as never }, other = { ...ctx, user: { id: 9 } as never };
+    const variants = [
+      detailPage(owner, { ...base, alreadyReported: false }),
+      detailPage(owner, { ...base, alreadyReported: true }),
+      detailPage(other, { ...base, alreadyReported: true }),
+      detailPage(other, { ...base, alreadyReported: false }),
+      detailPage(ctx, { ...base, alreadyReported: false }),
+      detailPage(owner, { ...base, alreadyReported: false, reported: true }),
+    ];
+    for (const out of variants) expect(out).not.toMatch(/<section class="report"[^>]*>\s*<\/section>/);
+    expect(variants[0]).not.toContain('class="report"'); // sahibi kendi ilanını şikayet edemez: bölüm yok
+    expect(variants[2]).toContain('daha önce şikayet ettiniz');
+    expect(variants[3]).toContain('Şikayet et'); expect(variants[4]).toContain('giriş yapın');
+  });
 });

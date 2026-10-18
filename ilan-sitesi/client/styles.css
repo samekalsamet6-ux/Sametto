@@ -76,7 +76,7 @@ img { max-width: 100%; height: auto; display: block; }
 .card-row { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-top: 4px; font-size: .875rem; }
 .price { font-size: 1.15rem; color: var(--accent); }
 .tag { display: inline-block; font-size: .78rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
-.tag-demo { position: absolute; left: 8px; top: 8px; background: #ffe08a; color: #4a3600; }
+.tag-demo { position: absolute; left: 8px; bottom: 8px; background: #ffe08a; color: #4a3600; }
 .detail-head .tag-demo { position: static; }
 .empty { padding: 28px; text-align: center; background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); color: var(--muted); }
 .steps { padding-left: 1.2em; display: grid; gap: 8px; max-width: 70ch; }
@@ -98,7 +98,7 @@ input[aria-invalid=true], select[aria-invalid=true], textarea[aria-invalid=true]
 fieldset { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 8px 18px 18px; margin: 0 0 18px; min-width: 0; }
 legend { font-weight: 800; padding: 0 8px; }
 .row2, .row3 { display: grid; gap: 0 14px; }
-@media (min-width: 560px) { .row2 { grid-template-columns: 1fr 1fr; } .row3 { grid-template-columns: 1fr 1fr 1.4fr; } }
+@media (min-width: 560px) { .row2 { grid-template-columns: 1fr 1fr; } .row3 { grid-template-columns: 1.5fr .7fr 1.2fr; } }
 .previews { display: flex; gap: 8px; flex-wrap: wrap; list-style: none; padding: 0; margin: 8px 0 0; }
 .previews img { width: 96px; height: 72px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
 .listing-form { display: grid; gap: 20px; }
@@ -155,3 +155,12 @@ th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--lin
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
 .seller { align-self: start; }
 .f-actions { grid-column: 1 / -1; flex-direction: row; }
+
+/* Dar ekran: üst çubuk iki düzenli satır (marka / gezinme), taşma yok */
+@media (max-width: 599px) {
+  .topbar-in { gap: 0; padding-block: 6px; }
+  .nav { width: 100%; flex-wrap: nowrap; justify-content: space-between; gap: 6px; }
+  .nav a:not(.btn), .linklike { white-space: nowrap; padding: 10px 2px; font-size: .95rem; }
+  .nav-user { min-width: 0; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; }
+  .nav .btn-small { white-space: nowrap; }
+}

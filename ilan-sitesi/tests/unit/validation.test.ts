@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateListing, validateRegister, validateReport, normalizePhone, parsePriceKurus, formatPrice, formatPhone } from '../../server/validation.ts';
+import { validateListing, validateRegister, validateReport, normalizePhone, parsePriceKurus, formatPrice, formatPhone, formatPhoneLocal } from '../../server/validation.ts';
 import { CATALOG } from '../../shared/catalog.ts';
 
 const good = { species: 'lepistes', form: 'delta', variant: 'mozaik', sex: 'erkek', quantity: '3', price: '120', city: 'İstanbul', description: 'Sağlıklı, evde üretim balıklar.' };
@@ -76,5 +76,12 @@ describe('validateRegister / validateReport', () => {
   it('şikayet nedeni', () => {
     expect(validateReport({ reason: 'sahte' }).ok).toBe(true);
     expect(validateReport({ reason: 'x' }).ok).toBe(false);
+  });
+});
+
+describe('telefon biçimi gidiş-dönüş', () => {
+  it('formda dostça biçim gösterilir ve geri normalleştirilir', () => {
+    expect(formatPhoneLocal('905550000001')).toBe('0555 000 00 01');
+    for (const n of ['905550000001', '905321234567']) expect(normalizePhone(formatPhoneLocal(n))).toBe(n);
   });
 });

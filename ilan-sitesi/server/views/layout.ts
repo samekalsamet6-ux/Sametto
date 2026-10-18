@@ -30,7 +30,7 @@ ${ctx.assets.head(o.entry ?? 'site')}
       ${nav('/ilanlar', 'İlanlar')}
       ${nav('/ilan/yeni', 'İlan ver')}
       ${user
-        ? html`<a href="/satici/${user.id}"${o.path === '/satici/' + user.id ? raw(' aria-current="page"') : ''}>${user.display_name}</a>
+        ? html`<a class="nav-user" href="/satici/${user.id}"${o.path === '/satici/' + user.id ? raw(' aria-current="page"') : ''}>${user.display_name}</a>
           <form method="post" action="/cikis" class="inline"><input type="hidden" name="_csrf" value="${ctx.csrf}"><button class="linklike" type="submit">Çıkış</button></form>`
         : html`${nav('/giris', 'Giriş')}<a class="btn btn-small" href="/kayit">Kayıt ol</a>`}
     </nav>

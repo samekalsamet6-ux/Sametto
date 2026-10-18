@@ -153,6 +153,19 @@ describe('detay sayfası, şikayet, yönetim', () => {
     const h2 = await (await c.req(r2.headers.get('location')!)).text();
     expect(h2).not.toContain('<canvas'); expect(h2).toContain('3B model yok');
   });
+  it("ilan formu: önizleme 'Temsili 3B görünüm' etiketli; WhatsApp dostça biçimde ve gidiş-dönüşlü", async () => {
+    const c = new Client(); await c.register('w1@example.test');
+    expect((await c.post('/ilan/yeni', { ...LISTING, whatsapp: '0555 000 00 01' }, [{ name: 'a.png', type: 'image/png', data: png }])).status).toBe(303);
+    const form = await (await c.req('/ilan/yeni')).text();
+    expect(form).toContain('Temsili 3B görünüm (önizleme)');
+    expect(form).toContain('value="0555 000 00 01"'); expect(form).not.toContain('905550000001');
+  });
+  it('sahibi kendi ilan sayfasında boş şikayet kutusu görmez', async () => {
+    const c = new Client(); await c.register('e1@example.test');
+    const loc = (await c.post('/ilan/yeni', LISTING, [{ name: 'a.png', type: 'image/png', data: png }])).headers.get('location')!;
+    const h = await (await c.req(loc)).text();
+    expect(h).not.toContain('class="report"'); expect(h).not.toMatch(/<section[^>]*>\s*<\/section>/);
+  });
   it('şikayet yalnızca girişli kullanıcıdan, ilanı işaretler; /admin/raporlar yalnızca ADMIN_EMAIL', async () => {
     const seller = new Client(); await seller.register('s1@example.test');
     const loc = (await seller.post('/ilan/yeni', LISTING, [{ name: 'a.png', type: 'image/png', data: png }])).headers.get('location')!.split('?')[0];
