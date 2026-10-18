@@ -1,6 +1,7 @@
 import './site.ts';
 import { CATALOG, OTHER_ID, UNKNOWN_SEX, sexOptions } from '../shared/catalog.ts';
 import { mountViewer } from './viewer3d.ts';
+import { fillSelect } from './catalog-select.ts';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const tur = $<HTMLSelectElement>('tur'), form = $<HTMLSelectElement>('form'), variant = $<HTMLSelectElement>('variant'), sex = $<HTMLSelectElement>('sex');
@@ -8,16 +9,7 @@ const digerKutu = $('diger-kutu'), sekilKutu = $('sekil-kutu'), renkKutu = $('re
 const stage = $('sahne');
 const mount = mountViewer(stage);
 
-function fill(sel: HTMLSelectElement, items: { id: string; ad: string; grup?: string }[], keep?: string) {
-  sel.replaceChildren();
-  const groups = new Map<string, HTMLElement>();
-  for (const it of items) {
-    let parent: HTMLElement = sel;
-    if (it.grup) { if (!groups.has(it.grup)) { const g = document.createElement('optgroup'); g.label = it.grup; sel.append(g); groups.set(it.grup, g); } parent = groups.get(it.grup)!; }
-    parent.append(new Option(it.ad, it.id));
-  }
-  if (keep && items.some((i) => i.id === keep)) sel.value = keep;
-}
+const fill = fillSelect;
 
 function onSpecies(first: boolean) {
   const sp = CATALOG.find((s) => s.id === tur.value);

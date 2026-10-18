@@ -16,6 +16,12 @@ const LOADERS: Record<string, () => Promise<{ species: SpeciesModule }>> = {
   japon: () => import('../../src/lib/japon/index.ts'),
 };
 
+/** Tür modülünü tembel yükler (aynı modül tekrar istenirse tarayıcı önbelleği kullanılır); 3B modeli olmayan tür için undefined. */
+export async function loadSpecies(id: string): Promise<SpeciesModule | undefined> {
+  const l = LOADERS[id];
+  return l ? (await l()).species : undefined;
+}
+
 export interface Selection { species: string; sex: string; form: string; variant: string }
 export interface Mount { update(sel: Selection): Promise<void>; viewer(): SpeciesViewer | null; dispose(): void }
 

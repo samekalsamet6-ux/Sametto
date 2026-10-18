@@ -164,3 +164,25 @@ th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--lin
   .nav-user { min-width: 0; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; }
   .nav .btn-small { white-space: nowrap; }
 }
+
+/* Akvaryum (satıcı profili ve düzenleyici) */
+.akv { margin: 20px 0 28px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 4px 18px 18px; }
+.akv-head { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
+.akv-head h2 { margin: 14px auto 8px 0; }
+.akv .tag-demo, .akv-head .tag-demo { position: static; }
+.akv .empty { margin: 8px 0 0; }
+.akv h3 { margin: 18px 0 8px; font-size: 1.05rem; }
+.tank { aspect-ratio: 16 / 9; background: #061820; border: 1px solid var(--line); }
+.tank canvas { cursor: grab; } .tank canvas[data-drag] { cursor: grabbing; }
+@media (max-width: 699px) { .tank { aspect-ratio: 1 / 1; } }
+.tank[data-state=nowebgl], .tank[data-state=error] { aspect-ratio: auto; background: var(--surface-2); }
+.tank[data-state=nowebgl] canvas, .tank[data-state=error] canvas { display: none; }
+.tank[data-state=nowebgl] .stage-fallback, .tank[data-state=error] .stage-fallback { position: static; background: none; color: var(--ink); padding: 16px; text-align: left; display: block; }
+.tank .stage-fallback { inset: 12px; }
+.fish-list { list-style: none; padding: 0; margin: 8px 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px 12px; }
+.fish-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.fish-name { font-weight: 700; } .fish-detail { color: var(--muted); font-size: .9rem; }
+.fish-list form.inline { margin-left: auto; align-self: center; }
+.akv-edit .fish-list { grid-template-columns: 1fr; }
+.akv-edit .lf-main > form + section { margin-top: 20px; }
+.akv-edit fieldset { margin-bottom: 0; }

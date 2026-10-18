@@ -49,18 +49,43 @@ Ayarlar `.env.example` içinde (`PORT`, `HOST`, `COOKIE_SECURE`, `TRUST_PROXY`, 
 2. **İlan detayı**: gerçek fotoğraflar + "Temsili 3B görünüm — gerçek balık fotoğrafları solda" etiketli 3B model (görünür olunca tembel yüklenir; WebGL yoksa yedek metin). İlan formunda tür/şekil/renk/cinsiyet değiştikçe güncellenen canlı 3B önizleme.
 3. **Arama**: tür, şekil, renk, şehir, fiyat aralığı; liste görünümünde yalnızca ilk gerçek fotoğraf (3B yok).
 4. **Hesaplar**: e-posta + parola, çıkış, giriş hız sınırı; satıcı iletişimi (isteğe bağlı WhatsApp/telefon: düz metin + `wa.me` bağlantısı); "şikayet et" düğmesi; yalnızca `is_admin` bayrağı olanlara açık minimal `/admin/raporlar` (diğerlerine 404).
-5. `/satici/:id` yer tutucu sayfa: satıcının ilanları + "Akvaryum yakında" notu.
+5. **Satıcı profili + Akvaryum** (`/satici/:id`): satıcının ilanları ve satıcının kendi eklediği balıklarla (tür, şekil, renk, cinsiyet; katalogdan) kurulan, ziyaretçilerin döndürüp yakınlaştırabildiği temsili 3B akvaryum. Sahne her zaman "temsili 3B görünüm — satıcının gerçek stoğu değildir" etiketiyle gösterilir. Düzenleme: `/profil/akvaryum` (yalnızca giriş yapmış sahibi).
 
 ## Kapsam dışı (bilerek eklenmedi)
 
-Ödeme, site içi mesajlaşma, değerlendirme/yorum, genetik, uyumluluk denetimi, AR, rozetler, profil sayfaları, çok balıklı 3B "Akvaryum" sahnesi, ilan düzenleme, e-posta doğrulama/parola sıfırlama, çoklu dil, dağıtım. Sonraki aşama için yalnızca veri tabanı hazırlandı: `aquarium_fish` tablosu (kullanıcı, tür, şekil, renk, cinsiyet) şemada var ama hiçbir yerde kullanılmıyor.
+Ödeme, site içi mesajlaşma, değerlendirme/yorum, genetik, uyumluluk denetimi, AR, rozetler, ilan düzenleme; akvaryumda bitki/dekor sistemi, yemleme, sosyal özellikler, mesajlaşma, genetik, uyumluluk denetimi, e-posta doğrulama/parola sıfırlama, çoklu dil, dağıtım.
+
+## Akvaryum (satıcı profili)
+
+- **Veri**: `aquarium_fish` (kullanıcı, tür, şekil, renk, cinsiyet, `position` = gösterim sırası; eski veritabanlarına `position` sütunu açılışta eklenir). Sunucuda katalogla doğrulanır (`validateFish`): tür 3B modeli olan bir katalog türü olmalı ("diğer" yok), şekil/renk o türe ait olmalı, cinsiyet türün sunduğu seçeneklerden biri olmalı ("bilinmiyor" yok; 3B için kesin cinsiyet gerekir). Aynı doğrulama ve sınırlar DB katmanında (`addAquariumFish`, tek işlemde) da uygulanır.
+- **Sınırlar** (çizim bütçesi için; `server/validation.ts`): akvaryum başına en çok **12 balık**; en çok **3 karides** (model ~240 çizim çağrısı/adet); **japon + pleco + vatoz toplamda en çok 4** (35-60 çağrı, büyük yüzgeçler). Ekleme/silme hız sınırı: kullanıcı başına saatte 60.
+- **Uç noktalar** (hepsi oturum + CSRF + Origin denetimli, yalnızca kendi akvaryumunuz): `GET /profil/akvaryum`, `POST /profil/akvaryum/ekle`, `POST /profil/akvaryum/:id/sil` (başkasının balığı için 404). Herkese açık görünüm `GET /satici/:id`.
+- **Düzenleyici**: tür/şekil/renk/cinsiyet seçicileri ilan formuyla aynı katalog mantığını kullanır (`client/catalog-select.ts`) ve seçilen balığın canlı 3B önizlemesini gösterir (JavaScript ister).
+- **Sahne** (`client/akvaryum-sahne.ts`, saf yerleşim/yol hesabı `client/tank-motion.ts`): tek `WebGLRenderer`; balıklar tür modüllerinin renderer'sız `createFishGroup` API'siyle gelir (geometri/doku paylaşımlı), paylaşılan görünüm `applyLook`, her karede `sortFishGroups` (saydam yüzgeçler doğru sıralanır). Cam kutu (su gradyanı, kum zemin, ince cam + kenar çizgileri, sis); balıklar tür başına ölçeklenir, kendi döngüsel yolunda (faz/yön/periyot balık başına farklı) yüzer; zeminde yaşayanlar (pleco, corydoras, vatoz, karides) zemine yakın ve yavaş, diğerleri su sütununda ayrı şeritlerde gezer. Konum, gerçek sınır kutusuna göre cam kutunun içinde ve kumun üstünde tutulur (birim testle doğrulanır). Balıklar arası çarpışma kaçınması yoktur; şeritler çakışmayı azaltır ama balıklar birbirinin içinden geçebilir.
+- **Kontroller**: işaretçi sürükleme = döndür, iki parmak = yakınlaştır, tekerlek (yalnızca tuval odaktayken ya da Ctrl ile; sayfa kaydırmasını çalmaz), klavye (tuval odaktayken ok tuşları döndürür, `+`/`-` yakınlaştırır, `Home` sıfırlar) ve ekrandaki düğmeler. Dikey kaydırma mobilde sayfaya aittir (`touch-action: pan-y`).
+- **Yüklenme/duraklatma**: sahne görünür olunca tembel yüklenir (three + yalnızca kullanılan türlerin modülleri); ekran dışındayken ya da sekme gizliyken çizim döngüsü durur; `prefers-reduced-motion` iken durağan poz (yalnızca kullanıcı döndürünce yeniden çizilir). Balık sayısı 6'dan çoksa ya da ekran 700 px'ten darsa **low** LOD, değilse normal (`?lod=low|normal` ile zorlanabilir). `devicePixelRatio` en çok 2 (low'da 1,5). Sayfadan ayrılınca (`pagehide`) tüm balıklar, geometri/doku/malzeme, ışıklar ve renderer bırakılır, bağlam kapatılır.
+- **Yedek**: WebGL yoksa ya da bağlam kaybolursa kısa bir açıklama + balık listesi gösterilir. Aynı liste (tür, şekil, renk, cinsiyet) normal durumda da tuvalin altında metin olarak bulunur; tuvalin `aria-label` değeri etiketi ve balık sayısını söyler.
+- **Örnek veri**: `npm run seed` DEMO satıcıya 12 balıklı "Örnek akvaryum" ekler (zaten ilan varsa yalnızca akvaryum eklenir); profilde "Örnek akvaryum" etiketi görünür.
+
+### Bütçe (12 karışık balık, low LOD; `createFishGroup` bütçe sayıları + `renderer.info`)
+
+| | |
+|---|---|
+| Üçgen (balıklar) | ~62 bin (sahne dahil ~68 bin/kare) |
+| Çizim çağrısı | ~520 (balıklar), ~590/kare (sahne dahil) |
+| Doku / piksel | ~64 doku, ~2,1 milyon piksel (paylaşımlı) |
+| GPU programı | ~57 |
+| Kötü durum (3 karides + 4 ağır + 5 diğer) | ~1100 çizim çağrısı |
+| Kare süresi (yazılım WebGL/SwiftShader, 12 balık, low) | bkz. aşağıdaki ölçüm notu |
+
+Ölçüm (`tests/e2e/akvaryum.e2e.ts`, `window.__akvaryum.benchmark()`, yazılım WebGL, yüklü makine): MASAUSTU_OLCUM. Gerçek GPU'da bunun çok altındadır; sayılar yalnızca gerilemeleri yakalamak içindir.
 
 ## Yapı
 
 ```
 server/        Node http sunucusu (bağımlılıksız): app.ts (yönlendirme), db.ts (node:sqlite), auth.ts (scrypt, oturum, hız sınırı),
                validation.ts, search.ts (sorgu kurucu), uploads.ts (fotoğraf doğrulama), views/ (kaçışlı HTML şablonları)
-client/        Vite ile paketlenen TS: viewer3d.ts (tür modüllerini tembel yükler), ilan-form.ts, ilan-detay.ts, ilanlar.ts, styles.css
+client/        Vite ile paketlenen TS: viewer3d.ts (tür modüllerini tembel yükler), ilan-form.ts, ilan-detay.ts, ilanlar.ts, satici.ts + akvaryum-sahne.ts + tank-motion.ts (akvaryum), akvaryum-duzenle.ts, catalog-select.ts, styles.css
 shared/        catalog.json (tür modüllerinden üretilir), catalog.ts, cities.ts
 scripts/       gen-catalog.mjs, seed.ts, shots.mjs (ekran görüntüsü aracı)
 tests/unit     vitest: doğrulama, auth/oturum, arama sorgusu, DB, yükleme, şablon, katalog, API (sunucu düzeyi)

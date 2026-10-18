@@ -22,6 +22,8 @@ export default defineConfig({
         ilanForm: path.resolve(here, 'client/ilan-form.ts'),
         ilanDetay: path.resolve(here, 'client/ilan-detay.ts'),
         ilanlar: path.resolve(here, 'client/ilanlar.ts'),
+        satici: path.resolve(here, 'client/satici.ts'),
+        akvaryumDuzenle: path.resolve(here, 'client/akvaryum-duzenle.ts'),
       },
     },
   },

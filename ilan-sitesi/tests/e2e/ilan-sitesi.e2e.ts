@@ -203,11 +203,11 @@ test.describe('şikayet ve yönetim', () => {
 });
 
 test.describe('satıcı sayfası ve yerleşim', () => {
-  test('satıcı sayfası ilanları ve "Akvaryum yakında" notunu gösterir', async ({ page }) => {
+  test('satıcı sayfası ilanları ve boş akvaryum durumunu gösterir', async ({ page }) => {
     await page.goto('/ilanlar');
     await page.locator('.card-link').first().click();
     await page.locator('.seller a[href^="/satici/"]').click();
-    await expect(page.getByText('Akvaryum yakında')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Akvaryum', exact: true })).toBeVisible();
     await expect(page.locator('.card')).not.toHaveCount(0);
   });
 
