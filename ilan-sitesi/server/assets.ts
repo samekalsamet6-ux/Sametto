@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { Assets } from './views/layout.ts';
 import { esc } from './views/html.ts';
 
-const ENTRY_FILES: Record<string, string> = { site: 'client/site.ts', ilanForm: 'client/ilan-form.ts', ilanDetay: 'client/ilan-detay.ts', ilanlar: 'client/ilanlar.ts' };
+const ENTRY_FILES: Record<string, string> = { site: 'client/site.ts', ilanForm: 'client/ilan-form.ts', ilanDetay: 'client/ilan-detay.ts', ilanlar: 'client/ilanlar.ts', satici: 'client/satici.ts', akvaryumDuzenle: 'client/akvaryum-duzenle.ts' };
 
 export function devAssets(): Assets {
   return {

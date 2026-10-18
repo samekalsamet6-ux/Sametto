@@ -117,4 +117,41 @@ export function validateReport(f: Record<string, unknown>): Result<{ reason: str
   return { ok: !Object.keys(errors).length, errors, value: { reason, note } };
 }
 
+// ---- Akvaryum (satıcı profili): balık doğrulaması ve üst sınırlar ----
+/** Bir akvaryumdaki en çok balık sayısı (tek WebGL sahnesinin çizim bütçesi için). */
+export const MAX_FISH = 12;
+/** Karides modeli çok parçalıdır (~240 çizim çağrısı/adet): en çok 3. */
+export const MAX_KARIDES = 3;
+/** Ağır modeller (japon, pleco, vatoz: 35-60 çizim çağrısı ve büyük yüzgeçler): toplamda en çok 4. */
+export const HEAVY_SPECIES = ['japon', 'pleco', 'vatoz'] as const;
+export const MAX_HEAVY = 4;
+
+export interface FishInput { speciesId: string; formId: string | null; variantId: string | null; sex: string }
+
+/** Katalogla doğrular: tür 3B modeli olan bir tür olmalı; şekil/renk o türe ait olmalı; cinsiyet türün sunduğu seçeneklerden biri olmalı ('bilinmiyor' yok: 3B için kesin cinsiyet gerekir). */
+export function validateFish(f: Record<string, unknown>): Result<FishInput> {
+  const errors: Errors = {};
+  const speciesId = clean(f.species, 30);
+  const sp = speciesById(speciesId);
+  if (!sp) errors.species = 'Listeden bir tür seçin.';
+  let formId: string | null = null, variantId: string | null = null;
+  if (sp) {
+    const form = clean(f.form, 40);
+    if (sp.forms.length) { if (!sp.forms.some((x) => x.id === form)) errors.form = 'Bu tür için geçerli bir şekil seçin.'; else formId = form; }
+    const variant = clean(f.variant, 40);
+    if (sp.variants.length) { if (!sp.variants.some((x) => x.id === variant)) errors.variant = 'Bu tür için geçerli bir renk seçin.'; else variantId = variant; }
+  }
+  const sex = clean(f.sex, 20);
+  if (sp && !sp.sexes.some((x) => x.id === sex)) errors.sex = 'Bu tür için geçerli bir cinsiyet seçin.';
+  return { ok: Object.keys(errors).length === 0, errors, value: { speciesId, formId, variantId, sex } };
+}
+
+/** Eklemeden önce üst sınır denetimi: sorun varsa Türkçe mesaj, yoksa null. `current` mevcut balıkların tür kimlikleri. */
+export function aquariumCapError(current: string[], add: string): string | null {
+  if (current.length >= MAX_FISH) return `Akvaryumda en fazla ${MAX_FISH} balık olabilir. Yeni balık eklemek için birini kaldırın.`;
+  if (add === 'karides' && current.filter((x) => x === 'karides').length >= MAX_KARIDES) return `Akvaryumda en fazla ${MAX_KARIDES} karides olabilir (karides modeli çok parçalıdır).`;
+  if ((HEAVY_SPECIES as readonly string[]).includes(add) && current.filter((x) => (HEAVY_SPECIES as readonly string[]).includes(x)).length >= MAX_HEAVY) return `Japon, pleco ve vatoz toplamda en fazla ${MAX_HEAVY} tane olabilir (büyük modeller).`;
+  return null;
+}
+
 export { UNKNOWN_SEX };

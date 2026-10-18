@@ -5,7 +5,7 @@ import { timingSafeEqual, randomBytes } from 'node:crypto';
 import type { Config } from './config.ts';
 import * as repo from './db.ts';
 import { hashPassword, verifyPassword, RateLimiter } from './auth.ts';
-import { validateRegister, validateListing, validateReport, normalizeEmail, type Errors } from './validation.ts';
+import { validateRegister, validateListing, validateReport, validateFish, normalizeEmail, type Errors } from './validation.ts';
 import { cleanImage } from './imageclean.ts';
 import { checkPhoto, savePhoto, deletePhotoFiles, isSafeFileName, MIME_BY_EXT, MAX_REQUEST_BYTES } from './uploads.ts';
 import type { SearchParams } from './search.ts';
@@ -69,6 +69,7 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
     register: new RateLimiter(cfg.registerMax, 60 * 60_000),
     listing: new RateLimiter(20, 60 * 60_000),
     report: new RateLimiter(20, 60 * 60_000),
+    aquarium: new RateLimiter(60, 60 * 60_000), // ekleme + silme, kullanıcı başına
   };
   const sameOrigin = (req: IncomingMessage): boolean => {
     const o = req.headers.origin;
@@ -219,7 +220,39 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
       if (seller && method === 'GET') {
         const s = repo.getUser(db, Number(seller[1]));
         if (!s) return notFound();
-        return page(V.sellerPage(ctx, { seller: s, items: repo.listingsBySeller(db, s.id) }));
+        return page(V.sellerPage(ctx, { seller: s, items: repo.listingsBySeller(db, s.id), fish: repo.listAquariumFish(db, s.id), isOwner: user?.id === s.id }));
+      }
+
+      // ---- akvaryum düzenleme (yalnızca sahibi: oturumdaki kullanıcının kendi akvaryumu) ----
+      if (p === '/profil/akvaryum' && method === 'GET') {
+        if (!user) return redirect('/giris?next=/profil/akvaryum');
+        const q = url.searchParams;
+        const flash = q.get('eklendi') === '1' ? { kind: 'ok' as const, text: 'Balık akvaryuma eklendi.' } : q.get('silindi') === '1' ? { kind: 'ok' as const, text: 'Balık kaldırıldı.' } : undefined;
+        return page(V.aquariumEditorPage({ ...ctx, flash }, { fish: repo.listAquariumFish(db, user.id), values: {}, errors: {} }));
+      }
+      if (p === '/profil/akvaryum/ekle' && method === 'POST') {
+        if (!user) return redirect('/giris?next=/profil/akvaryum');
+        if (limiters.aquarium.hit('u' + user.id)) throw new HttpError(429, 'Çok fazla akvaryum değişikliği yaptınız. Bir süre sonra tekrar deneyin.');
+        const { fields } = await parseBody(req, 'form');
+        checkCsrf(fields);
+        const v = validateFish(fields);
+        const values = { species: fields.species, form: fields.form, variant: fields.variant, sex: fields.sex };
+        if (!v.ok) return page(V.aquariumEditorPage(ctx, { fish: repo.listAquariumFish(db, user.id), values, errors: v.errors }), 422);
+        try { repo.addAquariumFish(db, user.id, v.value!); }
+        catch (e) {
+          if (e instanceof repo.AquariumCapError) return page(V.aquariumEditorPage(ctx, { fish: repo.listAquariumFish(db, user.id), values, errors: { cap: e.message } }), 422);
+          throw e;
+        }
+        return redirect('/profil/akvaryum?eklendi=1');
+      }
+      const fishDel = /^\/profil\/akvaryum\/(\d{1,9})\/sil$/.exec(p);
+      if (fishDel && method === 'POST') {
+        if (!user) return redirect('/giris?next=/profil/akvaryum');
+        if (limiters.aquarium.hit('u' + user.id)) throw new HttpError(429, 'Çok fazla akvaryum değişikliği yaptınız. Bir süre sonra tekrar deneyin.');
+        const { fields } = await parseBody(req, 'form');
+        checkCsrf(fields);
+        if (!repo.removeAquariumFish(db, user.id, Number(fishDel[1]))) return notFound();
+        return redirect('/profil/akvaryum?silindi=1');
       }
 
       // ---- hesap ----

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { newToken, tokenHash } from './auth.ts';
 import { buildSearch, type SearchParams } from './search.ts';
-import type { ListingInput } from './validation.ts';
+import { validateFish, aquariumCapError, type ListingInput } from './validation.ts';
 
 export type DB = DatabaseSync;
 
@@ -61,12 +61,13 @@ CREATE TABLE IF NOT EXISTS reports (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_reports_listing ON reports(listing_id);
--- GELECEK AŞAMA (Akvaryum / profil): henüz hiçbir yerde kullanılmıyor; yalnızca şema hazır.
+-- Satıcı profili akvaryumu: kullanıcı başına en çok 12 balık (sunucuda zorlanır); position = gösterim sırası.
 CREATE TABLE IF NOT EXISTS aquarium_fish (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   species_id TEXT NOT NULL, form_id TEXT, variant_id TEXT, sex TEXT NOT NULL,
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_aquarium_user ON aquarium_fish(user_id);
 `;
@@ -79,6 +80,12 @@ export function openDb(file: string): DB {
   // Eski veritabanları için geçiş: is_admin sütunu yoksa ekle.
   const cols = db.prepare('PRAGMA table_info(users)').all() as unknown as { name: string }[];
   if (!cols.some((c) => c.name === 'is_admin')) db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+  // Geçiş: aquarium_fish.position (ilk sürümde yoktu).
+  const fcols = db.prepare('PRAGMA table_info(aquarium_fish)').all() as unknown as { name: string }[];
+  if (!fcols.some((c) => c.name === 'position')) {
+    db.exec('ALTER TABLE aquarium_fish ADD COLUMN position INTEGER NOT NULL DEFAULT 0');
+    db.exec('UPDATE aquarium_fish SET position = id');
+  }
   return db;
 }
 
@@ -196,10 +203,29 @@ export function listReports(db: DB): ReportRow[] {
     FROM reports r JOIN listings l ON l.id = r.listing_id LEFT JOIN users u ON u.id = r.reporter_id ORDER BY r.created_at DESC, r.id DESC LIMIT 500`).all() as unknown as ReportRow[];
 }
 
-// ---- gelecek aşama: kullanıcının akvaryum balıkları (şu an kullanılmıyor) ----
+// ---- akvaryum (satıcı profili) ----
+export interface AquariumFish { id: number; user_id: number; species_id: string; form_id: string | null; variant_id: string | null; sex: string; position: number; created_at: number }
+export class InvalidFishError extends Error { errors: Record<string, string>; constructor(errors: Record<string, string>) { super('Geçersiz balık'); this.errors = errors; } }
+export class AquariumCapError extends Error {}
+
+/** Balığı doğrular (katalog), üst sınırları denetler ve tek işlemde ekler. Geçersizse InvalidFishError, sınır aşılırsa AquariumCapError. */
 export function addAquariumFish(db: DB, userId: number, f: { speciesId: string; formId?: string | null; variantId?: string | null; sex: string }): number {
-  return Number(db.prepare('INSERT INTO aquarium_fish (user_id,species_id,form_id,variant_id,sex,created_at) VALUES (?,?,?,?,?,?)').run(userId, f.speciesId, f.formId ?? null, f.variantId ?? null, f.sex, now()).lastInsertRowid);
+  const v = validateFish({ species: f.speciesId, form: f.formId ?? '', variant: f.variantId ?? '', sex: f.sex });
+  if (!v.ok) throw new InvalidFishError(v.errors);
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const cur = (db.prepare('SELECT species_id, position FROM aquarium_fish WHERE user_id = ?').all(userId) as unknown as { species_id: string; position: number }[]);
+    const cap = aquariumCapError(cur.map((r) => r.species_id), v.value!.speciesId);
+    if (cap) throw new AquariumCapError(cap);
+    const pos = cur.reduce((m, r) => Math.max(m, r.position), 0) + 1;
+    const r = db.prepare('INSERT INTO aquarium_fish (user_id,species_id,form_id,variant_id,sex,created_at,position) VALUES (?,?,?,?,?,?,?)')
+      .run(userId, v.value!.speciesId, v.value!.formId, v.value!.variantId, v.value!.sex, now(), pos);
+    db.exec('COMMIT');
+    return Number(r.lastInsertRowid);
+  } catch (e) { db.exec('ROLLBACK'); throw e; }
 }
-export const listAquariumFish = (db: DB, userId: number) => db.prepare('SELECT * FROM aquarium_fish WHERE user_id = ? ORDER BY id').all(userId);
+export const listAquariumFish = (db: DB, userId: number) => db.prepare('SELECT * FROM aquarium_fish WHERE user_id = ? ORDER BY position, id').all(userId) as unknown as AquariumFish[];
+/** Yalnızca sahibi silebilir; satır yoksa ya da başkasınınsa false. */
+export const removeAquariumFish = (db: DB, userId: number, fishId: number): boolean => Number(db.prepare('DELETE FROM aquarium_fish WHERE id = ? AND user_id = ?').run(fishId, userId).changes) > 0;
 
 export const randomFileBase = () => randomUUID().replace(/-/g, '');

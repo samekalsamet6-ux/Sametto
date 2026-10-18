@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { openDb, createUser, createListing, getListing, getPhotos, searchListings, addReport, listReports, removeListing, NoPhotoError, addAquariumFish, listAquariumFish, listingsBySeller, type DB } from '../../server/db.ts';
+import { openDb, createUser, createListing, getListing, getPhotos, searchListings, addReport, listReports, removeListing, NoPhotoError, addAquariumFish, listAquariumFish, removeAquariumFish, listingsBySeller, type DB } from '../../server/db.ts';
 import { validateListing, type ListingInput } from '../../server/validation.ts';
 
 const base = { species: 'lepistes', form: 'delta', variant: 'mozaik', sex: 'erkek', quantity: '3', price: '120', city: 'İstanbul', description: 'Sağlıklı, evde üretim balıklar.' };
@@ -62,8 +62,14 @@ describe('şikayet, kaldırma, akvaryum tablosu', () => {
     expect(removeListing(db, id, uid)).toEqual([photo('a').file]);
     expect(getListing(db, id)).toBeUndefined(); expect(searchListings(db, {}).total).toBe(0);
   });
-  it('gelecek aşama: kullanıcı akvaryum balığı satırları', () => {
+  it('akvaryum balığı satırları (sıra, silme yalnızca sahibine)', () => {
     addAquariumFish(db, uid, { speciesId: 'betta', formId: 'plakat', variantId: 'mavi', sex: 'erkek' });
+    const id2 = addAquariumFish(db, uid, { speciesId: 'neon', formId: 'standart', variantId: 'normal', sex: 'disi' });
+    const l = listAquariumFish(db, uid);
+    expect(l.map((f) => f.species_id)).toEqual(['betta', 'neon']); expect(l[1].position).toBeGreaterThan(l[0].position);
+    const other = createUser(db, 'o@b.com', 'x', 'Veli');
+    expect(removeAquariumFish(db, other, id2)).toBe(false);
+    expect(removeAquariumFish(db, uid, id2)).toBe(true);
     expect(listAquariumFish(db, uid)).toHaveLength(1);
   });
   it('sorgular parametreli: tırnaklı değer sorun çıkarmaz', () => {

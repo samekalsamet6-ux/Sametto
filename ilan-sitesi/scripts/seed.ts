@@ -1,6 +1,6 @@
 // Örnek (DEMO) veri: açıkça "Örnek ilan" olarak işaretli, üretilmiş yer tutucu fotoğraflı ilanlar.
 import { loadDotEnv, readConfig } from '../server/config.ts';
-import { openDb, createUser, createListing, findUserByEmail, addReport } from '../server/db.ts';
+import { openDb, createUser, createListing, findUserByEmail, addReport, addAquariumFish, listAquariumFish } from '../server/db.ts';
 import { hashPassword } from '../server/auth.ts';
 import { placeholderPng } from '../server/placeholder.ts';
 import { savePhoto } from '../server/uploads.ts';
@@ -19,7 +19,8 @@ export const DEMO_USERS = [
 ] as const;
 export const DEMO_PASSWORD = 'ornek-parola-123';
 
-if (db.prepare('SELECT 1 FROM listings WHERE is_demo = 1').get()) { log('Örnek ilanlar zaten var; atlandı.'); process.exit(0); }
+const hasListings = !!db.prepare('SELECT 1 FROM listings WHERE is_demo = 1').get();
+if (hasListings) log('Örnek ilanlar zaten var; atlandı.');
 
 const hash = await hashPassword(DEMO_PASSWORD);
 const ids = DEMO_USERS.map((u) => {
@@ -51,7 +52,7 @@ const PLAN: [string, number, number, string, number, number, string][] = [
 ];
 
 let seed = 1;
-PLAN.forEach(([sid, fi, vi, sex, qty, price, desc], i) => {
+if (!hasListings) PLAN.forEach(([sid, fi, vi, sex, qty, price, desc], i) => {
   const sp = sid === 'diger' ? null : spec(sid);
   const v: ListingInput = {
     speciesId: sid, speciesOther: sp ? null : 'Zebra danio', formId: sp?.forms.length ? sp.forms[Math.min(fi, sp.forms.length - 1)].id : null,
@@ -66,4 +67,18 @@ PLAN.forEach(([sid, fi, vi, sex, qty, price, desc], i) => {
   const lid = createListing(db, ids[i % ids.length], v, photos, { demo: true, createdAt: Date.now() - i * 3_600_000 });
   if (i === 4) addReport(db, lid, null, 'diger', 'Örnek şikayet kaydı (DEMO)');
 });
-log(`${PLAN.length} örnek ilan eklendi. Demo hesap: ${DEMO_USERS[0].email} / ${DEMO_PASSWORD}`);
+if (!hasListings) log(`${PLAN.length} örnek ilan eklendi. Demo hesap: ${DEMO_USERS[0].email} / ${DEMO_PASSWORD}`);
+
+// Örnek akvaryum (DEMO satıcı): 12 karışık balık. Profilde "Örnek akvaryum" etiketiyle gösterilir; yalnızca temsilidir.
+// [tür, şekil sırası, renk sırası, cinsiyet sırası]
+const AQUARIUM: [string, number, number, number][] = [
+  ['lepistes', 2, 3, 0], ['molly', 1, 1, 1], ['platy', 1, 2, 0], ['betta', 3, 1, 0], ['neon', 1, 1, 1], ['corydoras', 1, 0, 0],
+  ['japon', 3, 2, 0], ['pleco', 1, 1, 1], ['melek', 1, 2, 0], ['diskus', 0, 4, 0], ['vatoz', 0, 0, 1], ['karides', 0, 2, 1],
+];
+if (listAquariumFish(db, ids[0]).length === 0) {
+  for (const [sid, fi, vi, si] of AQUARIUM) {
+    const sp = spec(sid);
+    addAquariumFish(db, ids[0], { speciesId: sid, formId: sp.forms.length ? sp.forms[Math.min(fi, sp.forms.length - 1)].id : null, variantId: sp.variants.length ? sp.variants[Math.min(vi, sp.variants.length - 1)].id : null, sex: sp.sexes[Math.min(si, sp.sexes.length - 1)].id });
+  }
+  log(`${AQUARIUM.length} balıklı örnek akvaryum eklendi (${DEMO_USERS[0].name}).`);
+}

@@ -2,9 +2,9 @@ import { html, raw, esc, type SafeHtml } from './html.ts';
 import { layout, csrfField, SITE_NAME, type PageCtx } from './layout.ts';
 import { CATALOG, OTHER_ID, speciesById, speciesLabel, sexOptions, UNKNOWN_SEX } from '../../shared/catalog.ts';
 import { CITIES } from '../../shared/cities.ts';
-import { formatPrice, formatPhone, formatPhoneLocal, REPORT_REASONS, type Errors } from '../validation.ts';
+import { formatPrice, formatPhone, formatPhoneLocal, REPORT_REASONS, MAX_FISH, MAX_KARIDES, MAX_HEAVY, type Errors } from '../validation.ts';
 import { PAGE_SIZE, SORTS, type SearchParams } from '../search.ts';
-import type { Listing, Photo, ReportRow } from '../db.ts';
+import type { Listing, Photo, ReportRow, AquariumFish } from '../db.ts';
 
 const fmtDate = (ms: number) => new Date(ms).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
 const itemName = (list: { id: string; ad: string }[], id: string | null) => list.find((x) => x.id === id)?.ad ?? null;
@@ -319,14 +319,106 @@ export function registerPage(ctx: PageCtx, o: { values: { email?: string; displa
   return layout(ctx, { title: 'Kayıt', body, path: '/kayit', main: 'wrap narrow' });
 }
 
-// ---------- satıcı (yer tutucu) ----------
-export function sellerPage(ctx: PageCtx, o: { seller: { id: number; display_name: string; created_at: number }; items: Listing[] }): string {
-  const body = html`<h1>${o.seller.display_name}</h1>
+// ---------- satıcı profili + akvaryum ----------
+export const TANK_LABEL = 'temsili 3B görünüm — satıcının gerçek stoğu değildir';
+
+export function fishFacts(f: AquariumFish): { species: string; form: string | null; variant: string | null; sex: string } {
+  const sp = speciesById(f.species_id);
+  return { species: sp?.ad ?? f.species_id, form: sp ? itemName(sp.forms, f.form_id) : null, variant: sp ? itemName(sp.variants, f.variant_id) : null, sex: sp?.sexes.find((x) => x.id === f.sex)?.ad ?? f.sex };
+}
+const fishDetail = (f: AquariumFish) => { const x = fishFacts(f); return [x.form, x.variant, x.sex].filter(Boolean).join(' · '); };
+
+/** Balık listesi: hem 3B sahnenin veri kaynağı (data-*) hem de herkesin okuyabileceği metin. */
+function fishList(fish: AquariumFish[], o: { remove?: PageCtx; id?: string } = {}): SafeHtml {
+  return html`<ul class="fish-list" role="list"${o.id ? raw(` id="${o.id}"`) : ''}>${fish.map((f) => html`<li data-species="${f.species_id}" data-form="${f.form_id ?? ''}" data-variant="${f.variant_id ?? ''}" data-sex="${f.sex}"><span class="fish-name">${fishFacts(f).species}</span> <span class="fish-detail">${fishDetail(f)}</span>${o.remove
+      ? html`<form method="post" action="/profil/akvaryum/${f.id}/sil" class="inline">${csrfField(o.remove)}<button class="btn btn-small btn-ghost" type="submit" aria-label="${fishFacts(f).species} (${fishDetail(f)}) balığını kaldır">Kaldır</button></form>` : ''}</li>`)}</ul>`;
+}
+
+export function sellerPage(ctx: PageCtx, o: { seller: { id: number; display_name: string; created_at: number; is_demo?: number }; items: Listing[]; fish: AquariumFish[]; isOwner?: boolean }): string {
+  const name = o.seller.display_name;
+  const tank = o.fish.length
+    ? html`<p class="label3d" data-testid="etiket-akvaryum">${TANK_LABEL}</p>
+  <div class="stage tank" id="tank" data-count="${o.fish.length}">
+    <canvas id="tank-cv" tabindex="0" role="img" aria-label="${name} adlı satıcının akvaryumu: ${o.fish.length} balık, ${TANK_LABEL}. Ok tuşlarıyla döndürün, artı ve eksi tuşlarıyla yakınlaştırın. Balıkların listesi tuvalin altındadır." aria-describedby="akv-liste-b" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown + -"></canvas>
+    <p class="stage-status" id="tank-durum" role="status" hidden></p>
+    <p class="stage-fallback" id="tank-yedek" hidden>3B akvaryum bu tarayıcıda açılamadı (WebGL kapalı ya da desteklenmiyor). Balıkların listesi aşağıdadır.</p>
+  </div>
+  <div class="viewbar" id="tank-bar" role="group" aria-label="Akvaryum görünümünü ayarla" hidden>
+    <button type="button" class="btn btn-small btn-ghost" data-act="left" aria-label="Sola döndür">&#8592;</button>
+    <button type="button" class="btn btn-small btn-ghost" data-act="right" aria-label="Sağa döndür">&#8594;</button>
+    <button type="button" class="btn btn-small btn-ghost" data-act="in" aria-label="Yakınlaştır">+</button>
+    <button type="button" class="btn btn-small btn-ghost" data-act="out" aria-label="Uzaklaştır">&#8722;</button>
+    <button type="button" class="btn btn-small btn-ghost" data-act="reset">Sıfırla</button>
+  </div>
+  <p class="muted small" id="tank-ipucu" hidden>Sürükleyerek döndürün; tuvale tıklayıp tekerlekle, iki parmakla ya da +/− ile yakınlaştırın; odaktayken ok tuşları da döndürür.</p>
+  <h3 id="akv-liste-b">Akvaryumdaki balıklar (${o.fish.length})</h3>
+  ${fishList(o.fish, { id: 'akv-liste' })}
+  <p class="note small">${o.seller.is_demo ? 'Bu hesap bir demo hesabıdır; akvaryum örnek amaçlıdır. ' : ''}Sahne satıcının profil süsüdür: balıklar satıcının seçtiği tür, şekil, renk ve cinsiyetle çizilir, gerçek fotoğraf yerine geçmez ve satışta olan balıkları göstermez. Satıştaki balıklar için aşağıdaki ilanlara bakın.</p>`
+    : html`<p class="empty" data-testid="akv-bos">Bu satıcı henüz akvaryum oluşturmadı</p>`;
+  const body = html`<h1>${name}</h1>
 <p class="muted">Üyelik: ${fmtDate(o.seller.created_at)} · ${o.items.length} aktif ilan</p>
-<aside class="soon" aria-label="Yakında"><strong>Akvaryum yakında.</strong> Satıcıların kendi akvaryumlarını çok balıklı 3B sahnede gösterebileceği bölüm sonraki aşamada eklenecek. Şimdilik yalnızca ilanlar listelenir.</aside>
+<section class="akv" id="akvaryum" aria-labelledby="akv-b" data-testid="akvaryum">
+  <div class="akv-head"><h2 id="akv-b">Akvaryum</h2>${o.seller.is_demo ? html`<span class="tag tag-demo">Örnek akvaryum</span>` : ''}${o.isOwner ? html`<a class="btn btn-small" href="/profil/akvaryum">${o.fish.length ? 'Akvaryumu düzenle' : 'Akvaryum oluştur'}</a>` : ''}</div>
+  ${tank}
+</section>
 <h2>İlanlar</h2>
 ${o.items.length ? cardGrid(o.items) : html`<p class="empty">Bu satıcının aktif ilanı yok.</p>`}`;
-  return layout(ctx, { title: o.seller.display_name, body, path: '/satici/' + o.seller.id });
+  return layout(ctx, { title: name, description: `${name} — satıcı profili${o.fish.length ? ' ve temsili 3B akvaryum' : ''}`, body, path: '/satici/' + o.seller.id, entry: o.fish.length ? 'satici' : undefined });
+}
+
+export function aquariumEditorPage(ctx: PageCtx, o: { fish: AquariumFish[]; values: { species?: string; form?: string; variant?: string; sex?: string }; errors: Errors }): string {
+  const v = o.values, e = o.errors, uid = ctx.user!.id;
+  const sp = v.species ? speciesById(v.species) : undefined;
+  const sel = (cur: string | undefined, val: string) => (cur === val ? raw(' selected') : '');
+  const full = o.fish.length >= MAX_FISH;
+  const body = html`
+<nav class="crumbs" aria-label="Sayfa yolu"><a href="/satici/${uid}#akvaryum">Profilim</a> <span aria-hidden="true">/</span> Akvaryum</nav>
+<h1>Akvaryumum</h1>
+<p class="lead small">Profilinizde ziyaretçilerin döndürüp inceleyebileceği temsili bir akvaryum oluşturun: tür, şekil, renk ve cinsiyeti kataloğdan seçin. Sahne satıcının gerçek stoğu değildir ve ilan yerine geçmez.</p>
+<p class="muted small">En çok ${MAX_FISH} balık; en çok ${MAX_KARIDES} karides; japon, pleco ve vatoz toplamda en çok ${MAX_HEAVY} (3B çizim yükü için).</p>
+${Object.keys(e).length ? html`<div class="flash flash-err" role="alert" tabindex="-1" id="hata-ozeti"><strong>Balık eklenemedi.</strong><ul>${Object.entries(e).map(([k, m]) => html`<li>${k === 'form' || k === 'variant' || k === 'sex' || k === 'species' ? html`<a href="#${k === 'species' ? 'tur' : k}">${m}</a>` : m}</li>`)}</ul></div>` : ''}
+<div class="listing-form akv-edit">
+  <div class="lf-main">
+    <form method="post" action="/profil/akvaryum/ekle" novalidate id="balik-formu">
+      ${csrfField(ctx)}
+      <fieldset>
+        <legend>Balık ekle</legend>
+        <noscript><p class="muted small">Şekil ve renk listelerinin dolması için JavaScript gerekir.</p></noscript>
+        <div class="f"><label for="tur">Tür</label>
+          <select id="tur" name="species" required${invalid(e, 'species')}><option value="">Seçin…</option>
+            ${CATALOG.map((s) => html`<option value="${s.id}"${sel(v.species, s.id)}>${s.ad}</option>`)}</select>${err(e, 'species')}</div>
+        <div class="row2">
+          <div class="f" id="sekil-kutu"${sp && !sp.forms.length ? raw(' hidden') : ''}><label for="form">Şekil (yüzgeç / vücut biçimi)</label>
+            <select id="form" name="form"${invalid(e, 'form')}>${sp ? sp.forms.map((x) => html`<option value="${x.id}"${sel(v.form, x.id)}>${x.ad}</option>`) : html`<option value="">Önce tür seçin</option>`}</select>${err(e, 'form')}</div>
+          <div class="f" id="renk-kutu"${sp && !sp.variants.length ? raw(' hidden') : ''}><label for="variant">Renk</label>
+            <select id="variant" name="variant"${invalid(e, 'variant')}>${sp ? sp.variants.map((x) => html`<option value="${x.id}"${sel(v.variant, x.id)}>${x.ad}</option>`) : html`<option value="">Önce tür seçin</option>`}</select>${err(e, 'variant')}</div>
+        </div>
+        <div class="f"><label for="sex">Cinsiyet</label>
+          <select id="sex" name="sex" required${invalid(e, 'sex')}>${sp ? sp.sexes.map((x) => html`<option value="${x.id}"${sel(v.sex, x.id)}>${x.ad}</option>`) : html`<option value="">Önce tür seçin</option>`}</select>${err(e, 'sex')}</div>
+        <button class="btn" type="submit"${full ? raw(' disabled aria-describedby="dolu"') : ''}>Akvaryuma ekle</button>
+        ${full ? html`<p class="field-err" id="dolu">Akvaryum dolu (${MAX_FISH} / ${MAX_FISH}). Yeni balık için birini kaldırın.</p>` : ''}
+      </fieldset>
+    </form>
+    <section aria-labelledby="mevcut-b">
+      <h2 id="mevcut-b">Akvaryumdaki balıklar (${o.fish.length} / ${MAX_FISH})</h2>
+      ${o.fish.length ? fishList(o.fish, { remove: ctx, id: 'duzenle-liste' }) : html`<p class="empty">Henüz balık eklemediniz.</p>`}
+      <p><a class="btn btn-ghost" href="/satici/${uid}#akvaryum">Herkese açık profilimde gör</a></p>
+    </section>
+  </div>
+  <aside class="lf-preview" aria-labelledby="onizleme-b">
+    <div class="sticky">
+      <h2 id="onizleme-b">Seçtiğiniz balığın önizlemesi</h2>
+      <div class="stage" id="sahne">
+        <canvas id="cv" tabindex="0" role="img" aria-label="Seçtiğiniz tür, şekil, renk ve cinsiyet için temsili 3B önizleme"></canvas>
+        <div class="hot" id="ov" hidden></div>
+        <p class="stage-status" id="durum" role="status">Tür seçtiğinizde 3B önizleme burada görünür.</p>
+        <p class="stage-fallback" id="yedek" hidden>Bu tarayıcıda 3B önizleme açılamadı (WebGL yok). Balığı yine de ekleyebilirsiniz.</p>
+      </div>
+      <p class="muted small" id="onizleme-ozet" aria-live="polite"></p>
+    </div>
+  </aside>
+</div>`;
+  return layout(ctx, { title: 'Akvaryumum', body, path: '/profil/akvaryum', entry: 'akvaryumDuzenle' });
 }
 
 // ---------- yönetim ----------

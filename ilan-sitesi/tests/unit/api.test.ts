@@ -194,11 +194,11 @@ describe('detay sayfası, şikayet, yönetim', () => {
     expect((await a.postForm(`${loc}/kaldir`, {})).status).toBe(303);
     expect((await a.req(loc)).status).toBe(404);
   });
-  it('satıcı sayfası yer tutucu notunu içerir; güvenlik başlıkları', async () => {
+  it('satıcı sayfası boş akvaryum durumunu gösterir; güvenlik başlıkları', async () => {
     const c = new Client(); await c.register('sp@example.test');
     const id = (db.prepare("SELECT id FROM users WHERE email='sp@example.test'").get() as { id: number }).id;
     const res = await c.req(`/satici/${id}`);
-    expect(await res.text()).toContain('Akvaryum yakında');
+    expect(await res.text()).toContain('Bu satıcı henüz akvaryum oluşturmadı');
     expect(res.headers.get('x-frame-options')).toBe('DENY');
   });
 });
