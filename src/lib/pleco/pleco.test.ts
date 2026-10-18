@@ -62,6 +62,17 @@ describe('pleco: Ancistrus karakteri (geniş yassı baş, yelken sırt, zırh)',
     expect(h[0]).toBe(Math.max(...h));
     expect(Math.max(...h)).toBeGreaterThan(bodyFor('erkek').section(0.36).yTop - bodyFor('erkek').section(0.36).yBot);
   });
+  it('vantuz ağız: dudak halkası gövde altına çıkıntılı, iç kısım çukur (tabak); iç halkalar çukur yüzeyde', () => {
+    for (const sex of SEXES) {
+      const m = mouthSpec(sex);
+      expect(m.bulge).toBeLessThan(0);
+      expect(m.lip).toBeGreaterThan(0.004);
+      const rim = mouthRing(sex, 1), inner = mouthRing(sex, 0.62);
+      const avg = (r: number[][]) => r.reduce((a, p) => a + p[1], 0) / r.length;
+      expect(avg(rim)).toBeLessThan(m.c[1] - 0.004); // dudak gövde altının altında
+      expect(avg(inner)).toBeGreaterThan(avg(rim) + 0.002); // iç kısım daha yüksek (çukur)
+    }
+  });
   it('düz karın ve vantuz ağız büyük (baş genişliğinin çoğunu kaplar); göğüs yüzgeci solungaç kapağının arkasında', () => {
     for (const sex of SEXES) {
       const m = mouthSpec(sex), b = bodyFor(sex);
@@ -72,8 +83,8 @@ describe('pleco: Ancistrus karakteri (geniş yassı baş, yelken sırt, zırh)',
       for (const p of g.base) expect(p[0] + 0.5).toBeGreaterThanOrEqual(OPERCULUM.s - 0.01);
     }
   });
-  it('zırh: dört sıra, sıra başına 22 plaka; plakalar solungaç kapağından sonra başlar', () => {
-    expect(ARMOR.plates).toBe(22);
+  it('zırh: dört sıra, sıra başına 34 ince plaka; plakalar solungaç kapağından sonra başlar', () => {
+    expect(ARMOR.plates).toBe(34);
     expect(ARMOR.rows).toBe(4);
     expect(ARMOR.s0).toBeGreaterThanOrEqual(OPERCULUM.s);
   });
@@ -119,6 +130,10 @@ describe('pleco: yüzgeçler ve tül biçimi', () => {
   it('zırh: dört sıra plaka; aralık gövde içinde', () => {
     const e = plateEdges(1000);
     for (let r = 0; r < ARMOR.rows; r++) expect(e.filter((p) => p.row === r).length).toBe(ARMOR.plates);
+    // plakalar ince ve birbirinin üstüne biner: her plaka görünen şeridinden (aralık) belirgin uzun
+    for (const p of e.slice(0, ARMOR.plates - 1)) expect(p.x1 - p.x0).toBeGreaterThan(p.pitch * 1.5);
+    expect(e[0].pitch).toBeLessThan(1000 * 0.025);
+    expect(new Set(e.map((p) => p.tone.toFixed(3))).size).toBeGreaterThan(e.length * 0.9); // plaka başına ton farkı
     for (const p of e) { expect(p.x0).toBeGreaterThanOrEqual(ARMOR.s0 * 1000 - 1e-6); expect(p.x1).toBeLessThanOrEqual(ARMOR.s1 * 1000 + 1e-6); expect(p.x1).toBeGreaterThan(p.x0); }
   });
 });

@@ -25,7 +25,7 @@ export function bodyFor(sex: Sex): Body {
 export const EYE = { s: 0.152, phi: 0.5, radius: 0.024 } as const;
 export const OPERCULUM = { s: 0.272, phi0: 0.4, phi1: 2.3 } as const;
 /** Kemikli plakalar: dört sıra (sırt, üst yan, alt yan, karın yanı), gövdenin arka bölümünde */
-export const ARMOR = { s0: 0.28, s1: 0.97, plates: 22, rows: 4 } as const;
+export const ARMOR = { s0: 0.28, s1: 0.97, plates: 34, rows: 4 } as const;
 
 /** Tül (uzun yüzgeç) biçimi için yüzgeç büyütme çarpanları (1 = standart). Şekil (form) seçicisinden gelir; renkten bağımsızdır. */
 export const TUL_GAIN = { dorsal: 1.7, caudal: 2.6, pectoral: 1.6, pelvic: 1.45, anal: 1.45 } as const;
@@ -49,28 +49,41 @@ export function operculumArc(sex: Sex, side: 1 | -1, n = 14): Vec3[] {
 
 // ------------------------------------------------------------------ vantuz ağız
 
-export interface MouthSpec { c: Vec3; rx: number; rz: number; bulge: number }
-/** Baş altında oval emici (vantuz) ağız diski; dış sınır gövde genişliğini aşmaz */
+export interface MouthSpec { c: Vec3; rx: number; rz: number; /** Disk ortasının dış halkaya göre YUKARI çökmesi (negatif = çukur/tabak biçimli): viewer disk geometrisi bulge'u aşağı şişirir */ bulge: number; /** Dış dudak halkasının gövde altından aşağı çıkıntısı */ lip: number }
+/** Baş altında oval emici (vantuz) ağız diski: dış dudak halkası gövde altına doğru çıkıntılı, iç kısım hafif çukur (tabak). Dış sınır gövde genişliğini aşmaz. */
 export function mouthSpec(sex: Sex): MouthSpec {
   const b = bodyFor(sex), sec = b.section(0.115);
-  return { c: [sec.x, sec.yBot, 0], rx: 0.088, rz: Math.min(0.118, sec.hw * 0.86), bulge: 0.015 };
+  return { c: [sec.x, sec.yBot, 0], rx: 0.088, rz: Math.min(0.118, sec.hw * 0.86), bulge: -0.006, lip: 0.0075 };
 }
-/** Disk sınırı (kapalı halka); k < 1 ile iç halka. z, o x'teki gövde yarı genişliğiyle sınırlanır. */
+/** Dış dudak halkasının (k = 1) y konumu: gövde altından `lip` kadar aşağı çıkıntılı (düz) halka */
+function rimY(sex: Sex, _a: number): number {
+  const m = mouthSpec(sex);
+  return m.c[1] - 0.001 - m.lip;
+}
+/** Diskin y yüksekliği: k = 1 dış halka (çıkıntılı dudak), k = 0 merkez (çukurun tabanı, gövde altına yakın) */
+export function mouthDiscY(sex: Sex, k: number, a = 0): number {
+  return rimY(sex, a) - mouthSpec(sex).bulge * (1 - k * k);
+}
+/** Disk sınırı (kapalı halka); k < 1 ile iç halka. z, o x'teki gövde yarı genişliğiyle sınırlanır. İç halkalar çukur yüzeyin üstünde yer alır. */
 export function mouthRing(sex: Sex, k = 1, n = 32): Vec3[] {
   const b = bodyFor(sex), m = mouthSpec(sex), out: Vec3[] = [];
   for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2;
+    const a = -(i / n) * Math.PI * 2; // saat yönünün tersi: viewer disk üçgenlerinin yüzü AŞAĞI (alttan görünür) bakar
     const x = m.c[0] + Math.cos(a) * m.rx * k;
     const hw = b.section(Math.max(0.004, x + 0.5)).hw;
     const z = Math.max(-hw * 0.82, Math.min(hw * 0.82, Math.sin(a) * m.rz * k));
-    out.push([x, m.c[1] - 0.001, z]);
+    out.push([x, mouthDiscY(sex, k, a), z]);
   }
   return out;
 }
-/** Ağız yarığı: ön yarıda enine hafif kavisli çizgi (üst ve alt çene arasında) */
+const discAt = (sex: Sex, x: number, z: number): number => {
+  const m = mouthSpec(sex), u = (x - m.c[0]) / m.rx, v = z / m.rz;
+  return mouthDiscY(sex, Math.min(0.97, Math.hypot(u, v)), Math.atan2(v, u));
+};
+/** Ağız yarığı: ön yarıda enine hafif kavisli çizgi (üst ve alt çene arasında), çukur yüzeyin üstünde */
 export function mouthSlit(sex: Sex, n = 9): Vec3[] {
   const m = mouthSpec(sex), out: Vec3[] = [];
-  for (let i = 0; i < n; i++) { const t = i / (n - 1) * 2 - 1; out.push([m.c[0] - 0.012 + 0.012 * t * t, m.c[1] - m.bulge * 0.7, t * m.rz * 0.62]); }
+  for (let i = 0; i < n; i++) { const t = i / (n - 1) * 2 - 1, x = m.c[0] - 0.012 + 0.012 * t * t, z = t * m.rz * 0.62; out.push([x, discAt(sex, x, z) - 0.0012, z]); }
   return out;
 }
 /** Alt dudak üzerindeki küçük sivilceler (papiller): arka yarıda iki sıra */
@@ -78,7 +91,8 @@ export function mouthPapillae(sex: Sex): Vec3[] {
   const m = mouthSpec(sex), out: Vec3[] = [];
   for (let row = 0; row < 2; row++) for (let i = 0; i < 9; i++) {
     const t = (i / 8) * 2 - 1;
-    out.push([m.c[0] + 0.012 + row * 0.014 + 0.01 * t * t, m.c[1] - m.bulge * (0.85 - 0.3 * row), t * m.rz * (0.62 - 0.1 * row)]);
+    const x = m.c[0] + 0.012 + row * 0.014 + 0.01 * t * t, z = t * m.rz * (0.62 - 0.1 * row);
+    out.push([x, discAt(sex, x, z) - 0.0008, z]);
   }
   return out;
 }

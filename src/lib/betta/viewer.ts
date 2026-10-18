@@ -60,7 +60,7 @@ export function buildBetta(sex: SexId, variantId: string, u: SwimUniforms, texW:
 
   // gizlenme sınaması için kaba vekil
   const proxy = [proxyFrom(loftBody(body, 30, 20))];
-  return { group, proxy, textures };
+  return { group, proxy, textures, face: rig };
 }
 
 export function createViewer(opts: SpeciesViewerOptions): SpeciesViewer {

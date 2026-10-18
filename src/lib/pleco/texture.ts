@@ -10,13 +10,20 @@ export interface PlecoTextures { color: HTMLCanvasElement; bump: HTMLCanvasEleme
 /** Plaka sıralarının dikey sınırları (satır yüksekliğine oranla): sırt, üst yan, alt yan, karın yanı */
 export const ROW_Y = [0.03, 0.22, 0.42, 0.6, 0.78] as const;
 
-export function plateEdges(w: number): { row: number; x0: number; x1: number }[] {
-  const out: { row: number; x0: number; x1: number }[] = [];
-  const n = ARMOR.plates, a = ARMOR.s0 * w, b = ARMOR.s1 * w;
+/** Deterministik 0..1 sözde-rastgele sayı: plaka başına sabit (renk ve kabartma aynı plakayı çizer) */
+const hash = (r: number, i: number): number => { const x = Math.sin(r * 127.1 + i * 311.7 + 17.3) * 43758.5453; return x - Math.floor(x); };
+
+export interface Plate { row: number; x0: number; x1: number; /** görünen şerit genişliği (px) */ pitch: number; /** -1..1 plaka tonu */ tone: number; /** 0..1 plakanın renk kayması seçimi */ hue: number }
+
+/** Dört sıra ince, birbirinin üstüne binen kilitli plaka: her plaka ~2,3 aralık uzunluğunda, konumlar hafif oynak, ardışık sıralar kaydırılmış. */
+export function plateEdges(w: number): Plate[] {
+  const out: Plate[] = [];
+  const n = ARMOR.plates, a = ARMOR.s0 * w, b = ARMOR.s1 * w, p = (b - a) / (n + 0.5);
   for (let row = 0; row < ARMOR.rows; row++) for (let i = 0; i < n; i++) {
-    const off = row % 2 ? 0.5 : 0;
-    const x0 = lerp(a, b, (i + off) / (n + 0.5)), x1 = lerp(a, b, (i + off + 1.15) / (n + 0.5));
-    out.push({ row, x0, x1: Math.min(x1, b) });
+    const off = [0.1, 0.52, 0.31, 0.74][row % 4];
+    const j = (hash(row, i) - 0.5) * 0.4 * p;
+    const x0 = Math.max(a, a + (i + off) * p + j), x1 = Math.min(b, x0 + p * 2.3);
+    out.push({ row, x0, x1: Math.max(x1, x0 + 1), pitch: p, tone: hash(row + 3, i) * 2 - 1, hue: hash(row + 11, i) });
   }
   return out;
 }
@@ -59,38 +66,46 @@ export function paintBody(v: Variant, sex: SexId, W = 1024): PlecoTextures {
     ctx.strokeStyle = rgba('#000000', 0.2);
     ctx.beginPath(); ctx.moveTo(w * 0.1, h * 0.86); ctx.quadraticCurveTo(w * 0.2, h * 0.8, w * 0.3, h * 0.86); ctx.lineTo(w * 0.31, h); ctx.stroke();
     for (let x = w * 0.3; x < w * ARMOR.s1; x += w * 0.03) { ctx.beginPath(); ctx.moveTo(x, h); ctx.lineTo(x + w * 0.006, h * 0.9); ctx.stroke(); }
-    // ---- kemikli plakalar (4 sıra): her plaka ön kenarı bir öncekinin altında; sıra ortasında sırt (kil) çizgisi ve dişçikler (odontod)
+    // ---- kemikli plakalar (4 sıra): ince, birbirinin üstüne binen ve sırtı keskin (keel'li) plakalar. Görünen şerit yalnızca her plakanın serbest arka kenarıdır;
+    // plaka başına hafif ton/renk farkı, sıra ortasında ince kil çizgisi ve arka yarıda ince odontod (diş) benekleri vardır. Gövde genelinde pürüzsüz görünüm korunur.
     const edges = plateEdges(w), z = Math.min(1, v.zirh);
+    const lw = Math.max(1, w / 900), warm = mixHex(v.body.yan, '#ffe9b8', 0.35), cool = mixHex(v.body.yan, '#102030', 0.45);
     for (const e of edges) {
-      const y0 = h * ROW_Y[e.row], y1 = h * ROW_Y[e.row + 1], sl = (e.x1 - e.x0) * 0.3;
-      const gr = ctx.createLinearGradient(e.x0, 0, e.x1, 0);
-      gr.addColorStop(0, rgba('#000000', 0.3 * z + 0.05)); gr.addColorStop(0.3, rgba('#000000', 0.02)); gr.addColorStop(0.75, rgba('#ffffff', 0.06 * z)); gr.addColorStop(0.95, rgba('#ffffff', 0.18 * z)); gr.addColorStop(1, rgba('#000000', 0.3 * z));
+      const y0 = h * ROW_Y[e.row], y1 = h * ROW_Y[e.row + 1], ym = (y0 + y1) / 2, xr = e.x1, xl = Math.max(e.x0, xr - e.pitch), k = e.pitch * 0.32;
+      // plaka başına renk farkı (yumuşak): çoğunlukla ışık/koyu, bazen sıcak/soğuk kayma
+      const tint = e.hue < 0.25 ? warm : e.hue > 0.78 ? cool : e.tone > 0 ? '#ffffff' : '#000000';
+      const gr = ctx.createLinearGradient(xl, 0, xr, 0);
+      gr.addColorStop(0, rgba(tint, 0)); gr.addColorStop(0.5, rgba(tint, 0.03 + 0.05 * Math.abs(e.tone))); gr.addColorStop(1, rgba('#ffffff', 0.06 * z));
       ctx.fillStyle = gr;
-      ctx.beginPath(); ctx.moveTo(e.x0, y0); ctx.lineTo(e.x1, y0); ctx.lineTo(e.x1 + sl, y1); ctx.lineTo(e.x0 + sl, y1); ctx.closePath(); ctx.fill();
-      ctx.lineWidth = Math.max(1, w / 650);
-      ctx.strokeStyle = rgba('#000000', 0.4 * z + 0.08);
-      ctx.beginPath(); ctx.moveTo(e.x1, y0); ctx.lineTo(e.x1 + sl, y1); ctx.stroke();
-      // odontodlar: plakanın arka yarısında kil çizgisi boyunca küçük sivri dişçikler
-      const ym = (y0 + y1) / 2;
-      for (let k = 0; k < 3; k++) {
-        const x = lerp(e.x0 + (e.x1 - e.x0) * 0.35, e.x1, k / 2) + sl * 0.5;
-        blob(ctx, x, ym + (rnd() - 0.5) * (y1 - y0) * 0.12, w * 0.0026, w * 0.0026, '#fff4d8', 0.5 * z + 0.12, 0, 0.7);
-        blob(ctx, x + w * 0.0016, ym + (rnd() - 0.5) * (y1 - y0) * 0.12 + h * 0.012, w * 0.0018, w * 0.0018, '#000000', 0.25 * z, 0, 0.7);
+      ctx.beginPath(); ctx.moveTo(xl, y0); ctx.lineTo(xr, y0); ctx.lineTo(xr + k, ym); ctx.lineTo(xr, y1); ctx.lineTo(xl, y1); ctx.lineTo(xl + k, ym); ctx.closePath(); ctx.fill();
+      // keel çizgisi boyunca hafif ışık
+      const kg = ctx.createLinearGradient(0, y0, 0, y1);
+      kg.addColorStop(0, rgba('#000000', 0.07 * z)); kg.addColorStop(0.5, rgba('#ffffff', 0.09 * z)); kg.addColorStop(1, rgba('#000000', 0.07 * z));
+      ctx.fillStyle = kg; ctx.fillRect(xl, y0, xr - xl + k * 0.5, y1 - y0);
+      // arka kenarın düşürdüğü yumuşak gölge
+      const sh = ctx.createLinearGradient(xr + k * 0.3, 0, xr + k * 1.9, 0);
+      sh.addColorStop(0, rgba('#000000', 0.12 * z + 0.02)); sh.addColorStop(1, rgba('#000000', 0));
+      ctx.fillStyle = sh; ctx.fillRect(xr + k * 0.3, y0, k * 1.6, y1 - y0);
+      // ince arka kenar çizgisi (şevron) ve yanında parlak sınır
+      ctx.lineWidth = lw;
+      ctx.strokeStyle = rgba('#000000', (0.13 * z + 0.025) * (0.6 + 0.4 * Math.abs(e.tone)));
+      ctx.beginPath(); ctx.moveTo(xr, y0); ctx.lineTo(xr + k, ym); ctx.lineTo(xr, y1); ctx.stroke();
+      ctx.strokeStyle = rgba('#ffffff', 0.08 * z);
+      ctx.beginPath(); ctx.moveTo(xr - lw * 1.7, y0); ctx.lineTo(xr + k - lw * 1.7, ym); ctx.lineTo(xr - lw * 1.7, y1); ctx.stroke();
+      // odontodlar: arka yarıda keel çevresinde küçük açık renkli dişçikler (4-6 adet, ince)
+      const cnt = 4 + Math.floor(hash(e.row + 20, Math.round(e.x0)) * 3);
+      for (let q = 0; q < cnt; q++) {
+        const x = xr - e.pitch * (0.15 + 0.7 * hash(q + 1, Math.round(e.x0 + e.row * 7))) + k * 0.5, y = ym + (hash(q + 4, Math.round(e.x0 * 1.3 + e.row)) - 0.5) * (y1 - y0) * 0.45;
+        blob(ctx, x, y, w * 0.0011, w * 0.0011, '#fff4d8', 0.34 * z + 0.12, 0, 0.7);
+        blob(ctx, x + w * 0.0008, y + h * 0.006, w * 0.0009, w * 0.0009, '#000000', 0.14 * z, 0, 0.7);
       }
     }
+    // sıra sınırları: çok ince ve silik (yassı, pürüzsüz görünüm)
     for (let r = 0; r <= ARMOR.rows; r++) {
       const y = h * ROW_Y[r];
-      ctx.lineWidth = Math.max(1.5, w / 520);
-      ctx.strokeStyle = rgba('#000000', 0.3 * z + 0.06);
+      ctx.lineWidth = Math.max(1, w / 800);
+      ctx.strokeStyle = rgba('#000000', 0.05 * z + 0.012);
       ctx.beginPath(); ctx.moveTo(w * ARMOR.s0, y); ctx.lineTo(w * ARMOR.s1, y); ctx.stroke();
-      ctx.strokeStyle = rgba('#ffffff', 0.18 * z);
-      ctx.beginPath(); ctx.moveTo(w * ARMOR.s0, y + 2); ctx.lineTo(w * ARMOR.s1, y + 2); ctx.stroke();
-      if (r < ARMOR.rows) {
-        const ym = h * (ROW_Y[r] + ROW_Y[r + 1]) / 2;
-        ctx.lineWidth = Math.max(1, w / 700);
-        ctx.strokeStyle = rgba('#ffffff', 0.22 * z); ctx.beginPath(); ctx.moveTo(w * ARMOR.s0, ym); ctx.lineTo(w * ARMOR.s1, ym); ctx.stroke();
-        ctx.strokeStyle = rgba('#000000', 0.2 * z); ctx.beginPath(); ctx.moveTo(w * ARMOR.s0, ym + 2); ctx.lineTo(w * ARMOR.s1, ym + 2); ctx.stroke();
-      }
     }
     // ---- baş kalkanı: yassı ve geniş; kemik plaka dikişleri, göz çukuru çevresi ve kenarlarda yoğun odontodlar
     ctx.strokeStyle = rgba('#000000', 0.22);
@@ -112,21 +127,26 @@ export function paintBody(v: Variant, sex: SexId, W = 1024): PlecoTextures {
     bc.fillRect(0, 0, w, h);
     const rb = mulberry32(seedFor(v, sex) + 7);
     for (const e of plateEdges(w)) {
-      const y0 = h * ROW_Y[e.row], y1 = h * ROW_Y[e.row + 1], sl = (e.x1 - e.x0) * 0.3;
-      const gr = bc.createLinearGradient(e.x0, 0, e.x1, 0);
-      gr.addColorStop(0, '#404040'); gr.addColorStop(0.2, '#a8a8a8'); gr.addColorStop(0.75, '#dcdcdc'); gr.addColorStop(0.95, '#ececec'); gr.addColorStop(1, '#303030');
+      const y0 = h * ROW_Y[e.row], y1 = h * ROW_Y[e.row + 1], ym = (y0 + y1) / 2, xr = e.x1, xl = Math.max(e.x0, xr - e.pitch), k = e.pitch * 0.32;
+      // yumuşak kabartma: şerit hafif yükselir, arka kenarda ince basamak; ortada keel (alçak sırt)
+      const gr = bc.createLinearGradient(xl, 0, xr, 0);
+      gr.addColorStop(0, '#6a6a6a'); gr.addColorStop(0.55, '#767676'); gr.addColorStop(0.9, '#808080'); gr.addColorStop(1, '#606060');
       bc.fillStyle = gr;
-      bc.beginPath(); bc.moveTo(e.x0, y0); bc.lineTo(e.x1, y0); bc.lineTo(e.x1 + sl, y1); bc.lineTo(e.x0 + sl, y1); bc.closePath(); bc.fill();
+      bc.beginPath(); bc.moveTo(xl, y0); bc.lineTo(xr, y0); bc.lineTo(xr + k, ym); bc.lineTo(xr, y1); bc.lineTo(xl, y1); bc.lineTo(xl + k, ym); bc.closePath(); bc.fill();
       const vg = bc.createLinearGradient(0, y0, 0, y1);
-      vg.addColorStop(0, 'rgba(50,50,50,0.85)'); vg.addColorStop(0.22, 'rgba(50,50,50,0)'); vg.addColorStop(0.42, 'rgba(255,255,255,0)'); vg.addColorStop(0.5, 'rgba(255,255,255,0.75)'); vg.addColorStop(0.58, 'rgba(255,255,255,0)'); vg.addColorStop(0.8, 'rgba(50,50,50,0)'); vg.addColorStop(1, 'rgba(50,50,50,0.85)');
-      bc.fillStyle = vg; bc.fillRect(e.x0, y0, e.x1 - e.x0 + sl, y1 - y0);
-      const ym = (y0 + y1) / 2;
-      for (let k = 0; k < 3; k++) { bc.fillStyle = '#ffffff'; bc.beginPath(); bc.arc(lerp(e.x0 + (e.x1 - e.x0) * 0.35, e.x1, k / 2) + sl * 0.5, ym, w / 380, 0, Math.PI * 2); bc.fill(); }
+      vg.addColorStop(0, 'rgba(60,60,60,0.3)'); vg.addColorStop(0.25, 'rgba(60,60,60,0)'); vg.addColorStop(0.45, 'rgba(255,255,255,0)'); vg.addColorStop(0.5, 'rgba(255,255,255,0.25)'); vg.addColorStop(0.55, 'rgba(255,255,255,0)'); vg.addColorStop(0.75, 'rgba(60,60,60,0)'); vg.addColorStop(1, 'rgba(60,60,60,0.3)');
+      bc.fillStyle = vg; bc.fillRect(xl, y0, xr - xl + k, y1 - y0);
+      // odontodlar: ince küçük çıkıntılar
+      const cnt = 4 + Math.floor(hash(e.row + 20, Math.round(e.x0)) * 3);
+      for (let q = 0; q < cnt; q++) {
+        const x = xr - e.pitch * (0.15 + 0.7 * hash(q + 1, Math.round(e.x0 + e.row * 7))) + k * 0.5, y = ym + (hash(q + 4, Math.round(e.x0 * 1.3 + e.row)) - 0.5) * (y1 - y0) * 0.45;
+        bc.fillStyle = 'rgba(255,255,255,0.7)'; bc.beginPath(); bc.arc(x, y, w / 900, 0, Math.PI * 2); bc.fill();
+      }
     }
     for (let i = 0; i < 340; i++) {
       const x = rb() * w * (OPERCULUM.s + 0.01), y = (rb() < 0.55 ? rb() * 0.2 : 0.38 + rb() * 0.35) * h;
       bc.fillStyle = 'rgba(255,255,255,0.6)';
-      bc.beginPath(); bc.arc(x, y, w / 360, 0, Math.PI * 2); bc.fill();
+      bc.beginPath(); bc.arc(x, y, w / 500, 0, Math.PI * 2); bc.fill();
     }
     bc.fillStyle = '#2c2c2c';
     for (const f of [0.07, 0.13, 0.2]) bc.fillRect(w * f, 0, w * 0.0035, h * 0.42);

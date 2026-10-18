@@ -23,7 +23,8 @@ export const PATCHES: Record<string, LbFormPatch | undefined> = {
       : { t0: 0.36, t1: 0.6, rays: 16, phiFront: 84, phiRear: 44, lenFront: 0.62, lenRear: 0.9 }),
   },
   lyretail: {
-    tail: (t, sex) => ({ lyre: sex === 'erkek' ? 0.6 : 0.4, fork: sex === 'erkek' ? 0.3 : 0.25, reach: t.reach * 1.05, halfAngle: t.halfAngle + 6, round: 0.85 }),
+    // yuvarlak kuyruk + yalnızca en dış iki ışın uzun ince filament; ortası biraz kısa (lira): süpürülmüş hilal değil
+    tail: (t, sex) => ({ lyre: 0, fork: sex === 'erkek' ? 0.1 : 0.08, fil: sex === 'erkek' ? 0.85 : 0.6, filW: 0.075, filFlat: 0.3, reach: t.reach * 0.97, halfAngle: t.halfAngle + 2, round: 1 }),
   },
   veiltail: {
     tail: (t, sex) => ({ reach: t.reach * 1.8, halfAngle: t.halfAngle - 6, bulge: t.bulge + 0.15, round: 0.5, rays: t.rays + 4 }),

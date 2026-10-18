@@ -34,12 +34,18 @@ describe('molly formları', () => {
     expect(h('sailfin', 'disi')).toBeGreaterThan(h('standart', 'disi') * 1.2);
     expect(h('sailfin', 'disi')).toBeLessThan(h('sailfin', 'erkek'));
   });
-  it('lyretail: kuyruk uçları dışa uzar, ortası içeri çekilir', () => {
+  it('lyretail: yuvarlak kuyruk + yalnızca en dış ışınlar ince filament olarak uzar (süpürülmüş hilal değil)', () => {
     for (const s of SEXES) {
-      const r = kit.modelFor('lyretail').tailFin(s).rays.map((q) => q[q.length - 1][0]);
-      const mid = r[Math.floor(r.length / 2)], edge = Math.max(r[0], r[r.length - 1]);
-      expect(edge).toBeGreaterThan(mid + 0.15);
-      expect(ext('lyretail', s, 'tail').h).toBeGreaterThan(ext('standart', s, 'tail').h * 1.2);
+      const len = (f: string) => kit.modelFor(f).tailFin(s).rays.map((q) => Math.hypot(q[q.length - 1][0] - q[0][0], q[q.length - 1][1] - q[0][1]));
+      const ly = len('lyretail'), st = len('standart'), n = ly.length, mid = ly[Math.floor(n / 2)];
+      // dış ışınlar ortadakinin ~1,5 katından uzun
+      expect(Math.max(ly[0], ly[n - 1])).toBeGreaterThan(mid * 1.5);
+      // ... ama yalnızca ince uçlar: dıştan 3. ışın artık filament değildir (yuvarlak gövde, süpürülmüş hilal değil)
+      expect(ly[2]).toBeLessThan(mid * 1.3);
+      expect(ly[n - 3]).toBeLessThan(mid * 1.3);
+      // ortadaki ışınlar standart yuvarlak kuyruktan uzun değildir (merkez kısa)
+      expect(mid).toBeLessThanOrEqual(st[Math.floor(n / 2)] * 1.02);
+      expect(ext('lyretail', s, 'tail').h).toBeGreaterThan(ext('standart', s, 'tail').h * 1.1);
     }
   });
   it('veiltail: kuyruk standarttan belirgin uzun, çatallanmaz', () => {

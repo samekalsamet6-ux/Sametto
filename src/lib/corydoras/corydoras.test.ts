@@ -89,6 +89,12 @@ describe('corydoras: gövde ve cinsiyet', () => {
     expect(e.filter((p) => p.row === 1).length).toBe(ARMOR.plates);
     for (const p of e) { expect(p.x0).toBeGreaterThanOrEqual(ARMOR.s0 * 1000 - 1e-6); expect(p.x1).toBeLessThanOrEqual(ARMOR.s1 * 1000 + 1e-6); expect(p.x1).toBeGreaterThan(p.x0); }
     expect(e[1].x0).toBeLessThan(e[0].x1);
+    // ince, üst üste binen plakalar: her plaka görünen şeridinden uzun; iki sıra yarım adım kaydırılmış; konumlar düzensiz (cetvel gibi değil)
+    for (const p of e.filter((q) => q.x1 < 0.96 * 1000)) expect(p.x1 - p.x0).toBeGreaterThan(p.pitch * 1.4);
+    const row0 = e.filter((p) => p.row === 0), row1 = e.filter((p) => p.row === 1);
+    expect(Math.abs(row1[3].x0 - row0[3].x0)).toBeGreaterThan(row0[0].pitch * 0.15);
+    const gaps = row0.slice(1).map((p, i) => p.x0 - row0[i].x0), mean = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+    expect(Math.max(...gaps) - Math.min(...gaps)).toBeGreaterThan(mean * 0.1);
     for (const s of SEXES) { expect(eyeGeom(s).center[1]).toBeGreaterThan(0.02); expect(operculumArc(s, 1).every((p) => p[0] > eyeGeom(s).center[0])).toBe(true); }
   });
 });

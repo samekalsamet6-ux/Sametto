@@ -35,6 +35,8 @@ export interface TailSpec {
   fork?: number;
   /** Pintail: orta ışınların ek uzaması ve genişliği (s biriminde) */
   pin?: number; pinWidth?: number;
+  /** Lira filamentleri: yalnızca en dış (üst/alt) ışınlar ince, uzun filament olarak uzar (ek uzunluk oranı); filW = s biriminde genişlik; filFlat = filamentin geriye doğru düzleşmesi (0..1) */
+  fil?: number; filW?: number; filFlat?: number;
 }
 export interface DorsalSpec { t0: number; t1: number; rays: number; phiFront: number; phiRear: number; lenFront: number; lenRear: number }
 
@@ -163,13 +165,15 @@ export function createModel(cfg: LbConfig) {
     const base: Vec3[] = [], dir: Vec3[] = [], len: number[] = [];
     for (let i = 0; i < sp.rays; i++) {
       const s = (i / (sp.rays - 1)) * 2 - 1;
-      const th = rad(sp.halfAngle) * s;
+      const fw = sp.fil ? Math.exp(-(((1 - Math.abs(s)) / (sp.filW ?? 0.06)) ** 2)) : 0;
+      const th = rad(sp.halfAngle) * s * (1 - (sp.filFlat ?? 0) * fw);
       base.push([x0, pr.cy + s * 0.85 * (s > 0 ? pr.up : pr.down), 0]);
       dir.push([Math.cos(th), Math.sin(th), 0]);
       // round=0: düz arka kenar (reach/cosθ); round=1: daire yayı (sabit uzunluk)
       let L = sp.reach * Math.pow(Math.cos(th), -(1 - sp.round)) * (1 + sp.bulge * (1 - s * s));
       if (sp.lyre) L *= 1 + sp.lyre * Math.pow(Math.abs(s), 3);
       if (sp.fork) L *= 1 - sp.fork * Math.exp(-((s / 0.4) ** 2));
+      if (sp.fil) L *= 1 + sp.fil * fw;
       if (sp.pin) L *= 1 + sp.pin * Math.exp(-((s / (sp.pinWidth ?? 0.18)) ** 2));
       len.push(L);
     }

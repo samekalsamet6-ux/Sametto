@@ -7,14 +7,20 @@ import { seedFor, type Variant } from './variants';
 
 export interface CoryTextures { color: HTMLCanvasElement; bump: HTMLCanvasElement; fins: Record<string, HTMLCanvasElement> }
 
-/** İki sıra zırh plakasının sınırları: x konumları (piksel) ve satır başına w aralığı */
-export function plateEdges(w: number): { row: number; x0: number; x1: number }[] {
-  const out: { row: number; x0: number; x1: number }[] = [];
-  const n = ARMOR.plates, a = ARMOR.s0 * w, b = ARMOR.s1 * w;
+/** Deterministik 0..1 sözde-rastgele sayı (plaka başına sabit: renk ve kabartma aynı plakayı çizer) */
+const hash = (r: number, i: number): number => { const x = Math.sin(r * 127.1 + i * 311.7 + 17.3) * 43758.5453; return x - Math.floor(x); };
+
+export interface Plate { row: number; x0: number; x1: number; /** görünen şerit genişliği (px) */ pitch: number; /** arka kenarın eğimi (px; satır yüksekliği boyunca) */ slant: number; /** arka kenarın kavisi (px) */ bow: number; /** -1..1 plaka tonu */ tone: number }
+
+/** İki sıra zırh plakasının sınırları: x konumları (piksel) ve satır başına w aralığı. Plakalar birbirinin üstüne biner (her plaka ~1,8 aralık uzunluğunda), konumlar hafif oynak ve iki sıra yarım adım kaydırılmıştır. */
+export function plateEdges(w: number): Plate[] {
+  const out: Plate[] = [];
+  const n = ARMOR.plates, a = ARMOR.s0 * w, b = ARMOR.s1 * w, p = (b - a) / (n + 0.5);
   for (let row = 0; row < 2; row++) for (let i = 0; i < n; i++) {
-    const off = row ? 0.5 : 0;
-    const x0 = lerp(a, b, (i + off) / (n + 0.5)), x1 = lerp(a, b, (i + off + 1.1) / (n + 0.5));
-    out.push({ row, x0, x1: Math.min(x1, b) });
+    const off = row ? 0.5 : 0.08;
+    const j = (hash(row, i) - 0.5) * 0.28 * p;
+    const x0 = Math.max(a, a + (i + off) * p + j), x1 = Math.min(b, x0 + p * 1.8);
+    out.push({ row, x0, x1: Math.max(x1, x0 + 1), pitch: p, slant: p * (0.55 + 0.25 * hash(row + 5, i)) * (row ? -1 : 1), bow: p * (hash(row + 9, i) - 0.3) * 0.25, tone: hash(row + 2, i) * 2 - 1 });
   }
   return out;
 }
@@ -55,46 +61,41 @@ export function paintBody(v: Variant, sex: SexId, W = 1024): CoryTextures {
     } else {
       for (let i = 0; i < 10; i++) blob(ctx, rnd() * w, rnd() * h * 0.6, 0.03 * w, 0.08 * h, v.yama, 0.12, 0, 0.7);
     }
-    // ---- zırh plakaları (skut): iki sıra; her plaka ön kenarı bir öncekinin altında kalır, arka kenarı parlak ve keskin
+    // ---- zırh plakaları (skut): iki sıra, birbirinin üstüne binen ince plakalar; ön kenar bir öncekinin altında kalır.
+    // Görünen şey yalnızca ince arka kenarlar (düşük kontrast) ve plaka başına çok hafif ton farkı; gövde genelinde pürüzsüz bir parlaklık korunur.
     const edges = plateEdges(w), z = Math.min(1, v.zirh) * 0.5;
     const yTop = h * PLATE_Y.top, yMid = h * PLATE_Y.mid, yBot = h * PLATE_Y.bot;
+    const lw = Math.max(1, w / 900);
     for (const e of edges) {
-      const y0 = e.row ? yMid : yTop, y1 = e.row ? yBot : yMid, sl = (e.x1 - e.x0) * 0.42 * (e.row ? -1 : 1);
-      const x1 = e.x1;
-      if (e.row) { ctx.fillStyle = rgba(v.body.karin, 0.22); ctx.beginPath(); ctx.moveTo(e.x0, y0); ctx.lineTo(x1, y0); ctx.lineTo(x1 + sl, y1); ctx.lineTo(e.x0 + sl, y1); ctx.closePath(); ctx.fill(); }
-      const tone = rnd() < 0.5 ? '#ffffff' : '#000000';
-      ctx.fillStyle = rgba(tone, 0.025 + 0.05 * rnd());
-      ctx.beginPath(); ctx.moveTo(e.x0, y0); ctx.lineTo(x1, y0); ctx.lineTo(x1 + sl, y1); ctx.lineTo(e.x0 + sl, y1); ctx.closePath(); ctx.fill();
-      const gr = ctx.createLinearGradient(e.x0, 0, x1, 0);
-      gr.addColorStop(0, rgba('#000000', 0.34 * z + 0.06));
-      gr.addColorStop(0.3, rgba('#000000', 0.04));
-      gr.addColorStop(0.62, rgba('#ffffff', 0.06 * z));
-      gr.addColorStop(0.9, rgba('#ffffff', 0.2 * z + 0.04));
-      gr.addColorStop(1, rgba('#000000', 0.3 * z));
+      const y0 = e.row ? yMid : yTop, y1 = e.row ? yBot : yMid, xr = e.x1, xl = Math.max(e.x0, xr - e.pitch);
+      const edgePath = (x: number) => { ctx.moveTo(x, y0); ctx.quadraticCurveTo(x + e.slant * 0.5 + e.bow, (y0 + y1) / 2, x + e.slant, y1); };
+      // görünen şeridin tonu: plaka başına hafif açık/koyu fark + çok yumuşak yatay geçiş
+      const gr = ctx.createLinearGradient(xl, 0, xr, 0);
+      const t = e.tone, up = t > 0 ? '#ffffff' : '#000000';
+      gr.addColorStop(0, rgba(up, 0)); gr.addColorStop(0.55, rgba(up, 0.035 * Math.abs(t) + 0.01)); gr.addColorStop(1, rgba('#ffffff', 0.05 * z));
       ctx.fillStyle = gr;
-      ctx.beginPath(); ctx.moveTo(e.x0, y0); ctx.lineTo(x1, y0); ctx.lineTo(x1 + sl, y1); ctx.lineTo(e.x0 + sl, y1); ctx.closePath(); ctx.fill();
-      // dikey yuvarlaklık: plakanın üst/alt kenarı koyu
-      const vg = ctx.createLinearGradient(0, y0, 0, y1);
-      vg.addColorStop(0, rgba('#000000', 0.12 * z)); vg.addColorStop(0.22, rgba('#000000', 0)); vg.addColorStop(0.78, rgba('#000000', 0)); vg.addColorStop(1, rgba('#000000', 0.12 * z));
-      ctx.fillStyle = vg; ctx.fillRect(e.x0, y0, x1 - e.x0, y1 - y0);
-      // arka kenar: ince koyu çizgi + açık kenar
-      ctx.lineWidth = Math.max(1, w / 560);
-      ctx.strokeStyle = rgba('#000000', 0.5 * z + 0.12);
-      ctx.beginPath(); ctx.moveTo(x1, y0); ctx.lineTo(x1 + sl, y1); ctx.stroke();
-      ctx.strokeStyle = rgba('#ffffff', 0.28 * z);
-      ctx.beginPath(); ctx.moveTo(x1 - ctx.lineWidth * 1.4, y0); ctx.lineTo(x1 + sl - ctx.lineWidth * 1.4, y1); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(xl, y0); ctx.lineTo(xr, y0); ctx.quadraticCurveTo(xr + e.slant * 0.5 + e.bow, (y0 + y1) / 2, xr + e.slant, y1); ctx.lineTo(xl + e.slant, y1); ctx.closePath(); ctx.fill();
+      // arka kenarın düşürdüğü yumuşak gölge (bir sonraki plakanın üzerine)
+      const sh = ctx.createLinearGradient(xr, 0, xr + e.pitch * 0.45, 0);
+      sh.addColorStop(0, rgba('#000000', 0.11 * z + 0.02)); sh.addColorStop(1, rgba('#000000', 0));
+      ctx.fillStyle = sh;
+      ctx.beginPath(); ctx.moveTo(xr, y0); ctx.lineTo(xr + e.pitch * 0.45, y0); ctx.lineTo(xr + e.pitch * 0.45 + e.slant, y1); ctx.lineTo(xr + e.slant, y1); ctx.quadraticCurveTo(xr + e.slant * 0.5 + e.bow, (y0 + y1) / 2, xr, y0); ctx.closePath(); ctx.fill();
+      // ince arka kenar çizgisi ve yanında çok ince parlak sınır
+      ctx.lineWidth = lw;
+      ctx.strokeStyle = rgba('#000000', (0.36 * z + 0.07) * (0.65 + 0.35 * Math.abs(t))); ctx.beginPath(); edgePath(xr); ctx.stroke();
+      ctx.strokeStyle = rgba('#ffffff', 0.2 * z + 0.02); ctx.beginPath(); edgePath(xr - lw * 1.6); ctx.stroke();
     }
-    // yan çizgi: iki sıranın birleştiği sırt çizgisi (kıl) ve gözenekler
-    ctx.lineWidth = Math.max(2, w / 380);
-    ctx.strokeStyle = rgba('#000000', 0.45 * z + 0.1);
+    // yan çizgi: iki sıranın birleştiği ince çizgi ve gözenekler
+    ctx.lineWidth = Math.max(1.2, w / 650);
+    ctx.strokeStyle = rgba('#000000', 0.2 * z + 0.04);
     ctx.beginPath(); ctx.moveTo(w * ARMOR.s0, yMid); ctx.lineTo(w * ARMOR.s1, yMid); ctx.stroke();
-    ctx.strokeStyle = rgba('#ffffff', 0.3 * z + 0.05);
+    ctx.strokeStyle = rgba('#ffffff', 0.12 * z + 0.02);
     ctx.beginPath(); ctx.moveTo(w * ARMOR.s0, yMid + ctx.lineWidth); ctx.lineTo(w * ARMOR.s1, yMid + ctx.lineWidth); ctx.stroke();
-    for (const e of edges) if (e.row === 0) blob(ctx, (e.x0 + e.x1) / 2, yMid, w * 0.0022, w * 0.0022, '#000000', 0.5, 0, 0.8);
-    // sırt ve karın kenarındaki küçük orta plakalar
-    ctx.lineWidth = Math.max(1, w / 700);
-    ctx.strokeStyle = rgba('#000000', 0.28 * z);
-    for (let x = w * ARMOR.s0; x < w * ARMOR.s1; x += w * 0.019) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + w * 0.004, h * 0.07); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, h); ctx.lineTo(x + w * 0.004, h * 0.93); ctx.stroke(); }
+    for (const e of edges) if (e.row === 0) blob(ctx, e.x1 - e.pitch * 0.2, yMid, w * 0.0016, w * 0.0016, '#000000', 0.3, 0, 0.8);
+    // gövde boyunca yumuşak, kesintisiz parıltı (plaka çizgilerinden bağımsız): derinin pürüzsüz metalik görünümü
+    const sheen = ctx.createLinearGradient(0, h * 0.12, 0, h * 0.5);
+    sheen.addColorStop(0, rgba('#ffffff', 0)); sheen.addColorStop(0.5, rgba('#ffffff', 0.09 + 0.05 * v.parilti.yogunluk)); sheen.addColorStop(1, rgba('#ffffff', 0));
+    ctx.fillStyle = sheen; ctx.fillRect(w * ARMOR.s0, h * 0.12, w * (ARMOR.s1 - ARMOR.s0), h * 0.38);
     // ---- baş: kemikli kalkan, dikişler, solungaç kapağı plakası
     const hs = h * 0.74;
     ctx.strokeStyle = rgba('#000000', 0.18);
@@ -118,18 +119,19 @@ export function paintBody(v: Variant, sex: SexId, W = 1024): CoryTextures {
     bc.fillRect(0, 0, w, h);
     const yTop = h * PLATE_Y.top, yMid = h * PLATE_Y.mid, yBot = h * PLATE_Y.bot;
     for (const e of plateEdges(w)) {
-      const y0 = e.row ? yMid : yTop, y1 = e.row ? yBot : yMid, sl = (e.x1 - e.x0) * 0.42 * (e.row ? -1 : 1);
-      const gr = bc.createLinearGradient(e.x0, 0, e.x1, 0);
-      gr.addColorStop(0, '#4c4c4c'); gr.addColorStop(0.18, '#a0a0a0'); gr.addColorStop(0.7, '#cfcfcf'); gr.addColorStop(0.94, '#dedede'); gr.addColorStop(1, '#3c3c3c');
+      const y0 = e.row ? yMid : yTop, y1 = e.row ? yBot : yMid, xr = e.x1, xl = Math.max(e.x0, xr - e.pitch);
+      // çok yumuşak kabartma: görünen şerit hafif yükselir, arka kenarda ince bir basamak (plaka bindirmesi)
+      const gr = bc.createLinearGradient(xl, 0, xr, 0);
+      gr.addColorStop(0, '#666666'); gr.addColorStop(0.6, '#7c7c7c'); gr.addColorStop(0.92, '#8c8c8c'); gr.addColorStop(1, '#505050');
       bc.fillStyle = gr;
-      bc.beginPath(); bc.moveTo(e.x0, y0); bc.lineTo(e.x1, y0); bc.lineTo(e.x1 + sl, y1); bc.lineTo(e.x0 + sl, y1); bc.closePath(); bc.fill();
+      bc.beginPath(); bc.moveTo(xl, y0); bc.lineTo(xr, y0); bc.quadraticCurveTo(xr + e.slant * 0.5 + e.bow, (y0 + y1) / 2, xr + e.slant, y1); bc.lineTo(xl + e.slant, y1); bc.closePath(); bc.fill();
       const vg = bc.createLinearGradient(0, y0, 0, y1);
-      vg.addColorStop(0, 'rgba(60,60,60,0.85)'); vg.addColorStop(0.2, 'rgba(60,60,60,0)'); vg.addColorStop(0.8, 'rgba(60,60,60,0)'); vg.addColorStop(1, 'rgba(60,60,60,0.8)');
-      bc.fillStyle = vg; bc.fillRect(e.x0, y0, e.x1 - e.x0, y1 - y0);
+      vg.addColorStop(0, 'rgba(70,70,70,0.45)'); vg.addColorStop(0.2, 'rgba(70,70,70,0)'); vg.addColorStop(0.8, 'rgba(70,70,70,0)'); vg.addColorStop(1, 'rgba(70,70,70,0.4)');
+      bc.fillStyle = vg; bc.fillRect(xl, y0, xr - xl + Math.abs(e.slant), y1 - y0);
     }
-    // yan çizgi kılı: yüksek sırt
-    bc.fillStyle = '#ffffff';
-    bc.fillRect(w * ARMOR.s0, yMid - h * 0.012, w * (ARMOR.s1 - ARMOR.s0), h * 0.024);
+    // yan çizgi: ince, alçak kıl
+    bc.fillStyle = '#9a9a9a';
+    bc.fillRect(w * ARMOR.s0, yMid - h * 0.006, w * (ARMOR.s1 - ARMOR.s0), h * 0.012);
     // baş kalkanı: yükseltili plaka alanları, dikiş olukları, solungaç kapağı kabarıklığı
     const hg = bc.createRadialGradient(w * 0.15, h * 0.34, 0, w * 0.15, h * 0.34, w * 0.07);
     hg.addColorStop(0, 'rgba(235,235,235,0.9)'); hg.addColorStop(1, 'rgba(108,108,108,0)');

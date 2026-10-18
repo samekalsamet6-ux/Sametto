@@ -41,6 +41,8 @@ export interface CaudalSpec {
   taper: number;
   /** Alt ışınlar ek uzunluk oranı */
   lowerBias: number;
+  /** 0..~0.4: dış köşelerin yuvarlatılması (uç ışınlar kısalır; delta'da yumuşak, yuvarlak köşeler) */
+  rim?: number;
   /** Işın sayısı */
   rays: number;
 }
@@ -73,8 +75,8 @@ export const FORM_SPECS: FormSpec[] = [
   F('plakat', classic),
   F('veiltail', fan(0.82, 0.37, { droop: 0.38, taper: 0.4, lowerBias: 0.18 }), { dorsal: { k: 1.3, sweep: 1.2 }, anal: { k: 1.5, sweep: 1.1 }, pelvic: 1.1 }),
   F('spade', fan(0.74, 0.31, { taper: 0.7 }), { dorsal: { k: 1.2, sweep: 1.15 }, anal: { k: 1.3, sweep: 1.05 }, pelvic: 1.05 }),
-  F('delta', fan(0.85, 0.265, { flat: 0.9 }), { dorsal: { k: 1.4, sweep: 1.3 }, anal: { k: 1.6, sweep: 1.2 }, pelvic: 1.1 }),
-  F('super-delta', fan(1.22, 0.255, { flat: 0.2 }), { dorsal: { k: 1.55, sweep: 1.45 }, anal: { k: 1.75, sweep: 1.3 }, pelvic: 1.15 }),
+  F('delta', fan(0.6, 0.37, { flat: 0.55, rim: 0.3 }), { dorsal: { k: 1.4, sweep: 1.3 }, anal: { k: 1.6, sweep: 1.2 }, pelvic: 1.1 }),
+  F('super-delta', fan(1.22, 0.265, { flat: 0.25, rim: 0.24 }), { dorsal: { k: 1.55, sweep: 1.45 }, anal: { k: 1.75, sweep: 1.3 }, pelvic: 1.15 }),
   F('halfmoon', fan(Math.PI / 2, 0.335), { dorsal: { k: 1.75, sweep: 1.7 }, anal: { k: 1.95, sweep: 1.45 }, pelvic: 1.2 }),
   F('overhalfmoon', fan(1.8, 0.33), { dorsal: { k: 1.85, sweep: 1.8 }, anal: { k: 2.05, sweep: 1.5 }, pelvic: 1.2 }),
   F('crowntail', fan(1.05, 0.33, { flat: 0.35, rays: 23 }), { dorsal: { k: 1.35, sweep: 1.25 }, anal: { k: 1.5, sweep: 1.15 }, pelvic: 1.15, tex: 'crown' }),
@@ -149,7 +151,8 @@ export function rayLength(c: CaudalSpec, len: number, a: number): number {
   const flatK = Math.pow(1 / ca, c.flat);
   const tap = 1 + c.taper * (Math.pow(Math.max(0, Math.cos((a / Math.max(0.2, c.half)) * (Math.PI / 2))), 1.5) * 0.9 - 0.35);
   const low = 1 + c.lowerBias * Math.max(0, -Math.sin(a));
-  return len * flatK * tap * low;
+  const rim = c.rim ? 1 - c.rim * Math.pow(Math.min(1, Math.abs(a) / Math.max(0.2, c.half)), 5) : 1;
+  return len * flatK * tap * low * rim;
 }
 
 /** Kuyruk yüzgeci: yelpaze ışınları tabandan çıkar. Dişide daha kısa ve dar. */

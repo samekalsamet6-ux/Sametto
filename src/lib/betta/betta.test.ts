@@ -118,6 +118,23 @@ describe('betta: form (şekil) varyeteleri', () => {
     const bot = k.tip[k.tip.length - 1];
     expect(top[1] + bot[1]).toBeCloseTo(k.base[0][1] + k.base[k.base.length - 1][1], 1); // simetrik
   });
+  it('delta / super delta: geniş, yuvarlak köşeli yelpaze; yüksekliği genişliğinin ~1,3 katından fazla değil; halfmoon\'dan ayrı', () => {
+    const shape = (id: string) => {
+      const k = finsFor('erkek', id).find((f) => f.id === 'kuyruk')!;
+      const xs = k.tip.map((p) => p[0]), ys = k.tip.map((p) => p[1]);
+      return { w: Math.max(...xs) - k.base[0][0], h: Math.max(...ys) - Math.min(...ys), k };
+    };
+    const d = shape('delta'), sd = shape('super-delta'), hm = shape('halfmoon');
+    expect(d.h / d.w).toBeLessThan(1.35);
+    expect(d.h).toBeLessThan(sd.h);
+    expect(sd.h).toBeLessThan(hm.h);
+    // yuvarlak köşe: uç ışın, ondan hemen içerideki ışından kısa (düz üçgen sivri köşesi yok)
+    const len = (k: typeof d.k, i: number) => Math.hypot(k.tip[i][0] - k.base[i][0], k.tip[i][1] - k.base[i][1]);
+    for (const x of [d, sd]) { const n = x.k.tip.length; expect(len(x.k, 0)).toBeLessThan(len(x.k, 2) * 1.0001); expect(len(x.k, n - 1)).toBeLessThan(len(x.k, n - 3) * 1.0001); }
+    // halfmoon 180° (tepe ışını düşey), super delta daha dar açı
+    expect(Math.abs(hm.k.tip[0][0] - hm.k.base[0][0])).toBeLessThan(0.02);
+    expect(Math.abs(sd.k.tip[0][0] - sd.k.base[0][0])).toBeGreaterThan(0.04);
+  });
   it('overhalfmoon: uç ışınlar gövdeye doğru geri kıvrılır (180°yi aşar)', () => {
     const k = finsFor('erkek', 'overhalfmoon').find((f) => f.id === 'kuyruk')!;
     expect(k.tip[0][0]).toBeLessThan(k.base[0][0] - 0.01);
