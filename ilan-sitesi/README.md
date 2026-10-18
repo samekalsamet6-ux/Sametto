@@ -76,9 +76,9 @@ Ayarlar `.env.example` içinde (`PORT`, `HOST`, `COOKIE_SECURE`, `TRUST_PROXY`, 
 | Doku / piksel | ~64 doku, ~2,1 milyon piksel (paylaşımlı) |
 | GPU programı | ~57 |
 | Kötü durum (3 karides + 4 ağır + 5 diğer) | ~1100 çizim çağrısı |
-| Kare süresi (yazılım WebGL/SwiftShader, 12 balık, low) | bkz. aşağıdaki ölçüm notu |
+| Kare süresi (yazılım WebGL/SwiftShader, 12 balık, low) | ~30-45 ms (boşta), bkz. ölçüm notu |
 
-Ölçüm (`tests/e2e/akvaryum.e2e.ts`, `window.__akvaryum.benchmark()`, yazılım WebGL, yüklü makine): MASAUSTU_OLCUM. Gerçek GPU'da bunun çok altındadır; sayılar yalnızca gerilemeleri yakalamak içindir.
+Ölçüm (`tests/e2e/akvaryum.e2e.ts`, `window.__akvaryum.benchmark()`, yazılım WebGL, yüklü makine): 12 balık/low: boşta makinede masaüstü (1080x607) ~44 ms/kare, mobil boyut (318x318) ~30 ms/kare; makine yüklüyken (yük ort. ~20) 70-150 ms/kare. Sürekli çizim ~30 kare/sn ile sınırlıdır ve kare aralığı uzarsa çizim çözünürlüğü kademeli (en az 0,5x) düşer. Gerçek GPU'da bunun çok altındadır; sayılar yalnızca gerilemeleri yakalamak içindir.
 
 ## Yapı
 

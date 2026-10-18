@@ -41,6 +41,7 @@ const FOV = 30;
 const WATER_TOP = '#3d9db3', WATER_BOTTOM = '#0a2d3b', FOG = '#104659', ROOM = 0x061820;
 const INIT_AZ = 0.32, INIT_POL = 1.47;
 const POL_MIN = 0.3, POL_MAX = 1.6;
+const MIN_FRAME_MS = 1000 / 30;
 
 function sandTexture(): CanvasTexture {
   const c = document.createElement('canvas'); c.width = c.height = 128;
@@ -142,13 +143,15 @@ export async function createTank(o: TankOptions): Promise<TankHandle> {
   const stage = canvas.parentElement;
 
   // 6) boyut
-  let pr = 1, W = 0, H = 0;
+  // Uyarlanabilir çözünürlük: kare aralığı uzun sürerse (yavaş GPU / yazılım WebGL) çizim çözünürlüğü kademeli düşer (en az 0,5x).
+  let pr = 1, W = 0, H = 0, scale = 1, slow = 0, fast = 0, ema = 33;
+  const applySize = () => { renderer.setPixelRatio(pr * scale); renderer.setSize(W, H, false); };
   const resize = () => {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (!w || !h) return;
     pr = Math.min(window.devicePixelRatio || 1, pixelCap);
-    renderer.setPixelRatio(pr); renderer.setSize(w, h, false);
-    const prevFit = fit; aspect = w / h; W = w; H = h;
+    W = w; H = h; applySize();
+    const prevFit = fit; aspect = w / h;
     camera.aspect = aspect; camera.updateProjectionMatrix();
     fit = fitDistance(dims, aspect, FOV);
     tgt.dist *= fit / prevFit; cur.dist *= fit / prevFit; clampView();
@@ -156,7 +159,7 @@ export async function createTank(o: TankOptions): Promise<TankHandle> {
   };
 
   // 7) çizim döngüsü
-  let time = 0, last = 0, raf = 0, active = false, disposed = false, dirty = true;
+  let time = 0, last = 0, raf = 0, active = false, disposed = false;
   const posed = (p: Pose, it: Item) => { const o3 = it.g.object; o3.position.set(p.x, p.y, p.z); o3.rotation.order = 'YZX'; o3.rotation.y = p.yaw; o3.rotation.z = p.pitch; };
   const step = (dt: number) => {
     if (!reducedMotion) time += dt;
@@ -179,12 +182,19 @@ export async function createTank(o: TankOptions): Promise<TankHandle> {
   const frame = (ts: number) => {
     raf = 0;
     if (!active || disposed) return;
-    const dt = Math.min(0.1, Math.max(0, (ts - last) / 1000)); last = ts;
-    step(dt); draw(); dirty = false;
+    const gap = ts - last;
+    if (gap < MIN_FRAME_MS - 3) { raf = requestAnimationFrame(frame); return; } // en çok ~30 kare/sn
+    const dt = Math.min(0.1, Math.max(0, gap / 1000)); last = ts;
+    if (!reducedMotion) {
+      ema = ema * 0.9 + Math.min(gap, 400) * 0.1;
+      if (ema > 70) { if (++slow > 8 && scale > 0.5) { scale = Math.max(0.5, scale * 0.8); applySize(); slow = 0; ema = 40; } fast = 0; }
+      else if (ema < 40 && scale < 1) { if (++fast > 240) { scale = Math.min(1, scale * 1.25); applySize(); fast = 0; } slow = 0; } else { slow = 0; fast = 0; }
+    }
+    step(dt); draw();
     if (!reducedMotion || !settled()) raf = requestAnimationFrame(frame);
   };
   const schedule = () => { if (active && !disposed && !raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
-  function invalidate() { dirty = true; schedule(); }
+  function invalidate() { schedule(); }
 
   // 8) girdi: işaretçi (sürükle/kıstır), tekerlek (odaktayken ya da Ctrl ile), klavye
   const ptrs = new Map<number, { x: number; y: number }>();
@@ -242,7 +252,7 @@ export async function createTank(o: TankOptions): Promise<TankHandle> {
     stats() {
       return {
         fish: items.length, lod, disposed, active, triangles: info.render.triangles, drawCalls: info.render.calls, geometries: info.memory.geometries, textures: info.memory.textures,
-        programs: info.programs?.length ?? 0, pixelRatio: pr, width: W, height: H, azimuth: tgt.az, polar: tgt.pol, distance: tgt.dist, cache: groupCacheStats(), budgetTriangles, budgetDrawCalls,
+        programs: info.programs?.length ?? 0, pixelRatio: pr * scale, width: W, height: H, azimuth: tgt.az, polar: tgt.pol, distance: tgt.dist, cache: groupCacheStats(), budgetTriangles, budgetDrawCalls,
       };
     },
     benchmark(frames = 30) {
@@ -272,6 +282,5 @@ export async function createTank(o: TankOptions): Promise<TankHandle> {
       renderer.forceContextLoss();
     },
   };
-  void Color; void dirty;
   return handle;
 }

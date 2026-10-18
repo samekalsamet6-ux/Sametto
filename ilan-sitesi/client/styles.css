@@ -186,3 +186,5 @@ th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--lin
 .akv-edit .fish-list { grid-template-columns: 1fr; }
 .akv-edit .lf-main > form + section { margin-top: 20px; }
 .akv-edit fieldset { margin-bottom: 0; }
+.fish-list .btn-ghost { color: var(--ink); border-color: var(--muted); }
+.viewbar[hidden], .tank [hidden] { display: none !important; }

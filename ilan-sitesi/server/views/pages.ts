@@ -358,7 +358,7 @@ export function sellerPage(ctx: PageCtx, o: { seller: { id: number; display_name
   const body = html`<h1>${name}</h1>
 <p class="muted">Üyelik: ${fmtDate(o.seller.created_at)} · ${o.items.length} aktif ilan</p>
 <section class="akv" id="akvaryum" aria-labelledby="akv-b" data-testid="akvaryum">
-  <div class="akv-head"><h2 id="akv-b">Akvaryum</h2>${o.seller.is_demo ? html`<span class="tag tag-demo">Örnek akvaryum</span>` : ''}${o.isOwner ? html`<a class="btn btn-small" href="/profil/akvaryum">${o.fish.length ? 'Akvaryumu düzenle' : 'Akvaryum oluştur'}</a>` : ''}</div>
+  <div class="akv-head"><h2 id="akv-b">Akvaryum</h2>${o.seller.is_demo && o.fish.length ? html`<span class="tag tag-demo">Örnek akvaryum</span>` : ''}${o.isOwner ? html`<a class="btn btn-small" href="/profil/akvaryum">${o.fish.length ? 'Akvaryumu düzenle' : 'Akvaryum oluştur'}</a>` : ''}</div>
   ${tank}
 </section>
 <h2>İlanlar</h2>
