@@ -27,3 +27,13 @@ describe('buildSearch', () => {
   });
   it('priceToKurus', () => { expect(priceToKurus('10')).toBe(1000); expect(priceToKurus('')).toBeNull(); expect(priceToKurus(undefined)).toBeNull(); });
 });
+
+describe('ilçe filtresi', () => {
+  it('parametreli, küçük harfe çevrilmiş alt dize; joker karakterler kaçırılır', () => {
+    const q = buildSearch({ district: ' ÇANKAYA ' });
+    expect(q.where).toContain('LIKE ?'); expect(q.args).toEqual(['%çankaya%']);
+    expect(buildSearch({ district: "x'; DROP TABLE listings;--" }).where).not.toContain('DROP');
+    expect(buildSearch({ district: '50%_' }).args).toEqual(['%50\\%\\_%']);
+    expect(buildSearch({ district: '   ' }).args).toEqual([]);
+  });
+});

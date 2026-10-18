@@ -13,7 +13,7 @@ describe('çıktı kaçışlama', () => {
   });
 });
 
-const listing = (o: Partial<Listing> = {}): Listing => ({ id: 1, user_id: 2, title: '<img src=x onerror=alert(1)>', species_id: 'betta', species_other: null, form_id: 'plakat', variant_id: 'mavi', sex: 'erkek', quantity: 1, price_kurus: 10000, city: 'Ankara', description: '<script>x</script>', is_demo: 0, flagged: 0, status: 'active', created_at: 0, seller_name: 'S', seller_whatsapp: '905550000000', seller_phone: null, first_photo: null, ...o });
+const listing = (o: Partial<Listing> = {}): Listing => ({ id: 1, user_id: 2, title: '<img src=x onerror=alert(1)>', species_id: 'betta', species_other: null, form_id: 'plakat', variant_id: 'mavi', sex: 'erkek', quantity: 1, price_kurus: 10000, city: 'Ankara', district: null, description: '<script>x</script>', is_demo: 0, flagged: 0, status: 'active', created_at: 0, seller_name: 'S', seller_whatsapp: '905550000000', seller_phone: null, first_photo: null, ...o });
 const ctx = { csrf: 't', assets: devAssets(), isAdmin: false };
 const photos = [{ id: 1, listing_id: 1, file: 'a'.repeat(32) + '.png', mime: 'image/png', bytes: 1, position: 0 }];
 

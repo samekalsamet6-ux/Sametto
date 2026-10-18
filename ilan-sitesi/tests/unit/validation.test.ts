@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { validateListing, validateRegister, validateReport, normalizePhone, parsePriceKurus, formatPrice, formatPhone, formatPhoneLocal } from '../../server/validation.ts';
 import { CATALOG } from '../../shared/catalog.ts';
 
-const good = { species: 'lepistes', form: 'delta', variant: 'mozaik', sex: 'erkek', quantity: '3', price: '120', city: 'İstanbul', description: 'Sağlıklı, evde üretim balıklar.' };
+const good = { species: 'lepistes', form: 'delta', variant: 'mozaik', sex: 'erkek', quantity: '3', price: '120', city: 'İstanbul', district: 'Kadıköy', description: 'Sağlıklı, evde üretim balıklar.' };
 
 describe('katalog', () => {
   it('katalog türleri ve geçerli kimlikler', () => { expect(CATALOG.length).toBeGreaterThanOrEqual(12); expect(new Set(CATALOG.map((s) => s.id)).size).toBe(CATALOG.length); expect(CATALOG.every((s) => s.variants.length > 0)).toBe(true); });
@@ -83,5 +83,19 @@ describe('telefon biçimi gidiş-dönüş', () => {
   it('formda dostça biçim gösterilir ve geri normalleştirilir', () => {
     expect(formatPhoneLocal('905550000001')).toBe('0555 000 00 01');
     for (const n of ['905550000001', '905321234567']) expect(normalizePhone(formatPhoneLocal(n))).toBe(n);
+  });
+});
+
+describe('ilçe', () => {
+  it('yeni ilanda zorunlu, kırpılır, 2-60 karakter, güvenli metin', () => {
+    expect(validateListing({ ...good, district: undefined }).errors.district).toBeTruthy();
+    expect(validateListing({ ...good, district: ' ' }).errors.district).toBeTruthy();
+    expect(validateListing({ ...good, district: 'K' }).errors.district).toBeTruthy();
+    expect(validateListing({ ...good, district: 'a'.repeat(61) }).errors.district).toBeTruthy();
+    expect(validateListing({ ...good, district: '<script>x</script>' }).errors.district).toBeTruthy();
+    const ok = validateListing({ ...good, district: '  Çankaya  ' });
+    expect(ok.ok).toBe(true); expect(ok.value!.district).toBe('Çankaya');
+    expect(validateListing({ ...good, district: "Beyoğlu (Cihangir)" }).ok).toBe(true);
+    expect(validateListing({ ...good, district: 'Kadıköy', city: 'Atlantis' }).errors.city).toBeTruthy();
   });
 });

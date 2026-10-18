@@ -30,6 +30,7 @@ const ids = DEMO_USERS.map((u) => {
 });
 
 const spec = (sid: string) => CATALOG.find((s) => s.id === sid)!;
+const DISTRICTS: Record<string, string[]> = { 'İstanbul': ['Kadıköy', 'Beşiktaş', 'Üsküdar'], 'Ankara': ['Çankaya', 'Keçiören'], 'İzmir': ['Karşıyaka', 'Bornova'], 'Bursa': ['Nilüfer', 'Osmangazi'], 'Antalya': ['Muratpaşa', 'Konyaaltı'], 'Eskişehir': ['Tepebaşı', 'Odunpazarı'], 'Kocaeli': ['İzmit', 'Gebze'], 'Konya': ['Selçuklu', 'Meram'] };
 const cities = ['İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Eskişehir', 'Kocaeli', 'Konya'];
 // [tür, şekil sırası, renk sırası, cinsiyet, adet, fiyat TL, açıklama]
 const PLAN: [string, number, number, string, number, number, string][] = [
@@ -58,7 +59,7 @@ if (!hasListings) PLAN.forEach(([sid, fi, vi, sex, qty, price, desc], i) => {
     speciesId: sid, speciesOther: sp ? null : 'Zebra danio', formId: sp?.forms.length ? sp.forms[Math.min(fi, sp.forms.length - 1)].id : null,
     variantId: sp ? sp.variants[Math.min(vi, sp.variants.length - 1)].id : null,
     sex: sp && sex !== UNKNOWN_SEX && !sp.sexes.some((s) => s.id === sex) ? sp.sexes[0].id : sex,
-    quantity: qty, priceKurus: price * 100, city: cities[i % cities.length], title: '', description: desc,
+    quantity: qty, priceKurus: price * 100, city: cities[i % cities.length], district: DISTRICTS[cities[i % cities.length]][i % 2], title: '', description: desc,
     whatsapp: null, phone: null,
   };
   v.title = `${sp ? sp.ad : 'Zebra danio'} — ${sp ? [sp.forms[Math.min(fi, sp.forms.length - 1)]?.ad, sp.variants[Math.min(vi, sp.variants.length - 1)]?.ad].filter(Boolean).join(', ') : 'diğer'} (ÖRNEK)`;

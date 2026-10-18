@@ -78,7 +78,7 @@ describe('yüklenen fotoğrafta konum/üst veri saklanmaz', () => {
     expect(dirty.includes(GPS)).toBe(true);
     const fd = new FormData();
     fd.set('_csrf', jar.get('csrf')!);
-    for (const [k, v] of Object.entries({ species: 'betta', form: 'plakat', variant: 'mavi', sex: 'erkek', quantity: '1', price: '300', city: 'Ankara', description: 'Sağlıklı erkek betta, ayrı kavanozda.' })) fd.set(k, v);
+    for (const [k, v] of Object.entries({ species: 'betta', form: 'plakat', variant: 'mavi', sex: 'erkek', quantity: '1', price: '300', city: 'Ankara', district: 'Çankaya', description: 'Sağlıklı erkek betta, ayrı kavanozda.' })) fd.set(k, v);
     fd.append('photos', new Blob([dirty], { type: 'image/jpeg' }), 'kamera.jpg');
     const r = await call('/ilan/yeni', { method: 'POST', body: fd });
     expect(r.status).toBe(303);
@@ -90,7 +90,7 @@ describe('yüklenen fotoğrafta konum/üst veri saklanmaz', () => {
     expect((s.db.prepare('SELECT bytes FROM listing_photos').get() as { bytes: number }).bytes).toBe(stored.length);
     // bozuk görsel reddedilir
     const fd2 = new FormData(); fd2.set('_csrf', jar.get('csrf')!);
-    for (const [k, v] of Object.entries({ species: 'betta', form: 'plakat', variant: 'mavi', sex: 'erkek', quantity: '1', price: '300', city: 'Ankara', description: 'Sağlıklı erkek betta, ayrı kavanozda.' })) fd2.set(k, v);
+    for (const [k, v] of Object.entries({ species: 'betta', form: 'plakat', variant: 'mavi', sex: 'erkek', quantity: '1', price: '300', city: 'Ankara', district: 'Çankaya', description: 'Sağlıklı erkek betta, ayrı kavanozda.' })) fd2.set(k, v);
     fd2.append('photos', new Blob([jpg.subarray(0, 120)], { type: 'image/jpeg' }), 'bozuk.jpg');
     expect((await call('/ilan/yeni', { method: 'POST', body: fd2 })).status).toBe(422);
   });

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { openDb, createUser, createListing, getListing, getPhotos, searchListings, addReport, listReports, removeListing, NoPhotoError, addAquariumFish, listAquariumFish, removeAquariumFish, listingsBySeller, type DB } from '../../server/db.ts';
 import { validateListing, type ListingInput } from '../../server/validation.ts';
 
-const base = { species: 'lepistes', form: 'delta', variant: 'mozaik', sex: 'erkek', quantity: '3', price: '120', city: 'İstanbul', description: 'Sağlıklı, evde üretim balıklar.' };
+const base = { species: 'lepistes', form: 'delta', variant: 'mozaik', sex: 'erkek', quantity: '3', price: '120', city: 'İstanbul', district: 'Kadıköy', description: 'Sağlıklı, evde üretim balıklar.' };
 const input = (o: Record<string, string> = {}): ListingInput => validateListing({ ...base, ...o }).value!;
 const photo = (n = 'a') => ({ file: `${n.padEnd(32, '0')}.jpg`, mime: 'image/jpeg', bytes: 10 });
 let db: DB, uid: number;
@@ -76,5 +76,37 @@ describe('şikayet, kaldırma, akvaryum tablosu', () => {
     const id = createListing(db, uid, input({ description: "Robert'); DROP TABLE listings;-- açıklama" }), [photo('a')]);
     expect(getListing(db, id)!.description).toContain('DROP TABLE');
     expect(searchListings(db, {}).total).toBe(1);
+  });
+});
+
+describe('ilçe', () => {
+  it('ilçe kaydedilir ve alt dizeyle (büyük/küçük harf duyarsız) aranır; ilçesiz eski satır şehirle bulunur', () => {
+    createListing(db, uid, input({ city: 'Ankara', district: 'Çankaya' }), [photo('a')]);
+    createListing(db, uid, input({ city: 'Ankara', district: 'Keçiören' }), [photo('b')]);
+    db.prepare(`INSERT INTO listings (user_id,title,species_id,sex,quantity,price_kurus,city,description,created_at) VALUES (?,?,?,?,1,100,'Ankara','x',1)`).run(uid, 't', 'betta', 'erkek');
+    expect(searchListings(db, { district: 'ÇANK' }).total).toBe(1);
+    expect(searchListings(db, { district: 'KEÇİ' }).total).toBe(1);
+    expect(searchListings(db, { city: 'Ankara' }).total).toBe(3);
+    expect(searchListings(db, { city: 'Ankara', district: 'yok' }).total).toBe(0);
+    expect(searchListings(db, { district: "' OR 1=1 --" }).total).toBe(0);
+  });
+});
+
+describe('ilçe geçişi', () => {
+  it('sütunu olmayan eski veritabanı açılışta yükseltilir, veri korunur, district NULL kalır', async () => {
+    const { DatabaseSync } = await import('node:sqlite');
+    const { mkdtempSync } = await import('node:fs'); const { tmpdir } = await import('node:os'); const path = await import('node:path');
+    const file = path.join(mkdtempSync(path.join(tmpdir(), 'ilan-mig-')), 'old.db');
+    const old = new DatabaseSync(file);
+    old.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, display_name TEXT NOT NULL, whatsapp TEXT, phone TEXT, is_demo INTEGER NOT NULL DEFAULT 0, is_admin INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL);
+      CREATE TABLE listings (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, title TEXT NOT NULL, species_id TEXT NOT NULL, species_other TEXT, form_id TEXT, variant_id TEXT, sex TEXT NOT NULL, quantity INTEGER NOT NULL, price_kurus INTEGER NOT NULL, city TEXT NOT NULL, description TEXT NOT NULL, is_demo INTEGER NOT NULL DEFAULT 0, flagged INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'active', created_at INTEGER NOT NULL);
+      INSERT INTO users (email,password_hash,display_name,created_at) VALUES ('o@o.com','x','Eski',1);
+      INSERT INTO listings (user_id,title,species_id,sex,quantity,price_kurus,city,description,created_at) VALUES (1,'Eski ilan','betta','erkek',1,100,'Bursa','açıklama',1);`);
+    old.close();
+    const mdb = openDb(file);
+    const row = mdb.prepare('SELECT title, city, district FROM listings').get() as { title: string; city: string; district: string | null };
+    expect(row).toEqual({ title: 'Eski ilan', city: 'Bursa', district: null });
+    expect(searchListings(mdb, { city: 'Bursa' }).total).toBe(1);
+    mdb.close(); openDb(file).close(); // ikinci açılış hata vermez (idempotent)
   });
 });

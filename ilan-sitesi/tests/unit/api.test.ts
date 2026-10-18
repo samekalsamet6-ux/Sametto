@@ -47,7 +47,7 @@ class Client {
     return this.req(p, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ _csrf: token, ...fields }) });
   }
 }
-const LISTING = { species: 'betta', form: 'plakat', variant: 'mavi', sex: 'erkek', quantity: '1', price: '300', city: 'Ankara', description: 'Sağlıklı erkek betta, ayrı kavanozda.' };
+const LISTING = { species: 'betta', form: 'plakat', variant: 'mavi', sex: 'erkek', quantity: '1', price: '300', city: 'Ankara', district: 'Çankaya', description: 'Sağlıklı erkek betta, ayrı kavanozda.' };
 const png = new Uint8Array(placeholderPng(1));
 const count = () => (db.prepare('SELECT COUNT(*) c FROM listings').get() as { c: number }).c;
 
@@ -152,7 +152,7 @@ describe('detay sayfası, şikayet, yönetim', () => {
     const res = await c.post('/ilan/yeni', LISTING, [{ name: 'a.png', type: 'image/png', data: png }]);
     const html = await (await c.req(res.headers.get('location')!)).text();
     expect(html).toMatch(/Temsili 3B görünüm — gerçek balık fotoğrafları/);
-    const r2 = await c.post('/ilan/yeni', { species: 'diger', speciesOther: 'Danio', sex: 'bilinmiyor', quantity: '5', price: '10', city: 'Bursa', description: 'Zebra danio sürüsü.' }, [{ name: 'a.png', type: 'image/png', data: png }]);
+    const r2 = await c.post('/ilan/yeni', { species: 'diger', speciesOther: 'Danio', sex: 'bilinmiyor', quantity: '5', price: '10', city: 'Bursa', district: 'Nilüfer', description: 'Zebra danio sürüsü.' }, [{ name: 'a.png', type: 'image/png', data: png }]);
     const h2 = await (await c.req(r2.headers.get('location')!)).text();
     expect(h2).not.toContain('<canvas'); expect(h2).toContain('3B model yok');
   });

@@ -147,7 +147,7 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
 
       if (p === '/ilanlar' && method === 'GET') {
         const q = url.searchParams;
-        const params: SearchParams = { species: q.get('tur') ?? undefined, form: q.get('sekil') ?? undefined, variant: q.get('renk') ?? undefined, city: q.get('sehir') ?? undefined, minPrice: q.get('min') ?? undefined, maxPrice: q.get('max') ?? undefined, sort: q.get('sirala') ?? undefined, page: q.get('sayfa') ?? 1 };
+        const params: SearchParams = { species: q.get('tur') ?? undefined, form: q.get('sekil') ?? undefined, variant: q.get('renk') ?? undefined, city: q.get('sehir') ?? undefined, district: q.get('ilce') ?? undefined, minPrice: q.get('min') ?? undefined, maxPrice: q.get('max') ?? undefined, sort: q.get('sirala') ?? undefined, page: q.get('sayfa') ?? 1 };
         return page(V.listingsPage(ctx, { params, result: repo.searchListings(db, params) }));
       }
 
@@ -182,7 +182,7 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
         }
         } finally { uploadSlots++; }
         if (Object.keys(errors).length) {
-          return page(V.listingFormPage(ctx, { values: { species: fields.species, speciesOther: fields.speciesOther, form: fields.form, variant: fields.variant, sex: fields.sex, quantity: fields.quantity, price: fields.price, city: fields.city, title: fields.title, description: fields.description, whatsapp: fields.whatsapp, phone: fields.phone }, errors }), 422);
+          return page(V.listingFormPage(ctx, { values: { species: fields.species, speciesOther: fields.speciesOther, form: fields.form, variant: fields.variant, sex: fields.sex, quantity: fields.quantity, price: fields.price, city: fields.city, district: fields.district, title: fields.title, description: fields.description, whatsapp: fields.whatsapp, phone: fields.phone }, errors }), 422);
         }
         const saved: string[] = [];
         try {

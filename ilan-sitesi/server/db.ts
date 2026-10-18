@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS listings (
   quantity INTEGER NOT NULL CHECK (quantity >= 1),
   price_kurus INTEGER NOT NULL CHECK (price_kurus >= 0),
   city TEXT NOT NULL,
+  district TEXT,                      -- ilçe (eski ilanlarda NULL: yalnızca şehir gösterilir)
   description TEXT NOT NULL,
   is_demo INTEGER NOT NULL DEFAULT 0,
   flagged INTEGER NOT NULL DEFAULT 0, -- şikayet edildi: inceleme bekliyor
@@ -79,6 +80,8 @@ export function openDb(file: string): DB {
   const db = new DatabaseSync(file);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 3000;');
   db.exec(SCHEMA);
+  // SQLite lower() yalnızca ASCII'yi çevirir; ilçe aramasında Türkçe büyük/küçük harf için JS işlevi (yalnızca bu bağlantıda).
+  db.function('tr_lower', { deterministic: true }, (s: unknown) => (typeof s === 'string' ? s.toLocaleLowerCase('tr-TR') : null));
   // Eski veritabanları için geçiş: is_admin sütunu yoksa ekle.
   const cols = db.prepare('PRAGMA table_info(users)').all() as unknown as { name: string }[];
   if (!cols.some((c) => c.name === 'is_admin')) db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
@@ -88,6 +91,9 @@ export function openDb(file: string): DB {
     db.exec('ALTER TABLE aquarium_fish ADD COLUMN position INTEGER NOT NULL DEFAULT 0');
     db.exec('UPDATE aquarium_fish SET position = id');
   }
+  // Geçiş (veri silinmez): listings.district (ilçe) eski veritabanlarında yoktu; mevcut satırlar NULL kalır.
+  const lcols = db.prepare('PRAGMA table_info(listings)').all() as unknown as { name: string }[];
+  if (!lcols.some((c) => c.name === 'district')) db.exec('ALTER TABLE listings ADD COLUMN district TEXT');
   const rcols = db.prepare('PRAGMA table_info(reports)').all() as unknown as { name: string }[];
   if (!rcols.some((c) => c.name === 'resolved_at')) db.exec('ALTER TABLE reports ADD COLUMN resolved_at INTEGER');
   // Geçiş (veri silinmez): 'Ayrım yok' türlerinde (melek, diskus) eski 'disi' cinsiyeti 'bilinmiyor' olur.
@@ -105,7 +111,7 @@ export interface User { id: number; email: string; display_name: string; whatsap
 export interface Photo { id: number; listing_id: number; file: string; mime: string; bytes: number; position: number }
 export interface Listing {
   id: number; user_id: number; title: string; species_id: string; species_other: string | null; form_id: string | null; variant_id: string | null;
-  sex: string; quantity: number; price_kurus: number; city: string; description: string; is_demo: number; flagged: number; status: string; created_at: number;
+  sex: string; quantity: number; price_kurus: number; city: string; district: string | null; description: string; is_demo: number; flagged: number; status: string; created_at: number;
   seller_name?: string; seller_whatsapp?: string | null; seller_phone?: string | null; first_photo?: string | null;
 }
 
@@ -157,8 +163,8 @@ export function createListing(db: DB, userId: number, v: ListingInput, photos: N
   if (photos.length > MAX_PHOTOS) throw new Error('En fazla 5 fotoğraf');
   db.exec('BEGIN');
   try {
-    const r = db.prepare(`INSERT INTO listings (user_id,title,species_id,species_other,form_id,variant_id,sex,quantity,price_kurus,city,description,is_demo,created_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(userId, v.title, v.speciesId, v.speciesOther, v.formId, v.variantId, v.sex, v.quantity, v.priceKurus, v.city, v.description, opts.demo ? 1 : 0, opts.createdAt ?? now());
+    const r = db.prepare(`INSERT INTO listings (user_id,title,species_id,species_other,form_id,variant_id,sex,quantity,price_kurus,city,district,description,is_demo,created_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(userId, v.title, v.speciesId, v.speciesOther, v.formId, v.variantId, v.sex, v.quantity, v.priceKurus, v.city, v.district, v.description, opts.demo ? 1 : 0, opts.createdAt ?? now());
     const id = Number(r.lastInsertRowid);
     const ins = db.prepare('INSERT INTO listing_photos (listing_id,file,mime,bytes,position) VALUES (?,?,?,?,?)');
     photos.forEach((p, i) => ins.run(id, p.file, p.mime, p.bytes, i));

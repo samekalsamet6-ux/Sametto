@@ -50,7 +50,7 @@ class Client {
     return this.req('/ilan/yeni', { method: 'POST', body: fd });
   }
 }
-const BASE = { quantity: '1', price: '300', city: 'Ankara', description: 'Sağlıklı balık, ayrı kavanozda.' };
+const BASE = { quantity: '1', price: '300', city: 'Ankara', district: 'Çankaya', description: 'Sağlıklı balık, ayrı kavanozda.' };
 
 describe('A1 katalog: dogrulanmali ve türetilmiş sayılar', () => {
   const dirs: Record<string, string> = { lepistes: 'guppy' };

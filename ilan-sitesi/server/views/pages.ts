@@ -39,7 +39,7 @@ export function listingCard(l: Listing): SafeHtml {
     <span class="card-body">
       <span class="card-title">${l.title}</span>
       <span class="card-meta">${[f.species, f.form, f.variant].filter(Boolean).join(' · ')}</span>
-      <span class="card-row"><strong class="price">${formatPrice(l.price_kurus)}</strong><span class="muted">${l.quantity} adet · ${l.city}</span></span>
+      <span class="card-row"><strong class="price">${formatPrice(l.price_kurus)}</strong><span class="muted">${l.quantity} adet · ${locationLabel(l)}</span></span>
     </span>
   </a>
 </li>`;
@@ -86,12 +86,15 @@ export function homePage(ctx: PageCtx, latest: Listing[]): string {
   return layout(ctx, { title: 'Balık ilanları', body, path: '/', entry: 'site' });
 }
 
+/** "İlçe, Şehir"; ilçesi olmayan eski ilanlarda yalnızca şehir. */
+export const locationLabel = (l: { city: string; district?: string | null }): string => (l.district ? `${l.district}, ${l.city}` : l.city);
+
 // ---------- ilan listesi / arama ----------
 export function listingsPage(ctx: PageCtx, o: { params: SearchParams; result: { items: Listing[]; total: number; page: number; pages: number } }): string {
   const p = o.params, r = o.result;
   const qs = (extra: Record<string, string | number>) => {
     const u = new URLSearchParams();
-    const base: Record<string, string | undefined> = { tur: p.species, sekil: p.form, renk: p.variant, sehir: p.city, min: p.minPrice, max: p.maxPrice, sirala: p.sort };
+    const base: Record<string, string | undefined> = { tur: p.species, sekil: p.form, renk: p.variant, sehir: p.city, ilce: p.district, min: p.minPrice, max: p.maxPrice, sirala: p.sort };
     for (const [k, v] of Object.entries({ ...base, ...extra })) if (v !== undefined && v !== '') u.set(k, String(v));
     return u.toString();
   };
@@ -117,6 +120,10 @@ export function listingsPage(ctx: PageCtx, o: { params: SearchParams; result: { 
   <div class="f">
     <label for="f-sehir">Şehir</label>
     <select id="f-sehir" name="sehir"><option value="">Tüm şehirler</option>${CITIES.map((c) => html`<option${p.city === c ? raw(' selected') : ''}>${c}</option>`)}</select>
+  </div>
+  <div class="f">
+    <label for="f-ilce">İlçe</label>
+    <input id="f-ilce" name="ilce" maxlength="60" placeholder="örn. Kadıköy" value="${p.district ?? ''}">
   </div>
   <div class="f f-price">
     <label for="f-min">Fiyat (₺)</label>
@@ -151,7 +158,7 @@ export function detailPage(ctx: PageCtx, o: { l: Listing; photos: Photo[]; alrea
   const facts: [string, string][] = [['Tür', f.species]];
   if (f.form) facts.push(['Şekil', f.form]);
   if (f.variant) facts.push(['Renk', f.variant]);
-  facts.push(['Cinsiyet', f.sex], ['Adet', String(l.quantity)], ['Şehir', l.city], ['İlan tarihi', fmtDate(l.created_at)]);
+  facts.push(['Cinsiyet', f.sex], ['Adet', String(l.quantity)], ['Konum', locationLabel(l)], ['İlan tarihi', fmtDate(l.created_at)]);
   const canReport = !o.alreadyReported && !isOwner;
   const reportInner = html`${o.reported ? html`<p class="flash flash-ok" role="status">Şikayetiniz alındı. İlan incelenmek üzere işaretlendi, teşekkürler.</p>` : ''}${o.alreadyReported && !o.reported ? html`<p class="muted">Bu ilanı daha önce şikayet ettiniz.</p>` : ''}${canReport
       ? ctx.user
@@ -221,11 +228,11 @@ export function detailPage(ctx: PageCtx, o: { l: Listing; photos: Photo[]; alrea
   </div>
   ${reportBlock}
 </article>`;
-  return layout(ctx, { title: l.title, description: `${f.species}${f.variant ? ' · ' + f.variant : ''} — ${l.city}, ${formatPrice(l.price_kurus)}`, body, entry: 'ilanDetay' });
+  return layout(ctx, { title: l.title, description: `${f.species}${f.variant ? ' · ' + f.variant : ''} — ${locationLabel(l)}, ${formatPrice(l.price_kurus)}`, body, entry: 'ilanDetay' });
 }
 
 // ---------- ilan formu ----------
-export interface FormValues { species?: string; speciesOther?: string; form?: string; variant?: string; sex?: string; quantity?: string; price?: string; city?: string; title?: string; description?: string; whatsapp?: string; phone?: string }
+export interface FormValues { species?: string; speciesOther?: string; form?: string; variant?: string; sex?: string; quantity?: string; price?: string; city?: string; district?: string; title?: string; description?: string; whatsapp?: string; phone?: string }
 export function listingFormPage(ctx: PageCtx, o: { values: FormValues; errors: Errors }): string {
   const v = o.values, e = o.errors;
   const sel = (cur: string | undefined, val: string) => (cur === val ? raw(' selected') : '');
@@ -267,8 +274,12 @@ ${Object.keys(e).length ? html`<div class="flash flash-err" role="alert" tabinde
       <div class="f"><label for="quantity">Adet</label><input id="quantity" name="quantity" type="number" min="1" max="10000" inputmode="numeric" value="${v.quantity ?? '1'}" required${invalid(e, 'quantity')}>${err(e, 'quantity')}</div>
       <div class="f"><label for="price">Fiyat (₺)</label><input id="price" name="price" inputmode="decimal" placeholder="örn. 250 ya da 249,90" value="${v.price ?? ''}" required${invalid(e, 'price')}>${err(e, 'price')}</div>
     </div>
-    <div class="f"><label for="city">Şehir</label>
-      <select id="city" name="city" required${invalid(e, 'city')}><option value="">Seçin…</option>${CITIES.map((c) => html`<option${sel(v.city, c)}>${c}</option>`)}</select>${err(e, 'city')}</div>
+    <div class="row2">
+      <div class="f"><label for="city">Şehir</label>
+        <select id="city" name="city" required${invalid(e, 'city')}><option value="">Seçin…</option>${CITIES.map((c) => html`<option${sel(v.city, c)}>${c}</option>`)}</select>${err(e, 'city')}</div>
+      <div class="f"><label for="district">İlçe</label>
+        <input id="district" name="district" maxlength="60" autocomplete="off" placeholder="örn. Kadıköy" value="${v.district ?? ''}" required${invalid(e, 'district')}>${err(e, 'district')}</div>
+    </div>
   </fieldset>
   <fieldset>
     <legend>3 · Açıklama</legend>

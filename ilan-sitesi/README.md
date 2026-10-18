@@ -43,11 +43,13 @@ Ayarlar `.env.example` içinde (`PORT`, `HOST`, `COOKIE_SECURE`, `TRUST_PROXY`, 
 **Yönetici atama** (yalnızca sunucuda, veri klasörüne erişimi olan işletmeci): önce hesap siteden normal kayıtla açılır, sonra
 `npm run make-admin -- kisi@ornek.com` çalıştırılır (`--remove` ile geri alınır). Yönetici, `users.is_admin` veritabanı bayrağıdır; web arayüzünden ya da kayıt e-postasından verilemez. Eski `ADMIN_EMAIL` ayarı kaldırıldı (yok sayılır).
 
+> Not (ilçe): `listings.district` sütunu açılışta otomatik eklenir (mevcut veri silinmez, eski satırlarda NULL). İl→ilçe listesi depoda olmadığından ilçe serbest metindir; sabit il/ilçe seçicisi ileride yapılabilecek bir iyileştirmedir.
+
 ## Kapsam (yalnızca bunlar)
 
-1. **Normal ilanlar**: tür (3B kataloğundaki 12 tür ya da "diğer" = 3B yok), şekil, renk, cinsiyet, adet, fiyat (TL), şehir, açıklama; **1–5 gerçek fotoğraf zorunlu**.
+1. **Normal ilanlar**: tür (3B kataloğundaki 12 tür ya da "diğer" = 3B yok), şekil, renk, cinsiyet, adet, fiyat (TL), şehir + ilçe (ilçe zorunlu serbest metin, 2-60 karakter; eski ilanlarda ilçe boştur ve yalnızca şehir gösterilir), açıklama; **1–5 gerçek fotoğraf zorunlu**.
 2. **İlan detayı**: gerçek fotoğraflar + "Temsili 3B görünüm — gerçek balık fotoğrafları solda" etiketli 3B model (görünür olunca tembel yüklenir; WebGL yoksa yedek metin). İlan formunda tür/şekil/renk/cinsiyet değiştikçe güncellenen canlı 3B önizleme.
-3. **Arama**: tür, şekil, renk, şehir, fiyat aralığı; liste görünümünde yalnızca ilk gerçek fotoğraf (3B yok).
+3. **Arama**: tür, şekil, renk, şehir, ilçe (isteğe bağlı alt dize araması, büyük/küçük harf duyarsız), fiyat aralığı; liste görünümünde yalnızca ilk gerçek fotoğraf (3B yok).
 4. **Hesaplar**: e-posta + parola, çıkış, giriş hız sınırı; satıcı iletişimi (isteğe bağlı WhatsApp/telefon: düz metin + `wa.me` bağlantısı); "şikayet et" düğmesi; yalnızca `is_admin` bayrağı olanlara açık minimal `/admin/raporlar` (diğerlerine 404); yönetici şikayet edilen ilanı `POST /admin/ilan/:id/kaldir` ile kaldırabilir.
 5. **Satıcı profili + Akvaryum** (`/satici/:id`): satıcının ilanları ve satıcının kendi eklediği balıklarla (tür, şekil, renk, cinsiyet; katalogdan) kurulan, ziyaretçilerin döndürüp yakınlaştırabildiği temsili 3B akvaryum. Sahne her zaman "temsili 3B görünüm — satıcının gerçek stoğu değildir" etiketiyle gösterilir. Düzenleme: `/profil/akvaryum` (yalnızca giriş yapmış sahibi).
 

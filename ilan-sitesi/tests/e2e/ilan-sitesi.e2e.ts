@@ -33,6 +33,7 @@ test.describe('ilan oluşturma ve 3B', () => {
     await page.getByLabel('Adet', { exact: true }).fill('2');
     await page.getByLabel('Fiyat (₺)').fill('350');
     await page.getByLabel('Şehir', { exact: true }).selectOption('Ankara');
+    await page.getByLabel('İlçe', { exact: true }).fill('Çankaya');
     await page.getByLabel('Açıklama', { exact: true }).fill('Sağlıklı iki erkek betta, ayrı kavanozlarda büyütüldü.');
     await page.getByLabel('WhatsApp numarası').fill('0532 123 45 67');
     await page.getByRole('button', { name: 'İlanı yayınla' }).click();
@@ -62,6 +63,7 @@ test.describe('ilan oluşturma ve 3B', () => {
     await page.getByLabel('Tür', { exact: true }).selectOption('neon');
     await page.getByLabel('Fiyat (₺)').fill('8');
     await page.getByLabel('Şehir', { exact: true }).selectOption('İzmir');
+    await page.getByLabel('İlçe', { exact: true }).fill('Bornova');
     await page.getByLabel('Açıklama', { exact: true }).fill('Yirmi adet neon tetra, sürü hâlinde.');
     await page.getByRole('button', { name: 'İlanı yayınla' }).click();
     await expect(page.getByRole('alert')).toContainText('en az bir gerçek fotoğraf');
@@ -132,6 +134,11 @@ test.describe('arama ve ilan detayı (örnek veriyle)', () => {
     await expect(page.locator('.card')).not.toHaveCount(0);
     for (const t of await page.locator('.card-row .muted').allInnerTexts()) expect(t).toContain('Ankara');
 
+    await page.goto('/ilanlar?sehir=Ankara&ilce=%C3%A7ANKAYA');
+    for (const t of await page.locator('.card-row .muted').allInnerTexts()) expect(t).toContain('Çankaya, Ankara');
+    await page.goto('/ilanlar?ilce=yokboyleilce');
+    await expect(page.getByText('Bu ölçütlere uyan ilan bulunamadı')).toBeVisible();
+
     await page.goto('/ilanlar?min=1000&max=5000&sirala=ucuz');
     const prices = (await page.locator('.card .price').allInnerTexts()).map((s) => parseFloat(s.replace(/\./g, '').replace(',', '.')));
     expect(prices.length).toBeGreaterThan(0);
@@ -201,7 +208,7 @@ test.describe('şikayet ve yönetim', () => {
     await register(admin, 'yonetici@example.test').catch(async () => {
       await admin.goto('/giris'); await admin.getByLabel('E-posta').fill('yonetici@example.test'); await admin.getByLabel('Parola').fill(PASSWORD); await admin.getByRole('button', { name: 'Giriş yap' }).click();
     });
-    execFileSync('node', ['scripts/make-admin.ts', 'yonetici@example.test'], { env: { ...process.env, DATA_DIR: './data/e2e' } });
+    execFileSync('node', ['scripts/make-admin.ts', 'yonetici@example.test'], { env: { ...process.env, DATA_DIR: `./${process.env.E2E_DATA || 'data/e2e'}` } });
     await admin.goto('/admin/raporlar');
     await expect(admin.getByRole('heading', { name: 'Şikayetler' })).toBeVisible();
     await expect(admin.getByText(note)).toBeVisible();

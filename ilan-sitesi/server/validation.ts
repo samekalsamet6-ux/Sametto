@@ -56,9 +56,11 @@ export function formatPrice(kurus: number): string {
 
 export interface ListingInput {
   speciesId: string; speciesOther: string | null; formId: string | null; variantId: string | null; sex: string;
-  quantity: number; priceKurus: number; city: string; title: string; description: string;
+  quantity: number; priceKurus: number; city: string; district: string; title: string; description: string;
   whatsapp: string | null; phone: string | null;
 }
+/** İlçe: serbest metin, yalnızca harf/rakam/boşluk ve . ' ’ - ( ) / (HTML/kontrol karakteri yok). */
+const DISTRICT_RE = /^[\p{L}\p{M}\p{N} .'’()\/-]{2,60}$/u;
 export const MAX_QTY = 10000;
 export const MAX_PRICE_KURUS = 100_000_000_00; // 100 milyon TL üst sınır
 
@@ -91,6 +93,9 @@ export function validateListing(f: Record<string, unknown>): Result<ListingInput
   const city = clean(f.city, 40);
   if (!CITIES.includes(city)) errors.city = 'Listeden bir şehir seçin.';
 
+  const district = clean(f.district, 200).replace(/\s+/g, ' ');
+  if (district.length < 2 || !DISTRICT_RE.test(district)) errors.district = 'İlçe adını yazın (2-60 karakter; yalnızca harf, rakam, boşluk ve . \' - ( ) /).';
+
   const description = clean(f.description, 2000);
   if (description.length < 10) errors.description = 'Açıklama en az 10 karakter olmalı.';
   let title = clean(f.title, 80);
@@ -101,7 +106,7 @@ export function validateListing(f: Record<string, unknown>): Result<ListingInput
   if (wRaw) { whatsapp = normalizePhone(wRaw); if (!whatsapp) errors.whatsapp = 'WhatsApp numarasını 05xx xxx xx xx biçiminde yazın.'; }
   if (pRaw) { phone = normalizePhone(pRaw); if (!phone) errors.phone = 'Telefon numarasını 05xx xxx xx xx biçiminde yazın.'; }
 
-  return { ok: Object.keys(errors).length === 0, errors, value: { speciesId, speciesOther: speciesId === OTHER_ID ? speciesOther : null, formId, variantId, sex, quantity, priceKurus: priceKurus ?? 0, city, title, description, whatsapp, phone } };
+  return { ok: Object.keys(errors).length === 0, errors, value: { speciesId, speciesOther: speciesId === OTHER_ID ? speciesOther : null, formId, variantId, sex, quantity, priceKurus: priceKurus ?? 0, city, district, title, description, whatsapp, phone } };
 }
 
 export const REPORT_REASONS = [

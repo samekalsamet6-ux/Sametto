@@ -2,7 +2,7 @@
 import { CITIES } from '../shared/cities.ts';
 import { OTHER_ID, speciesById } from '../shared/catalog.ts';
 
-export interface SearchParams { species?: string; form?: string; variant?: string; city?: string; minPrice?: string; maxPrice?: string; sort?: string; page?: string | number; userId?: number }
+export interface SearchParams { species?: string; form?: string; variant?: string; city?: string; district?: string; minPrice?: string; maxPrice?: string; sort?: string; page?: string | number; userId?: number }
 export const PAGE_SIZE = 12;
 export const SORTS: Record<string, { ad: string; sql: string }> = {
   yeni: { ad: 'En yeni', sql: 'l.created_at DESC, l.id DESC' },
@@ -29,6 +29,11 @@ export function buildSearch(p: SearchParams): BuiltSearch {
   if (idOk(p.form)) { where.push('l.form_id = ?'); args.push(p.form); }
   if (idOk(p.variant)) { where.push('l.variant_id = ?'); args.push(p.variant); }
   if (typeof p.city === 'string' && CITIES.includes(p.city)) { where.push('l.city = ?'); args.push(p.city); }
+  if (typeof p.district === 'string') {
+    const d = p.district.normalize('NFC').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 60);
+    // Alt dize eşleşmesi, büyük/küçük harf duyarsız (Türkçe İ/ı dahil); LIKE joker karakterleri kaçırılır, değer parametredir.
+    if (d) { where.push("tr_lower(l.district) LIKE ? ESCAPE '\\'"); args.push('%' + d.toLocaleLowerCase('tr-TR').replace(/[\\%_]/g, '\\$&') + '%'); }
+  }
   const min = priceToKurus(p.minPrice), max = priceToKurus(p.maxPrice);
   if (min !== null) { where.push('l.price_kurus >= ?'); args.push(min); }
   if (max !== null) { where.push('l.price_kurus <= ?'); args.push(max); }
