@@ -173,13 +173,18 @@ th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--lin
 .akv .empty { margin: 8px 0 0; }
 .akv h3 { margin: 18px 0 8px; font-size: 1.05rem; }
 .tank { aspect-ratio: 16 / 9; background: #061820; border: 1px solid var(--line); }
+.akv-count { color: var(--muted); font-size: .95rem; margin-right: auto; }
+.akv-head h2 { margin-right: 0; }
+.akv-head .akv-count + .tag-demo, .akv-head .akv-count + .btn { margin-left: 0; }
+.tank-bar { display: flex; gap: 6px 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin: 8px 0; }
+.tank-bar p { margin: 0; flex: 1 1 260px; } .tank-bar .viewbar { margin: 0; }
 .tank canvas { cursor: grab; } .tank canvas[data-drag] { cursor: grabbing; }
-@media (max-width: 699px) { .tank { aspect-ratio: 1 / 1; } }
+@media (max-width: 699px) { .tank { aspect-ratio: 4 / 3; } }
 .tank[data-state=nowebgl], .tank[data-state=error] { aspect-ratio: auto; background: var(--surface-2); }
 .tank[data-state=nowebgl] canvas, .tank[data-state=error] canvas { display: none; }
 .tank[data-state=nowebgl] .stage-fallback, .tank[data-state=error] .stage-fallback { position: static; background: none; color: var(--ink); padding: 16px; text-align: left; display: block; }
 .tank .stage-fallback { inset: 12px; }
-.fish-list { list-style: none; padding: 0; margin: 8px 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px 12px; }
+.fish-list { list-style: none; padding: 0; margin: 8px 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 10px; }
 .fish-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
 .fish-name { font-weight: 700; } .fish-detail { color: var(--muted); font-size: .9rem; }
 .fish-list form.inline { margin-left: auto; align-self: center; }
@@ -188,3 +193,31 @@ th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--lin
 .akv-edit fieldset { margin-bottom: 0; }
 .fish-list .btn-ghost { color: var(--ink); border-color: var(--muted); }
 .viewbar[hidden], .tank [hidden] { display: none !important; }
+
+/* Ana sayfa: sade ilan sitesi */
+.home-search { padding: 20px 0 4px; }
+.home-search h1 { font-size: clamp(1.5rem, 4vw, 2.1rem); margin: 0 0 12px; }
+.search-box { display: grid; gap: 4px 12px; grid-template-columns: 1fr 1fr auto; align-items: end; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 16px 16px; }
+.search-box label { margin-top: 8px; font-size: .9rem; }
+.search-box .btn { min-height: 44px; padding-inline: 28px; }
+@media (max-width: 599px) { .search-box { grid-template-columns: 1fr; } }
+.search-links { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 10px 0 0; }
+
+/* Balık kartı (sahne üstünde, erişilebilir) */
+.fish-list .fish-pick { margin-left: auto; align-self: center; min-height: 32px; padding: 0 10px; font-size: .82rem; }
+.fish-list li.is-selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.tank-wrap { position: relative; }
+.fish-card { position: absolute; left: 12px; bottom: 12px; z-index: 3; width: min(360px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow: auto; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px 12px; box-shadow: 0 8px 28px rgb(0 0 0 / .35); font-size: .92rem; }
+.fish-card[hidden] { display: none !important; }
+.fish-card:focus-visible { outline-offset: 2px; }
+.fish-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fish-card-head h3 { margin: 0; font-size: 1.05rem; }
+.fish-card-facts { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 8px 0; }
+.fish-card-facts dt { color: var(--muted); } .fish-card-facts dd { margin: 0; font-weight: 600; }
+.fish-card p { margin: 6px 0; } .fish-card ul { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 6px; }
+.fish-card li { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; justify-content: space-between; padding: 6px 8px; border-radius: 8px; background: var(--surface-2); }
+.fish-card-none { font-weight: 700; }
+.fish-card-note { color: var(--muted); font-size: .8rem; }
+.tank[data-state=nowebgl] + .fish-card, .tank[data-state=error] + .fish-card { position: static; width: auto; margin: 0 12px 12px; max-height: none; }
+@media (max-width: 599px) { .fish-card { position: static; width: auto; max-height: none; margin-top: 8px; box-shadow: none; border-width: 2px; } }
+.fish-card a { color: var(--ink); font-weight: 700; }

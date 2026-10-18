@@ -5,7 +5,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { readConfig } from '../../server/config.ts';
-import { openDb, listAquariumFish, type DB } from '../../server/db.ts';
+import { openDb, listAquariumFish, createListing, removeListing, type DB } from '../../server/db.ts';
 import { createApp, type App } from '../../server/app.ts';
 import { devAssets } from '../../server/assets.ts';
 
@@ -53,7 +53,7 @@ describe('akvaryum uç noktaları', () => {
     const ok = await a.post('/profil/akvaryum/ekle', BETTA); expect(ok.status).toBe(303);
     expect(listAquariumFish(db, id)).toHaveLength(1);
     const html = await (await new Client().req(`/satici/${id}`)).text();   // anonim ziyaretçi
-    expect(html).toContain('temsili 3B görünüm — satıcının gerçek stoğu değildir'); expect(html).toContain('data-species="betta"');
+    expect(html).toContain('Sahne temsilidir; stok ve fiyat, satıcının aktif ilanlarından gelir'); expect(html).not.toContain('gerçek stoğu değildir'); expect(html).toContain('data-species="betta"');
     expect(html).not.toContain('/profil/akvaryum"'); // ziyaretçide düzenle düğmesi yok
     expect(await (await a.req(`/satici/${id}`)).text()).toContain('href="/profil/akvaryum"');
   });
@@ -95,3 +95,30 @@ describe('akvaryum uç noktaları', () => {
     expect(html).toContain('Bu satıcı henüz akvaryum oluşturmadı'); expect(html).not.toContain('id="tank"');
   });
 });
+
+describe('profildeki stok verisi', () => {
+  const dataStock = (html: string) => { const m = /data-stock="([^"]*)"/.exec(html); expect(m).toBeTruthy(); return JSON.parse(m![1].replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')) as { id: number; t: string; s: string; q: number; p: number }[]; };
+  const L = (title: string, price: number, qty = 1, species = 'betta') => ({ speciesId: species, speciesOther: null, formId: 'plakat', variantId: 'mavi', sex: 'erkek', quantity: qty, priceKurus: price, city: 'İstanbul', district: '', title, description: 'x', whatsapp: null, phone: null });
+  let fn = 0; const ph = () => [{ file: `stok${fn++}.png`, mime: 'image/png', bytes: 10 }];
+  it('yalnızca o satıcının AKTİF ilanları, güvenle kaçışlanmış ve satır içi betik olmadan gömülür', async () => {
+    const a = new Client(); const id = await a.register('stok1@example.test'); const b = new Client(); const other = await b.register('stok2@example.test');
+    expect((await a.post('/profil/akvaryum/ekle', BETTA)).status).toBe(303);
+    const l1 = createListing(db, id, L('Mavi "betta" <b>x</b> & \'ç\'', 45000, 3), ph());
+    const l2 = createListing(db, id, L('İkinci', 30000), ph());
+    const l3 = createListing(db, id, L('Kaldırılan', 1000), ph()); removeListing(db, l3, id);
+    createListing(db, other, L('Başkasının', 5000), ph());
+    const res = await new Client().req(`/satici/${id}`); const html = await res.text();
+    const stock = dataStock(html);
+    expect(stock.map((x) => x.id).sort()).toEqual([l1, l2].sort());
+    expect(stock.find((x) => x.id === l1)).toMatchObject({ s: 'betta', q: 3, p: 45000, t: 'Mavi "betta" <b>x</b> & \'ç\'' });
+    expect(html).not.toContain('<b>x</b>');
+    expect(html).not.toMatch(/<script(?![^>]*src=)[^>]*>/); // satır içi betik yok (CSP)
+    expect(html).toContain('id="balik-karti"');
+  });
+  it('ilanı olmayan satıcıda veri boş dizidir', async () => {
+    const a = new Client(); const id = await a.register('stok3@example.test');
+    expect((await a.post('/profil/akvaryum/ekle', BETTA)).status).toBe(303);
+    expect(dataStock(await (await new Client().req(`/satici/${id}`)).text())).toEqual([]);
+  });
+});
+

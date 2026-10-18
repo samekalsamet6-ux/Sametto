@@ -49,39 +49,24 @@ const cardGrid = (items: Listing[]) => html`<ul class="grid" role="list">${items
 // ---------- ana sayfa ----------
 export function homePage(ctx: PageCtx, latest: Listing[]): string {
   const body = html`
-<section class="hero">
-  <div class="hero-text">
-    <p class="eyebrow">Akvaryum balığı ilanları</p>
-    <h1>Balığı fotoğrafta görün, <em>3B'de</em> tanıyın.</h1>
-    <p class="lead">Her ilanda satıcının yüklediği gerçek fotoğraflar zorunludur. Yanında tür, şekil ve rengi gösteren temsili bir 3B model bulunur; böylece "delta kuyruk" ya da "halfmoon" gibi tarifler ne demek, hemen anlaşılır.</p>
-    <p class="hero-cta"><a class="btn" href="/ilanlar">İlanlara göz at</a> <a class="btn btn-ghost" href="/ilan/yeni">İlan ver</a></p>
-  </div>
-  <div class="hero-art" aria-hidden="true">
-    <svg viewBox="0 0 320 220" class="hero-svg"><defs><linearGradient id="hg" x1="0" x2="1"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--coral)"/></linearGradient></defs>
-      <path d="M40 112c34-58 112-70 168-22l66-34v112l-66-34c-56 48-134 36-168-22z" fill="url(#hg)" opacity=".92"/><circle cx="84" cy="100" r="7" fill="var(--bg)"/><circle cx="86" cy="99" r="3" fill="var(--ink)"/>
-      <circle cx="250" cy="40" r="8" fill="none" stroke="var(--accent)" stroke-width="2"/><circle cx="274" cy="18" r="5" fill="none" stroke="var(--accent)" stroke-width="2"/><circle cx="232" cy="14" r="3" fill="none" stroke="var(--accent)" stroke-width="2"/></svg>
-  </div>
+<section class="home-search" aria-labelledby="ara-b">
+  <h1 id="ara-b">Akvaryum balığı ilanları</h1>
+  <form class="search-box" method="get" action="/ilanlar" role="search" aria-label="İlan ara">
+    <div class="f"><label for="h-tur">Tür</label><select id="h-tur" name="tur"><option value="">Tüm türler</option>${CATALOG.map((s) => html`<option value="${s.id}">${s.ad}</option>`)}<option value="${OTHER_ID}">Diğer türler</option></select></div>
+    <div class="f"><label for="h-sehir">Şehir</label><select id="h-sehir" name="sehir"><option value="">Tüm şehirler</option>${CITIES.map((c) => html`<option>${c}</option>`)}</select></div>
+    <button class="btn" type="submit">Ara</button>
+  </form>
+  <p class="search-links"><a href="/ilanlar">Tüm filtreler</a> <span aria-hidden="true">·</span> <a class="btn btn-small" href="/ilan/yeni">İlan ver</a></p>
 </section>
 
 <section aria-labelledby="turler-b">
-  <h2 id="turler-b">3B modeli olan ${CATALOG.length} tür</h2>
+  <h2 id="turler-b">Türler</h2>
   <ul class="chips" role="list">${CATALOG.map((s) => html`<li><a class="chip" href="/ilanlar?tur=${s.id}">${s.ad}</a></li>`)}<li><a class="chip chip-quiet" href="/ilanlar?tur=${OTHER_ID}">Diğer türler</a></li></ul>
-  <p class="muted">Listede olmayan bir tür de ilan edilebilir; o ilanda 3B model olmaz, yalnızca fotoğraflar gösterilir.</p>
 </section>
 
 <section aria-labelledby="son-b">
   <div class="section-head"><h2 id="son-b">Son ilanlar</h2><a href="/ilanlar">Tümünü gör</a></div>
   ${latest.length ? cardGrid(latest) : html`<p class="empty">Henüz ilan yok. İlk ilanı siz verin.</p>`}
-</section>
-
-<section class="how" aria-labelledby="nasil-b">
-  <h2 id="nasil-b">Nasıl çalışır?</h2>
-  <ol class="steps">
-    <li><strong>Gerçek fotoğraf yükleyin.</strong> 1–5 fotoğraf olmadan ilan yayınlanmaz; filtre ve listelerde de ilk fotoğraf görünür.</li>
-    <li><strong>Tür, şekil, renk ve cinsiyeti seçin.</strong> Form doldururken 3B model seçiminize göre canlı güncellenir.</li>
-    <li><strong>İletişim bilgisi bırakın.</strong> Sitede mesajlaşma ve ödeme yoktur; alıcılar WhatsApp numaranız ya da telefonunuzla size ulaşır.</li>
-  </ol>
-  <p class="note">Dürüst not: 3B model şematik bir yorumdur. Gerçek balığın rengi, desen yoğunluğu ve yüzgeç biçimi farklı olabilir; karar verirken her zaman satıcının fotoğraflarına güvenin.</p>
 </section>`;
   return layout(ctx, { title: 'Balık ilanları', body, path: '/', entry: 'site' });
 }
@@ -341,7 +326,8 @@ export function registerPage(ctx: PageCtx, o: { values: { email?: string; displa
 }
 
 // ---------- satıcı profili + akvaryum ----------
-export const TANK_LABEL = 'temsili 3B görünüm — satıcının gerçek stoğu değildir';
+export const TANK_LABEL = 'Sahne temsilidir; stok ve fiyat, satıcının aktif ilanlarından gelir';
+const TANK_ARIA = 'temsili 3B görünüm';
 
 export function fishFacts(f: AquariumFish): { species: string; form: string | null; variant: string | null; sex: string } {
   const sp = speciesById(f.species_id);
@@ -349,38 +335,55 @@ export function fishFacts(f: AquariumFish): { species: string; form: string | nu
 }
 const fishDetail = (f: AquariumFish) => { const x = fishFacts(f); return [x.form, x.variant, x.sex].filter(Boolean).join(' · '); };
 
-/** Balık listesi: hem 3B sahnenin veri kaynağı (data-*) hem de herkesin okuyabileceği metin. */
-function fishList(fish: AquariumFish[], o: { remove?: PageCtx; id?: string } = {}): SafeHtml {
-  return html`<ul class="fish-list" role="list"${o.id ? raw(` id="${o.id}"`) : ''}>${fish.map((f) => html`<li data-species="${f.species_id}" data-form="${f.form_id ?? ''}" data-variant="${f.variant_id ?? ''}" data-sex="${f.sex}"><span class="fish-name">${fishFacts(f).species}</span> <span class="fish-detail">${fishDetail(f)}</span>${o.remove
-      ? html`<form method="post" action="/profil/akvaryum/${f.id}/sil" class="inline">${csrfField(o.remove)}<button class="btn btn-small btn-ghost" type="submit" aria-label="${fishFacts(f).species} (${fishDetail(f)}) balığını kaldır">Kaldır</button></form>` : ''}</li>`)}</ul>`;
+/** Balık listesi: hem 3B sahnenin veri kaynağı (data-*) hem de herkesin okuyabileceği metin. `pick`: her balık için "stok ve fiyat" düğmesi (klavye yolu). */
+function fishList(fish: AquariumFish[], o: { remove?: PageCtx; id?: string; pick?: boolean } = {}): SafeHtml {
+  return html`<ul class="fish-list" role="list"${o.id ? raw(` id="${o.id}"`) : ''}>${fish.map((f) => { const x = fishFacts(f); return html`<li data-species="${f.species_id}" data-form="${f.form_id ?? ''}" data-variant="${f.variant_id ?? ''}" data-sex="${f.sex}" data-ad="${x.species}" data-form-ad="${x.form ?? ''}" data-variant-ad="${x.variant ?? ''}" data-sex-ad="${x.sex}"><span class="fish-name">${x.species}</span> <span class="fish-detail">${fishDetail(f)}</span>${o.pick
+      ? html`<button type="button" class="btn btn-small btn-ghost fish-pick" data-pick aria-haspopup="true" aria-label="Stok ve fiyat: ${x.species} (${fishDetail(f)})">Stok ve fiyat</button>` : ''}${o.remove
+      ? html`<form method="post" action="/profil/akvaryum/${f.id}/sil" class="inline">${csrfField(o.remove)}<button class="btn btn-small btn-ghost" type="submit" aria-label="${x.species} (${fishDetail(f)}) balığını kaldır">Kaldır</button></form>` : ''}</li>`; })}</ul>`;
+}
+
+/** Profildeki balık kartı için satıcının aktif ilanları (kısa kayıt); sayfadaki ilan listesiyle aynı veri, aynı erişim. */
+export function stockJson(items: Listing[]): string {
+  return JSON.stringify(items.map((l) => ({ id: l.id, t: l.title, s: l.species_id, f: l.form_id ?? '', v: l.variant_id ?? '', x: l.sex, q: l.quantity, p: l.price_kurus })));
 }
 
 export function sellerPage(ctx: PageCtx, o: { seller: { id: number; display_name: string; created_at: number; is_demo?: number }; items: Listing[]; fish: AquariumFish[]; isOwner?: boolean }): string {
   const name = o.seller.display_name;
+  const fishSorted = [...o.fish].sort((a, b) => (a.species_id < b.species_id ? -1 : a.species_id > b.species_id ? 1 : a.id - b.id)); // listede türe göre gruplu
   const tank = o.fish.length
     ? html`<p class="label3d" data-testid="etiket-akvaryum">${TANK_LABEL}</p>
-  <div class="stage tank" id="tank" data-count="${o.fish.length}">
-    <canvas id="tank-cv" tabindex="0" role="group" aria-label="${name} adlı satıcının akvaryumu: ${o.fish.length} balık, ${TANK_LABEL}" aria-describedby="tank-kb-yardim akv-liste-b" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown + - Home"></canvas>
+  <div class="tank-wrap">
+  <div class="stage tank" id="tank" data-count="${o.fish.length}" data-stock="${stockJson(o.items)}">
+    <canvas id="tank-cv" tabindex="0" role="group" aria-label="${name} adlı satıcının akvaryumu: ${o.fish.length} balık, ${TANK_ARIA}. Bir balığa dokunun ya da tıklayın: stok ve fiyat" aria-describedby="tank-kb-yardim akv-liste-b" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown + - Home"></canvas>
     <p class="stage-status" id="tank-durum" role="status" hidden></p>
-    <p class="stage-fallback" id="tank-yedek" hidden>3B akvaryum bu tarayıcıda açılamadı (WebGL kapalı ya da desteklenmiyor). Balıkların listesi aşağıdadır.</p>
+    <p class="stage-fallback" id="tank-yedek" hidden>3B akvaryum bu tarayıcıda açılamadı (WebGL kapalı ya da desteklenmiyor). Balıkların listesi ve stok bilgisi aşağıdadır.</p>
   </div>
-  <p class="muted small" id="tank-kb-yardim">Klavye: 3B akvaryum odaktayken ok tuşları döndürür, + ve - yakınlaştırır, Home sıfırlar. Balıkların listesi aşağıdadır.</p>
-  <div class="viewbar" id="tank-bar" role="group" aria-label="Akvaryum görünümünü ayarla" hidden>
-    <button type="button" class="btn btn-small btn-ghost" data-act="left" aria-label="Sola döndür">&#8592;</button>
-    <button type="button" class="btn btn-small btn-ghost" data-act="right" aria-label="Sağa döndür">&#8594;</button>
-    <button type="button" class="btn btn-small btn-ghost" data-act="in" aria-label="Yakınlaştır">+</button>
-    <button type="button" class="btn btn-small btn-ghost" data-act="out" aria-label="Uzaklaştır">&#8722;</button>
-    <button type="button" class="btn btn-small btn-ghost" data-act="reset">Sıfırla</button>
+    <section class="fish-card" id="balik-karti" aria-labelledby="balik-karti-b" tabindex="-1" hidden>
+      <div class="fish-card-head"><h3 id="balik-karti-b"></h3><button type="button" class="btn btn-small btn-ghost" id="balik-karti-kapat" aria-label="Balık kartını kapat">Kapat</button></div>
+      <dl class="fish-card-facts" id="balik-karti-bilgi"></dl>
+      <div id="balik-karti-stok" aria-live="polite"></div>
+      <p class="fish-card-note">Bu bilgi satıcının aktif ilanlarına dayanır; sahne temsilidir.</p>
+    </section>
   </div>
-  <p class="muted small" id="tank-ipucu" hidden>Sürükleyerek döndürün; tuvale tıklayıp tekerlekle, iki parmakla ya da +/− ile yakınlaştırın; odaktayken ok tuşları da döndürür.</p>
+  <div class="tank-bar">
+    <p class="muted small" id="tank-ipucu" hidden>Bir balığa dokunun: stok ve fiyat. Sürükleyerek döndürün, iki parmakla ya da +/− ile yakınlaştırın.</p>
+    <div class="viewbar" id="tank-bar" role="group" aria-label="Akvaryum görünümünü ayarla" hidden>
+      <button type="button" class="btn btn-small btn-ghost" data-act="left" aria-label="Sola döndür">&#8592;</button>
+      <button type="button" class="btn btn-small btn-ghost" data-act="right" aria-label="Sağa döndür">&#8594;</button>
+      <button type="button" class="btn btn-small btn-ghost" data-act="in" aria-label="Yakınlaştır">+</button>
+      <button type="button" class="btn btn-small btn-ghost" data-act="out" aria-label="Uzaklaştır">&#8722;</button>
+      <button type="button" class="btn btn-small btn-ghost" data-act="reset">Sıfırla</button>
+    </div>
+  </div>
+  <p class="muted small" id="tank-kb-yardim">Klavye: 3B akvaryum odaktayken ok tuşları döndürür, + ve - yakınlaştırır, Home sıfırlar. Her balığın stok ve fiyatı aşağıdaki listeden de açılır.</p>
   <h3 id="akv-liste-b">Akvaryumdaki balıklar (${o.fish.length})</h3>
-  ${fishList(o.fish, { id: 'akv-liste' })}
-  <p class="note small">${o.seller.is_demo ? 'Bu hesap bir demo hesabıdır; akvaryum örnek amaçlıdır. ' : ''}Sahne satıcının profil süsüdür: balıklar satıcının seçtiği tür, şekil, renk ve cinsiyetle çizilir, gerçek fotoğraf yerine geçmez ve satışta olan balıkları göstermez. Satıştaki balıklar için aşağıdaki ilanlara bakın.</p>`
+  ${fishList(fishSorted, { id: 'akv-liste', pick: true })}
+  <p class="note small">${o.seller.is_demo ? 'Bu hesap bir demo hesabıdır; akvaryum örnek amaçlıdır. ' : ''}Balıklar satıcının seçtiği tür, şekil, renk ve cinsiyetle çizilir; gerçek fotoğraf yerine geçmez. Kart, aynı balık için satıcının aktif ilanlarını gösterir; ayrıntılar için ilana bakın.</p>`
     : html`<p class="empty" data-testid="akv-bos">Bu satıcı henüz akvaryum oluşturmadı</p>`;
   const body = html`<h1>${name}</h1>
 <p class="muted">Üyelik: ${fmtDate(o.seller.created_at)} · ${o.items.length} aktif ilan</p>
 <section class="akv" id="akvaryum" aria-labelledby="akv-b" data-testid="akvaryum">
-  <div class="akv-head"><h2 id="akv-b">Akvaryum</h2>${o.seller.is_demo && o.fish.length ? html`<span class="tag tag-demo">Örnek akvaryum</span>` : ''}${o.isOwner ? html`<a class="btn btn-small" href="/profil/akvaryum">${o.fish.length ? 'Akvaryumu düzenle' : 'Akvaryum oluştur'}</a>` : ''}</div>
+  <div class="akv-head"><h2 id="akv-b">Akvaryum</h2>${o.fish.length ? html`<span class="akv-count">${o.fish.length} balık</span>` : ''}${o.seller.is_demo && o.fish.length ? html`<span class="tag tag-demo">Örnek akvaryum</span>` : ''}${o.isOwner ? html`<a class="btn btn-small" href="/profil/akvaryum">${o.fish.length ? 'Akvaryumu düzenle' : 'Akvaryum oluştur'}</a>` : ''}</div>
   ${tank}
 </section>
 <h2>İlanlar</h2>

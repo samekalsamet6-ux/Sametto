@@ -1,5 +1,6 @@
 import './site.ts';
 import type { TankHandle, TankFish } from './akvaryum-sahne.ts';
+import { parseStock, summarizeStock, formatKurus, priceText } from '../shared/stock.ts';
 
 // Satıcı profili: 3B akvaryum görününce yüklenir; ekran dışındayken ya da sekme gizliyken durur; sayfadan çıkınca her şey serbest bırakılır.
 const stage = document.getElementById('tank');
@@ -9,6 +10,46 @@ if (stage && canvas && list) {
   const status = document.getElementById('tank-durum')!, fallback = document.getElementById('tank-yedek')!;
   const bar = document.getElementById('tank-bar')!, hint = document.getElementById('tank-ipucu')!;
   const fish: TankFish[] = [...list.querySelectorAll<HTMLElement>('li')].map((li) => ({ species: li.dataset.species!, form: li.dataset.form ?? '', variant: li.dataset.variant ?? '', sex: li.dataset.sex! }));
+  // ---- balık kartı: stok ve fiyat, satıcının aktif ilanlarından (sayfaya gömülü kısa kayıt) ----
+  const stock = parseStock(stage.dataset.stock);
+  const card = document.getElementById('balik-karti')!, cardTitle = document.getElementById('balik-karti-b')!;
+  const cardFacts = document.getElementById('balik-karti-bilgi')!, cardStock = document.getElementById('balik-karti-stok')!;
+  const lis = [...list.querySelectorAll<HTMLElement>('li')];
+  let handle: TankHandle | null = null, openIdx = -1, opener: HTMLElement | null = null;
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, text?: string, cls?: string) => { const n = document.createElement(tag); if (text !== undefined) n.textContent = text; if (cls) n.className = cls; return n; };
+  const showCard = (i: number, from: HTMLElement | null, focus: boolean) => {
+    const li = lis[i]; if (!li) return;
+    openIdx = i; opener = from;
+    lis.forEach((x, k) => x.classList.toggle('is-selected', k === i));
+    cardTitle.textContent = li.dataset.ad ?? '';
+    cardFacts.replaceChildren();
+    for (const [k, v] of [['Tür', li.dataset.ad], ['Şekil', li.dataset.formAd], ['Renk', li.dataset.variantAd], ['Cinsiyet', li.dataset.sexAd]]) if (v) { cardFacts.append(el('dt', k), el('dd', v)); }
+    cardStock.replaceChildren();
+    const sum = summarizeStock(stock, fish[i]);
+    if (!sum) cardStock.append(el('p', 'Şu an bu balık için ilan yok', 'fish-card-none'));
+    else {
+      cardStock.append(el('p', `Satıcının aktif ilanlarında toplam ${sum.quantity} adet (${sum.count} ilan)`, 'fish-card-none'));
+      if (sum.minPrice !== sum.maxPrice) cardStock.append(el('p', `En düşük ilan fiyatı ${formatKurus(sum.minPrice)}, en yüksek ${formatKurus(sum.maxPrice)} (her fiyat ilanın kendi fiyatıdır)`));
+      const ul = el('ul');
+      for (const l of sum.shown) {
+        const row = el('li'); row.append(el('span', `${l.q} adet · ${priceText(l)}`));
+        const a = el('a', 'İlana git'); a.href = `/ilan/${l.id}`; a.setAttribute('aria-label', `İlana git: ${l.t}`); row.append(a); ul.append(row);
+      }
+      cardStock.append(ul);
+      if (sum.more) cardStock.append(el('p', `ve ${sum.more} ilan daha: aşağıdaki ilanlara bakın`, 'muted small'));
+    }
+    card.hidden = false; handle?.select(i);
+    if (focus) card.focus({ preventScroll: false });
+  };
+  const closeCard = () => {
+    if (openIdx < 0) return;
+    const back = opener; openIdx = -1; opener = null; card.hidden = true; lis.forEach((x) => x.classList.remove('is-selected')); handle?.select(null);
+    if (back && document.contains(back)) back.focus();
+  };
+  document.getElementById('balik-karti-kapat')!.addEventListener('click', closeCard);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && openIdx >= 0) { e.preventDefault(); closeCard(); } });
+  lis.forEach((li, i) => li.querySelector<HTMLElement>('[data-pick]')?.addEventListener('click', (e) => showCard(i, e.currentTarget as HTMLElement, true)));
+
   const params = new URLSearchParams(location.search);
   const forced = params.get('lod');
   const lod = forced === 'low' || forced === 'normal' ? forced : fish.length > 6 || Math.min(innerWidth, screen.width || innerWidth) < 700 ? 'low' : 'normal';
@@ -20,15 +61,16 @@ if (stage && canvas && list) {
 
   if (!webgl) giveUp('nowebgl');
   else {
-    let handle: TankHandle | null = null, started = false, visible = false;
+    let started = false, visible = false;
     const sync = () => handle?.setActive(visible && !document.hidden);
     const start = async () => {
       if (started) return; started = true;
       stage.dataset.state = 'loading'; status.hidden = false; status.textContent = '3B akvaryum yükleniyor…';
       try {
         const { createTank } = await import('./akvaryum-sahne.ts');
-        handle = await createTank({ canvas, fish, lod, reducedMotion: reduced, onFatal: () => { handle?.dispose(); handle = null; giveUp('error'); } });
+        handle = await createTank({ canvas, fish, lod, reducedMotion: reduced, onPick: (i) => { if (i !== null) showCard(i, null, false); }, onFatal: () => { handle?.dispose(); handle = null; giveUp('error'); } });
         (window as unknown as { __akvaryum?: TankHandle }).__akvaryum = handle;
+        if (openIdx >= 0) handle.select(openIdx);
         status.hidden = true; bar.hidden = false; hint.hidden = false;
         stage.dataset.state = 'ready'; stage.dataset.count = String(fish.length);
         sync();

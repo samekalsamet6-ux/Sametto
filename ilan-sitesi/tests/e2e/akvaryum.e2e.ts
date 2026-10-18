@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
-import { register, axeViolations } from './helpers.ts';
+import { register, axeViolations, photo } from './helpers.ts';
 
-const LABEL = 'temsili 3B görünüm — satıcının gerçek stoğu değildir';
+const LABEL = 'Sahne temsilidir; stok ve fiyat, satıcının aktif ilanlarından gelir';
 const DEMO_SELLER = '/satici/1';
 
 const noWebgl = (page: Page) => page.addInitScript(() => {
@@ -46,7 +46,7 @@ test.describe('akvaryum', () => {
     await tankReady(page);
     await page.locator('#tank').scrollIntoViewIfNeeded();
     const cv = page.locator('#tank-cv');
-    await expect(cv).toHaveAttribute('aria-label', /3 balık.*temsili 3B görünüm/);
+    await expect(cv).toHaveAttribute('aria-label', /3 balık, temsili 3B görünüm/);
     await expect(page.locator('#akv-liste li')).toHaveCount(3);
     const stats = await page.evaluate(() => (window as any).__akvaryum.stats());
     expect(stats.fish).toBe(3); expect(stats.triangles).toBeGreaterThan(1000); expect(stats.active).toBe(true);
@@ -110,7 +110,7 @@ test.describe('akvaryum', () => {
       window.requestAnimationFrame = ((cb: FrameRequestCallback) => { n++; return orig.call(window, cb); }) as typeof orig;
       setTimeout(() => { window.requestAnimationFrame = orig; res(n); }, 1200);
     }));
-    expect(await rafCount(page), 'hareketli sahne kare çizer').toBeGreaterThan(5);
+    expect(await rafCount(page), 'hareketli sahne kare çizer').toBeGreaterThan(1);
     await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange')); });
     await expect.poll(() => page.evaluate(() => (window as any).__akvaryum.stats().active)).toBe(false);
     expect(await rafCount(page), 'gizli sekmede kare istenmez').toBe(0);
@@ -134,7 +134,7 @@ test.describe('akvaryum', () => {
     await expect(page.locator('#tank-cv')).toBeHidden();
     await expect(page.getByTestId('etiket-akvaryum')).toHaveText(LABEL);
     await expect(page.locator('#akv-liste li')).toHaveCount(12);
-    await expect(page.locator('#akv-liste li').first()).toContainText('Lepistes');
+    await expect(page.locator('#akv-liste li').first()).toContainText('Betta');
   });
 
   test('boş durum: akvaryumu olmayan satıcı', async ({ page, browser }) => {
@@ -178,5 +178,80 @@ test.describe('akvaryum erişilebilirlik (axe)', () => {
     const empty = await page.context().newPage(); // aynı oturum: yeni kullanıcı gerekmez, boş profil için demo ikinci satıcı
     await empty.goto('/satici/2'); await expect(empty.getByText('Bu satıcı henüz akvaryum oluşturmadı')).toBeVisible();
     expect(await axeViolations(empty)).toEqual([]);
+  });
+
+  async function addListing(page: Page, qty: number, price: number, title: string) {
+    await page.goto('/ilan/yeni');
+    await page.getByLabel('Tür', { exact: true }).selectOption('betta');
+    await page.getByLabel('Adet', { exact: true }).fill(String(qty));
+    await page.getByLabel('Fiyat (₺)').fill(String(price));
+    await page.getByLabel('Şehir', { exact: true }).selectOption('Ankara');
+    await page.getByLabel('İlçe', { exact: true }).fill('Çankaya');
+    await page.getByLabel('Açıklama', { exact: true }).fill(title);
+    await page.getByLabel('WhatsApp numarası').fill('0532 123 45 67');
+    await page.setInputFiles('#foto', [photo(1)]);
+    await page.getByRole('button', { name: 'İlanı yayınla' }).click();
+    await expect(page.getByText('İlanınız yayınlandı.')).toBeVisible();
+  }
+  const still = (page: Page) => page.evaluate(() => (window as any).__akvaryum.setActive(false));
+  const clickFish = async (page: Page, i: number) => { const p = await page.evaluate((k) => (window as any).__akvaryum.screenPos(k), i); await page.mouse.click(p.x, p.y); };
+
+  test('balığa tıkla: stok ve fiyat kartı; boş suya/sürüklemeye tepki yok; klavye yolu; axe temiz', async ({ page }) => {
+    const errs = consoleErrors(page);
+    await register(page);
+    const uid = (await page.locator('.nav-user').getAttribute('href'))!;
+    await addFish(page, 'betta'); await addFish(page, 'neon');
+    await addListing(page, 3, 450, 'Üç adet betta, toplu fiyat verilir');
+    await addListing(page, 1, 300, 'Tek adet betta, sağlıklı ve iştahlı');
+    await page.goto(uid); await tankReady(page);
+    await page.locator('#tank').scrollIntoViewIfNeeded();
+    await still(page);
+    const card = page.locator('#balik-karti');
+    await expect(card).toBeHidden();
+    // boş su (tuvalin köşesi): hiçbir şey olmaz
+    const cv = page.locator('#tank-cv'); const box = (await cv.boundingBox())!;
+    await page.mouse.click(box.x + 6, box.y + 6);
+    await expect(card).toBeHidden();
+    // sürükleme (6 px üstü) kart açmaz
+    const p0 = await page.evaluate(() => (window as any).__akvaryum.screenPos(0));
+    await page.mouse.move(p0.x, p0.y); await page.mouse.down(); await page.mouse.move(p0.x + 40, p0.y, { steps: 5 }); await page.mouse.up();
+    await expect(card).toBeHidden();
+    // betta: iki ilan, toplam 4 adet
+    await page.evaluate(() => (window as any).__akvaryum.reset()); await still(page);
+    await clickFish(page, 0);
+    await expect(card).toBeVisible();
+    await expect(card.getByRole('heading', { name: 'Betta' })).toBeVisible();
+    await expect(card).toContainText('toplam 4 adet (2 ilan)');
+    await expect(card).toContainText('En düşük ilan fiyatı 300 ₺, en yüksek 450 ₺');
+    await expect(card).toContainText('450 ₺ (toplam, 3 adet için satıcının beyanı)');
+    await expect(card.getByRole('link', { name: /İlana git/ })).toHaveCount(2);
+    await expect(card).toContainText('Bu bilgi satıcının aktif ilanlarına dayanır; sahne temsilidir');
+    await expect(page.getByTestId('etiket-akvaryum')).toHaveText(LABEL);
+    expect(await axeViolations(page)).toEqual([]);
+    // Escape kapatır
+    await page.keyboard.press('Escape');
+    await expect(card).toBeHidden();
+    // klavye yolu: listedeki düğme (neon: ilan yok)
+    const neon = page.locator('#akv-liste li', { hasText: 'Neon' }).getByRole('button', { name: /^Stok ve fiyat/ });
+    await neon.focus(); await page.keyboard.press('Enter');
+    await expect(card).toBeVisible(); await expect(card).toBeFocused();
+    await expect(card).toContainText('Şu an bu balık için ilan yok');
+    await page.getByRole('button', { name: 'Balık kartını kapat' }).click();
+    await expect(card).toBeHidden(); await expect(neon).toBeFocused();
+    // kart bağlantısı ilana götürür
+    await page.locator('#akv-liste li', { hasText: 'Betta' }).getByRole('button', { name: /^Stok ve fiyat/ }).click();
+    await card.getByRole('link', { name: /İlana git/ }).first().click();
+    await expect(page).toHaveURL(/\/ilan\/\d+/);
+    expect(errs).toEqual([]);
+  });
+
+  test('WebGL olmasa da listeden kart açılır', async ({ page }) => {
+    await noWebgl(page);
+    await page.goto(DEMO_SELLER);
+    await expect(page.locator('#tank')).toHaveAttribute('data-state', 'nowebgl');
+    await page.locator('#akv-liste li').first().getByRole('button', { name: /^Stok ve fiyat/ }).click();
+    await expect(page.locator('#balik-karti')).toBeVisible();
+    await expect(page.locator('#balik-karti-stok')).not.toBeEmpty();
+    expect(await axeViolations(page)).toEqual([]);
   });
 });

@@ -17,7 +17,7 @@ export function layout(ctx: PageCtx, o: { title: string; description?: string; e
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>${esc(o.title)} · ${SITE_NAME}</title>
-<meta name="description" content="${esc(o.description ?? 'Gerçek fotoğraflı akvaryum balığı ilanları; tür, şekil ve renk için temsili 3B görünüm.')}">
+<meta name="description" content="${esc(o.description ?? 'Gerçek fotoğraflı akvaryum balığı ilanları.')}">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 ${ctx.assets.head(o.entry ?? 'site')}
 </head>
@@ -43,7 +43,7 @@ ${o.body.value}
 <footer class="footer">
   <div class="wrap">
     <p><strong>${SITE_NAME}</strong> yerel geliştirme sürümüdür. İlanlar gerçek satıcı beyanıdır, siteden ödeme ya da mesajlaşma yapılmaz; alıcı ile satıcı iletişim bilgilerinden anlaşır.</p>
-    <p>3B görünümler şematik ve temsilidir; satılan balığın birebir görüntüsü değildir. Satın almadan önce gerçek fotoğraflara bakın, mümkünse balığı yerinde görün.</p>
+    <p>Satın almadan önce gerçek fotoğraflara bakın, mümkünse balığı yerinde görün.</p>
   </div>
 </footer>
 ${o.entry ? ctx.assets.scripts(o.entry) : ctx.assets.scripts('site')}

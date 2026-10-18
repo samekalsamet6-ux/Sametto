@@ -2,6 +2,23 @@ import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { photo, register, uniqueEmail, PASSWORD, webglReady, axeViolations } from './helpers.ts';
 
+test.describe('ana sayfa', () => {
+  test('sade ilan sitesi ana sayfası: arama kutusu, tür kısayolları, son ilanlar; 3B tanıtımı yok', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('search', { name: 'İlan ara' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'İlan ver' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Tüm filtreler' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Son ilanlar' })).toBeVisible();
+    await expect(page.locator('.card')).not.toHaveCount(0);
+    expect(await page.locator('.chips .chip').count()).toBeGreaterThan(10);
+    const text = await page.locator('body').innerText();
+    expect(text).not.toMatch(/3\s?B|3 boyut|üç boyut|model/i);
+    await page.getByLabel('Tür', { exact: true }).selectOption('betta');
+    await page.getByRole('button', { name: 'Ara' }).click();
+    await expect(page).toHaveURL(/\/ilanlar\?tur=betta/);
+  });
+});
+
 test.describe('hesap', () => {
   test('kayıt, çıkış ve giriş', async ({ page }) => {
     const email = await register(page);

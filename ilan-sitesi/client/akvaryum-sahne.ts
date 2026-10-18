@@ -2,13 +2,14 @@
 // Balıklar tür modüllerinin renderer'sız `createFishGroup` API'siyle gelir (geometri/doku paylaşımlı); burada yalnızca
 // sahne (su, kum, cam), yüzme yolları, kamera denetimi (işaretçi + klavye), duraklatma ve temizlik vardır.
 import {
-  BackSide, BoxGeometry, BufferGeometry, CanvasTexture, Color, DoubleSide, EdgesGeometry, Float32BufferAttribute, Fog, LineBasicMaterial,
+  BackSide, BoxGeometry, BufferGeometry, Color, CanvasTexture, DoubleSide, EdgesGeometry, Float32BufferAttribute, Fog, LineBasicMaterial,
   LineSegments, Material, Mesh, MeshBasicMaterial, MeshStandardMaterial, PerspectiveCamera, RepeatWrapping, Scene, SRGBColorSpace, Box3, Vector3, WebGLRenderer,
 } from 'three';
 import { applyLook } from '../../src/lib/akvaryum/scene-look';
 import { sortFishGroups, groupCacheStats } from '../../src/lib/akvaryum/fishgroup';
 import type { FishGroup, FishLod, SexId, SpeciesModule } from '../../src/lib/akvaryum/types';
 import { loadSpecies } from './viewer3d.ts';
+import { createDecor } from './tank-decor.ts';
 import { createMotion, fitDistance, tankDims, REL_SIZE, type Extent, type Pose, type TankDims } from './tank-motion.ts';
 
 export interface TankFish { species: string; form: string; variant: string; sex: string }
@@ -17,6 +18,8 @@ export interface TankOptions {
   fish: TankFish[];
   lod: FishLod;
   reducedMotion: boolean;
+  /** Dokunma/tıklama (sürükleme değil): dokunulan balığın `fish` dizisindeki sırası ya da boş suya dokunulduysa null */
+  onPick?: (index: number | null, at: { x: number; y: number }) => void;
   /** Bağlam kaybı gibi kurtarılamayan durumlarda çağrılır */
   onFatal?: (why: string) => void;
 }
@@ -30,6 +33,10 @@ export interface TankHandle {
   rotate(dAz: number, dPol?: number): void;
   zoom(factor: number): void;
   reset(): void;
+  /** Bir balığı vurgular (yavaşlatır); null kaldırır. */
+  select(index: number | null): void;
+  /** Balığın ekrandaki (clientX/clientY) konumu: testler ve kart yerleşimi için */
+  screenPos(index: number): { x: number; y: number } | null;
   setActive(on: boolean): void;
   dispose(): void;
   stats(): TankStats;
@@ -38,20 +45,23 @@ export interface TankHandle {
 }
 
 const FOV = 30;
-const WATER_TOP = '#3d9db3', WATER_BOTTOM = '#0a2d3b', FOG = '#104659', ROOM = 0x061820;
+const WATER_TOP = '#5bb8c9', WATER_BOTTOM = '#10445a', FOG = '#1a6074', ROOM = 0x061820;
 const INIT_AZ = 0.32, INIT_POL = 1.47;
 const POL_MIN = 0.3, POL_MAX = 1.6;
 const MIN_FRAME_MS = 1000 / 30;
+const TAP_PX = 6, TAP_MS = 400, PICK_MIN_PX = 20;
 
-function sandTexture(): CanvasTexture {
-  const c = document.createElement('canvas'); c.width = c.height = 128;
+/** Camda hafif çapraz yansıma: düşük alfalı beyaz zemin + iki yumuşak şerit */
+function glassSheen(): CanvasTexture {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
   const g = c.getContext('2d')!;
-  g.fillStyle = '#c4ad82'; g.fillRect(0, 0, 128, 128);
-  let s = 12345; const rnd = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
-  for (let i = 0; i < 900; i++) { const l = 55 + rnd() * 30; g.fillStyle = `hsl(36 ${25 + rnd() * 15}% ${l}%)`; g.fillRect(rnd() * 128, rnd() * 128, 1 + rnd() * 2, 1 + rnd() * 2); }
-  const t = new CanvasTexture(c);
-  t.wrapS = t.wrapT = RepeatWrapping; t.colorSpace = SRGBColorSpace;
-  return t;
+  g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(0, 0, 256, 256);
+  for (const [x0, w, a] of [[40, 30, 0.7], [110, 12, 0.5]] as const) {
+    const gr = g.createLinearGradient(x0, 0, x0 + w + 80, 256);
+    gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, `rgba(255,255,255,${a})`); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+  }
+  const t = new CanvasTexture(c); t.colorSpace = SRGBColorSpace; return t;
 }
 
 function waterBox(d: TankDims): Mesh {
@@ -80,10 +90,10 @@ export async function createTank(o: TankOptions): Promise<TankHandle> {
   const camera = new PerspectiveCamera(FOV, 16 / 9, 0.1, 80);
 
   // 3) balıklar
-  type Item = { g: FishGroup; species: string; ext: Extent; motion: ReturnType<typeof createMotion> | null; roll: number };
+  type Item = { g: FishGroup; species: string; ext: Extent; motion: ReturnType<typeof createMotion>; src: number; clock: number; speed: number; want: number };
   const items: Item[] = [];
-  const created: { fish: TankFish; g: FishGroup; ext: Extent }[] = [];
-  o.fish.forEach((f) => {
+  const created: { fish: TankFish; g: FishGroup; ext: Extent; src: number }[] = [];
+  o.fish.forEach((f, src) => {
     const sp = mods.get(f.species);
     if (!sp?.createFishGroup) { console.warn('Bu tür için createFishGroup yok:', f.species); return; }
     const sex = (sp.sexes.some((s) => s.id === f.sex) ? f.sex : sp.sexes[0].id) as SexId;
@@ -93,7 +103,7 @@ export async function createTank(o: TankOptions): Promise<TankHandle> {
     g.object.scale.setScalar(REL_SIZE[f.species] ?? 0.8);
     const box = new Box3().setFromObject(g.object);
     const k = 1.06; // animasyon / yüzgeç payı
-    created.push({ fish: f, g, ext: { hx: Math.max(Math.abs(box.min.x), box.max.x) * k, hy: Math.max(Math.abs(box.min.y), box.max.y) * k, hz: Math.max(Math.abs(box.min.z), box.max.z) * k } });
+    created.push({ src, fish: f, g, ext: { hx: Math.max(Math.abs(box.min.x), box.max.x) * k, hy: Math.max(Math.abs(box.min.y), box.max.y) * k, hz: Math.max(Math.abs(box.min.z), box.max.z) * k } });
   });
 
   const maxR = created.reduce((m, c) => Math.max(m, Math.hypot(c.ext.hx, c.ext.hz)), 0.5);
@@ -105,24 +115,22 @@ export async function createTank(o: TankOptions): Promise<TankHandle> {
   const addOwned = <T extends { dispose(): void }>(x: T): T => { owned.push(x); return x; };
   const water = waterBox(dims); addOwned(water.geometry); addOwned(water.material as Material);
   scene.add(water);
-  const sandTex = addOwned(sandTexture());
-  sandTex.repeat.set(dims.W / 1.6, dims.D / 1.6);
-  const sand = new Mesh(addOwned(new BoxGeometry(dims.W, dims.sand, dims.D)), addOwned(new MeshStandardMaterial({ map: sandTex, roughness: 1, metalness: 0 })));
-  sand.position.y = -dims.H / 2 + dims.sand / 2;
-  scene.add(sand);
+  const decor = createDecor(scene, dims, addOwned);
   const gb = addOwned(new BoxGeometry(dims.W + 0.05, dims.H, dims.D + 0.05));
-  const glass = new Mesh(gb, addOwned(new MeshBasicMaterial({ color: 0xbfe8f4, transparent: true, opacity: 0.06, depthWrite: false, side: DoubleSide, fog: false, toneMapped: false })));
+  const glass = new Mesh(gb, addOwned(new MeshBasicMaterial({ map: addOwned(glassSheen()), color: 0xcfeef7, transparent: true, opacity: 0.22, depthWrite: false, side: DoubleSide, fog: false, toneMapped: false })));
   glass.renderOrder = -10; // balıklardan önce çizilir (balıklar sıralı, cam hep arkada kalır)
   scene.add(glass);
   const eg = addOwned(new EdgesGeometry(gb as BufferGeometry));
-  const edges = new LineSegments(eg, addOwned(new LineBasicMaterial({ color: 0xd2f0f8, transparent: true, opacity: 0.6, fog: false, toneMapped: false })));
+  const edges = new LineSegments(eg, addOwned(new LineBasicMaterial({ color: 0xd2f0f8, transparent: true, opacity: 0.55, fog: false, toneMapped: false })));
   scene.add(edges);
   const fog = new Fog(FOG, 10, 30); scene.fog = fog;
 
+  const seen = new Map<string, number>();
   created.forEach((c, i) => {
-    const motion = createMotion({ index: i, species: c.fish.species, ext: c.ext, dims });
+    const rank = seen.get(c.fish.species) ?? 0; seen.set(c.fish.species, rank + 1);
+    const motion = createMotion({ index: i, species: c.fish.species, ext: c.ext, dims, rank });
     scene.add(c.g.object);
-    items.push({ g: c.g, species: c.fish.species, ext: c.ext, motion, roll: 0 });
+    items.push({ g: c.g, species: c.fish.species, ext: c.ext, motion, src: c.src, clock: i * 3.1, speed: 1, want: 1 });
   });
   const groups = items.map((i) => i.g);
   const budgetTriangles = groups.reduce((s, g) => s + g.budget.triangles, 0), budgetDrawCalls = groups.reduce((s, g) => s + g.budget.drawCalls, 0);
@@ -165,9 +173,11 @@ export async function createTank(o: TankOptions): Promise<TankHandle> {
     if (!reducedMotion) time += dt;
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
-      posed(it.motion!.pose(time), it);
+      if (!reducedMotion) { it.speed += (it.want - it.speed) * (1 - Math.exp(-dt * 3)); it.clock += dt * it.speed; }
+      posed(it.motion.pose(it.clock), it);
       it.g.update(dt, time + i * 1.7);
     }
+    decor.update(time, reducedMotion ? 0 : dt);
     const k = reducedMotion ? 1 : 1 - Math.exp(-dt * 14);
     cur.az += (tgt.az - cur.az) * k; cur.pol += (tgt.pol - cur.pol) * k; cur.dist += (tgt.dist - cur.dist) * k;
     if (Math.abs(tgt.az - cur.az) < 1e-4 && Math.abs(tgt.pol - cur.pol) < 1e-4 && Math.abs(tgt.dist - cur.dist) < 1e-3) { cur.az = tgt.az; cur.pol = tgt.pol; cur.dist = tgt.dist; }
@@ -196,24 +206,58 @@ export async function createTank(o: TankOptions): Promise<TankHandle> {
   const schedule = () => { if (active && !disposed && !raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
   function invalidate() { schedule(); }
 
+  // seçim: balığın burun-kuyruk doğrusunu ekrana izdüşürüp tıklamaya en yakın balığı bulur (animasyonlu geometriye ışın atmaktan sağlam)
+  const vA = new Vector3(), vB = new Vector3(), vC = new Vector3(), vU = new Vector3();
+  const toPx = (v: Vector3, rect: DOMRect) => ({ x: (v.x * 0.5 + 0.5) * rect.width, y: (-v.y * 0.5 + 0.5) * rect.height, z: v.z });
+  const fishPx = (it: Item, rect: DOMRect) => {
+    const o3 = it.g.object, yaw = o3.rotation.y, hx = it.ext.hx * 0.85;
+    vC.copy(o3.position).project(camera);
+    vA.set(o3.position.x + Math.cos(yaw) * hx, o3.position.y, o3.position.z - Math.sin(yaw) * hx).project(camera);
+    vB.set(o3.position.x - Math.cos(yaw) * hx, o3.position.y, o3.position.z + Math.sin(yaw) * hx).project(camera);
+    vU.set(o3.position.x, o3.position.y + it.ext.hy * 1.2, o3.position.z).project(camera);
+    const c = toPx(vC, rect), a = toPx(vA, rect), b = toPx(vB, rect), u = toPx(vU, rect);
+    return { c, a, b, r: Math.max(PICK_MIN_PX, Math.abs(u.y - c.y)) };
+  };
+  const pickAt = (cx: number, cy: number): number | null => {
+    const rect = canvas.getBoundingClientRect(); if (!rect.width) return null;
+    camera.updateMatrixWorld();
+    const px = cx - rect.left, py = cy - rect.top;
+    let best = -1, bestScore = Infinity;
+    items.forEach((it, i) => {
+      const { a, b, c, r } = fishPx(it, rect);
+      const abx = b.x - a.x, aby = b.y - a.y, l2 = abx * abx + aby * aby;
+      const t = l2 ? Math.max(0, Math.min(1, ((px - a.x) * abx + (py - a.y) * aby) / l2)) : 0;
+      const dist = Math.hypot(px - (a.x + abx * t), py - (a.y + aby * t));
+      if (dist > r) return;
+      const score = dist / r + c.z * 0.05;   // yakın ve öndeki kazanır
+      if (score < bestScore) { bestScore = score; best = i; }
+    });
+    return best < 0 ? null : items[best].src;
+  };
+
   // 8) girdi: işaretçi (sürükle/kıstır), tekerlek (odaktayken ya da Ctrl ile), klavye
   const ptrs = new Map<number, { x: number; y: number }>();
-  let pinch = 0;
+  let pinch = 0, tap: { x: number; y: number; t: number; ok: boolean } | null = null;
   const pinchDist = () => { const [a, b] = [...ptrs.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
   const onDown = (e: PointerEvent) => {
     ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptrs.size === 1) tap = { x: e.clientX, y: e.clientY, t: performance.now(), ok: true }; else if (tap) tap.ok = false; // ikinci parmak: kıstırma/döndürme, dokunma değil
     try { canvas.setPointerCapture(e.pointerId); } catch { /* yoksay */ }
     if (ptrs.size === 2) pinch = pinchDist();
     canvas.dataset.drag = '1';
   };
   const onMove = (e: PointerEvent) => {
     const p = ptrs.get(e.pointerId); if (!p) return;
+    if (tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) >= TAP_PX) tap.ok = false;
     const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
     if (ptrs.size === 1) { tgt.az -= dx * 0.008; tgt.pol -= dy * 0.006; }
     else if (ptrs.size === 2) { const d = pinchDist(); if (pinch > 0 && d > 0) tgt.dist *= pinch / d; pinch = d; }
     clampView(); invalidate();
   };
-  const onUp = (e: PointerEvent) => { ptrs.delete(e.pointerId); pinch = ptrs.size === 2 ? pinchDist() : 0; if (!ptrs.size) delete canvas.dataset.drag; };
+  const onUp = (e: PointerEvent) => {
+    if (e.type === 'pointerup' && tap?.ok && ptrs.size === 1 && performance.now() - tap.t < TAP_MS && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) < TAP_PX) o.onPick?.(pickAt(e.clientX, e.clientY), { x: e.clientX, y: e.clientY });
+    if (e.type === 'pointercancel' || ptrs.size <= 1) tap = null;
+    ptrs.delete(e.pointerId); pinch = ptrs.size === 2 ? pinchDist() : 0; if (!ptrs.size) delete canvas.dataset.drag; };
   const onWheel = (e: WheelEvent) => {
     if (document.activeElement !== canvas && !e.ctrlKey) return; // sayfa kaydırmasını engelleme
     e.preventDefault(); tgt.dist *= Math.exp(e.deltaY * 0.0012); clampView(); invalidate();
@@ -248,6 +292,12 @@ export async function createTank(o: TankOptions): Promise<TankHandle> {
   const info = renderer.info;
   const handle: TankHandle = {
     ...api,
+    select(index: number | null) { items.forEach((it) => { it.want = index !== null && it.src === index ? 0.12 : 1; }); invalidate(); },
+    screenPos(index: number) {
+      const it = items.find((x) => x.src === index); if (!it) return null;
+      const rect = canvas.getBoundingClientRect(); camera.updateMatrixWorld();
+      const p = fishPx(it, rect).c; return { x: rect.left + p.x, y: rect.top + p.y };
+    },
     setActive(on: boolean) { if (disposed || on === active) return; active = on; if (on) schedule(); else if (raf) { cancelAnimationFrame(raf); raf = 0; } stage?.setAttribute('data-active', String(on)); },
     stats() {
       return {
@@ -274,7 +324,7 @@ export async function createTank(o: TankOptions): Promise<TankHandle> {
       canvas.removeEventListener('wheel', onWheel); canvas.removeEventListener('keydown', onKey); canvas.removeEventListener('webglcontextlost', onLost);
       groups.forEach((g) => g.dispose());          // paylaşımlı geometri/doku, son kullanıcı bırakınca serbest kalır
       items.length = 0;
-      scene.remove(water, sand, glass, edges);
+      scene.remove(water, glass, edges, ...decor.objects);
       owned.forEach((x) => x.dispose());
       look.dispose();
       scene.environment = null;
