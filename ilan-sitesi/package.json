@@ -13,6 +13,7 @@
     "build": "vite build",
     "catalog": "node scripts/gen-catalog.mjs",
     "seed": "node scripts/seed.ts",
+    "make-admin": "node scripts/make-admin.ts",
     "test": "vitest run",
     "e2e": "playwright test --workers=2",
     "typecheck": "tsc --noEmit"

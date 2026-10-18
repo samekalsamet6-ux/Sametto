@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
   display_name TEXT NOT NULL,
   whatsapp TEXT, phone TEXT,
   is_demo INTEGER NOT NULL DEFAULT 0,
+  is_admin INTEGER NOT NULL DEFAULT 0,       -- yalnızca make-admin betiğiyle (sunucuda yerel komut) ayarlanır
   created_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS sessions (
@@ -75,13 +76,16 @@ export function openDb(file: string): DB {
   const db = new DatabaseSync(file);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 3000;');
   db.exec(SCHEMA);
+  // Eski veritabanları için geçiş: is_admin sütunu yoksa ekle.
+  const cols = db.prepare('PRAGMA table_info(users)').all() as unknown as { name: string }[];
+  if (!cols.some((c) => c.name === 'is_admin')) db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
   return db;
 }
 
 const now = () => Date.now();
 export const SESSION_TTL_MS = 14 * 24 * 3600 * 1000;
 
-export interface User { id: number; email: string; display_name: string; whatsapp: string | null; phone: string | null; is_demo: number; created_at: number }
+export interface User { id: number; email: string; display_name: string; whatsapp: string | null; phone: string | null; is_demo: number; is_admin: number; created_at: number }
 export interface Photo { id: number; listing_id: number; file: string; mime: string; bytes: number; position: number }
 export interface Listing {
   id: number; user_id: number; title: string; species_id: string; species_other: string | null; form_id: string | null; variant_id: string | null;
@@ -101,7 +105,11 @@ export function createUser(db: DB, email: string, passwordHash: string, displayN
   }
 }
 export const findUserByEmail = (db: DB, email: string) => db.prepare('SELECT * FROM users WHERE email = ?').get(email) as (User & { password_hash: string }) | undefined;
-export const getUser = (db: DB, id: number) => db.prepare('SELECT id,email,display_name,whatsapp,phone,is_demo,created_at FROM users WHERE id = ?').get(id) as User | undefined;
+export const getUser = (db: DB, id: number) => db.prepare('SELECT id,email,display_name,whatsapp,phone,is_demo,is_admin,created_at FROM users WHERE id = ?').get(id) as User | undefined;
+/** Yönetici bayrağını ayarlar. Web arayüzünden ÇAĞRILMAZ; yalnızca scripts/make-admin.ts (yerel komut). Kullanıcı yoksa false. */
+export function setAdmin(db: DB, email: string, admin = true): boolean {
+  return Number(db.prepare('UPDATE users SET is_admin = ? WHERE email = ?').run(admin ? 1 : 0, email).changes) > 0;
+}
 export function updateContact(db: DB, userId: number, whatsapp: string | null, phone: string | null): void {
   db.prepare('UPDATE users SET whatsapp = ?, phone = ? WHERE id = ?').run(whatsapp, phone, userId);
 }

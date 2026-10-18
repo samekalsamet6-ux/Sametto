@@ -6,6 +6,7 @@ import type { Config } from './config.ts';
 import * as repo from './db.ts';
 import { hashPassword, verifyPassword, RateLimiter } from './auth.ts';
 import { validateRegister, validateListing, validateReport, normalizeEmail, type Errors } from './validation.ts';
+import { cleanImage } from './imageclean.ts';
 import { checkPhoto, savePhoto, deletePhotoFiles, isSafeFileName, MIME_BY_EXT, MAX_REQUEST_BYTES } from './uploads.ts';
 import type { SearchParams } from './search.ts';
 import type { Assets, PageCtx } from './views/layout.ts';
@@ -51,6 +52,16 @@ async function parseBody(req: IncomingMessage, kind: 'form' | 'upload'): Promise
   return { fields, files };
 }
 
+/** İstemci IP'si. TRUST_PROXY=true iken X-Forwarded-For'un SON girdisi (güvendiğiniz vekilin eklediği) kullanılır; aksi halde soket adresi. */
+export function clientIp(req: IncomingMessage, trustProxy: boolean): string {
+  if (trustProxy) {
+    const xff = String(req.headers['x-forwarded-for'] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+    const last = xff[xff.length - 1];
+    if (last && last.length <= 64 && /^[\w.:%-]+$/.test(last)) return last;
+  }
+  return req.socket.remoteAddress ?? 'x';
+}
+
 export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?: string): App {
   const limiters = {
     login: new RateLimiter(cfg.loginMaxFails, 10 * 60_000), // e-posta başına
@@ -72,13 +83,13 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
     const cookies = parseCookies(req.headers.cookie);
     const setCookies: string[] = [];
     const secure = cfg.cookieSecure ? '; Secure' : '';
-    const ip = req.socket.remoteAddress ?? 'x';
+    const ip = clientIp(req, cfg.trustProxy);
 
     let csrf = cookies.csrf;
     if (!csrf || !/^[\w-]{20,64}$/.test(csrf)) { csrf = randomBytes(24).toString('base64url'); setCookies.push(`csrf=${csrf}; Path=/; HttpOnly; SameSite=Lax${secure}`); }
     const sidToken = cookies.sid;
     const user = repo.getSessionUser(db, sidToken);
-    const isAdmin = !!user && !!cfg.adminEmail && user.email === cfg.adminEmail;
+    const isAdmin = user?.is_admin === 1;
     const ctx: PageCtx = { user, csrf, assets, isAdmin };
 
     const send = (status: number, body: string | Buffer, type = 'text/html; charset=utf-8', extra: Record<string, string> = {}) => {
@@ -87,6 +98,7 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
         'Permissions-Policy': 'camera=(), microphone=(), geolocation=()', ...extra,
       };
       if (cfg.production && type.startsWith('text/html')) headers['Content-Security-Policy'] = "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
+      if (cfg.production || cfg.cookieSecure) headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
       if (type.startsWith('text/html')) headers['Cache-Control'] = 'no-store';
       if (setCookies.length) headers['Set-Cookie'] = setCookies;
       res.writeHead(status, headers);
@@ -155,7 +167,9 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
             const data = new Uint8Array(await f.arrayBuffer());
             const c = checkPhoto(f.name.replace(/[^\w.\- ]/g, '').slice(0, 40) || 'dosya', data);
             if (!c.ok) { errors.photos = c.error!; break; }
-            checked.push({ data, mime: c.mime! });
+            const clean = cleanImage(c.mime!, data); // EXIF/GPS, XMP, IPTC, yorum vb. ayıklanır
+            if (!clean) { errors.photos = 'Fotoğraf dosyası bozuk görünüyor. Başka bir dosya deneyin.'; break; }
+            checked.push({ data: clean, mime: c.mime! });
           }
         }
         if (Object.keys(errors).length) {
@@ -222,7 +236,7 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
           setSession(repo.createSession(db, id));
           return redirect('/');
         } catch (e) {
-          if (e instanceof repo.DuplicateEmailError) return page(V.registerPage(ctx, { values: { email: v.value!.email, displayName: v.value!.displayName }, errors: { email: 'Bu e-posta ile zaten bir hesap var. Giriş yapmayı deneyin.' } }), 409);
+          if (e instanceof repo.DuplicateEmailError) return page(V.registerPage(ctx, { values: { email: v.value!.email, displayName: v.value!.displayName }, errors: { form: 'Kayıt tamamlanamadı. Bilgilerinizi kontrol edin; zaten hesabınız varsa giriş yapın.' } }), 422);
           throw e;
         }
       }

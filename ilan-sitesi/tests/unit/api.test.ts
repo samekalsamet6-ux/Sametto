@@ -5,7 +5,7 @@ import { mkdtempSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { readConfig } from '../../server/config.ts';
-import { openDb, type DB } from '../../server/db.ts';
+import { openDb, setAdmin, type DB } from '../../server/db.ts';
 import { createApp } from '../../server/app.ts';
 import { devAssets } from '../../server/assets.ts';
 import { placeholderPng } from '../../server/placeholder.ts';
@@ -13,7 +13,7 @@ import { placeholderPng } from '../../server/placeholder.ts';
 let server: Server, base: string, db: DB, dir: string;
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), 'ilan-api-'));
-  const cfg = { ...readConfig({ DATA_DIR: dir, ADMIN_EMAIL: 'admin@example.test' } as NodeJS.ProcessEnv), loginMaxFails: 3, registerMax: 1000 };
+  const cfg = { ...readConfig({ DATA_DIR: dir } as NodeJS.ProcessEnv), loginMaxFails: 3, registerMax: 1000 };
   db = openDb(cfg.dbPath);
   const app = createApp(cfg, db, devAssets());
   server = createServer((q, s) => void app.handler(q, s));
@@ -69,10 +69,13 @@ describe('hesap, CSRF, oturum', () => {
     expect(r2.status).toBe(403);
     expect(db.prepare("SELECT 1 FROM users WHERE email = 'x@example.test'").get()).toBeUndefined();
   });
-  it('yanlış parola 401, aynı e-posta ikinci kayıt 409, çıkış oturumu bitirir', async () => {
+  it('yanlış parola 401, aynı e-posta ikinci kayıt genel hata (hesap varlığı açıkça söylenmez), çıkış oturumu bitirir', async () => {
     const c = new Client(); await c.register('b@example.test');
     const other = new Client();
-    expect((await other.register('b@example.test')).status).toBe(409);
+    const dup = await other.register('b@example.test');
+    expect(dup.status).toBe(422);
+    const dupHtml = await dup.text();
+    expect(dupHtml).not.toContain('zaten bir hesap var'); expect(dupHtml).toContain('Kayıt tamamlanamadı');
     expect((await other.postForm('/giris', { email: 'b@example.test', password: 'yanlis-parola' })).status).toBe(401);
     expect((await other.postForm('/giris', { email: 'b@example.test', password: 'parola-12345' })).status).toBe(303);
     await other.postForm('/cikis', {});
@@ -166,7 +169,7 @@ describe('detay sayfası, şikayet, yönetim', () => {
     const h = await (await c.req(loc)).text();
     expect(h).not.toContain('class="report"'); expect(h).not.toMatch(/<section[^>]*>\s*<\/section>/);
   });
-  it('şikayet yalnızca girişli kullanıcıdan, ilanı işaretler; /admin/raporlar yalnızca ADMIN_EMAIL', async () => {
+  it('şikayet yalnızca girişli kullanıcıdan, ilanı işaretler; /admin/raporlar yalnızca is_admin bayrağı olana', async () => {
     const seller = new Client(); await seller.register('s1@example.test');
     const loc = (await seller.post('/ilan/yeni', LISTING, [{ name: 'a.png', type: 'image/png', data: png }])).headers.get('location')!.split('?')[0];
     const id = Number(loc.split('/').pop());
@@ -179,6 +182,8 @@ describe('detay sayfası, şikayet, yönetim', () => {
     expect((await rep.req('/admin/raporlar')).status).toBe(404);
     expect((await anon.req('/admin/raporlar')).status).toBe(404);
     const admin = new Client(); await admin.register('admin@example.test');
+    expect((await admin.req('/admin/raporlar')).status).toBe(404); // yalnızca kayıt olmak yönetici yapmaz
+    expect(setAdmin(db, 'admin@example.test')).toBe(true); // yerel CLI'nin yaptığı işlem
     const page = await (await admin.req('/admin/raporlar')).text();
     expect(page).toContain('Fotoğraf başka yerden'); expect(page).toContain(`#${id}`);
   });

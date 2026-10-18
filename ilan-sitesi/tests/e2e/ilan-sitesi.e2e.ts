@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 import { photo, register, uniqueEmail, PASSWORD, webglReady, axeViolations } from './helpers.ts';
 
 test.describe('hesap', () => {
@@ -187,12 +188,13 @@ test.describe('şikayet ve yönetim', () => {
 
     // normal kullanıcı yönetici sayfasını göremez
     expect((await page.goto('/admin/raporlar'))!.status()).toBe(404);
-    // yönetici (ADMIN_EMAIL) görür
+    // yönetici: hesap normal kayıtla açılır, bayrak yalnızca yerel CLI ile verilir (kayıt tek başına yönetici yapmaz)
     const ctx = await browser.newContext({ baseURL: page.url().split('/ilan')[0] });
     const admin = await ctx.newPage();
     await register(admin, 'yonetici@example.test').catch(async () => {
       await admin.goto('/giris'); await admin.getByLabel('E-posta').fill('yonetici@example.test'); await admin.getByLabel('Parola').fill(PASSWORD); await admin.getByRole('button', { name: 'Giriş yap' }).click();
     });
+    execFileSync('node', ['scripts/make-admin.ts', 'yonetici@example.test'], { env: { ...process.env, DATA_DIR: './data/e2e' } });
     await admin.goto('/admin/raporlar');
     await expect(admin.getByRole('heading', { name: 'Şikayetler' })).toBeVisible();
     await expect(admin.getByText(note)).toBeVisible();

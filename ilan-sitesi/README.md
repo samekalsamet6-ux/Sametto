@@ -38,14 +38,17 @@ CHROME=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run e2e
 
 E2E sunucusu ayrı veri klasörünü (`data/e2e`) kullanır, üretim derlemesini çalıştırır ve örnek veriyi kendisi ekler.
 
-Ayarlar `.env.example` içinde (`PORT`, `ADMIN_EMAIL`, `COOKIE_SECURE`, `DATA_DIR`). `.env` git'e eklenmez.
+Ayarlar `.env.example` içinde (`PORT`, `HOST`, `COOKIE_SECURE`, `TRUST_PROXY`, `DATA_DIR`). `.env` git'e eklenmez.
+
+**Yönetici atama** (yalnızca sunucuda, veri klasörüne erişimi olan işletmeci): önce hesap siteden normal kayıtla açılır, sonra
+`npm run make-admin -- kisi@ornek.com` çalıştırılır (`--remove` ile geri alınır). Yönetici, `users.is_admin` veritabanı bayrağıdır; web arayüzünden ya da kayıt e-postasından verilemez. Eski `ADMIN_EMAIL` ayarı kaldırıldı (yok sayılır).
 
 ## Kapsam (yalnızca bunlar)
 
 1. **Normal ilanlar**: tür (3B kataloğundaki 12 tür ya da "diğer" = 3B yok), şekil, renk, cinsiyet, adet, fiyat (TL), şehir, açıklama; **1–5 gerçek fotoğraf zorunlu**.
 2. **İlan detayı**: gerçek fotoğraflar + "Temsili 3B görünüm — gerçek balık fotoğrafları solda" etiketli 3B model (görünür olunca tembel yüklenir; WebGL yoksa yedek metin). İlan formunda tür/şekil/renk/cinsiyet değiştikçe güncellenen canlı 3B önizleme.
 3. **Arama**: tür, şekil, renk, şehir, fiyat aralığı; liste görünümünde yalnızca ilk gerçek fotoğraf (3B yok).
-4. **Hesaplar**: e-posta + parola, çıkış, giriş hız sınırı; satıcı iletişimi (isteğe bağlı WhatsApp/telefon: düz metin + `wa.me` bağlantısı); "şikayet et" düğmesi; `ADMIN_EMAIL` ile korunan minimal `/admin/raporlar`.
+4. **Hesaplar**: e-posta + parola, çıkış, giriş hız sınırı; satıcı iletişimi (isteğe bağlı WhatsApp/telefon: düz metin + `wa.me` bağlantısı); "şikayet et" düğmesi; yalnızca `is_admin` bayrağı olanlara açık minimal `/admin/raporlar` (diğerlerine 404).
 5. `/satici/:id` yer tutucu sayfa: satıcının ilanları + "Akvaryum yakında" notu.
 
 ## Kapsam dışı (bilerek eklenmedi)
@@ -69,13 +72,14 @@ Sayfalar sunucuda üretilir (HTML), istemci kodu yalnızca zenginleştirir. Form
 
 ## Kararlar ve güvenlik
 
-- **Fotoğraf zorunluluğu sunucuda zorlanır**: dosya sihirli baytlarına bakılır (JPEG/PNG/WebP), istemcinin bildirdiği tür/uzantı önemsenmez; 5 MB/dosya, en çok 5 dosya, toplam gövde ~26 MB sınırı; fotoğrafsız ilan `createListing` içinde de reddedilir (işlem geri alınır). Dosyalar rastgele adla `data/uploads` altına yazılır, yalnızca `^[a-f0-9]{32}\.(jpg|png|webp)$` adları sunulur (yol gezintisi yok), `nosniff` + `sandbox` CSP ile servis edilir. Fotoğraflar yeniden kodlanmaz/EXIF temizlenmez (bağımlılık gerektirirdi); bu bir sınırlamadır.
+- **Fotoğraf zorunluluğu sunucuda zorlanır**: dosya sihirli baytlarına bakılır (JPEG/PNG/WebP), istemcinin bildirdiği tür/uzantı önemsenmez; 5 MB/dosya, en çok 5 dosya, toplam gövde ~26 MB sınırı; fotoğrafsız ilan `createListing` içinde de reddedilir (işlem geri alınır). Dosyalar rastgele adla `data/uploads` altına yazılır, yalnızca `^[a-f0-9]{32}\.(jpg|png|webp)$` adları sunulur (yol gezintisi yok), `nosniff` + `sandbox` CSP ile servis edilir. **Üst veri ayıklama** (`server/imageclean.ts`, bağımlılıksız, yeniden kodlama yok): JPEG'de APP1 (EXIF/XMP), APP13 (IPTC), COM ve diğer APPn bölümleri atılır, yalnızca JFIF (APP0), ICC (APP2) ve Adobe (APP14) kalır; PNG'de tEXt/zTXt/iTXt/eXIf/tIME ve diğer yardımcı parçalar atılır; WebP'de EXIF/XMP parçaları atılıp VP8X bayrakları ve RIFF boyutu düzeltilir. EXIF yönelimi (döndürme) != 1 ise yalnızca yönelim etiketini taşıyan en küçük EXIF (JPEG APP1 / PNG eXIf) bırakılır, böylece konum/cihaz/zaman bilgisi saklanmadan fotoğraf doğru dönük görünür. Bozuk görseller reddedilir. Depolanan dosya boyutu temizlenmiş boyuttur.
 - **Parola**: `node:crypto` scrypt (N=16384, r=8, p=1, rastgele tuz), zamanlama güvenli karşılaştırma. Kullanıcı yoksa da sahte özetle doğrulanır.
 - **Oturum**: rastgele 256 bit belirteç, SQLite'ta yalnızca SHA-256 özeti; çerez `HttpOnly; SameSite=Lax; Path=/`, `COOKIE_SECURE=true` ile `Secure`. Girişte belirteç yenilenir (oturum sabitleme).
 - **CSRF**: tüm POST'lar için çift gönderim belirteci (`csrf` çerezi + gizli alan) + `Origin` denetimi + SameSite=Lax.
 - **Hız sınırı** (bellek içi, tek süreç): giriş (e-posta başına 5 hata/10 dk, IP başına 30), kayıt, ilan verme, şikayet.
-- **Girdi/çıktı**: tüm alanlar sunucuda doğrulanır (tür/şekil/renk katalogla eşleştirilir), şablonlar varsayılan olarak kaçışlar, SQL tamamen parametreli, sıralama beyaz listeli, açık yönlendirme engelli. Üretim kipinde `Content-Security-Policy` (yalnızca kendi kaynağı), `X-Frame-Options: DENY`, `nosniff`.
-- **Şikayet**: giriş gerektirir (kötüye kullanımı azaltmak için), ilan "inceleme bekliyor" (`flagged`) olarak işaretlenir ama yayında kalır; `/admin/raporlar` yalnızca listeler (ADMIN_EMAIL boşsa kimseye açılmaz, 404 döner).
+- **Girdi/çıktı**: tüm alanlar sunucuda doğrulanır (tür/şekil/renk katalogla eşleştirilir), şablonlar varsayılan olarak kaçışlar, SQL tamamen parametreli, sıralama beyaz listeli, açık yönlendirme engelli. Üretim kipinde `Content-Security-Policy` (yalnızca kendi kaynağı), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, `Permissions-Policy` (kamera/mikrofon/konum kapalı); `COOKIE_SECURE=true` ya da üretim kipinde `Strict-Transport-Security` (1 yıl).
+- **İstemci IP'si**: varsayılan olarak soket adresi. Ters vekil (nginx vb.) arkasında `TRUST_PROXY=true` yapılırsa `X-Forwarded-For` başlığının SON girdisi (güvenilen vekilin eklediği) kullanılır; vekil olmadan açmayın, IP sahtelenebilir ve hız sınırı atlatılır.
+- **Şikayet**: giriş gerektirir (kötüye kullanımı azaltmak için), ilan "inceleme bekliyor" (`flagged`) olarak işaretlenir ama yayında kalır; `/admin/raporlar` yalnızca listeler (`is_admin` bayrağı olmayana 404 döner).
 - **Cinsiyet**: türün sunduğu seçenekler + "Bilinmiyor / karışık". Tek cinsiyet seçeneği olan türlerde (melek, diskus) 3B model "ayrım yok" olarak çizilir. Bilinmiyorsa 3B modelde türün ilk cinsiyeti gösterilir.
 - **Fiyat**: "toplam fiyat" olarak sunulur; kuruş cinsinden tamsayı saklanır.
 - **Satıcı iletişimi** kullanıcı profilinde tutulur (ilan formundaki alanlardan güncellenir); numaralar ilan sayfasında herkese açıktır ve formda bu açıkça söylenir.
@@ -84,15 +88,15 @@ Sayfalar sunucuda üretilir (HTML), istemci kodu yalnızca zenginleştirir. Form
 
 ## Sınırlamalar
 
-- Hız sınırı bellek içidir ve süreç yeniden başlayınca sıfırlanır; ters vekil arkasında IP doğru okunmaz (yerel kullanım varsayımı).
+- Hız sınırı bellek içidir ve süreç yeniden başlayınca sıfırlanır; ters vekil arkasında doğru IP için `TRUST_PROXY=true` gerekir (varsayılan kapalı; yanlış açılırsa IP sahtelenebilir).
 - Gerçek e-posta yoktur (doğrulama, parola sıfırlama yok). SQLite tek süreç içindir.
 - Fotoğrafın gerçekten o balığa ait olduğu doğrulanamaz; yalnızca biçim denetlenir. Sahte ilanla mücadele yalnızca şikayet kaydıdır.
 - Tür modüllerindeki bazı şekil/renk adları "doğrulanmalı" notludur; katalog adları olduğu gibi gösterilir.
 - 3B modeller yazılım WebGL'de yavaştır; gerçek GPU'da akıcıdır. İlan listelerinde performans için 3B kullanılmaz.
 - Katalog (`shared/catalog.json`) tür modülleri değişirse `npm run catalog` ile yenilenmelidir; `tests/unit/catalog.test.ts` farkı yakalar.
-- **Yönetici hesabı e-postayla belirlenir ve e-posta doğrulanmaz**: `ADMIN_EMAIL` adresiyle başka biri yönetici hesabından önce kayıt olursa `/admin/raporlar` ekranını görür. Yerel kullanımda önce yönetici hesabını siz açın; gerçek dağıtımda e-posta doğrulaması şarttır.
-- CSP yalnızca üretim kipinde (`npm start`) gönderilir; HSTS yoktur (TLS dağıtım katmanındadır, `COOKIE_SECURE=true` ile `Secure` çerez kullanın).
-- Çerezli oturumlar sunucuda saklanır ama "tüm oturumları kapat" ve parola değiştirme yoktur. Kayıt formu e-postanın kayıtlı olup olmadığını açığa vurur (hesap sayımı mümkün; kayıt hız sınırı vardır).
-- Yüklenen fotoğraflar yeniden kodlanmaz; EXIF (konum dahil) içerebilir. Yükleme gövdeleri bellekte tamponlanır (en çok ~26 MB, eşzamanlı büyük yükleme belleği şişirebilir).
+- **Yönetici**: yalnızca sunucuda `npm run make-admin` ile verilen veritabanı bayrağıdır; kayıt e-postası yönetici yapmaz. Betiği çalıştırabilen kişi (sunucu/veri klasörü erişimi olan) zaten tam yetkilidir. Yönetici arayüzü yalnızca şikayet listesidir; yönetici girişi için ayrı bir çok faktörlü doğrulama yoktur.
+- CSP yalnızca üretim kipinde (`npm start`) gönderilir. HSTS yalnızca `COOKIE_SECURE=true`/üretimde gönderilir; TLS'in kendisi dağıtım katmanındadır (uygulama yalnızca http dinler).
+- Çerezli oturumlar sunucuda saklanır ama "tüm oturumları kapat" ve parola değiştirme yoktur. Kayıt formu artık "e-posta zaten kayıtlı" demez (genel "Kayıt tamamlanamadı" mesajı), ancak e-posta doğrulaması olmadığından hesap sayımı tamamen engellenemez: başarılı kayıt anında oturum açtırır, başarısızlık ise mesaj verir; ikisi arasındaki fark bir saldırgana e-postanın kayıtlı olduğunu yine sezdirir. Gerçek çözüm e-posta doğrulamasıdır (kapsam dışı); kayıt hız sınırı (IP başına saatte 10) kötüye kullanımı yavaşlatır. Giriş mesajı ise kullanıcı/parola ayrımı yapmaz.
+- Üst veri ayıklama yalnızca bilinen biçimleri/parçaları hedefler: görüntü pikselleri yeniden kodlanmadığından görüntünün kendisi (ör. plaka, yüz) ve izin verilen ICC profili kalır; WebP'de EXIF yönelimi korunmaz (tarayıcılar WebP'de zaten uygulamaz). Parça içindeki gizli veri (steganografi) ve üreticiye özgü piksel düzeni izleri ayıklanmaz. Yükleme gövdeleri bellekte tamponlanır (en çok ~26 MB, eşzamanlı büyük yükleme belleği şişirebilir).
 - Şikayet kullanıcı başına ilan başına bir kez sayılır; sahte hesaplarla toplu şikayet engellenmez. Şikayet edilen ilan otomatik gizlenmez.
 - İlan sahibine ait "ilan kaldır" onayı tarayıcı `confirm` penceresiyle yapılır (JavaScript kapalıysa onaysız kaldırır).
