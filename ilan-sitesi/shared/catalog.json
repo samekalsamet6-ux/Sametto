@@ -1754,5 +1754,102 @@
     "dogrulanmali": true
    }
   ]
+ },
+ {
+  "id": "gurami",
+  "ad": "Cüce gurami",
+  "latin": "Trichogaster lalius",
+  "kisaAciklama": "Yanlardan basık oval gövde, uzun “dokunma” iplikleri ve kesintisiz anal yüzgeç; erkekte sivri sırt yüzgeci ve çapraz şeritler; 8 şematik renk (neon mavi, toz mavi, kobalt, gün batımı, alev ...).",
+  "not": "Şematik, yorumlanmış bir modeldir; gerçek bir bireyin ölçüsü ya da oranı değildir. Tür adı kaynaklarda değişir (Trichogaster lalius, eski ad Colisa lalia; 2022 revizyonunda T. fasciata önerisi, kabulü doğrulanmalı). Ticarette satılan renkler seçmeli üretilmiş biçimlerdir ve adlar satıcıya göre değişir. Bu türde tanınan ayrı bir şekil (form) varyetesi bulunamadığı için yalnızca standart biçim vardır.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart (tek biçim)",
+    "grup": ""
+   }
+  ],
+  "variants": [
+   {
+    "id": "neon",
+    "ad": "Neon mavi (Neon Blue)",
+    "grup": "Mavi hatlar"
+   },
+   {
+    "id": "yabani",
+    "ad": "Yabani tipe yakın (Rainbow)",
+    "grup": "Mavi hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "powder",
+    "ad": "Toz mavi (Powder Blue)",
+    "grup": "Mavi hatlar"
+   },
+   {
+    "id": "kobalt",
+    "ad": "Kobalt mavi (Cobalt)",
+    "grup": "Mavi hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "sunset",
+    "ad": "Gün batımı (Sunset / Red)",
+    "grup": "Kırmızı hatlar"
+   },
+   {
+    "id": "alev",
+    "ad": "Alev (Flame / Red Fire)",
+    "grup": "Kırmızı hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "altin",
+    "ad": "Altın / sarı (Gold)",
+    "grup": "Açık renkler (adlar tutarsız)",
+    "dogrulanmali": true
+   },
+   {
+    "id": "albino",
+    "ad": "Albino",
+    "grup": "Açık renkler (adlar tutarsız)",
+    "dogrulanmali": true
+   }
+  ]
  }
 ]

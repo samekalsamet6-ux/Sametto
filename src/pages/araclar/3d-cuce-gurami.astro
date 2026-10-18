@@ -1,0 +1,57 @@
+---
+import SpeciesPage from '../../components/SpeciesPage.astro';
+import { PARTS } from '../../lib/gurami/parts';
+import { FORMS } from '../../lib/gurami/forms';
+import { VARIANTS, groupedVariants } from '../../lib/gurami/variants';
+import { SEXES, specFor, silhouette } from '../../lib/gurami/model';
+import { svgFigure } from '../../lib/akvaryum/fishmath';
+
+// WebGL yokken gösterilen SVG yedeği, 3B modelle aynı geometriden türetilir.
+const sexName = { erkek: 'Erkek cüce gurami', disi: 'Dişi cüce gurami' } as const;
+const figures = SEXES.map((s) => {
+  const sil = silhouette(specFor('standart', s));
+  const fins = [...sil.fins.map((pts, i) => ({ id: `f${i}`, pts })), { id: 'pec', pts: sil.pectoral }];
+  return { label: sexName[s], ...svgFigure({ body: sil.body, fins, eye: { c: [sil.eye.x, sil.eye.y], r: sil.eye.r } }) };
+});
+---
+<SpeciesPage
+  title="3B cüce gurami modeli"
+  description="Cüce guramin (Trichogaster lalius) etkileşimli 3B modeli: yanlardan basık oval gövde, uzun dokunma iplikleri, kesintisiz anal yüzgeç, yukarı bakan küçük ağız, erkek/dişi farkı ve neon mavi, toz mavi, alev gibi renk hatları."
+  intro="Cüce guramin (<em>Trichogaster lalius</em>, eski adıyla <em>Colisa lalia</em>) şematik, etkileşimli 3B modeli. Sürükleyerek döndürün, erkek ve dişiyi karşılaştırın, <strong>Ön</strong> görünümde gövdenin ne kadar ince olduğuna bakın, renk hatlarını deneyin; numaralı noktalara ya da listeye tıklayıp açıklamaları okuyun."
+  views={[{ id: 'yan', ad: 'Yan' }, { id: 'ust', ad: 'Üst' }, { id: 'on', ad: 'Ön' }, { id: 'arka', ad: 'Arka' }, { id: 'alt', ad: 'Alt' }, { id: 'capraz', ad: 'Çapraz' }]}
+  sexes={[{ id: 'erkek', ad: 'Erkek', not: '' }, { id: 'disi', ad: 'Dişi', not: '' }]}
+  parts={PARTS}
+  forms={FORMS}
+  formIntro="Bu türde kaynaklarda adlandırılmış, yaygın biçimde kabul gören bir şekil (form) varyetesi bulunamadı; bu yüzden form seçicisinde yalnızca standart biçim vardır ve uydurma bir form eklenmemiştir. Ticarette ayrılan adlar (neon mavi, toz mavi, kobalt, alev ...) renk hatlarıdır ve aşağıdaki Renk bölümünde, erkek–dişi farkı ise Cinsiyet seçicisinde gösterilir."
+  groups={groupedVariants()}
+  variantLabel="Renk / desen"
+  variantIntro={`${VARIANTS.length} şematik renk hattı; hepsi aynı gövdeyi paylaşır, yalnızca renk ve desen değişir. Seçilen renk erkekte canlı, dişide soluk ve gümüşi gösterilir. Ticaret adları standart değildir (aynı kırmızı biçim “Red”, “Flame” ya da “Sunset” adıyla satılabilir); “Kaynakla doğrulanmalı” işaretli kayıtların adı ya da varlığı belirsizdir.`}
+  figures={figures}
+  fill="#7aa8d0"
+  stageLabel="Cüce guraminin etkileşimli 3B modeli."
+>
+  <div class="callout callout-bilgi" slot="tur">
+    <strong>Kapsam.</strong> Bu model <em>Trichogaster lalius</em> (cüce gurami) için <strong>şematik</strong> bir gövdedir; bal guramisi (<em>T. chuna</em>), inci gurami (<em>T. leerii</em>) gibi diğer guramiler dahil değildir. Tür adı kaynaklarda değişir (eski ad <em>Colisa lalia</em>; 2022 revizyonundaki <em>T. fasciata</em> önerisinin kabulü doğrulanmalı). Labirent organı iç organdır ve çizilmemiştir; ilgili numaralı nokta yalnızca yaklaşık konumunu gösterir. Model bakım, hastalık ya da tedavi rehberi değildir.
+  </div>
+  <p class="muted" slot="ek">Karın yüzgeçleri guramide uzun, ince “dokunma iplikleri”ne dönüşmüştür; model bunları gövdenin her iki yanında gösterir.</p>
+  <p class="muted">Modellenmeyenler: pullar tek tek çizilmemiştir (doku olarak vardır), yüzgeç ışınları tek tek hareket etmez, iç organlar (labirent organı dahil) ve yüzme kesesi gösterilmemiştir; üreme dönemi renk koyulaşması ve köpük yuva davranışı modellenmemiştir. Yüzme animasyonu gövdenin yanal dalgalanmasını basitçe taklit eder.</p>
+  <div class="callout callout-bilgi">
+    Aynı serideki diğer modeller: <a href="/araclar/3d-betta">3B betta</a>, <a href="/araclar/3d-melek">3B melek balığı</a> ve <a href="/araclar/3d-neon">3B neon tetra</a>.
+  </div>
+</SpeciesPage>
+
+<script>
+  import { initSpeciesPage } from '../../lib/akvaryum/page';
+  import { PARTS, partsFor } from '../../lib/gurami/parts';
+  import { FORMS } from '../../lib/gurami/forms';
+  import { VARIANTS } from '../../lib/gurami/variants';
+
+  initSpeciesPage({
+    parts: PARTS, partsFor, variants: VARIANTS, forms: FORMS, defaultSex: 'erkek', defaultView: 'capraz',
+    sexNotes: {
+      erkek: 'Erkek: daha renkli ve ince gövdeli; sırt yüzgeci uzun ve sivri uçlu, anal yüzgeç daha uzun; belirgin kırmızı–turuncu çapraz şeritler (şematik). Gençlerde fark belirgin olmayabilir.',
+      disi: 'Dişi: daha soluk, gümüşi; şeritler çok silik; sırt yüzgeci kısa ve yuvarlak, karın daha dolgun (şematik). Gençlerde fark belirgin olmayabilir.',
+    },
+    load: () => import('../../lib/gurami/index'),
+  });
+</script>

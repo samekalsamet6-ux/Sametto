@@ -21,12 +21,14 @@ export interface FishDef {
   /** Numaralandırma sırası */
   partIds: { id: string; ad: string }[];
   anchors: Record<string, Anchor>;
-  variantById(id: string): FishVariant;
+  variantById(id: string, sex?: SexId): FishVariant;
   /** Kamera açıları [yatay, düşey] */
   views: Record<string, [number, number]>;
   defaultView: string;
   /** Form (şekil) varyetesi desteği: forma göre geometri ve bağlantı noktaları (isteğe bağlı) */
-  forms?: { defaultForm: string; specFor(id: string): FishSpec; anchorsFor(id: string): Record<string, Anchor> };
+  forms?: { defaultForm: string; specFor(id: string, sex?: SexId): FishSpec; anchorsFor(id: string, sex?: SexId): Record<string, Anchor> };
+  /** İsteğe bağlı: cinsiyete göre geometri ve renk (cüce gurami gibi dışarıdan ayırt edilebilen türler); yoksa setSex etkisizdir. */
+  sexed?: boolean;
 }
 
 interface SwimUniforms { uTime: { value: number }; uAmp: { value: number } }
@@ -167,8 +169,8 @@ interface Built {
   face: FaceRig;
 }
 
-export function buildFish(def: FishDef, variantId: string, u: SwimUniforms, texW: number, specIn?: FishSpec): Built {
-  const spec = specIn ?? def.spec, v = def.variantById(variantId), sw = spec.swim;
+export function buildFish(def: FishDef, variantId: string, u: SwimUniforms, texW: number, specIn?: FishSpec, sex?: SexId): Built {
+  const spec = specIn ?? def.spec, v = def.variantById(variantId, sex), sw = spec.swim;
   const group = new Group();
   const textures: Texture[] = [];
   const add = (geo: BufferGeometry, mat: Material, order = 0) => { const m = new Mesh(geo, mat); m.renderOrder = order; group.add(m); return m; };
@@ -254,8 +256,9 @@ const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2,
 export function createFishViewer(def: FishDef, opts: SpeciesViewerOptions): SpeciesViewer {
   const { canvas, overlay } = opts;
   let form = opts.form ?? def.forms?.defaultForm ?? '';
-  let spec = def.forms ? def.forms.specFor(form) : def.spec;
-  let anchors = def.forms ? def.forms.anchorsFor(form) : def.anchors;
+  let sex: SexId = def.sexed ? opts.sex : 'disi';
+  let spec = def.forms ? def.forms.specFor(form, def.sexed ? sex : undefined) : def.spec;
+  let anchors = def.forms ? def.forms.anchorsFor(form, def.sexed ? sex : undefined) : def.anchors;
   const small = matchMedia('(max-width: 700px)').matches || navigator.maxTouchPoints > 0;
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2));
@@ -325,7 +328,7 @@ export function createFishViewer(def: FishDef, opts: SpeciesViewerOptions): Spec
   const load = (first: boolean) => {
     const old = built;
     if (old) { scene.remove(old.group); disposeGroup(old.group, old.textures, old.proxy); }
-    built = buildFish(def, variant, uniforms, texW, spec);
+    built = buildFish(def, variant, uniforms, texW, spec, def.sexed ? sex : undefined);
     scene.add(built.group);
     built.box.getSize(dims);
     const prevTarget = controls.target.clone();
@@ -456,13 +459,24 @@ export function createFishViewer(def: FishDef, opts: SpeciesViewerOptions): Spec
   };
 
   const api: SpeciesViewer = {
-    setSex(_s: SexId) { /* bu türde dış görünüşte güvenilir cinsiyet ayrımı yok; model değişmez */ },
+    setSex(s: SexId) {
+      // Dış görünüşte güvenilir cinsiyet ayrımı olmayan türlerde (def.sexed yok) model değişmez.
+      if (!def.sexed || !def.forms || s === sex) return;
+      sex = s;
+      spec = def.forms.specFor(form, sex);
+      anchors = def.forms.anchorsFor(form, sex);
+      load(false);
+      const sp = spherical();
+      place(sp[0], sp[1], fitDistance());
+      controls.update();
+      invalidate();
+    },
     setVariant(v) { if (v !== variant) { variant = v; load(false); } },
     setForm(f) {
       if (!def.forms || f === form) return;
       form = f;
-      spec = def.forms.specFor(form);
-      anchors = def.forms.anchorsFor(form);
+      spec = def.forms.specFor(form, def.sexed ? sex : undefined);
+      anchors = def.forms.anchorsFor(form, def.sexed ? sex : undefined);
       load(false);
       const s = spherical();
       place(s[0], s[1], fitDistance());

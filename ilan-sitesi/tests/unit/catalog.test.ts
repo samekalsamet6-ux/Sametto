@@ -4,7 +4,7 @@ import { CATALOG } from '../../shared/catalog.ts';
 
 // shared/catalog.json, ../src/lib/<tür>/index.ts modüllerinden üretilir (npm run catalog). Güncel mi?
 describe('katalog güncelliği', () => {
-  const dirs: Record<string, string> = { lepistes: 'guppy', molly: 'molly', platy: 'platy', betta: 'betta', vatoz: 'vatoz', karides: 'karides', melek: 'melek', diskus: 'diskus', pleco: 'pleco', neon: 'neon', corydoras: 'corydoras', japon: 'japon', kilickuyruk: 'kilickuyruk' };
+  const dirs: Record<string, string> = { lepistes: 'guppy', molly: 'molly', platy: 'platy', betta: 'betta', vatoz: 'vatoz', karides: 'karides', melek: 'melek', diskus: 'diskus', pleco: 'pleco', neon: 'neon', corydoras: 'corydoras', japon: 'japon', kilickuyruk: 'kilickuyruk', gurami: 'gurami' };
   for (const s of CATALOG) {
     it(`${s.id}: kimlikler tür modülüyle uyumlu`, async () => {
       const mod = (await import(`../../../src/lib/${dirs[s.id]}/index.ts`)).species;

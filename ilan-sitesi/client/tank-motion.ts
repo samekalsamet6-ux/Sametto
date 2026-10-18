@@ -12,7 +12,7 @@ export const SAND = 0.4;
 export const SURFACE_GAP = 0.25;
 
 /** Gerçekçi göreli boyut (1 = normalleştirilmiş birim uzunluk). */
-export const REL_SIZE: Record<string, number> = { lepistes: 0.7, molly: 0.9, platy: 0.8, kilickuyruk: 0.9, betta: 0.8, neon: 0.55, corydoras: 0.75, japon: 1.1, pleco: 1.2, melek: 1.0, diskus: 1.1, vatoz: 1.3, karides: 0.55 };
+export const REL_SIZE: Record<string, number> = { lepistes: 0.7, molly: 0.9, platy: 0.8, kilickuyruk: 0.9, gurami: 0.75, betta: 0.8, neon: 0.55, corydoras: 0.75, japon: 1.1, pleco: 1.2, melek: 1.0, diskus: 1.1, vatoz: 1.3, karides: 0.55 };
 /** Zeminde yaşayanlar yavaş ve zemine yakın gezer; diğerleri su sütununda şeritlere dağılır. */
 const BOTTOM = new Set(['pleco', 'corydoras', 'vatoz', 'karides']);
 export const isBottom = (species: string): boolean => BOTTOM.has(species);

@@ -15,6 +15,7 @@ const LOADERS: Record<string, () => Promise<{ species: SpeciesModule }>> = {
   neon: () => import('../../src/lib/neon/index.ts'),
   corydoras: () => import('../../src/lib/corydoras/index.ts'),
   japon: () => import('../../src/lib/japon/index.ts'),
+  gurami: () => import('../../src/lib/gurami/index.ts'),
 };
 
 /** Tür modülünü tembel yükler (aynı modül tekrar istenirse tarayıcı önbelleği kullanılır); 3B modeli olmayan tür için undefined. */

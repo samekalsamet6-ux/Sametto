@@ -6,9 +6,9 @@ import type { FishGroup, FishGroupOptions } from './types';
 
 export function createYanalGroup(def: FishDef, opts: FishGroupOptions): FishGroup {
   return instantiate(def.id, { ...opts, form: opts.form ?? def.forms?.defaultForm }, (lod): GroupTemplateSpec => {
-    const spec = def.forms ? def.forms.specFor(opts.form ?? def.forms.defaultForm) : def.spec;
+    const spec = def.forms ? def.forms.specFor(opts.form ?? def.forms.defaultForm, def.sexed ? opts.sex : undefined) : def.spec;
     const u = { uTime: { value: 0 }, uAmp: { value: 0 } };
-    const built = buildFish(def, opts.variant, u, lod === 'low' ? LOD_SETTINGS.low.tex : 640, spec);
+    const built = buildFish(def, opts.variant, u, lod === 'low' ? LOD_SETTINGS.low.tex : 640, spec, def.sexed ? opts.sex : undefined);
     built.proxy.geometry.dispose(); (built.proxy.material as Material).dispose();
     const face = built.face;
     return {
