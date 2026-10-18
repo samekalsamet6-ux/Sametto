@@ -9,7 +9,7 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(root, '..');
 export const SPECIES_DIRS = {
   lepistes: 'guppy', molly: 'molly', platy: 'platy', betta: 'betta', vatoz: 'vatoz', karides: 'karides',
-  melek: 'melek', diskus: 'diskus', pleco: 'pleco', neon: 'neon', corydoras: 'corydoras', japon: 'japon', kilickuyruk: 'kilickuyruk', gurami: 'gurami',
+  melek: 'melek', diskus: 'diskus', pleco: 'pleco', neon: 'neon', corydoras: 'corydoras', japon: 'japon', kilickuyruk: 'kilickuyruk', gurami: 'gurami', kaplanbarb: 'kaplanbarb',
 };
 
 // Şekil/renk kaydı; 'dogrulanmali' yalnızca true ise yazılır (adı kaynaklarda tutarsız / doğrulanmalı).

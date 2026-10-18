@@ -1,0 +1,58 @@
+---
+import SpeciesPage from '../../components/SpeciesPage.astro';
+import { PARTS } from '../../lib/kaplanbarb/parts';
+import { FORMS } from '../../lib/kaplanbarb/forms';
+import { VARIANTS, groupedVariants } from '../../lib/kaplanbarb/variants';
+import { SEXES, FORM_IDS, specFor, silhouette } from '../../lib/kaplanbarb/model';
+import { svgFigure } from '../../lib/akvaryum/fishmath';
+
+// WebGL yokken gösterilen SVG yedeği, 3B modelle aynı geometriden türetilir.
+const sexName = { erkek: 'Erkek kaplan barb', disi: 'Dişi kaplan barb' } as const;
+const formName = { standart: 'standart', 'uzun-yuzgec': 'uzun yüzgeçli' } as const;
+const figures = FORM_IDS.flatMap((f) => SEXES.map((s) => {
+  const sil = silhouette(specFor(f, s));
+  const fins = [...sil.fins.map((pts, i) => ({ id: `f${i}`, pts })), { id: 'pec', pts: sil.pectoral }];
+  return { label: `${sexName[s]} (${formName[f]})`, ...svgFigure({ body: sil.body, fins, eye: { c: [sil.eye.x, sil.eye.y], r: sil.eye.r } }) };
+}));
+---
+<SpeciesPage
+  title="3B kaplan barb modeli"
+  description="Kaplan barbın (Puntigrus tetrazona, Sumatra barb) etkileşimli 3B modeli: yüksek sırtlı gövde, dört dikey siyah bant, kırmızı kenarlı sırt yüzgeci, erkekte kırmızı burun; standart ve uzun yüzgeçli form, yeşil, albino, altın gibi renk hatları."
+  intro="Kaplan barbın (<em>Puntigrus tetrazona</em>, eski adıyla <em>Barbus tetrazona</em>) şematik, etkileşimli 3B modeli. Sürükleyerek döndürün, erkek ve dişiyi karşılaştırın, <strong>Form</strong> ve <strong>Renk</strong> seçicilerini birbirinden bağımsız deneyin; numaralı noktalara ya da listeye tıklayıp açıklamaları okuyun."
+  views={[{ id: 'yan', ad: 'Yan' }, { id: 'ust', ad: 'Üst' }, { id: 'on', ad: 'Ön' }, { id: 'arka', ad: 'Arka' }, { id: 'alt', ad: 'Alt' }, { id: 'capraz', ad: 'Çapraz' }]}
+  sexes={[{ id: 'erkek', ad: 'Erkek', not: '' }, { id: 'disi', ad: 'Dişi', not: '' }]}
+  parts={PARTS}
+  forms={FORMS}
+  formIntro="İki form gösterilir: doğadaki biçime yakın standart ve ticarette “longfin” ya da “veil” adıyla satılan seçmeli uzun yüzgeçli hat. Form yalnızca yüzgeç geometrisini değiştirir; her form her renkle birleşir. Başka (örn. balon gövdeli) bir form kaynaklarda bulunamadığı için eklenmemiştir."
+  groups={groupedVariants()}
+  variantLabel="Renk / desen"
+  variantIntro={`${VARIANTS.length} şematik renk hattı (normal, yeşil, albino, altın, platin, cam); hepsi aynı gövdeyi paylaşır, yalnızca renk ve desen değişir. GloFish benzeri floresan ya da boyanmış balıklar gösterilmez. Ticaret adları standart değildir; “Kaynakla doğrulanmalı” işaretli kayıtların adı ya da varlığı belirsizdir.`}
+  figures={figures}
+  fill="#d9a63c"
+  stageLabel="Kaplan barbın etkileşimli 3B modeli."
+>
+  <div class="callout callout-bilgi" slot="tur">
+    <strong>Kapsam.</strong> Bu model <em>Puntigrus tetrazona</em> (kaplan barb, Sumatra barb) için <strong>şematik</strong> bir gövdedir; yeşil, albino gibi hatlar aynı türün seçmeli renk biçimleridir. Kaplan barbın ağzında bıyık (barbel) yoktur. Erkek–dişi farkı (erkekte kırmızı burun ve yüzgeç kenarları, dişide dolgun karın) zayıf olabilir ve doğrulanmalıdır. Model bakım, hastalık ya da tedavi rehberi değildir.
+  </div>
+  <p class="muted" slot="ek">Karın yüzgeçleri bu modelde şematik olarak kısa, tek parça gösterilir; gerçekte ışınlı küçük yelpazelerdir.</p>
+  <p class="muted">Modellenmeyenler: pullar tek tek çizilmemiştir (doku olarak vardır), yüzgeç ışınları tek tek hareket etmez, iç organlar ve yüzme kesesi gösterilmemiştir; bant genişliği ve konumu bireyden bireye değişir, üreme dönemi renk değişimi modellenmemiştir. Yüzme animasyonu gövdenin yanal dalgalanmasını basitçe taklit eder.</p>
+  <div class="callout callout-bilgi">
+    Aynı serideki diğer modeller: <a href="/araclar/3d-cuce-gurami">3B cüce gurami</a>, <a href="/araclar/3d-neon">3B neon tetra</a> ve <a href="/araclar/3d-melek">3B melek balığı</a>.
+  </div>
+</SpeciesPage>
+
+<script>
+  import { initSpeciesPage } from '../../lib/akvaryum/page';
+  import { PARTS, partsFor } from '../../lib/kaplanbarb/parts';
+  import { FORMS } from '../../lib/kaplanbarb/forms';
+  import { VARIANTS } from '../../lib/kaplanbarb/variants';
+
+  initSpeciesPage({
+    parts: PARTS, partsFor, variants: VARIANTS, forms: FORMS, defaultSex: 'erkek', defaultView: 'capraz',
+    sexNotes: {
+      erkek: 'Erkek: daha ince ve renkli; burun kırmızı–turuncu, sırt yüzgecinde kırmızı kenar daha yoğun (şematik). Fark zayıf olabilir, gençlerde görülmeyebilir.',
+      disi: 'Dişi: daha iri ve karnı daha dolgun; renkleri daha soluk, burun ve yüzgeç kenarı kırmızısı az (şematik). Fark zayıf olabilir, gençlerde görülmeyebilir.',
+    },
+    load: () => import('../../lib/kaplanbarb/index'),
+  });
+</script>

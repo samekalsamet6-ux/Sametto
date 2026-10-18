@@ -1851,5 +1851,95 @@
     "dogrulanmali": true
    }
   ]
+ },
+ {
+  "id": "kaplanbarb",
+  "ad": "Kaplan barb",
+  "latin": "Puntigrus tetrazona",
+  "kisaAciklama": "Yüksek sırtlı, yanlardan basık gövde; dört dikey siyah bant, kırmızı–turuncu kenarlı sırt yüzgeci, erkekte kırmızı burun; 6 şematik renk ve 2 form (standart, uzun yüzgeçli).",
+  "not": "Şematik, yorumlanmış bir modeldir; gerçek bir bireyin ölçüsü ya da oranı değildir. Tür adı kaynaklarda değişir (Puntigrus tetrazona, eski ad Barbus tetrazona; Sumatra barb adıyla da bilinir). Bıyık (barbel) yoktur. Karın yüzgeçleri şematik olarak kısa, tek parça gösterilmiştir. GloFish benzeri floresan / genetiği değiştirilmiş ve boyanmış balıklar kapsam dışıdır. Ticari renk ve form adları satıcıya göre değişir; “doğrulanmalı” işaretli kayıtlar tutarsız kaynaklara dayanır.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart (kısa yüzgeç)",
+    "grup": "Doğal biçim"
+   },
+   {
+    "id": "uzun-yuzgec",
+    "ad": "Uzun yüzgeçli (long-fin / veil)",
+    "grup": "Seçmeli hat"
+   }
+  ],
+  "variants": [
+   {
+    "id": "normal",
+    "ad": "Normal (yabani tip, dört bantlı)",
+    "grup": "Doğal ve yeşil"
+   },
+   {
+    "id": "yesil",
+    "ad": "Yeşil (moss green)",
+    "grup": "Doğal ve yeşil"
+   },
+   {
+    "id": "albino",
+    "ad": "Albino",
+    "grup": "Açık renkli (pigmentsiz) hatlar"
+   },
+   {
+    "id": "altin",
+    "ad": "Altın (Gold)",
+    "grup": "Açık renkli (pigmentsiz) hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "platin",
+    "ad": "Platin (Platinum)",
+    "grup": "Açık renkli (pigmentsiz) hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "cam",
+    "ad": "Cam / ksantik (Glass)",
+    "grup": "Açık renkli (pigmentsiz) hatlar",
+    "dogrulanmali": true
+   }
+  ]
  }
 ]

@@ -3,9 +3,9 @@ import { readFileSync } from 'node:fs';
 
 const submit = (page: Page, sel = 'form button') => page.locator(sel).first().click();
 
-test('araç dizini 27 aracı listeler', async ({ page }) => {
+test('araç dizini 28 aracı listeler', async ({ page }) => {
   await page.goto('/araclar/');
-  await expect(page.locator('a.card')).toHaveCount(27);
+  await expect(page.locator('a.card')).toHaveCount(28);
 });
 
 test('maliyet ve kârlılık', async ({ page }) => {
