@@ -22,6 +22,7 @@ export interface HeadDeps {
   /** Renkler: gövde sırt/yan rengi (dudak ve çukur tonları için) */
   sirt: string;
   yan: string;
+  karin: string;
   /** Gövde malzemesi (ağız kapaklarının derisi gövde dokusunu paylaşır) */
   bodyMat: Material;
   /** Yüzme dalgası gölgelendiricisi eki */
@@ -85,13 +86,13 @@ function eyeTexture(goz: GozRenk): HTMLCanvasElement {
   const css = (col: Color) => `#${col.getHexString()}`;
   const mix = (a: Color, b: Color, f: number) => a.clone().lerp(b, f);
   const y = (th: number) => (th / Math.PI) * H;
-  const thP = 0.34, thI = 0.80, thL = 0.9;
+  const thP = 0.32, thI = 0.7, thL = 0.8;
   const sclera = mix(halka.clone().multiplyScalar(0.22), new Color('#0a0a0c'), 0.35);
   const grad = g.createLinearGradient(0, 0, 0, H);
   const stop = (th: number, col: Color) => grad.addColorStop(Math.min(1, th / Math.PI), css(col));
   stop(0, pupil); stop(thP - 0.025, pupil); stop(thP + 0.025, mix(iris, new Color('#000000'), 0.55));
   stop(thP + 0.1, mix(iris, new Color('#ffffff'), 0.28)); // iris iç halkası (kolaret) daha açık
-  stop(0.58, iris); stop(0.72, mix(iris, halka, 0.55)); stop(thI, mix(halka, new Color('#000000'), 0.45));
+  stop(0.52, iris); stop(0.62, mix(iris, halka, 0.55)); stop(thI, mix(halka, new Color('#000000'), 0.45));
   stop(thL, mix(sclera, new Color('#000000'), 0.3)); stop(thL + 0.18, sclera); stop(Math.PI, sclera);
   g.fillStyle = grad; g.fillRect(0, 0, W, H);
   // ışınsal lifler
@@ -168,7 +169,7 @@ function buildMouth(D: HeadDeps) {
   const aC = 0.34; // ağız köşelerinin ekvatorun hafif üstünde olması: alt çene daha geniş, ağız yukarı-öne bakar
   const A1 = Math.PI / 2 + aC, A2 = (3 * Math.PI) / 2 - aC;
   const w = rim(Math.PI / 2)[2]; // ağız yarı genişliği
-  const lipCol = new Color(D.yan).lerp(new Color(D.sirt), 0.62).lerp(new Color('#e8b5a5'), 0.14);
+  const lipCol = new Color(D.yan).lerp(new Color(D.karin), 0.25).lerp(new Color(D.sirt), 0.3).lerp(new Color('#e8b5a5'), 0.1);
   const lipMat = (f: number) => D.swim(new MeshStandardMaterial({ color: lipCol.clone().multiplyScalar(f), roughness: 0.5, metalness: 0.02 }));
   const inside = D.swim(new MeshStandardMaterial({ color: 0x1a0909, roughness: 0.85, side: DoubleSide }));
   const root = new Group();
@@ -198,6 +199,11 @@ function buildMouth(D: HeadDeps) {
   }
 
   const C1 = new Vector3(...rim(A1)), C2 = new Vector3(...rim(A2));
+  // halka kesitinin elipsi: kapaklar bu elips üzerinde yuvarlak (kubbe) bir burun oluşturur, düz levha olmaz
+  let ymin = Infinity, ymax = -Infinity, zmax = 0;
+  for (let j = 0; j < 48; j++) { const q = rim((j / 48) * PI2); ymin = Math.min(ymin, q[1]); ymax = Math.max(ymax, q[1]); zmax = Math.max(zmax, Math.abs(q[2])); }
+  const cy = (ymin + ymax) / 2, hy = (ymax - ymin) / 2 || 1, hz = zmax || 1;
+  const bulge = (y: number, z: number): number => Math.sqrt(Math.max(0, 1 - ((y - cy) / hy) ** 2 - (z / hz) ** 2));
   /** Dudak kapağı: halka yayından köşeleri birleştiren yarığa uzanan, öne hafif kubbeli deri yüzeyi (gövde dokusunu kullanır). */
   const cap = (from: number, to: number, c0: Vector3, c1: Vector3, dome: number): BufferGeometry => {
     const NU = 28, NV = 7, pos: number[] = [], uv: number[] = [], idx: number[] = [];
@@ -206,7 +212,7 @@ function buildMouth(D: HeadDeps) {
       const r = new Vector3(...rim(a)), ch = c0.clone().lerp(c1, u);
       for (let v = 0; v <= NV; v++) {
         const k = v / NV, p = r.clone().lerp(ch, k);
-        p.x -= dome * w * Math.sin(k * Math.PI * 0.5);
+        p.x -= dome * w * bulge(p.y, p.z);
         pos.push(p.x, p.y, p.z);
         uv.push(mouthCutT(t0, a), (a % PI2) / PI2);
       }
@@ -233,15 +239,15 @@ function buildMouth(D: HeadDeps) {
     const out: Vec3[] = [];
     for (let i = 0; i <= 20; i++) {
       const u = i / 20, p = c0.clone().lerp(c1, u);
-      p.x -= dome * w - 0.5 * w * 0.06 * Math.sin(Math.PI * u);
       p.y += sag * Math.sin(Math.PI * u);
+      p.x -= dome * w * bulge(p.y, p.z);
       out.push([p.x, p.y, p.z]);
     }
     return out;
   };
-  const rUp = 0.26 * w, rLo = 0.32 * w;
-  const gap = 0.16 * w;
-  const dUp = 0.22, dLo = 0.38;
+  const rUp = 0.17 * w, rLo = 0.21 * w;
+  const gap = 0.3 * w;
+  const dUp = 0.34, dLo = 0.42;
   // üst çene (sabit)
   root.add(new Mesh(cap(A1, A2, C1, C2, dUp), lipMat(0.98)));
   const up1 = C1.clone().add(new Vector3(0, gap * 0.4, 0)), up2 = C2.clone().add(new Vector3(0, gap * 0.4, 0));
@@ -321,7 +327,7 @@ export function buildHead(D: HeadDeps): HeadParts {
   const gills = ([1, -1] as const).map((s) => ({ side: s, g: buildGill(D, s) }));
   for (const gl of gills) group.add(gl.g.grp);
 
-  const rest = 0.05;
+  const rest = 0.1;
   const update = (time: number, k: number) => {
     const live = D.reducedMotion ? 0 : k;
     const breath = 0.5 - 0.5 * Math.cos(time * 7.5);
