@@ -20,8 +20,9 @@ import { species as gurami } from '../gurami';
 import { species as kaplanbarb } from '../kaplanbarb';
 import { species as zebradanio } from '../zebradanio';
 import { species as kardinal } from '../kardinal';
+import { species as ram } from '../ram';
 
-const ALL: SpeciesModule[] = [lepistes, molly, platy, betta, neon, corydoras, japon, pleco, melek, diskus, vatoz, karides, kilickuyruk, gurami, kaplanbarb, zebradanio, kardinal];
+const ALL: SpeciesModule[] = [lepistes, molly, platy, betta, neon, corydoras, japon, pleco, melek, diskus, vatoz, karides, kilickuyruk, gurami, kaplanbarb, zebradanio, kardinal, ram];
 const byId = (id: string) => ALL.find((s) => s.id === id)!;
 
 /**
@@ -30,7 +31,7 @@ const byId = (id: string) => ALL.find((s) => s.id === id)!;
  * Ölçümler (düşük): bkz. dosya sonundaki rapor testi (FISHGROUP_REPORT=dosya ile yazılır) ve final raporu.
  */
 export const LOW_TRIANGLES: Record<string, number> = {
-  lepistes: 7500, molly: 7500, platy: 7000, betta: 3800, neon: 3200, corydoras: 3800, japon: 10500, pleco: 9800, melek: 4000, diskus: 4000, vatoz: 10000, karides: 9000, kilickuyruk: 7500, gurami: 3900, kaplanbarb: 4200, zebradanio: 4200, kardinal: 4300,
+  lepistes: 7500, molly: 7500, platy: 7000, betta: 3800, neon: 3200, corydoras: 3800, japon: 10500, pleco: 9800, melek: 4000, diskus: 4000, vatoz: 10000, karides: 9000, kilickuyruk: 7500, gurami: 3900, kaplanbarb: 4200, zebradanio: 4200, kardinal: 4300, ram: 4600,
 };
 /** 12 karışık balık (her tür bir kez), düşük ayrıntı: toplam üçgen, çizim çağrısı ve benzersiz doku pikseli tavanı */
 export const TANK_LOW = { triangles: 70_000, drawCalls: 650, texturePixels: 2_500_000 };
@@ -78,8 +79,8 @@ const make = (sp: SpeciesModule, sex: SexId, form: string | undefined, variant: 
 const REPORT: string[] = [];
 
 describe('createFishGroup sözleşmesi', () => {
-  it('on yedi türün hepsi createFishGroup sağlar', () => {
-    expect(ALL.map((s) => s.id).sort()).toEqual(['betta', 'corydoras', 'diskus', 'gurami', 'japon', 'kaplanbarb', 'kardinal', 'karides', 'kilickuyruk', 'lepistes', 'melek', 'molly', 'neon', 'platy', 'pleco', 'vatoz', 'zebradanio']);
+  it('on sekiz türün hepsi createFishGroup sağlar', () => {
+    expect(ALL.map((s) => s.id).sort()).toEqual(['betta', 'corydoras', 'diskus', 'gurami', 'japon', 'kaplanbarb', 'kardinal', 'karides', 'kilickuyruk', 'lepistes', 'melek', 'molly', 'neon', 'platy', 'pleco', 'ram', 'vatoz', 'zebradanio']);
     for (const sp of ALL) expect(typeof sp.createFishGroup, sp.id).toBe('function');
   });
 });

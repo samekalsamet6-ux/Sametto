@@ -2106,5 +2106,98 @@
     "dogrulanmali": true
    }
   ]
+ },
+ {
+  "id": "ram",
+  "ad": "Ram çiklit (kelebek çiklit)",
+  "latin": "Mikrogeophagus ramirezi",
+  "kisaAciklama": "Küçük, derin gövdeli cüce çiklit; gözden geçen siyah çubuk, gövde ortasında siyah leke, parlak mavi benekler, dikenli sırt yüzgeci ve kırmızı göz; 5 şematik renk ve 3 form (standart, uzun yüzgeçli, balon).",
+  "not": "Şematik, yorumlanmış bir modeldir; gerçek bir bireyin ölçüsü ya da oranı değildir. Bolivya ramı (Mikrogeophagus altispinosus) AYRI bir türdür ve burada modellenmemiştir. “German blue” ticari bir hat adıdır; altın, elektrik mavisi, siyah ve albino hatlarının adı ve sınırları kaynaklarda tutarsızdır. Boyanmış ya da enjekte edilmiş balıklar kapsam dışıdır. Uzun yüzgeçli ve balon formlar yaygın satılır ancak ayrıntıları kaynakla doğrulanmalıdır; bazı kaynaklar bu hatlarda sağlık ve üreme sorunlarına dikkat çeker. Model bakım ya da tedavi rehberi değildir.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart",
+    "grup": "Doğal biçim"
+   },
+   {
+    "id": "uzun-yuzgec",
+    "ad": "Uzun yüzgeçli (long-fin)",
+    "grup": "Seçmeli hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "balon",
+    "ad": "Balon (balloon)",
+    "grup": "Seçmeli hatlar",
+    "dogrulanmali": true
+   }
+  ],
+  "variants": [
+   {
+    "id": "normal",
+    "ad": "Normal (yabani tip / “German blue”)",
+    "grup": "Doğal görünüm"
+   },
+   {
+    "id": "gold",
+    "ad": "Altın (Gold ram)",
+    "grup": "Seçilmiş hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "elektrik",
+    "ad": "Elektrik mavisi (Electric blue)",
+    "grup": "Seçilmiş hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "siyah",
+    "ad": "Siyah (Black ram)",
+    "grup": "Seçilmiş hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "albino",
+    "ad": "Albino",
+    "grup": "Seçilmiş hatlar",
+    "dogrulanmali": true
+   }
+  ]
  }
 ]

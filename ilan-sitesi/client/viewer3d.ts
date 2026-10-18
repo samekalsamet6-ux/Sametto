@@ -19,6 +19,7 @@ const LOADERS: Record<string, () => Promise<{ species: SpeciesModule }>> = {
   kaplanbarb: () => import('../../src/lib/kaplanbarb/index.ts'),
   zebradanio: () => import('../../src/lib/zebradanio/index.ts'),
   kardinal: () => import('../../src/lib/kardinal/index.ts'),
+  ram: () => import('../../src/lib/ram/index.ts'),
 };
 
 /** Tür modülünü tembel yükler (aynı modül tekrar istenirse tarayıcı önbelleği kullanılır); 3B modeli olmayan tür için undefined. */
