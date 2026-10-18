@@ -3,7 +3,7 @@ import { lerp, surfaceAt, type Vec3 } from '../akvaryum/fishmath';
 import type { FishAnchor } from '../akvaryum/fish3d';
 import type { FishPart } from '../akvaryum/page';
 import { tulFor } from './forms';
-import { bodyFor, bristles, eyeSpec, finsFor, mouthSpec, type Sex } from './model';
+import { OPERCULUM, bodyFor, bristles, eyeSpec, finsFor, mouthSpec, type Sex } from './model';
 
 export type PartId =
   | 'govde' | 'plakalar' | 'odontodlar' | 'goz' | 'agiz' | 'bristle-erkek' | 'bristle-disi' | 'solungac-kapagi'
@@ -60,7 +60,7 @@ export function partAnchors(sex: Sex, form?: string): Record<string, FishAnchor>
   const on = (s: number, phi: number, off = 0.014): FishAnchor => { const r = surfaceAt(b, s, phi, off); return { pos: r.pos, normal: r.normal, mirror: true }; };
   out.govde = on(0.4, 0.55);
   out.plakalar = on(0.64, 1.0);
-  out.odontodlar = on(0.1, 0.32, 0.016);
+  out.odontodlar = on(0.13, 0.32, 0.016);
   const e = eyeSpec(sex);
   out.goz = { pos: [e.center[0] + e.normal[0] * e.radius, e.center[1] + e.normal[1] * e.radius, e.center[2] + e.normal[2] * e.radius], normal: e.normal, mirror: true };
   const m = mouthSpec(sex);
@@ -68,7 +68,7 @@ export function partAnchors(sex: Sex, form?: string): Record<string, FishAnchor>
   const bl = bristles(sex)[1] ?? bristles(sex)[0];
   const tip = bl.stalk[bl.stalk.length - 1];
   out[sex === 'erkek' ? 'bristle-erkek' : 'bristle-disi'] = { pos: [tip[0] - 0.004, tip[1] + 0.012, tip[2]], normal: null, mirror: true, flex: 0 };
-  out['solungac-kapagi'] = on(0.208, 1.15, 0.016);
+  out['solungac-kapagi'] = on(OPERCULUM.s + 0.018, 1.15, 0.016);
   out['sirt-yuzgeci'] = { pos: finPoint(sex, tul, 'sirt', 0.4, 0.78), normal: null, mirror: true, flex: 0.2 };
   out['yag-yuzgeci'] = { pos: finPoint(sex, tul, 'yag', 0.5, 0.8), normal: null, mirror: true, flex: 0.15 };
   out['kuyruk-yuzgeci'] = { pos: finPoint(sex, tul, 'kuyruk', 0.15, 0.8), normal: null, mirror: false, flex: 0.9 };

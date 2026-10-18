@@ -20,9 +20,10 @@ export const SEXES: readonly Sex[] = ['erkek', 'disi'];
 /** Gövde: ince, torpido biçimli, yanlardan basık; dişide karın daha dolgun */
 export function bodyFor(sex: Sex, form: Form = 'standart'): Body {
   const f = sex === 'disi', P = FORM_PARAMS[form];
-  const top = spline([[0, 0.012], [0.08, 0.06], [0.3, 0.112], [0.46, 0.118], [0.7, 0.074], [1, 0.036]]);
-  const bot = spline([[0, -0.016], [0.08, -0.056], [0.3, f ? -0.115 : -0.1], [0.46, f ? -0.14 : -0.105], [0.7, f ? -0.08 : -0.062], [1, -0.03]]);
-  const hw = spline([[0, 0.02], [0.08, 0.042], [0.3, f ? 0.062 : 0.054], [0.46, f ? 0.066 : 0.054], [0.7, 0.034], [1, 0.012]]);
+  // ince, torpido biçimli: en derin nokta ortada, kuyruk sapına doğru uzun ve ince daralma
+  const top = spline([[0, 0.01], [0.06, 0.05], [0.2, 0.094], [0.38, 0.112], [0.5, 0.11], [0.7, 0.07], [0.86, 0.045], [1, 0.034]]);
+  const bot = spline([[0, -0.014], [0.06, -0.048], [0.2, -0.088], [0.4, f ? -0.118 : -0.098], [0.52, f ? -0.126 : -0.094], [0.7, f ? -0.07 : -0.058], [0.86, -0.04], [1, -0.028]]);
+  const hw = spline([[0, 0.02], [0.08, 0.04], [0.3, f ? 0.062 : 0.052], [0.46, f ? 0.066 : 0.052], [0.7, 0.032], [1, 0.012]]);
   return makeBody(1, {
     top: (s) => top(s) * (1 + (P.top - 1) * bump(s)),
     bot: (s) => bot(s) * (1 + (P.bot - 1) * bump(s)),

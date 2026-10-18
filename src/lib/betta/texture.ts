@@ -1,9 +1,52 @@
 // Betta gövde ve yüzgeç dokuları (<canvas>; tarayıcıya özgü, sahte canvas ile birim testlenir).
-import { assembleBody, blob, flatBump, paintFin, rgba, scaleBump, type Ctx, type FinStyle } from '../akvaryum/fishtex';
-import { mixHex, mulberry32 } from '../akvaryum/fishmath';
+import { assembleBody, blob, paintFin, rgba, scaleBump, type Ctx, type FinStyle } from '../akvaryum/fishtex';
+import { clamp, hexToRgb, lerp, mixHex, mulberry32, rgbToHex } from '../akvaryum/fishmath';
 import type { SexId } from '../akvaryum/types';
 import { seedFor, sexTone, type Variant } from './variants';
-import { finsFor, formById, webFraction } from './model';
+import { OPERCULUM, finsFor, formById, webFraction } from './model';
+
+
+/** Renk tonunu derece kaydırır ve (0..1) açar: iridesan (renk değiştiren) parıltı için */
+export function hueShift(hex: string, deg: number, light = 0): string {
+  const [r, g, b] = hexToRgb(hex);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d > 1e-6) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  h = (h * 60 + deg + 360) % 360;
+  const l = (mx + mn) / 2, sat = d < 1e-6 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  const l2 = l + (1 - l) * light;
+  const c = (1 - Math.abs(2 * l2 - 1)) * sat, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = l2 - c / 2;
+  const [r1, g1, b1] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return rgbToHex([r1 + m, g1 + m, b1 + m]);
+}
+
+/** Pul ızgarası: baş bölgesinden sonra, kuyruğa doğru ucu sivri (ok biçimli) üst üste binen pullar */
+export const SCALES = { s0: 0.2, cols: 33, rows: 10 } as const;
+
+/** Her pul için çokgeni çizer: ön kenarı düz, arka ucu sivri. cb(x, y, pitch, rowH) pul başına çağrılır; sondan öne doğru (öndeki pul üstte kalsın) */
+function eachScale(w: number, h: number, cb: (x: number, y: number, p: number, rh: number, r: number, c: number) => void) {
+  const p = (w * (1 - SCALES.s0)) / SCALES.cols, rh = h / SCALES.rows;
+  for (let r = 0; r <= SCALES.rows; r++) for (let c = SCALES.cols; c >= 0; c--) cb(w * SCALES.s0 + (c + (r % 2 ? 0.5 : 0)) * p, (r + 0.5) * rh, p, rh, r, c);
+}
+function scalePath(ctx: Ctx, x: number, y: number, p: number, rh: number) {
+  ctx.beginPath();
+  ctx.moveTo(x - p * 0.5, y - rh * 0.5);
+  ctx.lineTo(x + p * 0.12, y - rh * 0.5);
+  ctx.lineTo(x + p * 0.58, y);
+  ctx.lineTo(x + p * 0.12, y + rh * 0.5);
+  ctx.lineTo(x - p * 0.5, y + rh * 0.5);
+  ctx.closePath();
+}
+
+/** Solungaç kapağı kenarı (doku koordinatlarında), model.operculumArc ile aynı eğri */
+function operculumTex(w: number, h: number, n = 14): [number, number][] {
+  const out: [number, number][] = [];
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1);
+    out.push([(OPERCULUM.s + 0.032 * Math.sin(t * Math.PI) - 0.012 * t) * w, (lerp(OPERCULUM.phi0, OPERCULUM.phi1, t) / Math.PI) * h]);
+  }
+  return out;
+}
 
 export function toneFin(style: FinStyle, sex: SexId, v: Variant): FinStyle {
   if (sex !== 'disi') return style;
@@ -21,23 +64,32 @@ export interface BettaTextures { color: HTMLCanvasElement; bump: HTMLCanvasEleme
 export function paintBody(v: Variant, sex: SexId, W = 1024, form?: string): BettaTextures {
   const Hh = W / 4;
   const T = (c: string) => sexTone(c, sex, v);
+  const dragon = v.desen === 'ejder';
+  const pk = clamp(0.3 + 0.7 * v.pul, 0, 1);
+  // iridesan parıltı renkleri: gövde tonunun iki yanındaki tonlar (mavide camgöbeği ↔ mor, yeşilde sarı-yeşil ↔ mavi, kırmızıda turuncu ↔ eflatun)
+  const sheenA = hueShift(T(v.body.yan), -38, 0.5), sheenB = hueShift(T(v.body.yan), 42, 0.45);
   const paint = (ctx: Ctx, w: number, h: number, side: 1 | -1) => {
     const rnd = mulberry32(seedFor(v, sex) + (side > 0 ? 0 : 977));
-    // zemin: sırttan karına
+    // zemin: sırttan karına (üstten koyu, alttan açık: karşı gölgelenme)
     const g = ctx.createLinearGradient(0, 0, 0, h);
     g.addColorStop(0, T(v.body.sirt));
-    g.addColorStop(0.38, T(v.body.yan));
-    g.addColorStop(0.72, T(v.body.yan));
+    g.addColorStop(0.3, mixHex(T(v.body.sirt), T(v.body.yan), 0.7));
+    g.addColorStop(0.5, T(v.body.yan));
+    g.addColorStop(0.74, T(v.body.yan));
+    g.addColorStop(0.9, mixHex(T(v.body.yan), T(v.body.karin), 0.7));
     g.addColorStop(1, T(v.body.karin));
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
-    // baş
+    // baş: yassı, geniş; üstte daha koyu
     const hg = ctx.createLinearGradient(0, 0, w * 0.27, 0);
-    hg.addColorStop(0, rgba(T(v.body.bas), 0.85));
-    hg.addColorStop(0.8, rgba(T(v.body.bas), 0.45));
+    hg.addColorStop(0, rgba(T(v.body.bas), 0.9));
+    hg.addColorStop(0.8, rgba(T(v.body.bas), 0.5));
     hg.addColorStop(1, rgba(T(v.body.bas), 0));
     ctx.fillStyle = hg;
     ctx.fillRect(0, 0, w * 0.27, h);
+    const hd = ctx.createLinearGradient(0, 0, 0, h * 0.4);
+    hd.addColorStop(0, rgba(T(v.body.sirt), 0.55)); hd.addColorStop(1, rgba(T(v.body.sirt), 0));
+    ctx.fillStyle = hd; ctx.fillRect(0, 0, w * 0.24, h * 0.4);
 
     const P = v.yamalar;
     if (v.desen === 'koi') {
@@ -45,7 +97,7 @@ export function paintBody(v: Variant, sex: SexId, W = 1024, form?: string): Bett
       for (let i = 0; i < 4; i++) blob(ctx, rnd() * w, rnd() * h, 0.03 * w, 0.06 * h, P[1], 0.9, rnd() * 3, 0.9);
     } else if (v.desen === 'mermer') {
       for (let i = 0; i < 26; i++) blob(ctx, rnd() * w, rnd() * h, (0.02 + rnd() * 0.08) * w, (0.06 + rnd() * 0.2) * h, P[Math.floor(rnd() * P.length)], 0.92, rnd() * 3, 0.88);
-    } else if (v.desen === 'ejder') {
+    } else if (dragon) {
       const cols = 46, rows = 15, cw = w / cols, ch = h / rows;
       for (let r = 0; r < rows + 1; r++) for (let c = -1; c < cols + 1; c++) {
         const x = (c + (r % 2 ? 0.5 : 0)) * cw, y = r * ch;
@@ -64,21 +116,39 @@ export function paintBody(v: Variant, sex: SexId, W = 1024, form?: string): Bett
     } else if (v.desen === 'orkide') {
       for (let i = 0; i < 40; i++) blob(ctx, rnd() * w, rnd() * h * 0.7 + h * 0.1, (0.02 + rnd() * 0.04) * w, 0.02 * h, '#4a3fa8', 0.25, 0, 0.7);
     }
-    // metalik parıltı: yan şeridi boyunca ışık
-    if (v.parlak > 0) {
-      const tone = v.desen === 'duz' || v.desen === 'orkide' || v.desen === 'kelebek' ? mixHex(v.body.yan, '#ffffff', 0.45) : '#ffffff';
-      for (let i = 0; i < 14; i++) blob(ctx, w * (0.2 + 0.7 * rnd()), h * (0.28 + 0.2 * rnd()), (0.06 + 0.07 * rnd()) * w, 0.045 * h, tone, 0.2 * v.parlak, 0, 0.5);
+
+    // ---- pullar: ucu sivri, üst üste binen; her pulun ortası parlak, kenarı koyu, arka ucunda iridesan vurgu
+    if (!dragon && v.pul > 0) {
+      const dark = v.desen === 'orkide' || v.desen === 'saydam' ? 0.5 : 1;
+      eachScale(w, h, (x, y, p, rh) => {
+        if (x < w * SCALES.s0 - p * 0.2) return;
+        const j = 0.85 + 0.3 * rnd();
+        const sgr = ctx.createLinearGradient(x - p * 0.5, 0, x + p * 0.58, 0);
+        sgr.addColorStop(0, rgba('#000000', 0.2 * pk * dark));
+        sgr.addColorStop(0.35, rgba(sheenA, 0.2 * pk * v.parlak * j + 0.04));
+        sgr.addColorStop(0.75, rgba(sheenB, 0.42 * pk * (0.3 + v.parlak) * j));
+        sgr.addColorStop(1, rgba('#000000', 0.3 * pk * dark));
+        ctx.fillStyle = sgr;
+        scalePath(ctx, x, y, p, rh); ctx.fill();
+        ctx.fillStyle = rgba(rnd() < 0.5 ? '#ffffff' : '#000000', 0.03 + 0.07 * rnd() * pk);
+        ctx.fill();
+        ctx.lineWidth = Math.max(1, w / 760);
+        ctx.strokeStyle = rgba('#000000', (0.07 + 0.2 * pk) * dark);
+        ctx.beginPath(); ctx.moveTo(x + p * 0.12, y - rh * 0.5); ctx.lineTo(x + p * 0.58, y); ctx.lineTo(x + p * 0.12, y + rh * 0.5); ctx.stroke();
+        ctx.strokeStyle = rgba(sheenA, (0.1 + 0.28 * v.parlak) * pk);
+        ctx.beginPath(); ctx.moveTo(x + p * 0.04, y - rh * 0.44); ctx.lineTo(x + p * 0.5, y); ctx.lineTo(x + p * 0.04, y + rh * 0.44); ctx.stroke();
+      });
     }
-    // pul ipuçları
-    if (v.pul > 0 && v.desen !== 'ejder') {
-      ctx.strokeStyle = rgba('#000000', 0.12 * v.pul + 0.04);
-      ctx.lineWidth = Math.max(1, w / 900);
-      const cols = 40, rows = 14, cw = w / cols, ch = h / rows;
-      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-        const x = (c + (r % 2 ? 0.5 : 0)) * cw + cw * 0.5, y = r * ch + ch * 0.5;
-        if (x < w * 0.24) continue;
-        ctx.beginPath(); ctx.arc(x, y, cw * 0.55, -0.3, 1.9); ctx.stroke();
+    // iridesan geniş bant: yan çizgi boyunca renk değiştiren parıltı (mavi/turkuazda belirgin)
+    if (v.parlak > 0) {
+      const amt = 0.2 + 0.55 * v.parlak;
+      for (let i = 0; i < 16; i++) {
+        const t = i / 15;
+        blob(ctx, w * (0.22 + 0.72 * t) + (rnd() - 0.5) * w * 0.03, h * (0.24 + 0.2 * rnd()), (0.07 + 0.06 * rnd()) * w, (0.05 + 0.05 * rnd()) * h, i % 2 ? sheenA : sheenB, 0.3 * amt, 0, 0.5);
       }
+      const sh = ctx.createLinearGradient(0, h * 0.14, 0, h * 0.62);
+      sh.addColorStop(0, rgba(sheenA, 0)); sh.addColorStop(0.5, rgba(sheenA, 0.22 * amt)); sh.addColorStop(1, rgba(sheenB, 0));
+      ctx.fillStyle = sh; ctx.fillRect(w * 0.2, h * 0.14, w * 0.78, h * 0.48);
     }
     // dişide üreme dönemi dikey şeritler (soluk)
     if (sex === 'disi' && v.desen !== 'saydam') {
@@ -89,12 +159,50 @@ export function paintBody(v: Variant, sex: SexId, W = 1024, form?: string): Bett
         ctx.fillStyle = bg; ctx.fillRect(x - w * 0.012, h * 0.05, w * 0.024, h * 0.8);
       }
     }
-    // solungaç kapağı kenarı
-    ctx.fillStyle = rgba('#000000', 0.12);
-    ctx.fillRect(w * 0.205, 0, w * 0.006, h);
+    // karın ve sırt kenarı: ince gölge (hacim)
+    const eg = ctx.createLinearGradient(0, h * 0.9, 0, h);
+    eg.addColorStop(0, rgba('#000000', 0)); eg.addColorStop(1, rgba('#000000', 0.12));
+    ctx.fillStyle = eg; ctx.fillRect(0, h * 0.9, w, h * 0.1);
+    // ---- solungaç kapağı: arka kenarı parlak, hemen arkasında gölge; ön yüzeyi hafif metalik
+    const arc = operculumTex(w, h);
+    ctx.beginPath(); ctx.moveTo(arc[0][0] - w * 0.06, arc[0][1]);
+    for (const [x, y] of arc) ctx.lineTo(x, y);
+    ctx.lineTo(arc[arc.length - 1][0] - w * 0.06, arc[arc.length - 1][1]); ctx.closePath();
+    const og = ctx.createLinearGradient(w * 0.15, 0, w * 0.245, 0);
+    og.addColorStop(0, rgba(sheenA, 0.08)); og.addColorStop(0.7, rgba(sheenA, 0.2 * (0.4 + v.parlak))); og.addColorStop(1, rgba('#ffffff', 0.24 * (0.3 + v.parlak)));
+    ctx.fillStyle = og; ctx.fill();
+    ctx.lineWidth = Math.max(2, w / 330);
+    ctx.strokeStyle = rgba('#000000', 0.3);
+    ctx.beginPath(); arc.forEach(([x, y], i) => (i ? ctx.lineTo(x + ctx.lineWidth * 0.9, y) : ctx.moveTo(x + ctx.lineWidth * 0.9, y))); ctx.stroke();
+    ctx.lineWidth = Math.max(1, w / 500);
+    ctx.strokeStyle = rgba('#ffffff', 0.34 * (0.4 + v.parlak));
+    ctx.beginPath(); arc.forEach(([x, y], i) => (i ? ctx.lineTo(x - ctx.lineWidth, y) : ctx.moveTo(x - ctx.lineWidth, y))); ctx.stroke();
+    ctx.strokeStyle = rgba('#000000', 0.12);
+    for (let i = 1; i < arc.length - 1; i += 2) { ctx.beginPath(); ctx.moveTo(arc[i][0] - w * 0.045, arc[i][1] * 0.9 + h * 0.02); ctx.lineTo(arc[i][0] - w * 0.006, arc[i][1]); ctx.stroke(); }
   };
   const color = assembleBody(W, Hh, paint);
-  const bump = v.pul > 0.5 ? scaleBump(W, Hh, 46, 15, 0.7) : v.pul > 0 ? scaleBump(W, Hh, 40, 14, 0.18 + 0.2 * v.pul) : flatBump(W, Hh * 2);
+  // kabartma: ucu sivri pullar (arka uç yüksek) ve yükseltili solungaç kapağı plakası
+  const bump = dragon ? scaleBump(W, Hh, 46, 15, 0.7) : assembleBody(W, Hh, (bc, w, h) => {
+    bc.fillStyle = '#707070';
+    bc.fillRect(0, 0, w, h);
+    if (v.pul > 0) eachScale(w, h, (x, y, p, rh) => {
+      if (x < w * SCALES.s0 - p * 0.2) return;
+      const gr = bc.createLinearGradient(x - p * 0.5, 0, x + p * 0.58, 0);
+      gr.addColorStop(0, '#585858'); gr.addColorStop(0.5, '#9a9a9a'); gr.addColorStop(0.9, '#d8d8d8'); gr.addColorStop(1, '#f0f0f0');
+      bc.fillStyle = gr; scalePath(bc, x, y, p, rh); bc.fill();
+      bc.lineWidth = Math.max(1, w / 700); bc.strokeStyle = '#2c2c2c';
+      bc.beginPath(); bc.moveTo(x + p * 0.12, y - rh * 0.5); bc.lineTo(x + p * 0.58, y); bc.lineTo(x + p * 0.12, y + rh * 0.5); bc.stroke();
+    });
+    const arc = operculumTex(w, h);
+    bc.beginPath(); bc.moveTo(arc[0][0] - w * 0.06, arc[0][1]);
+    for (const [x, y] of arc) bc.lineTo(x, y);
+    bc.lineTo(arc[arc.length - 1][0] - w * 0.06, arc[arc.length - 1][1]); bc.closePath();
+    const og = bc.createLinearGradient(w * 0.16, 0, w * 0.245, 0);
+    og.addColorStop(0, '#707070'); og.addColorStop(0.8, '#c4c4c4'); og.addColorStop(1, '#e8e8e8');
+    bc.fillStyle = og; bc.fill();
+    bc.lineWidth = Math.max(2, w / 300); bc.strokeStyle = '#242424';
+    bc.beginPath(); arc.forEach(([x, y], i) => (i ? bc.lineTo(x + bc.lineWidth, y) : bc.moveTo(x + bc.lineWidth, y))); bc.stroke();
+  });
   const fins: Record<string, HTMLCanvasElement> = {};
   const spec = formById(form);
   const web = webFraction(form, sex);

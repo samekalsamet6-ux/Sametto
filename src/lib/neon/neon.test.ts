@@ -81,6 +81,17 @@ describe('neon: cinsiyet ve şerit', () => {
   });
 });
 
+describe('neon: torpido gövde (tür karakteri)', () => {
+  it('ince ve uzun: en derin kesit boyun ~%21-24\'ü; kuyruk sapı ince; baş sivri', () => {
+    const depth = (sx: 'erkek' | 'disi', s: number) => { const c = bodyFor(sx).section(s); return c.yTop - c.yBot; };
+    let max = 0; for (let s = 0; s <= 1; s += 0.01) max = Math.max(max, depth('erkek', s));
+    expect(max).toBeGreaterThan(0.2); expect(max).toBeLessThan(0.235);
+    expect(depth('erkek', 0.95)).toBeLessThan(max * 0.4);
+    expect(bodyFor('erkek').section(0.06).hw).toBeLessThan(0.045);
+    for (const sx of SEXES) expect(bodyFor(sx).section(0.38).yTop).toBeGreaterThan(bodyFor(sx).section(0.8).yTop * 1.8);
+  });
+});
+
 describe('neon: varyeteler', () => {
   it('yalnızca normal, diamond ve gold; ilk varyete normal; gruplar geçerli', () => {
     expect(VARIANTS.map((v) => v.id)).toEqual(['normal', 'diamond', 'gold']);

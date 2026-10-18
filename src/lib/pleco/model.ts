@@ -11,20 +11,21 @@ export const SEXES: readonly Sex[] = ['erkek', 'disi'];
 export function bodyFor(sex: Sex): Body {
   const m = sex === 'erkek', f = !m;
   const hb = m ? 1.07 : 1, wb = f ? 1.13 : 1;
+  // geniş, yassı ve uzun baş (gövde boyunun ~%28'i), dorsal yüzgeç kökünde yüksek tepe, düz karın, ince ve uzun kuyruk sapı
   return makeBody(1, {
-    top: spline([[0, 0.0], [0.08, 0.05], [0.2, 0.086], [0.32, 0.105], [0.45, 0.094], [0.65, 0.06], [0.85, 0.036], [1, 0.027]]),
-    bot: spline([[0, -0.012], [0.08, -0.04], [0.2, -0.05], [0.4, f ? -0.058 : -0.05], [0.6, f ? -0.049 : -0.04], [0.85, -0.025], [1, -0.02]]),
-    hw: spline([[0, 0.02], [0.05, 0.07 * hb], [0.12, 0.112 * hb], [0.22, 0.128 * hb], [0.32, 0.12 * wb], [0.45, 0.1 * wb], [0.62, 0.074 * wb], [0.8, 0.048], [1, 0.032]]),
-    nTop: spline([[0, 2], [0.3, 2.2], [1, 2.1]]),
-    nBot: spline([[0, 2], [0.15, 3.4], [0.5, 3.6], [1, 2.6]]),
+    top: spline([[0, 0.0], [0.06, 0.034], [0.14, 0.068], [0.24, 0.098], [0.34, 0.124], [0.42, 0.122], [0.55, 0.1], [0.7, 0.066], [0.85, 0.042], [1, 0.03]]),
+    bot: spline([[0, -0.012], [0.06, -0.04], [0.14, -0.05], [0.3, -0.056], [0.45, f ? -0.062 : -0.054], [0.6, f ? -0.054 : -0.044], [0.85, -0.026], [1, -0.02]]),
+    hw: spline([[0, 0.02], [0.04, 0.078 * hb], [0.1, 0.124 * hb], [0.2, 0.146 * hb], [0.28, 0.15 * hb], [0.36, 0.135 * wb], [0.5, 0.105 * wb], [0.65, 0.078 * wb], [0.82, 0.05], [1, 0.032]]),
+    nTop: spline([[0, 2], [0.1, 3], [0.25, 2.8], [0.4, 2.3], [1, 2.1]]),
+    nBot: spline([[0, 2], [0.1, 3.8], [0.5, 4], [1, 2.8]]),
     nose: 0.07,
   });
 }
 
-export const EYE = { s: 0.148, phi: 0.5, radius: 0.03 } as const;
-export const OPERCULUM = { s: 0.208, phi0: 0.4, phi1: 2.3 } as const;
+export const EYE = { s: 0.152, phi: 0.5, radius: 0.031 } as const;
+export const OPERCULUM = { s: 0.272, phi0: 0.4, phi1: 2.3 } as const;
 /** Kemikli plakalar: dört sıra (sırt, üst yan, alt yan, karın yanı), gövdenin arka bölümünde */
-export const ARMOR = { s0: 0.2, s1: 0.97, plates: 24, rows: 4 } as const;
+export const ARMOR = { s0: 0.28, s1: 0.97, plates: 22, rows: 4 } as const;
 
 /** Tül (uzun yüzgeç) biçimi için yüzgeç büyütme çarpanları (1 = standart). Şekil (form) seçicisinden gelir; renkten bağımsızdır. */
 export const TUL_GAIN = { dorsal: 1.7, caudal: 2.6, pectoral: 1.6, pelvic: 1.45, anal: 1.45 } as const;
@@ -40,7 +41,7 @@ export function operculumArc(sex: Sex, side: 1 | -1, n = 14): Vec3[] {
   const b = bodyFor(sex), out: Vec3[] = [];
   for (let i = 0; i < n; i++) {
     const t = i / (n - 1);
-    const p = surfaceAt(b, OPERCULUM.s + 0.026 * Math.sin(t * Math.PI) - 0.01 * t, lerp(OPERCULUM.phi0, OPERCULUM.phi1, t), 0.0015).pos;
+    const p = surfaceAt(b, OPERCULUM.s + 0.03 * Math.sin(t * Math.PI) - 0.012 * t, lerp(OPERCULUM.phi0, OPERCULUM.phi1, t), 0.0015).pos;
     out.push([p[0], p[1], p[2] * side]);
   }
   return out;
@@ -51,8 +52,8 @@ export function operculumArc(sex: Sex, side: 1 | -1, n = 14): Vec3[] {
 export interface MouthSpec { c: Vec3; rx: number; rz: number; bulge: number }
 /** Baş altında oval emici (vantuz) ağız diski; dış sınır gövde genişliğini aşmaz */
 export function mouthSpec(sex: Sex): MouthSpec {
-  const b = bodyFor(sex), sec = b.section(0.095);
-  return { c: [sec.x, sec.yBot, 0], rx: 0.066, rz: Math.min(0.088, sec.hw * 0.86), bulge: 0.013 };
+  const b = bodyFor(sex), sec = b.section(0.115);
+  return { c: [sec.x, sec.yBot, 0], rx: 0.088, rz: Math.min(0.118, sec.hw * 0.86), bulge: 0.015 };
 }
 /** Disk sınırı (kapalı halka); k < 1 ile iç halka. z, o x'teki gövde yarı genişliğiyle sınırlanır. */
 export function mouthRing(sex: Sex, k = 1, n = 32): Vec3[] {
@@ -124,10 +125,10 @@ const female = (p: Vec3[], male: boolean): Vec3[] => (male ? p : p.slice(0, 3));
 /** tul: 0 = standart, 1 = tül (uzun yüzgeç) */
 export function finsFor(sex: Sex, tul = 0): FinDef[] {
   const b = bodyFor(sex), fins: FinDef[] = [];
-  const dH = fin(0.205, TUL_GAIN.dorsal, tul);
+  const dH = fin(0.25, TUL_GAIN.dorsal, tul);
   // sırt yüzgeci: yüksek, yelken benzeri; ilk ışın (diken) en uzun, arkaya doğru alçalır
-  const dB = lineOnBody(b, 0.3, 0.47, 0, 9, 0.014);
-  fins.push({ id: 'sirt', paired: false, flex: 0.3, base: dB, tip: dB.map((p, i): Vec3 => { const u = i / 8; return [p[0] + dH * (0.32 + 0.4 * u) * (1 + 0.1 * tul * u), p[1] + dH * (1 - 0.66 * Math.pow(u, 1.15)), 0]; }) });
+  const dB = lineOnBody(b, 0.31, 0.5, 0, 10, 0.014);
+  fins.push({ id: 'sirt', paired: false, flex: 0.3, base: dB, tip: dB.map((p, i): Vec3 => { const u = i / 9; return [p[0] + dH * (0.3 + 0.42 * u) * (1 + 0.1 * tul * u), p[1] + dH * (1 - 0.6 * Math.pow(u, 1.2)), 0]; }) });
   // yağ yüzgeci: küçük, önünde diken
   const aB = lineOnBody(b, 0.69, 0.77, 0, 5, 0.01);
   fins.push({ id: 'yag', paired: false, flex: 0.2, base: aB, tip: aB.map((p, i): Vec3 => { const u = i / 4; return [p[0] + 0.03 + 0.018 * u, p[1] + 0.052 * (1 - 0.55 * u), 0]; }) });
@@ -143,11 +144,11 @@ export function finsFor(sex: Sex, tul = 0): FinDef[] {
   fins.push({ id: 'kuyruk', paired: false, flex: 0.9, base: cB, tip: cB.map((p, i): Vec3 => { const v = Math.abs((2 * i) / (N - 1) - 1); return [p[0] + cL * (0.74 + 0.26 * Math.pow(v, 1.4)), cy + (p[1] - cy) * (1.9 + 2.0 * Math.pow(v, 0.8)), 0]; }) });
   // karın (pelvik) yüzgeçleri: geniş, yatay, dışa ve geriye açılan yelpaze
   const vL = fin(0.12, TUL_GAIN.pelvic, tul);
-  const vB = [0.36, 0.38, 0.4, 0.42, 0.44].map((s) => { const q = surfaceAt(b, s, Math.PI * 0.8, -0.006).pos; return [q[0], q[1] + 0.004, q[2]] as Vec3; });
+  const vB = [0.42, 0.44, 0.46, 0.48, 0.5].map((s) => { const q = surfaceAt(b, s, Math.PI * 0.8, -0.006).pos; return [q[0], q[1] + 0.004, q[2]] as Vec3; });
   fins.push({ id: 'karin', paired: true, flex: 0.45, base: vB, tip: vB.map((p, i): Vec3 => { const u = i / 4, l = vL * (1 - 0.35 * u), a = 0.5 + 0.7 * u; return [p[0] + Math.sin(a) * l, p[1] + 0.004 - 0.018 * u, p[2] + Math.cos(a) * l]; }) });
   // göğüs (pektoral) yüzgeçleri: büyük, dışa açılan; ön kenarda kalın diken
   const gL = fin(0.19, TUL_GAIN.pectoral, tul);
-  const gB = [0.195, 0.21, 0.225, 0.24, 0.255, 0.27].map((s) => { const q = surfaceAt(b, s, Math.PI * 0.62, -0.008).pos; return [q[0], q[1] + 0.003, q[2]] as Vec3; });
+  const gB = [0.272, 0.287, 0.302, 0.317, 0.332, 0.347].map((s) => { const q = surfaceAt(b, s, Math.PI * 0.62, -0.008).pos; return [q[0], q[1] + 0.003, q[2]] as Vec3; });
   fins.push({ id: 'gogus', paired: true, flex: 0.7, base: gB, tip: gB.map((p, i): Vec3 => { const u = i / 5, l = gL * (1 - 0.42 * Math.pow(u, 1.1)), a = 0.6 + 0.85 * u; return [p[0] + Math.sin(a) * l, p[1] + 0.012 * (1 - u) - 0.008 * u, p[2] + Math.cos(a) * l * 0.95]; }) });
   return fins;
 }

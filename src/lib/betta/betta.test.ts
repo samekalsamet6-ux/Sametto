@@ -6,7 +6,7 @@ import { FORMS } from './forms';
 import { PARTS, partAnchors, partsFor } from './parts';
 import { VARIANTS, VARIANT_GROUPS, groupedVariants, sexTone, variantById } from './variants';
 import { species } from './index';
-import { paintBody, webEdge } from './texture';
+import { SCALES, hueShift, paintBody, webEdge } from './texture';
 
 fishSuite({
   ad: 'betta', sexes: [...SEXES], bodyFor, finsFor, silhouette, parts: PARTS, partsFor, partAnchors, variants: VARIANTS,
@@ -203,5 +203,31 @@ describe('betta: form (şekil) varyeteleri', () => {
     const h = (f: string) => { const s = bodyFor('erkek', f).section(0.4); return s.yTop - s.yBot; };
     expect(h('double-tail')).toBeGreaterThan(h('plakat'));
     expect(h('halfmoon')).toBe(h('plakat'));
+  });
+});
+
+describe('betta: baş ve pul dokusu (tür karakteri)', () => {
+  it('baş yassı ve geniş (labirent balığı); alt çene öne çıkık; ağız yarığı geriye doğru YUKARI çıkar (üste dönük ağız)', () => {
+    for (const s of SEXES) {
+      const b = bodyFor(s), c = b.section(0.12);
+      expect(c.hw * 2).toBeGreaterThan((c.yTop - c.yBot) * 0.95);
+      const m = mouthLine(s, 1);
+      expect(m[0][0]).toBeLessThan(m[2][0]);
+      expect(m[2][1]).toBeGreaterThan(m[0][1] + 0.02);
+      expect(m.every((p) => Number.isFinite(p[0] + p[1] + p[2]))).toBe(true);
+      expect(Math.abs(mouthLine(s, -1)[2][2] + m[2][2])).toBeLessThan(1e-9);
+      expect(eyeSpec(s).radius).toBeGreaterThanOrEqual(0.028);
+    }
+  });
+  it('pul ızgarası baştan sonra başlar ve sütun/satır sayıları makul', () => {
+    expect(SCALES.s0).toBeGreaterThanOrEqual(0.19);
+    expect(SCALES.cols).toBeGreaterThan(24);
+    expect(SCALES.rows).toBeGreaterThan(7);
+  });
+  it('hueShift: kırmızıyı 120° kaydırınca yeşil; açma beyaza yaklaştırır; gri değişmez', () => {
+    const g = hexToRgb(hueShift('#ff0000', 120));
+    expect(g[1]).toBeGreaterThan(g[0] + 0.5);
+    expect(hexToRgb(hueShift('#2650b8', 0, 0.5))[0]).toBeGreaterThan(hexToRgb('#2650b8')[0]);
+    expect(hueShift('#808080', 90)).toBe('#808080');
   });
 });

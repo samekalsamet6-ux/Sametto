@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fishSuite } from '../akvaryum/fish-contract';
 import { hexToRgb, luma } from '../akvaryum/fishmath';
-import { ARMOR, SEXES, TUL_GAIN, bodyFor, bristles, eyeSpec, finsFor, mouthRing, mouthSpec, silhouette, spines } from './model';
+import { ARMOR, OPERCULUM, SEXES, TUL_GAIN, bodyFor, bristles, eyeSpec, finsFor, mouthRing, mouthSpec, silhouette, spines } from './model';
 import { PARTS, partAnchors, partsFor } from './parts';
 import { VARIANTS, VARIANT_GROUPS, groupedVariants, variantById } from './variants';
 import { species } from './index';
@@ -42,6 +42,40 @@ describe('pleco: gövde', () => {
       expect(ring.length).toBeGreaterThan(16);
       for (const p of ring) expect(Math.abs(p[2])).toBeLessThanOrEqual(b.section(Math.max(0.004, p[0] + 0.5)).hw + 1e-9);
     }
+  });
+});
+
+describe('pleco: Ancistrus karakteri (geniş yassı baş, yelken sırt, zırh)', () => {
+  it('baş uzun ve çok geniş (gövde boyunun ~%28-30\'u genişlik), yassı; solungaç kapağı gövdenin ilk üçte birinde', () => {
+    for (const sex of SEXES) {
+      const b = bodyFor(sex), c = b.section(0.26);
+      expect(c.hw * 2).toBeGreaterThan(0.27);
+      expect(c.hw * 2).toBeGreaterThan((c.yTop - c.yBot) * 1.7);
+      expect(OPERCULUM.s).toBeGreaterThanOrEqual(0.25);
+      expect(OPERCULUM.s).toBeLessThanOrEqual(0.33);
+    }
+  });
+  it('sırt yüzgeci büyük yelken: yükseklik gövde derinliğinden fazla; ilk ışın en uzun', () => {
+    const d = finsFor('erkek').find((x) => x.id === 'sirt')!;
+    const h = d.tip.map((p, i) => p[1] - d.base[i][1]);
+    expect(Math.max(...h)).toBeGreaterThan(0.22);
+    expect(h[0]).toBe(Math.max(...h));
+    expect(Math.max(...h)).toBeGreaterThan(bodyFor('erkek').section(0.36).yTop - bodyFor('erkek').section(0.36).yBot);
+  });
+  it('düz karın ve vantuz ağız büyük (baş genişliğinin çoğunu kaplar); göğüs yüzgeci solungaç kapağının arkasında', () => {
+    for (const sex of SEXES) {
+      const m = mouthSpec(sex), b = bodyFor(sex);
+      expect(m.rx).toBeGreaterThanOrEqual(0.08);
+      expect(m.rz).toBeGreaterThan(0.09);
+      expect(m.rz).toBeLessThanOrEqual(b.section(0.115).hw);
+      const g = finsFor(sex).find((x) => x.id === 'gogus')!;
+      for (const p of g.base) expect(p[0] + 0.5).toBeGreaterThanOrEqual(OPERCULUM.s - 0.01);
+    }
+  });
+  it('zırh: dört sıra, sıra başına 22 plaka; plakalar solungaç kapağından sonra başlar', () => {
+    expect(ARMOR.plates).toBe(22);
+    expect(ARMOR.rows).toBe(4);
+    expect(ARMOR.s0).toBeGreaterThanOrEqual(OPERCULUM.s);
   });
 });
 

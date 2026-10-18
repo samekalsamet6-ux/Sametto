@@ -6,7 +6,7 @@ import { PARTS, partAnchors, partsFor } from './parts';
 import { VARIANTS, VARIANT_GROUPS, groupedVariants, variantById } from './variants';
 import { species } from './index';
 import { FORMS } from './forms';
-import { paintBody, plateEdges } from './texture';
+import { PLATE_Y, paintBody, plateEdges } from './texture';
 
 const ASPECT = { standart: [2.7, 4.8], 'uzun-yuzgec': [2.7, 4.8], balon: [1.8, 3.8] } as const;
 for (const form of FORM_IDS) {
@@ -90,6 +90,39 @@ describe('corydoras: gövde ve cinsiyet', () => {
     for (const p of e) { expect(p.x0).toBeGreaterThanOrEqual(ARMOR.s0 * 1000 - 1e-6); expect(p.x1).toBeLessThanOrEqual(ARMOR.s1 * 1000 + 1e-6); expect(p.x1).toBeGreaterThan(p.x0); }
     expect(e[1].x0).toBeLessThan(e[0].x1);
     for (const s of SEXES) { expect(eyeGeom(s).center[1]).toBeGreaterThan(0.02); expect(operculumArc(s, 1).every((p) => p[0] > eyeGeom(s).center[0])).toBe(true); }
+  });
+});
+
+describe('corydoras: hörgüçlü gövde (tür karakteri)', () => {
+  const top = (s: number) => bodyFor('erkek').section(s).yTop;
+  it('dik burun/ense eğimi: dorsal kökünde (s≈0.3–0.45) belirgin tepe; arkada düz inen sırt çizgisi', () => {
+    let peak = 0, at = 0;
+    for (let i = 0; i <= 100; i++) { const y = top(i / 100); if (y > peak) { peak = y; at = i / 100; } }
+    expect(at).toBeGreaterThan(0.3); expect(at).toBeLessThan(0.45);
+    expect(top(0.3) - top(0.1)).toBeGreaterThan(0.11); // ense dik tırmanır
+    expect(peak - top(0.9)).toBeGreaterThan(0.12); // arkada belirgin iner
+    const dx = 0.1, slope = (a: number) => (top(a + dx) - top(a)) / dx;
+    expect(slope(0.05)).toBeGreaterThan(0.7); // ~35° ve üzeri burun/ense eğimi
+    expect(slope(0.55)).toBeLessThan(-0.3);
+  });
+  it('sırt kesiti hafif sivri (sırt çıkıntısı), karın düz; omuz geniş; kısa derin oran', () => {
+    const c = bodyFor('erkek').section(0.37);
+    expect(c.nTop).toBeLessThan(1.9);
+    expect(c.nBot).toBeGreaterThan(3);
+    expect(bodyFor('erkek').section(0.28).hw).toBeGreaterThan(0.13);
+    expect(c.yTop - c.yBot).toBeGreaterThan(0.33); // derinlik/boy ≈ 1/2.9
+  });
+  it('büyük gözler; sırt dikeni ve göğüs dikeni belirgin kalın; sırt yüzgeci yüksek', () => {
+    expect(eyeGeom('erkek').radius).toBeGreaterThanOrEqual(0.033);
+    const sp = spines('erkek');
+    expect(sp.find((x) => x.id === 'sirt')!.r).toBeGreaterThanOrEqual(0.0065);
+    expect(sp.find((x) => x.id === 'gogus')!.r).toBeGreaterThanOrEqual(0.006);
+    const d = finsFor('erkek').find((x) => x.id === 'sirt')!;
+    expect(Math.max(...d.tip.map((q) => q[1])) - Math.max(...d.base.map((q) => q[1]))).toBeGreaterThan(0.2);
+  });
+  it('doku: iki plaka sırasının sınırları yarım yükseklik içinde; kabartma dokusu iki yarıdan oluşur', () => {
+    expect(PLATE_Y.top).toBeLessThan(PLATE_Y.mid); expect(PLATE_Y.mid).toBeLessThan(PLATE_Y.bot); expect(PLATE_Y.bot).toBeLessThanOrEqual(1);
+    expect(Math.abs(PLATE_Y.mid - 0.5)).toBeLessThan(0.05);
   });
 });
 

@@ -13,12 +13,13 @@ export const SEXES: readonly Sex[] = ['erkek', 'disi'];
 export function bodyFor(sex: Sex, form?: string): Body {
   const f = sex === 'disi';
   const d = formById(form).bodyDepth;
+  // baş: yassı ve geniş (labirent balığı), alt çene biraz öne çıkık; ense hafif çukur, sonra gövde yükselir
   return makeBody(1, {
-    top: spline([[0, 0.014], [0.08, 0.06], [0.3, 0.118 * d], [0.55, 0.114 * d], [0.78, 0.076 * d], [1, 0.05]]),
-    bot: spline([[0, -0.024], [0.08, -0.068], [0.3, (f ? -0.145 : -0.116) * d], [0.55, (f ? -0.15 : -0.108) * d], [0.78, (f ? -0.08 : -0.064) * d], [1, -0.046]]),
-    hw: spline([[0, 0.03], [0.08, 0.062], [0.3, (f ? 0.1 : 0.086) * d], [0.55, (f ? 0.095 : 0.078) * d], [0.78, 0.05], [1, 0.024]]),
-    nTop: spline([[0, 2], [0.3, 2.2], [1, 2.1]]),
-    nBot: spline([[0, 2], [0.3, 2.4], [0.6, 2.4], [1, 2.1]]),
+    top: spline([[0, 0.002], [0.025, 0.03], [0.07, 0.05], [0.14, 0.064], [0.21, 0.08], [0.3, 0.115 * d], [0.55, 0.114 * d], [0.78, 0.076 * d], [1, 0.05]]),
+    bot: spline([[0, -0.03], [0.03, -0.058], [0.08, -0.072], [0.16, -0.095], [0.3, (f ? -0.145 : -0.116) * d], [0.55, (f ? -0.15 : -0.108) * d], [0.78, (f ? -0.08 : -0.064) * d], [1, -0.046]]),
+    hw: spline([[0, 0.03], [0.06, 0.066], [0.14, 0.082], [0.22, 0.09], [0.3, (f ? 0.1 : 0.088) * d], [0.55, (f ? 0.095 : 0.078) * d], [0.78, 0.05], [1, 0.024]]),
+    nTop: spline([[0, 2], [0.12, 2.8], [0.25, 2.5], [0.4, 2.2], [1, 2.1]]),
+    nBot: spline([[0, 2], [0.12, 2.3], [0.3, 2.4], [0.6, 2.4], [1, 2.1]]),
     nose: 0.06,
   });
 }
@@ -106,7 +107,7 @@ export function webFraction(form: string | undefined, sex: Sex): number {
   return sex === 'disi' ? w + (1 - w) * FEMALE_FANCY.web : w;
 }
 
-export const EYE = { s: 0.118, phi: 1.28, radius: { erkek: 0.025, disi: 0.0245 } } as const;
+export const EYE = { s: 0.122, phi: 1.12, radius: { erkek: 0.029, disi: 0.0285 } } as const;
 export const OPERCULUM = { s: 0.215, phi0: 0.2, phi1: 2.0 } as const;
 
 export function eyeSpec(sex: Sex, form?: string): { center: Vec3; normal: Vec3; radius: number } {
@@ -115,16 +116,11 @@ export function eyeSpec(sex: Sex, form?: string): { center: Vec3; normal: Vec3; 
   return { center: sf.pos, normal: norm3([sf.normal[0] - 0.25, sf.normal[1] + 0.05, sf.normal[2]]), radius: r };
 }
 
-/** Ağız: üste dönük küçük çatlak (burun ucundan geriye ve aşağıya) */
+/** Ağız: üste dönük (üst ağız) küçük yarık; çene ucundan geriye ve YUKARI doğru çıkar, alt çene öne çıkıktır */
 export function mouthLine(sex: Sex, side: 1 | -1, form?: string): Vec3[] {
-  const b = bodyFor(sex, form), c = b.section(0.004);
-  const cy = (c.yTop + c.yBot) / 2;
-  const q = b.section(0.055);
-  return [
-    [c.x - 0.002, cy + 0.006, 0],
-    [lerp(c.x, q.x, 0.5), cy - 0.002, side * q.hw * 0.28],
-    [q.x, (q.yTop + q.yBot) / 2 - 0.012, side * q.hw * 0.52],
-  ];
+  const b = bodyFor(sex, form);
+  const pt = (s: number, phi: number): Vec3 => { const p = surfaceAt(b, s, phi, 0.0008).pos; return [p[0], p[1], p[2] * side]; };
+  return [pt(0.004, 1.5), pt(0.03, 1.2), pt(0.058, 0.85)];
 }
 
 /** Solungaç kapağı kenarı (operkulum): sırttan karına kavisli çizgi */

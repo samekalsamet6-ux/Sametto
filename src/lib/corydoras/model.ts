@@ -21,20 +21,23 @@ export const SEXES: readonly Sex[] = ['erkek', 'disi'];
 /** Gövde: yüksek sırt, düz karın, geniş omuz; dişide gövde belirgin biçimde daha geniş/dolgun (özellikle üstten bakınca) */
 export function bodyFor(sex: Sex, form: Form = 'standart'): Body {
   const f = sex === 'disi' ? 1.14 : 1, P = FORM_PARAMS[form];
-  const top = spline([[0, 0.012], [0.08, 0.078], [0.2, 0.165], [0.38, 0.228], [0.55, 0.2], [0.78, 0.115], [1, 0.062]]);
-  const bot = spline([[0, -0.02], [0.07, -0.058], [0.2, -0.095], [0.45, -0.112], [0.7, -0.092], [0.86, -0.068], [1, -0.046]]);
-  const hw = spline([[0, 0.03], [0.08, 0.085 * f], [0.25, 0.13 * f], [0.45, 0.14 * f], [0.7, 0.095 * f], [1, 0.032]]);
+  // sırt: kısa ve dik burun/ense eğimi, dorsal yüzgeç kökünde (s ≈ 0.37) belirgin tepe (hörgüç), ardından arkaya doğru düz inen çizgi
+  const top = spline([[0, 0.004], [0.035, 0.04], [0.09, 0.105], [0.17, 0.178], [0.27, 0.228], [0.36, 0.246], [0.45, 0.232], [0.6, 0.178], [0.78, 0.118], [0.9, 0.092], [1, 0.074]]);
+  // karın: çeneden karın yüzgecine kadar neredeyse düz; kuyruk sapı derin
+  const bot = spline([[0, -0.02], [0.045, -0.058], [0.11, -0.09], [0.22, -0.105], [0.45, -0.108], [0.62, -0.1], [0.78, -0.08], [0.9, -0.066], [1, -0.058]]);
+  // omuz (göğüs kuşağı) geniş, geriye doğru yanlardan basık kuyruk sapı
+  const hw = spline([[0, 0.03], [0.06, 0.08], [0.15, 0.122 * f], [0.28, 0.146 * f], [0.45, 0.132 * f], [0.7, 0.088 * f], [0.88, 0.05], [1, 0.034]]);
   return makeBody(1, {
     top: (s) => top(s) * (1 + (P.top - 1) * bump(s)),
     bot: (s) => bot(s) * (1 + (P.bot - 1) * bump(s)),
     hw: (s) => hw(s) * (1 + (P.hw - 1) * bump(s)),
-    nTop: spline([[0, 2], [0.4, 2.4], [1, 2.1]]),
+    nTop: spline([[0, 2], [0.1, 2.0], [0.37, 1.75], [0.7, 1.9], [1, 2.1]]),
     nBot: spline([[0, 2], [0.15, 3.2], [0.4, 4.2], [0.7, 3.6], [1, 2.4]]),
     nose: 0.07,
   });
 }
 
-export const EYE = { s: 0.115, phi: 0.95, radius: 0.027 } as const;
+export const EYE = { s: 0.118, phi: 0.92, radius: 0.034 } as const;
 export const OPERCULUM = { s: 0.205, phi0: 0.35, phi1: 2.35 } as const;
 /** Zırh: iki sıra kemikli levha (üst sıra sırt, alt sıra karın tarafı); s aralığı ve yan çizginin w'si */
 export const ARMOR = { s0: 0.22, s1: 0.97, plates: 24, split: 0.5 } as const;
@@ -80,8 +83,8 @@ export function operculumArc(sex: Sex, side: 1 | -1, n = 14, form: Form = 'stand
 /** Yüzgeçler: büyük yuvarlak göğüs yüzgeçleri, yüksek üçgen sırt yüzgeci, küçük yağ yüzgeci, çatallı kuyruk */
 export function finsFor(sex: Sex, form: Form = 'standart'): FinDef[] {
   const b = bodyFor(sex, form), F = FORM_PARAMS[form].fin, fins: FinDef[] = [];
-  const dB = lineOnBody(b, 0.31, 0.47, 0, 7, 0.012);
-  fins.push({ id: 'sirt', paired: false, flex: 0.3 * F.dorsal, base: dB, tip: dB.map((p, i): Vec3 => { const u = i / 6; return [p[0] + F.dorsal * (0.02 + 0.075 * (1 - 0.5 * u) * (0.55 + 0.45 * u)), p[1] + 0.215 * F.dorsal * (1 - 0.82 * Math.pow(u, 0.9)), 0]; }) });
+  const dB = lineOnBody(b, 0.3, 0.45, 0, 7, 0.012);
+  fins.push({ id: 'sirt', paired: false, flex: 0.3 * F.dorsal, base: dB, tip: dB.map((p, i): Vec3 => { const u = i / 6; return [p[0] + F.dorsal * (0.02 + 0.075 * (1 - 0.5 * u) * (0.55 + 0.45 * u)), p[1] + 0.235 * F.dorsal * (1 - 0.84 * Math.pow(u, 0.85)), 0]; }) });
   const aB = lineOnBody(b, 0.69, 0.76, 0, 5, 0.008);
   fins.push({ id: 'yag', paired: false, flex: 0.15, base: aB, tip: aB.map((p, i): Vec3 => [p[0] + F.adipose * (0.02 + 0.03 * (i / 4)), p[1] + 0.05 * F.adipose * (1 - 0.55 * (i / 4)) * Math.sin(Math.PI * (0.2 + 0.7 * (1 - i / 4))), 0]) });
   const nB = lineOnBody(b, 0.66, 0.77, Math.PI, 6, 0.01);
@@ -103,9 +106,9 @@ export function spines(sex: Sex, form: Form = 'standart'): { id: string; path: V
   const lerp3 = (a: Vec3, c: Vec3, t: number): Vec3 => [lerp(a[0], c[0], t), lerp(a[1], c[1], t), lerp(a[2], c[2], t)];
   const d = pick('sirt'), a = pick('yag'), p = pick('gogus');
   return [
-    { id: 'sirt', path: [lerp3(d.base[0], d.tip[0], 0), lerp3(d.base[0], d.tip[0], 0.5), lerp3(d.base[0], d.tip[0], 1.0)], r: 0.0052, paired: false },
+    { id: 'sirt', path: [lerp3(d.base[0], d.tip[0], 0), lerp3(d.base[0], d.tip[0], 0.5), lerp3(d.base[0], d.tip[0], 1.0)], r: 0.0068, paired: false },
     { id: 'yag', path: [lerp3(a.base[0], a.tip[0], 0), lerp3(a.base[0], a.tip[0], 0.6), lerp3(a.base[0], a.tip[0], 1.1)], r: 0.003, paired: false },
-    { id: 'gogus', path: [lerp3(p.base[0], p.tip[0], 0), lerp3(p.base[0], p.tip[0], 0.5), lerp3(p.base[0], p.tip[0], 1.0)], r: 0.005, paired: true },
+    { id: 'gogus', path: [lerp3(p.base[0], p.tip[0], 0), lerp3(p.base[0], p.tip[0], 0.5), lerp3(p.base[0], p.tip[0], 1.0)], r: 0.0062, paired: true },
   ];
 }
 
