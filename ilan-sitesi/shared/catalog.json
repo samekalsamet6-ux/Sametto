@@ -1941,5 +1941,89 @@
     "dogrulanmali": true
    }
   ]
+ },
+ {
+  "id": "zebradanio",
+  "ad": "Zebra balığı (zebra danio)",
+  "latin": "Danio rerio",
+  "kisaAciklama": "İnce, mekik biçimli gövde; solungaç kapağından kuyruk yüzgecine uzanan yatay mavi çizgiler, yukarı bakan ağız, iki çift küçük bıyık; 5 şematik renk/desen ve 2 form (standart, uzun yüzgeçli).",
+  "not": "Şematik, yorumlanmış bir modeldir; gerçek bir bireyin ölçüsü ya da oranı değildir. Çizgi sayısı, kalınlığı ve konumu bireye göre değişir. İki çift bıyık (rostral ve maksiller) çok küçüktür ve modelde ince kısa iplikler olarak gösterilmiştir. Karın yüzgeçleri şematik olarak kısa, tek parça gösterilmiştir. GloFish gibi floresan / genetiği değiştirilmiş balıklar kapsam dışıdır. Ticari renk ve form adları satıcıya göre değişir; “doğrulanmalı” işaretli kayıtlar tutarsız kaynaklara dayanır.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart (kısa yüzgeç)",
+    "grup": "Doğal biçim"
+   },
+   {
+    "id": "uzun-yuzgec",
+    "ad": "Uzun yüzgeçli (long-fin / veil)",
+    "grup": "Seçmeli hat"
+   }
+  ],
+  "variants": [
+   {
+    "id": "normal",
+    "ad": "Normal (yabani tip, çizgili)",
+    "grup": "Çizgili ve benekli"
+   },
+   {
+    "id": "leopar",
+    "ad": "Leopar (benekli)",
+    "grup": "Çizgili ve benekli"
+   },
+   {
+    "id": "hibrit",
+    "ad": "Çizgi–benek karışımı (leopar × zebra)",
+    "grup": "Çizgili ve benekli",
+    "dogrulanmali": true
+   },
+   {
+    "id": "altin",
+    "ad": "Altın (Golden)",
+    "grup": "Açık renkli hatlar"
+   },
+   {
+    "id": "albino",
+    "ad": "Albino",
+    "grup": "Açık renkli hatlar",
+    "dogrulanmali": true
+   }
+  ]
  }
 ]

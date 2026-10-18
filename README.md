@@ -10,12 +10,12 @@ Lepistes (guppy, *Poecilia reticulata*) üretimi için Türkçe **rehber**, **wi
 |---|---|---|
 | Rehber | `src/content/guide/{baslangic,orta,ileri}` | 3 yol × 15 ders (MDX) |
 | Wiki | `src/content/wiki` | 63 madde: terimler, su kimyası, ekipman, hastalıklar, beslenme, genetik… |
-| Araçlar | `src/pages/araclar`, `src/lib` | 28 araç (aşağıda) |
+| Araçlar | `src/pages/araclar`, `src/lib` | 29 araç (aşağıda) |
 | Sorun giderme | `/sorun-giderme` | Belirtiden olası nedene karar aracı |
 | Seviye testi | `/seviye-testi` | 18 soruluk yönlendirme testi |
 | SSS, Sözlük, Kaynaklar | `/sss`, `/sozluk`, `/kaynaklar` | |
 
-**Araçlar:** akvaryum hacmi · su değişimi · balık sayısı planlayıcı · gebelik/doğum takvimi · yem planlayıcı · bakım takvimi (.ics) · azot döngüsü takipçisi · yavru büyüme takipçisi · maliyet ve kârlılık · etiket oranı ölçekleyici (doz önermez) · pedigri çizici · Punnett hesaplayıcı · inbreeding (Wright F) · 3B akvaryum modelleri: lepistes (29 renk, 15 form) · molly · plati · kılıçkuyruk (5 form, 10 renk) · cüce gurami (8 renk, erkek/dişi) · kaplan barb (6 renk, 2 form, erkek/dişi) · betta (12 form) · melek · diskus · pleko (L144) · neon tetra · corydoras · japon balığı (10 form) · Neocaridina karidesi (her birinde renk + form varyetesi, numaralı noktaları açıp kapama) · 3B tatlı su vatozu modeli (üst/alt yüz anatomisi, klasper, kuyruk dikeni; 6 şematik desen: motoro, leopoldi, cururu vb.; genel Potamotrygon benzeri disk, tür kimliği kaynakla doğrulanmalı).
+**Araçlar:** akvaryum hacmi · su değişimi · balık sayısı planlayıcı · gebelik/doğum takvimi · yem planlayıcı · bakım takvimi (.ics) · azot döngüsü takipçisi · yavru büyüme takipçisi · maliyet ve kârlılık · etiket oranı ölçekleyici (doz önermez) · pedigri çizici · Punnett hesaplayıcı · inbreeding (Wright F) · 3B akvaryum modelleri: lepistes (29 renk, 15 form) · molly · plati · kılıçkuyruk (5 form, 10 renk) · cüce gurami (8 renk, erkek/dişi) · kaplan barb (6 renk, 2 form, erkek/dişi) · zebra danio (5 renk, 2 form, erkek/dişi) · betta (12 form) · melek · diskus · pleko (L144) · neon tetra · corydoras · japon balığı (10 form) · Neocaridina karidesi (her birinde renk + form varyetesi, numaralı noktaları açıp kapama) · 3B tatlı su vatozu modeli (üst/alt yüz anatomisi, klasper, kuyruk dikeni; 6 şematik desen: motoro, leopoldi, cururu vb.; genel Potamotrygon benzeri disk, tür kimliği kaynakla doğrulanmalı).
 
 Tüm hesaplar tarayıcıda yapılır; hesap/giriş yoktur, veriler sunucuya gönderilmez (takipçi verisi yalnızca `localStorage`'da tutulur).
 
