@@ -5,7 +5,7 @@ import { CATALOG } from '../../shared/catalog.ts';
 const good = { species: 'lepistes', form: 'delta', variant: 'mozaik', sex: 'erkek', quantity: '3', price: '120', city: 'İstanbul', description: 'Sağlıklı, evde üretim balıklar.' };
 
 describe('katalog', () => {
-  it('12 tür ve geçerli kimlikler', () => { expect(CATALOG).toHaveLength(12); expect(CATALOG.every((s) => s.variants.length > 0)).toBe(true); });
+  it('katalog türleri ve geçerli kimlikler', () => { expect(CATALOG.length).toBeGreaterThanOrEqual(12); expect(new Set(CATALOG.map((s) => s.id)).size).toBe(CATALOG.length); expect(CATALOG.every((s) => s.variants.length > 0)).toBe(true); });
 });
 
 describe('validateListing', () => {

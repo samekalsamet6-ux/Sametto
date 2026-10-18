@@ -61,6 +61,7 @@ test.describe('akvaryum', () => {
     // düğmeler
     await page.getByRole('button', { name: 'Sola döndür' }).click();
     // sürükleme
+    await cv.scrollIntoViewIfNeeded(); await page.evaluate(() => window.scrollBy(0, 0));
     const box = (await cv.boundingBox())!;
     const before = (await page.evaluate(() => (window as any).__akvaryum.stats())).azimuth;
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down(); await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2, { steps: 6 }); await page.mouse.up();
@@ -101,9 +102,25 @@ test.describe('akvaryum', () => {
     await expect.poll(() => page.evaluate(() => (window as any).__akvaryum.stats().active)).toBe(true);
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await expect.poll(() => page.evaluate(() => (window as any).__akvaryum.stats().active)).toBe(false);
+    // sekme gizlenince (visibilitychange) çizim döngüsü durur, görününce sürer
+    await page.locator('#tank').scrollIntoViewIfNeeded();
+    await expect.poll(() => page.evaluate(() => (window as any).__akvaryum.stats().active)).toBe(true);
+    const rafCount = (pg: Page) => pg.evaluate(() => new Promise<number>((res) => {
+      let n = 0; const orig = window.requestAnimationFrame;
+      window.requestAnimationFrame = ((cb: FrameRequestCallback) => { n++; return orig.call(window, cb); }) as typeof orig;
+      setTimeout(() => { window.requestAnimationFrame = orig; res(n); }, 1200);
+    }));
+    expect(await rafCount(page), 'hareketli sahne kare çizer').toBeGreaterThan(5);
+    await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange')); });
+    await expect.poll(() => page.evaluate(() => (window as any).__akvaryum.stats().active)).toBe(false);
+    expect(await rafCount(page), 'gizli sekmede kare istenmez').toBe(0);
+    await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => false }); document.dispatchEvent(new Event('visibilitychange')); });
+    await expect.poll(() => page.evaluate(() => (window as any).__akvaryum.stats().active)).toBe(true);
     const ctx = await page.context().browser()!.newContext({ reducedMotion: 'reduce', viewport: { width: 1280, height: 800 }, locale: 'tr-TR' });
     const p2 = await ctx.newPage(); await p2.goto(DEMO_SELLER); await tankReady(p2);
     await expect(p2.locator('#tank')).toHaveAttribute('data-reduced', 'true');
+    await p2.waitForTimeout(1500); // hedef konuma yerleşsin
+    expect(await rafCount(p2), 'azaltılmış harekette poz durağan: yeni kare istenmez').toBe(0);
     await p2.locator('#tank-cv').focus(); await p2.keyboard.press('ArrowLeft');
     await expect.poll(async () => Number(await p2.locator('#tank').getAttribute('data-azimuth'))).toBeLessThan(0.3); // yine de döndürülebilir
     await ctx.close();

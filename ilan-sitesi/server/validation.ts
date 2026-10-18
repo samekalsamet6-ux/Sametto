@@ -1,5 +1,5 @@
 import { CITIES } from '../shared/cities.ts';
-import { OTHER_ID, UNKNOWN_SEX, sexOptions, speciesById } from '../shared/catalog.ts';
+import { OTHER_ID, UNKNOWN_SEX, sexOptions, fishSexOptions, noSexSplit, speciesById } from '../shared/catalog.ts';
 
 export type Errors = Record<string, string>;
 export interface Result<T> { ok: boolean; value?: T; errors: Errors }
@@ -77,7 +77,8 @@ export function validateListing(f: Record<string, unknown>): Result<ListingInput
     const variant = clean(f.variant, 40);
     if (sp.variants.length) { if (!sp.variants.some((x) => x.id === variant)) errors.variant = 'Bu tür için geçerli bir renk seçin.'; else variantId = variant; }
   }
-  const sex = clean(f.sex, 20);
+  let sex = clean(f.sex, 20);
+  if (noSexSplit(speciesId) && sp && (sex === sp.sexes[0].id || sex === UNKNOWN_SEX)) sex = UNKNOWN_SEX; // eski 'disi' kimliği de 'bilinmiyor'a çevrilir
   if (!sexOptions(speciesId).some((x) => x.id === sex)) errors.sex = 'Cinsiyet seçin.';
 
   const qRaw = clean(f.quantity, 8);
@@ -141,8 +142,9 @@ export function validateFish(f: Record<string, unknown>): Result<FishInput> {
     const variant = clean(f.variant, 40);
     if (sp.variants.length) { if (!sp.variants.some((x) => x.id === variant)) errors.variant = 'Bu tür için geçerli bir renk seçin.'; else variantId = variant; }
   }
-  const sex = clean(f.sex, 20);
-  if (sp && !sp.sexes.some((x) => x.id === sex)) errors.sex = 'Bu tür için geçerli bir cinsiyet seçin.';
+  let sex = clean(f.sex, 20);
+  if (sp && noSexSplit(speciesId) && sex === sp.sexes[0].id) sex = UNKNOWN_SEX; // 'Ayrım yok' türleri: 'bilinmiyor' saklanır
+  if (sp && !fishSexOptions(speciesId).some((x) => x.id === sex)) errors.sex = 'Bu tür için geçerli bir cinsiyet seçin.';
   return { ok: Object.keys(errors).length === 0, errors, value: { speciesId, formId, variantId, sex } };
 }
 

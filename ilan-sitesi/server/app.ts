@@ -11,7 +11,6 @@ import { checkPhoto, savePhoto, deletePhotoFiles, isSafeFileName, MIME_BY_EXT, M
 import type { SearchParams } from './search.ts';
 import type { Assets, PageCtx } from './views/layout.ts';
 import * as V from './views/pages.ts';
-import { speciesById } from '../shared/catalog.ts';
 
 class HttpError extends Error { status: number; constructor(status: number, msg: string) { super(msg); this.status = status; } }
 
@@ -64,13 +63,15 @@ export function clientIp(req: IncomingMessage, trustProxy: boolean): string {
 
 export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?: string): App {
   const limiters = {
-    login: new RateLimiter(cfg.loginMaxFails, 10 * 60_000), // e-posta başına
+    login: new RateLimiter(cfg.loginMaxFails, 10 * 60_000), // (IP, e-posta) çifti başına: üçüncü kişi yalnızca e-postayla kurbanı kilitleyemez
     loginIp: new RateLimiter(cfg.loginMaxFails * 6, 10 * 60_000), // IP başına (daha gevşek)
     register: new RateLimiter(cfg.registerMax, 60 * 60_000),
     listing: new RateLimiter(20, 60 * 60_000),
     report: new RateLimiter(20, 60 * 60_000),
     aquarium: new RateLimiter(60, 60 * 60_000), // ekleme + silme, kullanıcı başına
   };
+  // Eşzamanlı yükleme sınırı: gövdenin belleğe okunması ve görüntü işleme sürecinde tutulan yuva sayısı.
+  let uploadSlots = cfg.maxConcurrentUploads;
   const sameOrigin = (req: IncomingMessage): boolean => {
     const o = req.headers.origin;
     if (!o) return true; // tarayıcı dışı istemciler; asıl koruma CSRF belirteci
@@ -154,13 +155,19 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
         if (!user) return redirect('/giris?next=/ilan/yeni');
         if (method === 'GET') return page(V.listingFormPage(ctx, { values: {}, errors: {} }));
         // POST: ilan + fotoğraflar
-        if (limiters.listing.hit('u' + user.id)) throw new HttpError(429, 'Çok fazla ilan denemesi. Bir süre sonra tekrar deneyin.');
-        const { fields, files } = await parseBody(req, 'upload');
-        checkCsrf(fields);
-        const v = validateListing(fields);
-        const errors: Errors = { ...v.errors };
-        const real = files.filter((f) => f.size > 0);
+        if (uploadSlots <= 0) { res.setHeader('Retry-After', '5'); throw new HttpError(503, 'Sunucu şu an çok sayıda yükleme işliyor. Birkaç saniye sonra tekrar deneyin.'); }
+        uploadSlots--;
+        let fields: Record<string, string>, files: File[];
+        const errors: Errors = {};
         const checked: { data: Uint8Array; mime: string }[] = [];
+        let v: ReturnType<typeof validateListing>;
+        try {
+        if (limiters.listing.hit('u' + user.id)) throw new HttpError(429, 'Çok fazla ilan denemesi. Bir süre sonra tekrar deneyin.');
+        ({ fields, files } = await parseBody(req, 'upload'));
+        checkCsrf(fields);
+        v = validateListing(fields);
+        Object.assign(errors, v.errors);
+        const real = files.filter((f) => f.size > 0);
         if (real.length === 0) errors.photos = 'İlan yayınlamak için en az bir gerçek fotoğraf yüklemelisiniz.';
         else if (real.length > repo.MAX_PHOTOS) errors.photos = `En fazla ${repo.MAX_PHOTOS} fotoğraf yükleyebilirsiniz.`;
         else {
@@ -173,6 +180,7 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
             checked.push({ data: clean, mime: c.mime! });
           }
         }
+        } finally { uploadSlots++; }
         if (Object.keys(errors).length) {
           return page(V.listingFormPage(ctx, { values: { species: fields.species, speciesOther: fields.speciesOther, form: fields.form, variant: fields.variant, sex: fields.sex, quantity: fields.quantity, price: fields.price, city: fields.city, title: fields.title, description: fields.description, whatsapp: fields.whatsapp, phone: fields.phone }, errors }), 422);
         }
@@ -278,7 +286,7 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
         const { fields } = await parseBody(req, 'form');
         checkCsrf(fields);
         const email = normalizeEmail(fields.email);
-        const kIp = 'ip:' + ip, kEm = 'em:' + email;
+        const kIp = 'ip:' + ip, kEm = 'pair:' + ip + '|' + email;
         if (limiters.loginIp.blocked(kIp) || limiters.login.blocked(kEm)) {
           const wait = Math.max(limiters.loginIp.retryAfterSec(kIp), limiters.login.retryAfterSec(kEm));
           res.setHeader('Retry-After', String(wait));
@@ -305,7 +313,17 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
 
       if (p === '/admin/raporlar' && method === 'GET') {
         if (!isAdmin) return notFound();
-        return page(V.adminReportsPage(ctx, repo.listReports(db)));
+        return page(V.adminReportsPage(ctx, repo.listReports(db), url.searchParams.get('kaldirildi') === '1' ? 'İlan kaldırıldı ve şikayetleri çözüldü olarak işaretlendi.' : undefined));
+      }
+      const adminDel = /^\/admin\/ilan\/(\d{1,9})\/kaldir$/.exec(p);
+      if (adminDel && method === 'POST') {
+        if (!isAdmin) return notFound();
+        const { fields } = await parseBody(req, 'form');
+        checkCsrf(fields); // CSRF belirteci + Origin denetimi
+        const files = repo.adminRemoveListing(db, Number(adminDel[1]));
+        if (!files) return notFound();
+        deletePhotoFiles(cfg.uploadDir, files);
+        return redirect('/admin/raporlar?kaldirildi=1');
       }
       return notFound();
     } catch (e) {
@@ -317,6 +335,5 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
       if (!res.headersSent) send(500, V.messagePage(ctx, 'Bir şeyler ters gitti', 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.'));
     }
   }
-  void speciesById;
   return { handler: handle, limiters };
 }

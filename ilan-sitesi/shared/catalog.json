@@ -65,7 +65,8 @@
    {
     "id": "veiltail",
     "ad": "Veiltail (peçe kuyruk)",
-    "grup": "Üçgen ve yelpaze kuyruklar"
+    "grup": "Üçgen ve yelpaze kuyruklar",
+    "dogrulanmali": true
    },
    {
     "id": "lyretail",
@@ -85,17 +86,20 @@
    {
     "id": "spade",
     "ad": "Spade tail (maça kuyruk)",
-    "grup": "Yuvarlak ve sivri kuyruklar"
+    "grup": "Yuvarlak ve sivri kuyruklar",
+    "dogrulanmali": true
    },
    {
     "id": "flag",
     "ad": "Flag tail (bayrak kuyruk)",
-    "grup": "Uzun ve özel yüzgeçler"
+    "grup": "Uzun ve özel yüzgeçler",
+    "dogrulanmali": true
    },
    {
     "id": "ribbon",
     "ad": "Ribbon (şerit / uzun yüzgeç)",
-    "grup": "Uzun ve özel yüzgeçler"
+    "grup": "Uzun ve özel yüzgeçler",
+    "dogrulanmali": true
    },
    {
     "id": "kilic-ust",
@@ -327,12 +331,14 @@
    {
     "id": "veiltail",
     "ad": "Veiltail / longfin (geniş kuyruk)",
-    "grup": "Yüzgeç biçimi"
+    "grup": "Yüzgeç biçimi",
+    "dogrulanmali": true
    },
    {
     "id": "balloon",
     "ad": "Balloon (balon)",
-    "grup": "Gövde biçimi"
+    "grup": "Gövde biçimi",
+    "dogrulanmali": true
    }
   ],
   "variants": [
@@ -354,7 +360,8 @@
    {
     "id": "chocolate",
     "ad": "Chocolate (Çikolata)",
-    "grup": "Koyu"
+    "grup": "Koyu",
+    "dogrulanmali": true
    },
    {
     "id": "gold",
@@ -444,12 +451,14 @@
    {
     "id": "lyretail",
     "ad": "Lyretail (lira kuyruk)",
-    "grup": "Yüzgeç biçimi"
+    "grup": "Yüzgeç biçimi",
+    "dogrulanmali": true
    },
    {
     "id": "balloon",
     "ad": "Balloon (balon)",
-    "grup": "Gövde biçimi"
+    "grup": "Gövde biçimi",
+    "dogrulanmali": true
    }
   ],
   "variants": [
@@ -486,22 +495,26 @@
    {
     "id": "sunset",
     "ad": "Sunset (Gün batımı)",
-    "grup": "Alacalı ve geçişli"
+    "grup": "Alacalı ve geçişli",
+    "dogrulanmali": true
    },
    {
     "id": "salt-pepper",
     "ad": "Salt & Pepper (Tuz ve biber)",
-    "grup": "Alacalı ve geçişli"
+    "grup": "Alacalı ve geçişli",
+    "dogrulanmali": true
    },
    {
     "id": "dogal-maculatus",
     "ad": "Doğal form (X. maculatus)",
-    "grup": "Doğal formlar"
+    "grup": "Doğal formlar",
+    "dogrulanmali": true
    },
    {
     "id": "variatus",
     "ad": "Variatus (çok renkli)",
-    "grup": "Doğal formlar"
+    "grup": "Doğal formlar",
+    "dogrulanmali": true
    }
   ]
  },
@@ -561,17 +574,20 @@
    {
     "id": "spade",
     "ad": "Spade tail (maça kuyruk)",
-    "grup": "Uzun kuyruklular (kuyruk açısına göre)"
+    "grup": "Uzun kuyruklular (kuyruk açısına göre)",
+    "dogrulanmali": true
    },
    {
     "id": "delta",
     "ad": "Delta",
-    "grup": "Uzun kuyruklular (kuyruk açısına göre)"
+    "grup": "Uzun kuyruklular (kuyruk açısına göre)",
+    "dogrulanmali": true
    },
    {
     "id": "super-delta",
     "ad": "Super delta",
-    "grup": "Uzun kuyruklular (kuyruk açısına göre)"
+    "grup": "Uzun kuyruklular (kuyruk açısına göre)",
+    "dogrulanmali": true
    },
    {
     "id": "halfmoon",
@@ -581,7 +597,8 @@
    {
     "id": "overhalfmoon",
     "ad": "Overhalfmoon (OHM)",
-    "grup": "Uzun kuyruklular (kuyruk açısına göre)"
+    "grup": "Uzun kuyruklular (kuyruk açısına göre)",
+    "dogrulanmali": true
    },
    {
     "id": "crowntail",
@@ -591,12 +608,14 @@
    {
     "id": "combtail",
     "ad": "Combtail (tarak kuyruk)",
-    "grup": "Yüzgeç dokusu"
+    "grup": "Yüzgeç dokusu",
+    "dogrulanmali": true
    },
    {
     "id": "rosetail",
     "ad": "Rosetail / feathertail",
-    "grup": "Yüzgeç dokusu"
+    "grup": "Yüzgeç dokusu",
+    "dogrulanmali": true
    },
    {
     "id": "double-tail",
@@ -623,37 +642,44 @@
    {
     "id": "celik-mavi",
     "ad": "Çelik mavisi (steel blue)",
-    "grup": "Tek renk"
+    "grup": "Tek renk",
+    "dogrulanmali": true
    },
    {
     "id": "turkuaz",
     "ad": "Turkuaz (mavi-yeşil)",
-    "grup": "Tek renk"
+    "grup": "Tek renk",
+    "dogrulanmali": true
    },
    {
     "id": "sari",
     "ad": "Sarı (kırmızısız sarı)",
-    "grup": "Tek renk"
+    "grup": "Tek renk",
+    "dogrulanmali": true
    },
    {
     "id": "selofan",
     "ad": "Selofan (cellophane)",
-    "grup": "Saydam ve soluk"
+    "grup": "Saydam ve soluk",
+    "dogrulanmali": true
    },
    {
     "id": "opak-beyaz",
     "ad": "Opak beyaz",
-    "grup": "Saydam ve soluk"
+    "grup": "Saydam ve soluk",
+    "dogrulanmali": true
    },
    {
     "id": "koi",
     "ad": "Koi",
-    "grup": "Desenli ve çok renkli"
+    "grup": "Desenli ve çok renkli",
+    "dogrulanmali": true
    },
    {
     "id": "mermer",
     "ad": "Mermer (marble)",
-    "grup": "Desenli ve çok renkli"
+    "grup": "Desenli ve çok renkli",
+    "dogrulanmali": true
    },
    {
     "id": "kelebek",
@@ -663,17 +689,20 @@
    {
     "id": "siyah-orkide",
     "ad": "Siyah orkide (black orchid)",
-    "grup": "Desenli ve çok renkli"
+    "grup": "Desenli ve çok renkli",
+    "dogrulanmali": true
    },
    {
     "id": "ejder",
     "ad": "Ejder (dragon scale)",
-    "grup": "Desenli ve çok renkli"
+    "grup": "Desenli ve çok renkli",
+    "dogrulanmali": true
    },
    {
     "id": "hardal-gazi",
     "ad": "Hardal gazı (mustard gas)",
-    "grup": "Desenli ve çok renkli"
+    "grup": "Desenli ve çok renkli",
+    "dogrulanmali": true
    }
   ]
  },
@@ -739,17 +768,20 @@
    {
     "id": "retikule",
     "ad": "Retikülasyon tipi (Reticulata / ağ desenli)",
-    "grup": "Akvaryumda sık görülen türlerin desenleri"
+    "grup": "Akvaryumda sık görülen türlerin desenleri",
+    "dogrulanmali": true
    },
    {
     "id": "marmorlu",
     "ad": "Marmorlu motoro (ticari form)",
-    "grup": "Ticari desen formları"
+    "grup": "Ticari desen formları",
+    "dogrulanmali": true
    },
    {
     "id": "albino",
     "ad": "Albino (açık krem-turuncu, kırmızımsı göz)",
-    "grup": "Pigment varyasyonu"
+    "grup": "Pigment varyasyonu",
+    "dogrulanmali": true
    }
   ]
  },
@@ -830,12 +862,14 @@
    {
     "id": "yellow-goldenback",
     "ad": "Yellow Goldenback (sırtta açık çizgi)",
-    "grup": "Sarı ve turuncu"
+    "grup": "Sarı ve turuncu",
+    "dogrulanmali": true
    },
    {
     "id": "orange",
     "ad": "Orange (Sunkist / Orange Pumpkin)",
-    "grup": "Sarı ve turuncu"
+    "grup": "Sarı ve turuncu",
+    "dogrulanmali": true
    },
    {
     "id": "blue-dream",
@@ -845,12 +879,14 @@
    {
     "id": "blue-velvet",
     "ad": "Blue Velvet (koyu, mat mavi)",
-    "grup": "Mavi ve yeşil"
+    "grup": "Mavi ve yeşil",
+    "dogrulanmali": true
    },
    {
     "id": "green-jade",
     "ad": "Green Jade (yeşil)",
-    "grup": "Mavi ve yeşil"
+    "grup": "Mavi ve yeşil",
+    "dogrulanmali": true
    },
    {
     "id": "chocolate",
@@ -860,12 +896,14 @@
    {
     "id": "black-rose",
     "ad": "Black Rose (koyu bordo-siyah)",
-    "grup": "Koyu ve beyaz"
+    "grup": "Koyu ve beyaz",
+    "dogrulanmali": true
    },
    {
     "id": "snowball",
     "ad": "Snowball (beyaz, opak)",
-    "grup": "Koyu ve beyaz"
+    "grup": "Koyu ve beyaz",
+    "dogrulanmali": true
    },
    {
     "id": "rili-kirmizi",
@@ -927,12 +965,14 @@
    {
     "id": "halfmoon",
     "ad": "Halfmoon (yarım ay)",
-    "grup": "Seçmeli uzun yüzgeç formları"
+    "grup": "Seçmeli uzun yüzgeç formları",
+    "dogrulanmali": true
    },
    {
     "id": "super-veil",
     "ad": "Süper veil (çok uzun yüzgeç)",
-    "grup": "Seçmeli uzun yüzgeç formları"
+    "grup": "Seçmeli uzun yüzgeç formları",
+    "dogrulanmali": true
    }
   ],
   "variants": [
@@ -949,7 +989,8 @@
    {
     "id": "mavi",
     "ad": "Mavi (Blue)",
-    "grup": "Bantlı (yabani tipe yakın)"
+    "grup": "Bantlı (yabani tipe yakın)",
+    "dogrulanmali": true
    },
    {
     "id": "dumanli",
@@ -979,12 +1020,14 @@
    {
     "id": "hayalet",
     "ad": "Hayalet (Ghost)",
-    "grup": "Tek renk ve açık tonlar"
+    "grup": "Tek renk ve açık tonlar",
+    "dogrulanmali": true
    },
    {
     "id": "pembe-yanak",
     "ad": "Pembe yanaklı (Blushing)",
-    "grup": "Tek renk ve açık tonlar"
+    "grup": "Tek renk ve açık tonlar",
+    "dogrulanmali": true
    },
    {
     "id": "koi",
@@ -999,17 +1042,20 @@
    {
     "id": "altin-mermer",
     "ad": "Altın mermer (Gold marble)",
-    "grup": "Benekli ve mermer desenler"
+    "grup": "Benekli ve mermer desenler",
+    "dogrulanmali": true
    },
    {
     "id": "panda",
     "ad": "Panda",
-    "grup": "Benekli ve mermer desenler"
+    "grup": "Benekli ve mermer desenler",
+    "dogrulanmali": true
    },
    {
     "id": "siyah-dantel",
     "ad": "Siyah dantel (Black lace)",
-    "grup": "Benekli ve mermer desenler"
+    "grup": "Benekli ve mermer desenler",
+    "dogrulanmali": true
    },
    {
     "id": "inci-pul",
@@ -1063,7 +1109,8 @@
    {
     "id": "heckel",
     "ad": "Heckel tipi (yabani, belirgin orta bant)",
-    "grup": "Yabani tipler"
+    "grup": "Yabani tipler",
+    "dogrulanmali": true
    },
    {
     "id": "kahverengi",
@@ -1073,12 +1120,14 @@
    {
     "id": "yabani-yesil",
     "ad": "Yabani yeşil",
-    "grup": "Yabani tipler"
+    "grup": "Yabani tipler",
+    "dogrulanmali": true
    },
    {
     "id": "royal-blue",
     "ad": "Royal blue",
-    "grup": "Mavi ve turkuaz hatlar"
+    "grup": "Mavi ve turkuaz hatlar",
+    "dogrulanmali": true
    },
    {
     "id": "blue-diamond",
@@ -1098,7 +1147,8 @@
    {
     "id": "red-melon",
     "ad": "Red melon",
-    "grup": "Kırmızı ve turuncu hatlar"
+    "grup": "Kırmızı ve turuncu hatlar",
+    "dogrulanmali": true
    },
    {
     "id": "pigeon-blood",
@@ -1118,7 +1168,8 @@
    {
     "id": "panda",
     "ad": "Panda",
-    "grup": "Desenli hatlar"
+    "grup": "Desenli hatlar",
+    "dogrulanmali": true
    },
    {
     "id": "albino",
@@ -1133,7 +1184,8 @@
    {
     "id": "beyaz",
     "ad": "Beyaz (White / ghost)",
-    "grup": "Açık ve albino hatlar"
+    "grup": "Açık ve albino hatlar",
+    "dogrulanmali": true
    }
   ]
  },
@@ -1188,14 +1240,16 @@
    {
     "id": "tul",
     "ad": "Tül (uzun yüzgeç / longfin)",
-    "grup": "Yüzgeç uzunluğu"
+    "grup": "Yüzgeç uzunluğu",
+    "dogrulanmali": true
    }
   ],
   "variants": [
    {
     "id": "limon-mavi-goz",
     "ad": "L144 “Limon mavi göz”",
-    "grup": "L144 / limon mavi göz"
+    "grup": "L144 / limon mavi göz",
+    "dogrulanmali": true
    },
    {
     "id": "ortak",
@@ -1210,22 +1264,26 @@
    {
     "id": "super-kirmizi",
     "ad": "Süper kırmızı",
-    "grup": "Diğer renk formları"
+    "grup": "Diğer renk formları",
+    "dogrulanmali": true
    },
    {
     "id": "calico",
     "ad": "Calico (alacalı)",
-    "grup": "Diğer renk formları"
+    "grup": "Diğer renk formları",
+    "dogrulanmali": true
    },
    {
     "id": "kirmizi-calico",
     "ad": "Süper kırmızı calico (kırmızı mermer)",
-    "grup": "Diğer renk formları"
+    "grup": "Diğer renk formları",
+    "dogrulanmali": true
    },
    {
     "id": "kar-topu",
     "ad": "Kar topu / beyaz (snowball)",
-    "grup": "Diğer renk formları"
+    "grup": "Diğer renk formları",
+    "dogrulanmali": true
    }
   ]
  },
@@ -1280,12 +1338,14 @@
    {
     "id": "uzun-yuzgec",
     "ad": "Uzun yüzgeçli (longfin)",
-    "grup": ""
+    "grup": "",
+    "dogrulanmali": true
    },
    {
     "id": "balon",
     "ad": "Balon (ballon)",
-    "grup": ""
+    "grup": "",
+    "dogrulanmali": true
    }
   ],
   "variants": [
@@ -1297,12 +1357,14 @@
    {
     "id": "diamond",
     "ad": "Diamond (pırlanta)",
-    "grup": "Seçilmiş renk biçimleri"
+    "grup": "Seçilmiş renk biçimleri",
+    "dogrulanmali": true
    },
    {
     "id": "gold",
     "ad": "Gold (altın; albino tipi)",
-    "grup": "Seçilmiş renk biçimleri"
+    "grup": "Seçilmiş renk biçimleri",
+    "dogrulanmali": true
    }
   ]
  },
@@ -1357,12 +1419,14 @@
    {
     "id": "uzun-yuzgec",
     "ad": "Uzun yüzgeçli (longfin)",
-    "grup": ""
+    "grup": "",
+    "dogrulanmali": true
    },
    {
     "id": "balon",
     "ad": "Balon (balloon)",
-    "grup": ""
+    "grup": "",
+    "dogrulanmali": true
    }
   ],
   "variants": [
@@ -1384,7 +1448,8 @@
    {
     "id": "sterbai",
     "ad": "Sterbai tipi (koyu zemin, beyaz benekler)",
-    "grup": "Başka türlerin desen tipi"
+    "grup": "Başka türlerin desen tipi",
+    "dogrulanmali": true
    }
   ]
  },
@@ -1393,7 +1458,7 @@
   "ad": "Japon balığı",
   "latin": "Carassius auratus",
   "kisaAciklama": "Japon balığı: common, comet, fantail, ryukin, oranda, lionhead, telescope, bubble eye ve pearlscale formları; turuncu, sarasa, shubunkin ve daha fazla renk.",
-  "not": "Şematik model: formlar (common, comet, Bristol shubunkin, fantail, ryukin, oranda, lionhead, telescope, bubble eye, pearlscale) gerçek ırk standartları değil, şematik yorumdur; ranchu, pompom, celestial vb. diğer biçimler modellenmemiştir. Renk adları kaynağa göre değişir; “kaynakla doğrulanmalı” işaretli kayıtlar belirsizdir.",
+  "not": "Şematik model: 14 form (Common (standart), Comet, Bristol shubunkin (büyük yuvarlak kuyruk), Fantail, Veiltail (uzun perde kuyruk), Ryukin, Oranda (wen’li), Lionhead, Ranchu, Pompon (burun tomurcuklu), Telescope (teleskop / moor), Celestial (gökyüzüne bakan gözlü), Bubble eye (balon göz), Pearlscale (inci pullu)) gerçek ırk standartları değil, şematik yorumdur; tosakin, jikin gibi diğer biçimler modellenmemiştir. Renk adları kaynağa göre değişir; “kaynakla doğrulanmalı” işaretli kayıtlar belirsizdir.",
   "sexes": [
    {
     "id": "erkek",
@@ -1444,7 +1509,8 @@
    {
     "id": "bristol",
     "ad": "Bristol shubunkin (büyük yuvarlak kuyruk)",
-    "grup": "Tek kuyruklu (common tipi)"
+    "grup": "Tek kuyruklu (common tipi)",
+    "dogrulanmali": true
    },
    {
     "id": "fantail",
@@ -1464,42 +1530,50 @@
    {
     "id": "oranda",
     "ad": "Oranda (wen’li)",
-    "grup": "Çift kuyruklu süs (fancy) biçimleri"
+    "grup": "Çift kuyruklu süs (fancy) biçimleri",
+    "dogrulanmali": true
    },
    {
     "id": "lionhead",
     "ad": "Lionhead",
-    "grup": "Çift kuyruklu süs (fancy) biçimleri"
+    "grup": "Çift kuyruklu süs (fancy) biçimleri",
+    "dogrulanmali": true
    },
    {
     "id": "ranchu",
     "ad": "Ranchu",
-    "grup": "Çift kuyruklu süs (fancy) biçimleri"
+    "grup": "Çift kuyruklu süs (fancy) biçimleri",
+    "dogrulanmali": true
    },
    {
     "id": "pompom",
     "ad": "Pompon (burun tomurcuklu)",
-    "grup": "Çift kuyruklu süs (fancy) biçimleri"
+    "grup": "Çift kuyruklu süs (fancy) biçimleri",
+    "dogrulanmali": true
    },
    {
     "id": "teleskop",
     "ad": "Telescope (teleskop / moor)",
-    "grup": "Çift kuyruklu süs (fancy) biçimleri"
+    "grup": "Çift kuyruklu süs (fancy) biçimleri",
+    "dogrulanmali": true
    },
    {
     "id": "celestial",
     "ad": "Celestial (gökyüzüne bakan gözlü)",
-    "grup": "Çift kuyruklu süs (fancy) biçimleri"
+    "grup": "Çift kuyruklu süs (fancy) biçimleri",
+    "dogrulanmali": true
    },
    {
     "id": "balon-goz",
     "ad": "Bubble eye (balon göz)",
-    "grup": "Çift kuyruklu süs (fancy) biçimleri"
+    "grup": "Çift kuyruklu süs (fancy) biçimleri",
+    "dogrulanmali": true
    },
    {
     "id": "inci",
     "ad": "Pearlscale (inci pullu)",
-    "grup": "Çift kuyruklu süs (fancy) biçimleri"
+    "grup": "Çift kuyruklu süs (fancy) biçimleri",
+    "dogrulanmali": true
    }
   ],
   "variants": [
@@ -1516,7 +1590,8 @@
    {
     "id": "limon",
     "ad": "Sarı / limon",
-    "grup": "Tek renk"
+    "grup": "Tek renk",
+    "dogrulanmali": true
    },
    {
     "id": "beyaz",
@@ -1531,7 +1606,8 @@
    {
     "id": "bronz",
     "ad": "Bronz / kahverengi",
-    "grup": "Tek renk"
+    "grup": "Tek renk",
+    "dogrulanmali": true
    },
    {
     "id": "sarasa",
@@ -1546,7 +1622,136 @@
    {
     "id": "panda",
     "ad": "Panda (siyah-beyaz)",
-    "grup": "Çok renkli (desenli)"
+    "grup": "Çok renkli (desenli)",
+    "dogrulanmali": true
+   }
+  ]
+ },
+ {
+  "id": "kilickuyruk",
+  "ad": "Kılıçkuyruk",
+  "latin": "Xiphophorus hellerii",
+  "kisaAciklama": "Uzun, ince kılıçkuyruk: erkekte kuyruk yüzgecinin alt kenarında kılıç, gonopodium; dişide gravid spot; 5 form ve 10 renk/desen varyetesi.",
+  "not": "Şematik, yeşil kılıçkuyruk (Xiphophorus hellerii) yorumu; ticari kılıçkuyrukların çoğu hellerii ağırlıklı melezlerdir ve bu model ayırt etmez. Kılıç yalnızca erkekte bulunur ve her formda vardır. Form varyeteleri (hifin, lyretail, Simpson hifin lyretail, hifin delta) renkten bağımsız seçilir; Simpson ve delta kaynakla doğrulanmalıdır. “Wagtail”, “tuxedo”, “koi”, “pineapple” biçim değil renk desenidir. Renk adları satıcıya göre değişir.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart (normal yüzgeç)",
+    "grup": "Yüzgeç biçimi"
+   },
+   {
+    "id": "hifin",
+    "ad": "Hifin (yüksek sırt yüzgeci)",
+    "grup": "Yüzgeç biçimi"
+   },
+   {
+    "id": "lyretail",
+    "ad": "Lyretail (lira kuyruk)",
+    "grup": "Yüzgeç biçimi"
+   },
+   {
+    "id": "simpson",
+    "ad": "Simpson hifin lyretail",
+    "grup": "Yüzgeç biçimi",
+    "dogrulanmali": true
+   },
+   {
+    "id": "delta",
+    "ad": "Hifin delta",
+    "grup": "Yüzgeç biçimi",
+    "dogrulanmali": true
+   }
+  ],
+  "variants": [
+   {
+    "id": "green",
+    "ad": "Green (Yeşil / doğal tip)",
+    "grup": "Doğal"
+   },
+   {
+    "id": "red",
+    "ad": "Red (Kırmızı)",
+    "grup": "Düz renk"
+   },
+   {
+    "id": "lemon",
+    "ad": "Lemon (Limon sarısı)",
+    "grup": "Düz renk",
+    "dogrulanmali": true
+   },
+   {
+    "id": "albino",
+    "ad": "Albino (kırmızı gözlü)",
+    "grup": "Düz renk"
+   },
+   {
+    "id": "red-wag",
+    "ad": "Red Wagtail (Kırmızı, siyah yüzgeçli)",
+    "grup": "Siyah yüzgeçli ve siyah desenli"
+   },
+   {
+    "id": "tuxedo",
+    "ad": "Tuxedo (Smokin)",
+    "grup": "Siyah yüzgeçli ve siyah desenli"
+   },
+   {
+    "id": "koi",
+    "ad": "Koi (Kırmızı–beyaz–siyah alaca)",
+    "grup": "Alacalı ve özel"
+   },
+   {
+    "id": "pineapple",
+    "ad": "Pineapple (Ananas)",
+    "grup": "Alacalı ve özel",
+    "dogrulanmali": true
+   },
+   {
+    "id": "neon",
+    "ad": "Neon (Neon mavi–kırmızı)",
+    "grup": "Alacalı ve özel",
+    "dogrulanmali": true
+   },
+   {
+    "id": "tricolor",
+    "ad": "Tricolor (Üç renkli)",
+    "grup": "Alacalı ve özel",
+    "dogrulanmali": true
    }
   ]
  }

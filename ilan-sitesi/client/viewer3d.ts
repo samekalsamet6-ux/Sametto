@@ -5,6 +5,7 @@ const LOADERS: Record<string, () => Promise<{ species: SpeciesModule }>> = {
   lepistes: () => import('../../src/lib/guppy/index.ts'),
   molly: () => import('../../src/lib/molly/index.ts'),
   platy: () => import('../../src/lib/platy/index.ts'),
+  kilickuyruk: () => import('../../src/lib/kilickuyruk/index.ts'),
   betta: () => import('../../src/lib/betta/index.ts'),
   vatoz: () => import('../../src/lib/vatoz/index.ts'),
   karides: () => import('../../src/lib/karides/index.ts'),
@@ -57,7 +58,7 @@ export function mountViewer(stage: HTMLElement, hooks: { onState?: (s: 'loading'
       } else {
         clear();
         const fresh = document.createElement('canvas');
-        for (const a of ['id', 'tabindex', 'role', 'aria-label']) { const v = canvas.getAttribute(a); if (v !== null) fresh.setAttribute(a, v); }
+        for (const a of ['id', 'tabindex', 'role', 'aria-label', 'aria-describedby', 'aria-keyshortcuts']) { const v = canvas.getAttribute(a); if (v !== null) fresh.setAttribute(a, v); }
         canvas.replaceWith(fresh); canvas = fresh;
         viewer = sp.createViewer({ canvas, overlay, sex, form, variant, reducedMotion: reduced, onSelect: () => {} });
         viewer.setHotspots(false); viewer.setSwim(!reduced);

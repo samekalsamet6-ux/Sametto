@@ -158,6 +158,13 @@ test.describe('arama ve ilan detayı (örnek veriyle)', () => {
     await page.locator('#cv').focus();
     await page.keyboard.press('ArrowRight');
     await expect(page.locator('#cv')).toBeFocused();
+    // A6/B6: odaklanabilir tuval img rolü taşımaz; görünür klavye yardımı ve metin olarak seçim + uyarı cümlesi
+    await expect(page.locator('#cv')).toHaveAttribute('role', 'group');
+    await expect(page.locator('#cv')).toHaveAttribute('aria-describedby', /kb-yardim/);
+    await expect(page.locator('#kb-yardim')).toBeVisible();
+    await expect(page.locator('#kb-yardim')).toContainText('Home');
+    await expect(page.getByTestId('secim-3b')).toContainText('Seçilen:');
+    await expect(page.getByText('Gerçek balık bu görünümle birebir aynı olmayabilir.')).toBeVisible();
     expect(errors, 'CSP / konsol hatası olmamalı').toEqual([]);
   });
 

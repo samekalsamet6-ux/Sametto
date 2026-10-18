@@ -1,5 +1,5 @@
 import './site.ts';
-import { CATALOG, OTHER_ID, UNKNOWN_SEX, sexOptions } from '../shared/catalog.ts';
+import { CATALOG, OTHER_ID, UNKNOWN_SEX, sexOptions, modelSex, itemLabel } from '../shared/catalog.ts';
 import { mountViewer } from './viewer3d.ts';
 import { fillSelect } from './catalog-select.ts';
 
@@ -36,8 +36,8 @@ function preview() {
     return;
   }
   const f = sp.forms.find((x) => x.id === form.value), v = sp.variants.find((x) => x.id === variant.value);
-  const sx = sp.sexes.some((s) => s.id === sex.value) ? sex.value : sp.sexes[0].id;
-  ozet.textContent = `Önizleme: ${[sp.ad, f?.ad, v?.ad, sex.value === UNKNOWN_SEX ? undefined : sp.sexes.find((s) => s.id === sx)?.ad].filter(Boolean).join(' · ')}`;
+  const sx = modelSex(sp.id, sex.value);
+  ozet.textContent = `Önizleme: ${[sp.ad, f && itemLabel(f), v && itemLabel(v), sex.value === UNKNOWN_SEX ? undefined : sp.sexes.find((s) => s.id === sx)?.ad].filter(Boolean).join(' · ')}`;
   void mount.update({ species: sp.id, sex: sx, form: form.value, variant: variant.value });
 }
 

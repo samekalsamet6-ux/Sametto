@@ -18,6 +18,8 @@ export interface Config {
   port: number; host: string; trustProxy: boolean; cookieSecure: boolean; dataDir: string; uploadDir: string; dbPath: string; production: boolean;
   /** Test için hız sınırlarını gevşetmek */
   loginMaxFails: number; registerMax: number;
+  /** Aynı anda gövdesi okunan/işlenen fotoğraf yükleme isteği sayısı (bellek koruması) */
+  maxConcurrentUploads: number;
 }
 
 export function readConfig(env = process.env): Config {
@@ -28,5 +30,6 @@ export function readConfig(env = process.env): Config {
     cookieSecure: env.COOKIE_SECURE === 'true', dataDir,
     uploadDir: path.join(dataDir, 'uploads'), dbPath: path.join(dataDir, 'app.db'),
     production: env.NODE_ENV === 'production', loginMaxFails: Number(env.LOGIN_MAX_FAILS || 5), registerMax: Number(env.REGISTER_MAX || 10),
+    maxConcurrentUploads: Math.max(1, Number(env.MAX_CONCURRENT_UPLOADS || 4)),
   };
 }

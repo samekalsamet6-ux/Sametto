@@ -1,18 +1,25 @@
 import { html, raw, esc, type SafeHtml } from './html.ts';
 import { layout, csrfField, SITE_NAME, type PageCtx } from './layout.ts';
-import { CATALOG, OTHER_ID, speciesById, speciesLabel, sexOptions, UNKNOWN_SEX } from '../../shared/catalog.ts';
+import { CATALOG, OTHER_ID, speciesById, speciesLabel, sexOptions, fishSexOptions, noSexSplit, itemLabel, UNKNOWN_SEX, type CatItem } from '../../shared/catalog.ts';
 import { CITIES } from '../../shared/cities.ts';
 import { formatPrice, formatPhone, formatPhoneLocal, REPORT_REASONS, MAX_FISH, MAX_KARIDES, MAX_HEAVY, type Errors } from '../validation.ts';
 import { PAGE_SIZE, SORTS, type SearchParams } from '../search.ts';
 import type { Listing, Photo, ReportRow, AquariumFish } from '../db.ts';
 
 const fmtDate = (ms: number) => new Date(ms).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
-const itemName = (list: { id: string; ad: string }[], id: string | null) => list.find((x) => x.id === id)?.ad ?? null;
+const itemName = (list: CatItem[], id: string | null) => { const x = list.find((y) => y.id === id); return x ? itemLabel(x) : null; };
 
 export function sexLabel(speciesId: string, sex: string): string {
+  if (noSexSplit(speciesId) && (sex === UNKNOWN_SEX || sex === 'disi')) return 'Ayrım yok';
   if (sex === UNKNOWN_SEX) return 'Cinsiyet bilinmiyor / karışık';
   return sexOptions(speciesId).find((s) => s.id === sex)?.ad ?? sex;
 }
+const KB_HELP = 'Klavye: 3B görünüm odaktayken ok tuşları döndürür, + ve - yakınlaştırır, Home sıfırlar.';
+/** Modelin tür kimliğinin şematik/belirsiz olduğu türler için ilan sayfasında ayrıca yazılan cümle. */
+const IDENTITY_NOTE: Record<string, string> = {
+  corydoras: 'Bu modelin tür kimliği şematiktir ve belirsizdir: genel bir Corydoras gövdesi (C. aeneus / C. paleatus tipi) varsayılmıştır.',
+  vatoz: 'Bu modelin tür kimliği şematiktir ve belirsizdir: belirli bir türün değil, genel Potamotrygon benzeri bir diskin temsilidir.',
+};
 export function listingFacts(l: Listing): { species: string; form: string | null; variant: string | null; sex: string } {
   const sp = speciesById(l.species_id);
   return { species: speciesLabel(l.species_id, l.species_other), form: sp ? itemName(sp.forms, l.form_id) : null, variant: sp ? itemName(sp.variants, l.variant_id) : null, sex: sexLabel(l.species_id, l.sex) };
@@ -180,14 +187,17 @@ export function detailPage(ctx: PageCtx, o: { l: Listing; photos: Photo[]; alrea
     <section class="model3d" aria-labelledby="m3d-baslik">
       ${sp
         ? html`<h2 id="m3d-baslik" class="label3d" data-testid="etiket-3b">Temsili 3B görünüm — gerçek balık fotoğrafları <span class="w-wide">solda</span><span class="w-narrow">yukarıda</span></h2>
+      <p class="small" id="m3d-secim" data-testid="secim-3b">Seçilen: ${[f.species, f.form, f.variant, f.sex].filter(Boolean).join(' · ')}.</p>
+      <p class="small">Gerçek balık bu görünümle birebir aynı olmayabilir.${IDENTITY_NOTE[l.species_id] ? ' ' + IDENTITY_NOTE[l.species_id] : ''}</p>
       <div class="stage" id="sahne" data-species="${l.species_id}" data-form="${l.form_id ?? ''}" data-variant="${l.variant_id ?? ''}" data-sex="${l.sex}">
-        <canvas id="cv" tabindex="0" role="img" aria-label="${f.species} için temsili 3B model; sürükleyerek döndürebilirsiniz"></canvas>
+        <canvas id="cv" tabindex="0" role="group" aria-label="${f.species} için temsili 3B model; sürükleyerek döndürebilirsiniz" aria-describedby="kb-yardim m3d-secim" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown + - Home"></canvas>
         <div class="hot" id="ov" hidden></div>
         <p class="stage-status" id="durum" role="status">3B model yükleniyor…</p>
         <p class="stage-fallback" id="yedek" hidden>Bu tarayıcıda 3B görünüm açılamadı (WebGL kapalı ya da desteklenmiyor). İlanın fotoğrafları ve bilgileri yine de geçerlidir.</p>
       </div>
+      <p class="muted small" id="kb-yardim">${KB_HELP}</p>
       <div class="viewbar" id="gorunum" role="group" aria-label="Bakış açısı" hidden>${sp.views.slice(0, 4).map((v) => html`<button type="button" class="btn btn-small btn-ghost" data-view="${v.id}">${v.ad}</button>`)}<button type="button" class="btn btn-small btn-ghost" id="don" aria-pressed="false">Otomatik döndür</button></div>
-      <p class="note small">Seçilen: ${[f.species, f.form, f.variant, f.sex].filter(Boolean).join(' · ')}. Model şematik bir yorumdur; gerçek balığın rengi ve yüzgeç biçimi farklı olabilir.${sp.not ? ' ' + sp.not : ''}</p>`
+      <p class="note small">Model şematik bir yorumdur; gerçek balığın rengi ve yüzgeç biçimi farklı olabilir.${sp.not ? ' ' + sp.not : ''}</p>`
         : html`<h2 id="m3d-baslik">Bu tür için 3B model yok</h2><p class="note">“${f.species}” 3B kataloğumuzda bulunmuyor; bu ilanda yalnızca satıcının gerçek fotoğrafları gösterilir.</p>`}
     </section>
     <section class="info" aria-labelledby="bilgi-b">
@@ -247,9 +257,9 @@ ${Object.keys(e).length ? html`<div class="flash flash-err" role="alert" tabinde
     </div>
     <div class="row2">
       <div class="f" id="sekil-kutu"><label for="form">Şekil (yüzgeç / vücut biçimi)</label>
-        <select id="form" name="form"${invalid(e, 'form')}>${sp ? sp.forms.map((x) => html`<option value="${x.id}"${sel(v.form, x.id)}>${x.ad}</option>`) : html`<option value="">Önce tür seçin</option>`}</select>${err(e, 'form')}</div>
+        <select id="form" name="form"${invalid(e, 'form')}>${sp ? sp.forms.map((x) => html`<option value="${x.id}"${sel(v.form, x.id)}>${itemLabel(x)}</option>`) : html`<option value="">Önce tür seçin</option>`}</select>${err(e, 'form')}</div>
       <div class="f" id="renk-kutu"><label for="variant">Renk</label>
-        <select id="variant" name="variant"${invalid(e, 'variant')}>${sp ? sp.variants.map((x) => html`<option value="${x.id}"${sel(v.variant, x.id)}>${x.ad}</option>`) : html`<option value="">Önce tür seçin</option>`}</select>${err(e, 'variant')}</div>
+        <select id="variant" name="variant"${invalid(e, 'variant')}>${sp ? sp.variants.map((x) => html`<option value="${x.id}"${sel(v.variant, x.id)}>${itemLabel(x)}</option>`) : html`<option value="">Önce tür seçin</option>`}</select>${err(e, 'variant')}</div>
     </div>
     <div class="row3">
       <div class="f"><label for="sex">Cinsiyet</label>
@@ -280,7 +290,7 @@ ${Object.keys(e).length ? html`<div class="flash flash-err" role="alert" tabinde
     <div class="sticky">
       <h2 id="onizleme-b">Temsili 3B görünüm (önizleme)</h2>
       <div class="stage" id="sahne">
-        <canvas id="cv" tabindex="0" role="img" aria-label="Seçtiğiniz tür, şekil ve renk için temsili 3B önizleme"></canvas>
+        <canvas id="cv" role="img" aria-label="Seçtiğiniz tür, şekil ve renk için temsili 3B önizleme"></canvas>
         <div class="hot" id="ov" hidden></div>
         <p class="stage-status" id="durum" role="status">Tür seçtiğinizde 3B önizleme burada görünür.</p>
         <p class="stage-fallback" id="yedek" hidden>Bu tarayıcıda 3B önizleme açılamadı (WebGL yok). İlanı yine de verebilirsiniz.</p>
@@ -324,7 +334,7 @@ export const TANK_LABEL = 'temsili 3B görünüm — satıcının gerçek stoğu
 
 export function fishFacts(f: AquariumFish): { species: string; form: string | null; variant: string | null; sex: string } {
   const sp = speciesById(f.species_id);
-  return { species: sp?.ad ?? f.species_id, form: sp ? itemName(sp.forms, f.form_id) : null, variant: sp ? itemName(sp.variants, f.variant_id) : null, sex: sp?.sexes.find((x) => x.id === f.sex)?.ad ?? f.sex };
+  return { species: sp?.ad ?? f.species_id, form: sp ? itemName(sp.forms, f.form_id) : null, variant: sp ? itemName(sp.variants, f.variant_id) : null, sex: (sp && fishSexOptions(sp.id).find((x) => x.id === f.sex)?.ad) ?? f.sex };
 }
 const fishDetail = (f: AquariumFish) => { const x = fishFacts(f); return [x.form, x.variant, x.sex].filter(Boolean).join(' · '); };
 
@@ -339,10 +349,11 @@ export function sellerPage(ctx: PageCtx, o: { seller: { id: number; display_name
   const tank = o.fish.length
     ? html`<p class="label3d" data-testid="etiket-akvaryum">${TANK_LABEL}</p>
   <div class="stage tank" id="tank" data-count="${o.fish.length}">
-    <canvas id="tank-cv" tabindex="0" role="img" aria-label="${name} adlı satıcının akvaryumu: ${o.fish.length} balık, ${TANK_LABEL}. Ok tuşlarıyla döndürün, artı ve eksi tuşlarıyla yakınlaştırın. Balıkların listesi tuvalin altındadır." aria-describedby="akv-liste-b" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown + -"></canvas>
+    <canvas id="tank-cv" tabindex="0" role="group" aria-label="${name} adlı satıcının akvaryumu: ${o.fish.length} balık, ${TANK_LABEL}" aria-describedby="tank-kb-yardim akv-liste-b" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown + - Home"></canvas>
     <p class="stage-status" id="tank-durum" role="status" hidden></p>
     <p class="stage-fallback" id="tank-yedek" hidden>3B akvaryum bu tarayıcıda açılamadı (WebGL kapalı ya da desteklenmiyor). Balıkların listesi aşağıdadır.</p>
   </div>
+  <p class="muted small" id="tank-kb-yardim">Klavye: 3B akvaryum odaktayken ok tuşları döndürür, + ve - yakınlaştırır, Home sıfırlar. Balıkların listesi aşağıdadır.</p>
   <div class="viewbar" id="tank-bar" role="group" aria-label="Akvaryum görünümünü ayarla" hidden>
     <button type="button" class="btn btn-small btn-ghost" data-act="left" aria-label="Sola döndür">&#8592;</button>
     <button type="button" class="btn btn-small btn-ghost" data-act="right" aria-label="Sağa döndür">&#8594;</button>
@@ -389,12 +400,12 @@ ${Object.keys(e).length ? html`<div class="flash flash-err" role="alert" tabinde
             ${CATALOG.map((s) => html`<option value="${s.id}"${sel(v.species, s.id)}>${s.ad}</option>`)}</select>${err(e, 'species')}</div>
         <div class="row2">
           <div class="f" id="sekil-kutu"${sp && !sp.forms.length ? raw(' hidden') : ''}><label for="form">Şekil (yüzgeç / vücut biçimi)</label>
-            <select id="form" name="form"${invalid(e, 'form')}>${sp ? sp.forms.map((x) => html`<option value="${x.id}"${sel(v.form, x.id)}>${x.ad}</option>`) : html`<option value="">Önce tür seçin</option>`}</select>${err(e, 'form')}</div>
+            <select id="form" name="form"${invalid(e, 'form')}>${sp ? sp.forms.map((x) => html`<option value="${x.id}"${sel(v.form, x.id)}>${itemLabel(x)}</option>`) : html`<option value="">Önce tür seçin</option>`}</select>${err(e, 'form')}</div>
           <div class="f" id="renk-kutu"${sp && !sp.variants.length ? raw(' hidden') : ''}><label for="variant">Renk</label>
-            <select id="variant" name="variant"${invalid(e, 'variant')}>${sp ? sp.variants.map((x) => html`<option value="${x.id}"${sel(v.variant, x.id)}>${x.ad}</option>`) : html`<option value="">Önce tür seçin</option>`}</select>${err(e, 'variant')}</div>
+            <select id="variant" name="variant"${invalid(e, 'variant')}>${sp ? sp.variants.map((x) => html`<option value="${x.id}"${sel(v.variant, x.id)}>${itemLabel(x)}</option>`) : html`<option value="">Önce tür seçin</option>`}</select>${err(e, 'variant')}</div>
         </div>
         <div class="f"><label for="sex">Cinsiyet</label>
-          <select id="sex" name="sex" required${invalid(e, 'sex')}>${sp ? sp.sexes.map((x) => html`<option value="${x.id}"${sel(v.sex, x.id)}>${x.ad}</option>`) : html`<option value="">Önce tür seçin</option>`}</select>${err(e, 'sex')}</div>
+          <select id="sex" name="sex" required${invalid(e, 'sex')}>${sp ? fishSexOptions(sp.id).map((x) => html`<option value="${x.id}"${sel(v.sex, x.id)}>${x.ad}</option>`) : html`<option value="">Önce tür seçin</option>`}</select>${err(e, 'sex')}</div>
         <button class="btn" type="submit"${full ? raw(' disabled aria-describedby="dolu"') : ''}>Akvaryuma ekle</button>
         ${full ? html`<p class="field-err" id="dolu">Akvaryum dolu (${MAX_FISH} / ${MAX_FISH}). Yeni balık için birini kaldırın.</p>` : ''}
       </fieldset>
@@ -409,7 +420,7 @@ ${Object.keys(e).length ? html`<div class="flash flash-err" role="alert" tabinde
     <div class="sticky">
       <h2 id="onizleme-b">Seçtiğiniz balığın önizlemesi</h2>
       <div class="stage" id="sahne">
-        <canvas id="cv" tabindex="0" role="img" aria-label="Seçtiğiniz tür, şekil, renk ve cinsiyet için temsili 3B önizleme"></canvas>
+        <canvas id="cv" role="img" aria-label="Seçtiğiniz tür, şekil, renk ve cinsiyet için temsili 3B önizleme"></canvas>
         <div class="hot" id="ov" hidden></div>
         <p class="stage-status" id="durum" role="status">Tür seçtiğinizde 3B önizleme burada görünür.</p>
         <p class="stage-fallback" id="yedek" hidden>Bu tarayıcıda 3B önizleme açılamadı (WebGL yok). Balığı yine de ekleyebilirsiniz.</p>
@@ -422,10 +433,12 @@ ${Object.keys(e).length ? html`<div class="flash flash-err" role="alert" tabinde
 }
 
 // ---------- yönetim ----------
-export function adminReportsPage(ctx: PageCtx, rows: ReportRow[]): string {
-  const body = html`<h1>Şikayetler</h1><p class="muted">${rows.length} kayıt. Şikayet edilen ilanlar "inceleme bekliyor" olarak işaretlenir; bu sayfa yalnızca listeler.</p>
-${rows.length ? html`<div class="table-wrap"><table><thead><tr><th>Tarih</th><th>İlan</th><th>Neden</th><th>Not</th><th>Bildiren</th></tr></thead><tbody>
-${rows.map((r) => html`<tr><td>${new Date(r.created_at).toLocaleString('tr-TR')}</td><td><a href="/ilan/${r.listing_id}">#${r.listing_id} ${r.listing_title}</a>${r.listing_status === 'removed' ? ' (kaldırıldı)' : ''}</td><td>${REPORT_REASONS.find((x) => x.id === r.reason)?.ad ?? r.reason}</td><td>${r.note}</td><td>${r.reporter_email ?? '—'}</td></tr>`)}
+export function adminReportsPage(ctx: PageCtx, rows: ReportRow[], flash?: string): string {
+  const open = rows.filter((r) => !r.resolved_at).length;
+  const body = html`<h1>Şikayetler</h1>${flash ? html`<p class="flash flash-ok" role="status">${flash}</p>` : ''}<p class="muted">${rows.length} kayıt, ${open} tanesi inceleme bekliyor. Bir ilanı kaldırdığınızda fotoğrafları silinir ve o ilanın şikayetleri "çözüldü" olarak işaretlenir.</p>
+${rows.length ? html`<div class="table-wrap"><table><thead><tr><th>Tarih</th><th>İlan</th><th>Neden</th><th>Not</th><th>Bildiren</th><th>Durum</th></tr></thead><tbody>
+${rows.map((r) => html`<tr><td>${new Date(r.created_at).toLocaleString('tr-TR')}</td><td>${r.listing_status === 'removed' ? html`#${r.listing_id} ${r.listing_title}` : html`<a href="/ilan/${r.listing_id}">#${r.listing_id} ${r.listing_title}</a>`}</td><td>${REPORT_REASONS.find((x) => x.id === r.reason)?.ad ?? r.reason}</td><td>${r.note}</td><td>${r.reporter_email ?? '—'}</td><td>${r.resolved_at ? html`Çözüldü: ilan kaldırıldı` : r.listing_status === 'removed' ? 'İlan kaldırıldı' : html`İnceleme bekliyor
+<form method="post" action="/admin/ilan/${r.listing_id}/kaldir" data-confirm="İlan kaldırılsın mı? Fotoğrafları da silinir.">${csrfField(ctx)}<button class="btn btn-danger btn-small" type="submit">İlanı kaldır</button></form>`}</td></tr>`)}
 </tbody></table></div>` : html`<p class="empty">Şikayet yok.</p>`}`;
   return layout(ctx, { title: 'Şikayetler', body, path: '/admin/raporlar' });
 }

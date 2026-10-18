@@ -31,7 +31,7 @@ if (stage) {
     const k = ev.key;
     if (k === 'ArrowLeft') v.rotate(-0.25, 0); else if (k === 'ArrowRight') v.rotate(0.25, 0);
     else if (k === 'ArrowUp') v.rotate(0, -0.2); else if (k === 'ArrowDown') v.rotate(0, 0.2);
-    else if (k === '+' || k === '=') v.zoom(0.85); else if (k === '-') v.zoom(1.15);
+    else if (k === '+' || k === '=') v.zoom(0.85); else if (k === '-') v.zoom(1.15); else if (k === 'Home') v.reset();
     else return;
     ev.preventDefault();
   });

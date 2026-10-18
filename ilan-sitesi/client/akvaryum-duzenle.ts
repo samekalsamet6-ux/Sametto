@@ -1,5 +1,5 @@
 import './site.ts';
-import { CATALOG } from '../shared/catalog.ts';
+import { CATALOG, fishSexOptions, modelSex, itemLabel } from '../shared/catalog.ts';
 import { mountViewer } from './viewer3d.ts';
 import { fillSelect } from './catalog-select.ts';
 
@@ -15,7 +15,7 @@ function onSpecies(first: boolean) {
     if (sp) { fillSelect(form, sp.forms); fillSelect(variant, sp.variants); }
     else { form.replaceChildren(new Option('Önce tür seçin', '')); variant.replaceChildren(new Option('Önce tür seçin', '')); }
   }
-  if (sp && (!first || !sex.value)) fillSelect(sex, sp.sexes, sex.value);
+  if (sp && (!first || !sex.value)) fillSelect(sex, fishSexOptions(sp.id), sex.value);
   if (!sp) sex.replaceChildren(new Option('Önce tür seçin', ''));
   sekilKutu.hidden = !!sp && sp.forms.length === 0; renkKutu.hidden = !!sp && sp.variants.length === 0;
   form.disabled = !sp || sp.forms.length === 0; variant.disabled = !sp || sp.variants.length === 0;
@@ -31,9 +31,9 @@ function preview() {
     ozet.textContent = '';
     return;
   }
-  const f = sp.forms.find((x) => x.id === form.value), v = sp.variants.find((x) => x.id === variant.value), sx = sp.sexes.find((s) => s.id === sex.value) ?? sp.sexes[0];
-  ozet.textContent = `Önizleme: ${[sp.ad, f?.ad, v?.ad, sx.ad].filter(Boolean).join(' · ')}`;
-  void mount.update({ species: sp.id, sex: sx.id, form: form.value, variant: variant.value });
+  const f = sp.forms.find((x) => x.id === form.value), v = sp.variants.find((x) => x.id === variant.value), sx = fishSexOptions(sp.id).find((s) => s.id === sex.value) ?? fishSexOptions(sp.id)[0];
+  ozet.textContent = `Önizleme: ${[sp.ad, f && itemLabel(f), v && itemLabel(v), sx.ad].filter(Boolean).join(' · ')}`;
+  void mount.update({ species: sp.id, sex: modelSex(sp.id, sx.id), form: form.value, variant: variant.value });
 }
 
 tur.addEventListener('change', () => onSpecies(false));

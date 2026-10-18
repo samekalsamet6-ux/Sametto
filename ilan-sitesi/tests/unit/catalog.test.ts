@@ -4,7 +4,7 @@ import { CATALOG } from '../../shared/catalog.ts';
 
 // shared/catalog.json, ../src/lib/<tür>/index.ts modüllerinden üretilir (npm run catalog). Güncel mi?
 describe('katalog güncelliği', () => {
-  const dirs: Record<string, string> = { lepistes: 'guppy', molly: 'molly', platy: 'platy', betta: 'betta', vatoz: 'vatoz', karides: 'karides', melek: 'melek', diskus: 'diskus', pleco: 'pleco', neon: 'neon', corydoras: 'corydoras', japon: 'japon' };
+  const dirs: Record<string, string> = { lepistes: 'guppy', molly: 'molly', platy: 'platy', betta: 'betta', vatoz: 'vatoz', karides: 'karides', melek: 'melek', diskus: 'diskus', pleco: 'pleco', neon: 'neon', corydoras: 'corydoras', japon: 'japon', kilickuyruk: 'kilickuyruk' };
   for (const s of CATALOG) {
     it(`${s.id}: kimlikler tür modülüyle uyumlu`, async () => {
       const mod = (await import(`../../../src/lib/${dirs[s.id]}/index.ts`)).species;
@@ -14,5 +14,5 @@ describe('katalog güncelliği', () => {
       expect(mod.sexes.map((x: { id: string }) => x.id)).toEqual(s.sexes.map((x) => x.id));
     });
   }
-  it('json okunabilir', () => { expect(JSON.parse(readFileSync(new URL('../../shared/catalog.json', import.meta.url), 'utf8'))).toHaveLength(12); });
+  it('json okunabilir', () => { expect(JSON.parse(readFileSync(new URL('../../shared/catalog.json', import.meta.url), 'utf8'))).toHaveLength(CATALOG.length); });
 });

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { newToken, tokenHash } from './auth.ts';
 import { buildSearch, type SearchParams } from './search.ts';
+import { noSexSplit, UNKNOWN_SEX, CATALOG } from '../shared/catalog.ts';
 import { validateFish, aquariumCapError, type ListingInput } from './validation.ts';
 
 export type DB = DatabaseSync;
@@ -58,7 +59,8 @@ CREATE TABLE IF NOT EXISTS reports (
   listing_id INTEGER NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
   reporter_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   reason TEXT NOT NULL, note TEXT NOT NULL DEFAULT '',
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  resolved_at INTEGER                 -- yönetici ilanı kaldırınca dolar (null = inceleme bekliyor)
 );
 CREATE INDEX IF NOT EXISTS idx_reports_listing ON reports(listing_id);
 -- Satıcı profili akvaryumu: kullanıcı başına en çok 12 balık (sunucuda zorlanır); position = gösterim sırası.
@@ -85,6 +87,13 @@ export function openDb(file: string): DB {
   if (!fcols.some((c) => c.name === 'position')) {
     db.exec('ALTER TABLE aquarium_fish ADD COLUMN position INTEGER NOT NULL DEFAULT 0');
     db.exec('UPDATE aquarium_fish SET position = id');
+  }
+  const rcols = db.prepare('PRAGMA table_info(reports)').all() as unknown as { name: string }[];
+  if (!rcols.some((c) => c.name === 'resolved_at')) db.exec('ALTER TABLE reports ADD COLUMN resolved_at INTEGER');
+  // Geçiş (veri silinmez): 'Ayrım yok' türlerinde (melek, diskus) eski 'disi' cinsiyeti 'bilinmiyor' olur.
+  for (const sp of CATALOG) {
+    if (!noSexSplit(sp.id)) continue;
+    for (const t of ['listings', 'aquarium_fish']) db.prepare(`UPDATE ${t} SET sex = ? WHERE species_id = ? AND sex = ?`).run(UNKNOWN_SEX, sp.id, sp.sexes[0].id);
   }
   return db;
 }
@@ -186,6 +195,21 @@ export function removeListing(db: DB, id: number, userId: number): string[] | nu
   return files;
 }
 
+/** Yönetici kaldırması (sahiplik aranmaz; çağıran is_admin'i denetler): ilan 'removed' olur, fotoğraf kayıtları silinir, ilanın şikayetleri çözülmüş sayılır. Dosya adlarını döndürür; ilan yok/zaten kaldırılmışsa null. */
+export function adminRemoveListing(db: DB, id: number): string[] | null {
+  const l = db.prepare(`SELECT id FROM listings WHERE id = ? AND status = 'active'`).get(id);
+  if (!l) return null;
+  const files = getPhotos(db, id).map((p) => p.file);
+  db.exec('BEGIN');
+  try {
+    db.prepare(`UPDATE listings SET status = 'removed' WHERE id = ?`).run(id);
+    db.prepare('DELETE FROM listing_photos WHERE listing_id = ?').run(id);
+    db.prepare('UPDATE reports SET resolved_at = ? WHERE listing_id = ? AND resolved_at IS NULL').run(now(), id);
+    db.exec('COMMIT');
+  } catch (e) { db.exec('ROLLBACK'); throw e; }
+  return files;
+}
+
 // ---- şikayetler ----
 export function addReport(db: DB, listingId: number, reporterId: number | null, reason: string, note: string): number {
   db.exec('BEGIN');
@@ -197,9 +221,9 @@ export function addReport(db: DB, listingId: number, reporterId: number | null, 
   } catch (e) { db.exec('ROLLBACK'); throw e; }
 }
 export const hasReported = (db: DB, listingId: number, userId: number) => !!db.prepare('SELECT 1 FROM reports WHERE listing_id = ? AND reporter_id = ?').get(listingId, userId);
-export interface ReportRow { id: number; listing_id: number; reason: string; note: string; created_at: number; listing_title: string; listing_status: string; reporter_email: string | null }
+export interface ReportRow { id: number; listing_id: number; reason: string; note: string; created_at: number; listing_title: string; listing_status: string; reporter_email: string | null; resolved_at: number | null }
 export function listReports(db: DB): ReportRow[] {
-  return db.prepare(`SELECT r.id, r.listing_id, r.reason, r.note, r.created_at, l.title AS listing_title, l.status AS listing_status, u.email AS reporter_email
+  return db.prepare(`SELECT r.id, r.listing_id, r.reason, r.note, r.created_at, r.resolved_at, l.title AS listing_title, l.status AS listing_status, u.email AS reporter_email
     FROM reports r JOIN listings l ON l.id = r.listing_id LEFT JOIN users u ON u.id = r.reporter_id ORDER BY r.created_at DESC, r.id DESC LIMIT 500`).all() as unknown as ReportRow[];
 }
 
