@@ -37,6 +37,8 @@ export interface TailSpec {
   pin?: number; pinWidth?: number;
   /** Lira filamentleri: yalnızca en dış (üst/alt) ışınlar ince, uzun filament olarak uzar (ek uzunluk oranı); filW = s biriminde genişlik; filFlat = filamentin geriye doğru düzleşmesi (0..1) */
   fil?: number; filW?: number; filFlat?: number;
+  /** Kılıç (kılıçkuyruk erkeği): alt kenardaki en alt swordN ışın, mutlak `sword` kadar uzar ve geriye doğru düzleşir (swordFlat 0..1, varsayılan 0.88) */
+  sword?: number; swordN?: number; swordFlat?: number;
 }
 export interface DorsalSpec { t0: number; t1: number; rays: number; phiFront: number; phiRear: number; lenFront: number; lenRear: number }
 
@@ -166,7 +168,9 @@ export function createModel(cfg: LbConfig) {
     for (let i = 0; i < sp.rays; i++) {
       const s = (i / (sp.rays - 1)) * 2 - 1;
       const fw = sp.fil ? Math.exp(-(((1 - Math.abs(s)) / (sp.filW ?? 0.06)) ** 2)) : 0;
-      const th = rad(sp.halfAngle) * s * (1 - (sp.filFlat ?? 0) * fw);
+      const nS = sp.sword ? (sp.swordN ?? 3) : 0;
+      const sw = nS ? (i < nS ? 1 : Math.exp(-(((i - nS + 1) / 1.25) ** 2))) : 0;
+      const th = rad(sp.halfAngle) * s * (1 - (sp.filFlat ?? 0) * fw) * (1 - (sp.swordFlat ?? 0.88) * sw * (s < 0 ? 1 : 0));
       base.push([x0, pr.cy + s * 0.85 * (s > 0 ? pr.up : pr.down), 0]);
       dir.push([Math.cos(th), Math.sin(th), 0]);
       // round=0: düz arka kenar (reach/cosθ); round=1: daire yayı (sabit uzunluk)
@@ -175,6 +179,7 @@ export function createModel(cfg: LbConfig) {
       if (sp.fork) L *= 1 - sp.fork * Math.exp(-((s / 0.4) ** 2));
       if (sp.fil) L *= 1 + sp.fil * fw;
       if (sp.pin) L *= 1 + sp.pin * Math.exp(-((s / (sp.pinWidth ?? 0.18)) ** 2));
+      if (sp.sword) L += sp.sword * sw;
       len.push(L);
     }
     return fanFin({ base, dir, len, segments: 22, branch: 0.62, tipSpread: 0.32 });

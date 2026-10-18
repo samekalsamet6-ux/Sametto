@@ -15,8 +15,9 @@ import { species as melek } from '../melek';
 import { species as diskus } from '../diskus';
 import { species as vatoz } from '../vatoz';
 import { species as karides } from '../karides';
+import { species as kilickuyruk } from '../kilickuyruk';
 
-const ALL: SpeciesModule[] = [lepistes, molly, platy, betta, neon, corydoras, japon, pleco, melek, diskus, vatoz, karides];
+const ALL: SpeciesModule[] = [lepistes, molly, platy, betta, neon, corydoras, japon, pleco, melek, diskus, vatoz, karides, kilickuyruk];
 const byId = (id: string) => ALL.find((s) => s.id === id)!;
 
 /**
@@ -25,7 +26,7 @@ const byId = (id: string) => ALL.find((s) => s.id === id)!;
  * Ölçümler (düşük): bkz. dosya sonundaki rapor testi (FISHGROUP_REPORT=dosya ile yazılır) ve final raporu.
  */
 export const LOW_TRIANGLES: Record<string, number> = {
-  lepistes: 7500, molly: 7500, platy: 7000, betta: 3800, neon: 3200, corydoras: 3800, japon: 10500, pleco: 9800, melek: 4000, diskus: 4000, vatoz: 10000, karides: 9000,
+  lepistes: 7500, molly: 7500, platy: 7000, betta: 3800, neon: 3200, corydoras: 3800, japon: 10500, pleco: 9800, melek: 4000, diskus: 4000, vatoz: 10000, karides: 9000, kilickuyruk: 7500,
 };
 /** 12 karışık balık (her tür bir kez), düşük ayrıntı: toplam üçgen, çizim çağrısı ve benzersiz doku pikseli tavanı */
 export const TANK_LOW = { triangles: 70_000, drawCalls: 650, texturePixels: 2_500_000 };
@@ -73,8 +74,8 @@ const make = (sp: SpeciesModule, sex: SexId, form: string | undefined, variant: 
 const REPORT: string[] = [];
 
 describe('createFishGroup sözleşmesi', () => {
-  it('on iki türün hepsi createFishGroup sağlar', () => {
-    expect(ALL.map((s) => s.id).sort()).toEqual(['betta', 'corydoras', 'diskus', 'japon', 'karides', 'lepistes', 'melek', 'molly', 'neon', 'platy', 'pleco', 'vatoz']);
+  it('on üç türün hepsi createFishGroup sağlar', () => {
+    expect(ALL.map((s) => s.id).sort()).toEqual(['betta', 'corydoras', 'diskus', 'japon', 'karides', 'kilickuyruk', 'lepistes', 'melek', 'molly', 'neon', 'platy', 'pleco', 'vatoz']);
     for (const sp of ALL) expect(typeof sp.createFishGroup, sp.id).toBe('function');
   });
 });

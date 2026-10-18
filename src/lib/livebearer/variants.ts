@@ -53,7 +53,9 @@ export interface FinDesen {
   ucKenar?: number;
 }
 
-export interface FinPal { taban: string; uc: string; benek: string; opaklik: number; desen?: FinDesen }
+/** Kılıç boyası (kılıçkuyruk erkeği): en alt n ışın; orta ışınlar `renk`, dış kenar ışınları `kenar` (rays = kuyruk ışın sayısı) */
+export interface KilicPal { renk: string; kenar: string; n: number; rays: number }
+export interface FinPal { taban: string; uc: string; benek: string; opaklik: number; desen?: FinDesen; kilic?: KilicPal }
 
 export interface Variant {
   id: string;
@@ -78,7 +80,7 @@ export interface Variant {
 export type FinKind = 'kuyruk' | 'sirt' | 'anal' | 'gogus' | 'karin';
 
 /** Yüzgeç zar rengi. u: 0 taban → 1 uç, s: 0..1 ışınlar arası konum. */
-export function finColor(v: Variant, _sex: Sex, kind: FinKind, u: number, s: number): RGBA {
+export function finColor(v: Variant, sex: Sex, kind: FinKind, u: number, s: number): RGBA {
   const paired = kind === 'gogus' || kind === 'karin';
   const pal = paired && v.cift ? { ...v.yuzgec, ...v.cift, desen: undefined } : v.yuzgec;
   const base = hexToRgb(pal.taban), tip = hexToRgb(pal.uc), dot = hexToRgb(v.yuzgec.benek);
@@ -101,6 +103,16 @@ export function finColor(v: Variant, _sex: Sex, kind: FinKind, u: number, s: num
         if (dist < q.r) { c = mixRgb(c, dot, 0.95); a = Math.max(a, 0.97); }
         else if (dist < q.r * 1.25) { const k = (1 - (dist - q.r) / (q.r * 0.25)) * 0.6; c = mixRgb(c, dot, k); a = Math.max(a, 0.6 * k + a * (1 - k)); }
       }
+    }
+  }
+  const kp = v.yuzgec.kilic;
+  if (kp && kind === 'kuyruk' && sex === 'erkek') {
+    const i = s * (kp.rays - 1);
+    if (i < kp.n - 0.5) {
+      const ramp = Math.min(1, Math.max(0, (u - 0.08) / 0.22));
+      const edge = i < 0.5 || i > kp.n - 1.5;
+      c = mixRgb(c, hexToRgb(edge ? kp.kenar : kp.renk), ramp * (edge ? 0.92 : 0.85));
+      a = Math.max(a, 0.5 + 0.35 * ramp);
     }
   }
   if (!big) a *= 0.9;

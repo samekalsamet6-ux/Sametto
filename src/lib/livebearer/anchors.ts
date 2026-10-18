@@ -3,7 +3,7 @@ import type { LbModel, Sex, Vec3 } from './model';
 
 export type PartId =
   | 'agiz' | 'goz' | 'solungac-kapagi' | 'yan-cizgi' | 'pul' | 'gogus-yuzgeci' | 'karin-yuzgeci'
-  | 'sirt-yuzgeci' | 'anal-yuzgec' | 'gonopodium' | 'kuyruk-sapi' | 'kuyruk-yuzgeci' | 'gravid-spot';
+  | 'sirt-yuzgeci' | 'anal-yuzgec' | 'gonopodium' | 'kuyruk-sapi' | 'kuyruk-yuzgeci' | 'gravid-spot' | 'kilic';
 export type ViewId = 'yan' | 'ust' | 'on' | 'arka' | 'alt' | 'capraz';
 
 export interface Part {
@@ -48,6 +48,7 @@ export function makeAnchors(M: LbModel) {
     out['kuyruk-sapi'] = surf(sex, 0.9, Math.PI / 2);
     const tail = M.tailFin(sex);
     out['kuyruk-yuzgeci'] = { pos: mid(tail.rays[Math.round(tail.rays.length * 0.72)], 0.8), normal: null, mirror: false };
+    if (M.TAIL[sex].sword) { const r = tail.rays[0]; out.kilic = { pos: r[Math.round((r.length - 1) * 0.9)], normal: null, mirror: false }; }
     if (sex === 'disi') out['gravid-spot'] = surf(sex, 0.6, 0.78);
     return out;
   };

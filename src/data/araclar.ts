@@ -17,6 +17,7 @@ export const tools: Tool[] = [
   { slug: '3d-vatoz', title: '3B tatlı su vatozu modeli', desc: 'Akvaryumda tutulan tatlı su vatozunun (Potamotrygon) şematik 3B modeli: üst/alt yüz anatomisi, klasper, kuyruk dikeni, motoro, leopoldi, cururu gibi desen varyeteleri.', group: 'Görsel' },
   { slug: '3d-molly', title: '3B molly modeli', desc: 'Molly modelinin (Poecilia) şematik 3B modeli: gonopodium, gravid spot, standart/sailfin/lyretail formları ve renk varyeteleri.', group: 'Görsel' },
   { slug: '3d-platy', title: '3B plati modeli', desc: 'Platinin (Xiphophorus) şematik 3B modeli: hifin, pintail gibi formlar; Red Wag, Mickey Mouse, Tuxedo gibi renk varyeteleri.', group: 'Görsel' },
+  { slug: '3d-kilickuyruk', title: '3B kılıçkuyruk modeli', desc: 'Kılıçkuyruğun (Xiphophorus hellerii) şematik 3B modeli: erkekte kılıç ve gonopodium; hifin, lyretail gibi formlar; Red Wagtail, Tuxedo, Koi gibi renk varyeteleri.', group: 'Görsel' },
   { slug: '3d-betta', title: '3B betta modeli', desc: 'Bettanın (Betta splendens) şematik 3B modeli: plakat, halfmoon, crowntail, çift kuyruk, fil kulak gibi 12 form ve 14 renk varyetesi.', group: 'Görsel' },
   { slug: '3d-melek', title: '3B melek balığı modeli', desc: 'Melek balığının (Pterophyllum scalare) şematik 3B modeli: standart, veil, halfmoon formları ve renk varyeteleri.', group: 'Görsel' },
   { slug: '3d-diskus', title: '3B diskus modeli', desc: 'Diskusun (Symphysodon) şematik 3B modeli: yuvarlak gövde, anatomi ve renk hatları (ayrı form yok).', group: 'Görsel' },
