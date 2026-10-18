@@ -138,7 +138,7 @@ test.describe('arama ve ilan detayı (örnek veriyle)', () => {
     expect(prices).toEqual([...prices].sort((a, b) => a - b));
 
     await page.goto('/ilanlar?tur=vatoz&sehir=Van');
-    await expect(page.getByText('Bu ölçütlere uyan ilan yok')).toBeVisible();
+    await expect(page.getByText('Bu ölçütlere uyan ilan bulunamadı')).toBeVisible();
   });
 
   test('karttan detaya: fotoğraflar, 3B etiketi, 3B model, örnek ilan notu', async ({ page }) => {

@@ -206,7 +206,7 @@ export function detailPage(ctx: PageCtx, o: { l: Listing; photos: Photo[]; alrea
         </ul>`
         : html`<p class="muted">Satıcı iletişim bilgisi eklememiş.</p>`}
       <p class="note small">Sitede ödeme ya da mesajlaşma yoktur. Parayı göndermeden önce balığı görmeyi ya da kanlı canlı görüntülü görüşmeyi tercih edin.</p>
-      ${isOwner ? html`<form method="post" action="/ilan/${l.id}/kaldir" onsubmit="return confirm('İlan kaldırılsın mı? Fotoğrafları da silinir.')">${csrfField(ctx)}<button class="btn btn-danger btn-small" type="submit">İlanı kaldır</button></form>` : ''}
+      ${isOwner ? html`<form method="post" action="/ilan/${l.id}/kaldir" data-confirm="İlan kaldırılsın mı? Fotoğrafları da silinir.">${csrfField(ctx)}<button class="btn btn-danger btn-small" type="submit">İlanı kaldır</button></form>` : ''}
     </aside>
   </div>
   ${reportBlock}

@@ -52,4 +52,8 @@ describe('ilan detay sayfası', () => {
     expect(variants[2]).toContain('daha önce şikayet ettiniz');
     expect(variants[3]).toContain('Şikayet et'); expect(variants[4]).toContain('giriş yapın');
   });
+  it('satır içi olay işleyicisi yok (CSP script-src self ile uyumlu); kaldırma onayı data-confirm ile', () => {
+    const out = detailPage({ ...ctx, user: { id: 2 } as never }, { l: listing(), photos, alreadyReported: false });
+    expect(out).not.toMatch(/\son[a-z]+="/); expect(out).toContain('data-confirm=');
+  });
 });

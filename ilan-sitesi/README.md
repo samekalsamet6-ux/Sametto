@@ -90,3 +90,9 @@ Sayfalar sunucuda üretilir (HTML), istemci kodu yalnızca zenginleştirir. Form
 - Tür modüllerindeki bazı şekil/renk adları "doğrulanmalı" notludur; katalog adları olduğu gibi gösterilir.
 - 3B modeller yazılım WebGL'de yavaştır; gerçek GPU'da akıcıdır. İlan listelerinde performans için 3B kullanılmaz.
 - Katalog (`shared/catalog.json`) tür modülleri değişirse `npm run catalog` ile yenilenmelidir; `tests/unit/catalog.test.ts` farkı yakalar.
+- **Yönetici hesabı e-postayla belirlenir ve e-posta doğrulanmaz**: `ADMIN_EMAIL` adresiyle başka biri yönetici hesabından önce kayıt olursa `/admin/raporlar` ekranını görür. Yerel kullanımda önce yönetici hesabını siz açın; gerçek dağıtımda e-posta doğrulaması şarttır.
+- CSP yalnızca üretim kipinde (`npm start`) gönderilir; HSTS yoktur (TLS dağıtım katmanındadır, `COOKIE_SECURE=true` ile `Secure` çerez kullanın).
+- Çerezli oturumlar sunucuda saklanır ama "tüm oturumları kapat" ve parola değiştirme yoktur. Kayıt formu e-postanın kayıtlı olup olmadığını açığa vurur (hesap sayımı mümkün; kayıt hız sınırı vardır).
+- Yüklenen fotoğraflar yeniden kodlanmaz; EXIF (konum dahil) içerebilir. Yükleme gövdeleri bellekte tamponlanır (en çok ~26 MB, eşzamanlı büyük yükleme belleği şişirebilir).
+- Şikayet kullanıcı başına ilan başına bir kez sayılır; sahte hesaplarla toplu şikayet engellenmez. Şikayet edilen ilan otomatik gizlenmez.
+- İlan sahibine ait "ilan kaldır" onayı tarayıcı `confirm` penceresiyle yapılır (JavaScript kapalıysa onaysız kaldırır).
