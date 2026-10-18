@@ -1,6 +1,7 @@
 // Diskus (Symphysodon cinsi; şematik) için SAF geometri parametreleri.
 // Ortak mantık src/lib/akvaryum/yanal-model.ts içindedir. Birim keyfidir; gerçek ölçüm değildir.
 // Koordinatlar: x gövde ekseni (burun -x), y yukarı, z yanal. Gövde ~1,0 birim uzunlukta, yaklaşık daire biçimlidir.
+import { decorateDiskus } from './paint';
 import { cornerPath, resample, ridgeFin, smoothPath, snoutFace, type BodySpec, type FinSpec, type FishSpec, type Pt } from '../akvaryum/yanal-model';
 
 export * from '../akvaryum/yanal-model';
@@ -50,4 +51,5 @@ export const SPEC: FishSpec = {
   gill: smoothPath([[-0.12, 0.33], [-0.08, 0.16], [-0.075, 0.0], [-0.09, -0.16], [-0.14, -0.3]], 8),
   nostril: [-0.44, 0.08],
   lateral: smoothPath([[-0.07, 0.2], [0.12, 0.2], [0.28, 0.12]], 8),
+  decorate: (tex, v) => decorateDiskus(SPEC, tex, v),
 };

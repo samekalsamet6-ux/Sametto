@@ -184,6 +184,10 @@ export interface FishSpec {
   gill: Pt[];
   nostril: Pt;
   lateral: Pt[];
+  /** İsteğe bağlı: bantlar (bar) yüzgeçlere sert değil, türün kendi boyayıcısıyla (decorate) geçer */
+  skipFinBars?: boolean;
+  /** İsteğe bağlı: ortak boyayıcıdan sonra türe özgü ek boyama (yalnızca tarayıcı canvas'ı) */
+  decorate?: (tex: { map: HTMLCanvasElement; bump: HTMLCanvasElement; w: number; h: number }, v: FishVariant) => void;
 }
 
 /** s in [0,1] boyunca fin üzerinde nokta: r=0 taban, r=1 uç */

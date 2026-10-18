@@ -109,7 +109,7 @@ export function paintAtlas(spec: FishSpec, v: FishVariant, W = 1024): FishTextur
 
   // ---------------- desen katmanları
   v.katmanlar.forEach((ly, idx) => {
-    const withFins = 'fin' in ly && ly.fin;
+    const withFins = 'fin' in ly && ly.fin && !(spec.skipFinBars && ly.t === 'bar');
     const clips: ((c: Ctx) => void)[] = [bodyPath];
     if (withFins) for (const fin of [...spec.fins, spec.pectoral]) clips.push((cc) => { cc.beginPath(); finPath(cc, fin); });
     for (const clipFn of clips) {
@@ -270,5 +270,7 @@ export function paintAtlas(spec: FishSpec, v: FishVariant, W = 1024): FishTextur
       b.beginPath(); b.moveTo(a, bb); b.lineTo(x, y); b.stroke();
     }
   }
-  return { map, bump, w: W, h: H };
+  const out = { map, bump, w: W, h: H };
+  spec.decorate?.(out, v);
+  return out;
 }

@@ -4,6 +4,7 @@ import { PARTS, VIEWS, partAnchors, partsFor } from './parts';
 import { FORMS } from './forms';
 import { VARIANTS, VARIANT_GROUPS, groupedVariants, variantById } from './variants';
 import { species } from './index';
+import { PATTERNS } from './paint';
 
 const finite = (v: readonly number[]) => v.every((n) => Number.isFinite(n));
 
@@ -111,6 +112,21 @@ describe('varyeteler', () => {
     expect(variantById('albino').goz.iris).not.toBe(variantById('kahverengi').goz.iris);
     // pigeon blood: bantlar bastırılmış (bar katmanı yok)
     expect(variantById('pigeon-blood').katmanlar.some((l) => l.t === 'bar')).toBe(false);
+  });
+  it('bant ve turkuaz çizgi desenleri hat tablosundan gelir: geçerli kimlik/renk, 5. bant en koyu, turkuaz hatlarda dalgalı çizgi, bantsız hatlar', () => {
+    const ids = VARIANTS.map((v) => v.id);
+    for (const [id, p] of Object.entries(PATTERNS)) {
+      expect(ids, id).toContain(id);
+      if (p.bars) { expect(() => hexToRgb(p.bars!.renk)).not.toThrow(); expect(p.bars.mid, id).toBeGreaterThan(p.bars.a); expect(p.bars.mid).toBeLessThanOrEqual(1); }
+      if (p.wave) { expect(() => hexToRgb(p.wave!.renk)).not.toThrow(); expect(p.wave.n).toBeGreaterThan(0); expect(p.wave.a).toBeLessThanOrEqual(1); }
+    }
+    for (const id of ['royal-blue', 'kirmizi-turkuaz', 'heckel', 'yabani-yesil']) expect(PATTERNS[id].wave, id).toBeTruthy();
+    expect(PATTERNS['royal-blue'].wave!.n).toBeGreaterThan(PATTERNS['red-melon'].wave!.n);
+    // seçilmiş bantsız hatlar: bant belirgin değil
+    for (const id of ['pigeon-blood', 'altin', 'albino', 'panda', 'leopar']) expect(PATTERNS[id]?.bars, id).toBeUndefined();
+    expect(PATTERNS['blue-diamond'].bars!.mid).toBeLessThan(0.3);
+    expect(PATTERNS.heckel.bars!.mid).toBeGreaterThan(0.8); // yabani tipte belirgin orta bant
+    expect(typeof SPEC.decorate).toBe('function');
   });
   it('gruplama ve bilinmeyen kimlik davranışı; ilk varyete gümüş', () => {
     const g = groupedVariants();

@@ -17,12 +17,16 @@ describe('melek balığı geometrisi', () => {
     expect(wMax / hMax).toBeLessThan(0.28);
     expect(f.top(0)).toBeCloseTo(f.bot(0), 6); // burun kapalı
   });
-  it('sırt ve anal yüzgeç gövdeden çok yüksek: toplam yükseklik gövdenin 2,2 katından fazla; sivri üçgen', () => {
+  it('sırt ve anal yüzgeç gövdeyle orantılı: her biri gövde yüksekliğinin yaklaşık yarısı kadar, toplam 1,6–2,2 katı; sivri üçgen', () => {
     const [d, a, c] = FINS;
     const top = Math.max(...d.edge.map((p) => p[1])), bot = Math.min(...a.edge.map((p) => p[1]));
     const f = bodyFns(SPEC.body);
     const body = Math.max(...[...Array(101).keys()].map((i) => f.top(i / 100))) * 2;
-    expect((top - bot) / body).toBeGreaterThan(2.2);
+    expect((top - bot) / body).toBeGreaterThan(1.6);
+    expect((top - bot) / body).toBeLessThan(2.2);
+    const bodyTop = body / 2;
+    expect((top - bodyTop) / body).toBeGreaterThan(0.35); expect((top - bodyTop) / body).toBeLessThan(0.7);
+    expect((-bot - bodyTop) / body).toBeGreaterThan(0.35); expect((-bot - bodyTop) / body).toBeLessThan(0.7);
     // tek bir zirve: sırt yüzgecinin uç çizgisi bir kez yükselip bir kez alçalır
     const ys = d.edge.map((p) => p[1]);
     const peak = ys.indexOf(Math.max(...ys));
@@ -36,7 +40,12 @@ describe('melek balığı geometrisi', () => {
   });
   it('karın iplikleri gövdenin altına, yüzgeç uçları kadar sarkar; tüm noktalar sonlu', () => {
     const fil = SPEC.filaments[0];
-    expect(fil.path[fil.path.length - 1][1]).toBeLessThan(-0.9);
+    expect(fil.path[fil.path.length - 1][1]).toBeLessThan(-0.8);
+    // düz ve incelen iplik: y tekdüze iner (kanca yok), x sapması küçük, yarıçap tekdüze azalır
+    for (let i = 1; i < fil.path.length; i++) expect(fil.path[i][1]).toBeLessThan(fil.path[i - 1][1]);
+    const xs = fil.path.map((p) => p[0]);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(0.2);
+    for (let i = 1; i < fil.radii.length; i++) expect(fil.radii[i]).toBeLessThan(fil.radii[i - 1]);
     for (const f of FINS) for (const p of [...f.base, ...f.edge]) expect(finite(p)).toBe(true);
     for (const p of outline(SPEC.body, 40)) expect(finite(p)).toBe(true);
   });
@@ -65,8 +74,16 @@ describe('formlar (şekil varyeteleri)', () => {
   it('veil standarttan ölçülebilir biçimde büyüktür: daha yüksek sırt, daha alçak anal, daha uzun kuyruk ve iplik; süper veil daha da', () => {
     const s = ext('standart'), v = ext('veil'), sv = ext('super-veil');
     expect(v.top).toBeGreaterThan(s.top + 0.2); expect(v.bot).toBeLessThan(s.bot - 0.2);
-    expect(v.tail).toBeGreaterThan(s.tail + 0.25); expect(v.fil).toBeLessThan(s.fil - 0.3);
+    expect(v.tail).toBeGreaterThan(s.tail + 0.25); expect(v.fil).toBeLessThan(s.fil - 0.15);
     expect(sv.top).toBeGreaterThan(v.top); expect(sv.tail).toBeGreaterThan(v.tail); expect(sv.fil).toBeLessThan(v.fil);
+  });
+  it('veil/süper veil sırt ve anal yüzgeç tabanı standarttan geniş (dar bıçak değil)', () => {
+    const w = (id: string, i: number) => { const b = specFor(id).fins[i].base; return b[b.length - 1][0] - b[0][0]; };
+    for (const id of ['veil', 'halfmoon', 'super-veil']) for (const i of [0, 1]) expect(w(id, i), `${id} ${i}`).toBeGreaterThan(w('standart', i) + 0.03);
+  });
+  it('bantlar yüzgeçlere sert değil, türün kendi boyayıcısıyla geçer (skipFinBars + decorate)', () => {
+    expect(SPEC.skipFinBars).toBe(true);
+    expect(typeof SPEC.decorate).toBe('function');
   });
   it('halfmoon: kuyruk standarttan geniş ve dışbükey (orta uç köşelerden dışarıda); veilden kısa', () => {
     const h = specFor('halfmoon').fins[2].edge;

@@ -11,10 +11,10 @@ export const VARIANT_GROUPS = ['Bantlı (yabani tipe yakın)', 'Tek renk ve aç�
 const GOZ = { iris: '#c2432a', halka: '#2a1010', pupil: '#040404' };
 const BAR = '#1b2023';
 const bars = (a: number, fin = true): FishVariant['katmanlar'] => [
-  { t: 'bar', nx: 0.167, w: 0.05, renk: BAR, a },
-  { t: 'bar', nx: 0.36, w: 0.06, renk: BAR, a, fin },
-  { t: 'bar', nx: 0.645, w: 0.06, renk: BAR, a, fin, slant: -0.05 },
-  { t: 'bar', nx: 0.93, w: 0.04, renk: BAR, a },
+  { t: 'bar', nx: 0.165, w: 0.042, renk: BAR, a: a * 0.9, soft: 0.42 },
+  { t: 'bar', nx: 0.36, w: 0.052, renk: BAR, a, fin, slant: -0.03, soft: 0.42 },
+  { t: 'bar', nx: 0.64, w: 0.05, renk: BAR, a: a * 0.95, fin, slant: -0.06, soft: 0.42 },
+  { t: 'bar', nx: 0.93, w: 0.036, renk: BAR, a: a * 0.85, soft: 0.4 },
 ];
 
 export const VARIANTS: Variant[] = [
@@ -26,7 +26,7 @@ export const VARIANTS: Variant[] = [
   { id: 'zebra', grup: VARIANT_GROUPS[0], ad: 'Zebra', dogrulanmali: false,
     aciklama: 'Gümüş zemin üzerinde yabani tipten daha çok sayıda, daha ince koyu dikey bant; bantlar yüzgeçlere de uzanır. Bant sayısı bireye göre değişir.',
     govde: { sirt: '#7f8b88', orta: '#c8cfd0', karin: '#ece9e0' }, yuzgec: { renk: '#cdd5d6', isin: '#8a9496', a: 0.42 }, iplik: '#e9eef0', goz: GOZ, parlak: 0.5,
-    katmanlar: [0.13, 0.24, 0.35, 0.46, 0.57, 0.68, 0.79, 0.91].map((nx, i) => ({ t: 'bar' as const, nx, w: 0.028, renk: BAR, a: 0.82, fin: i > 0 && i < 7, slant: i > 3 && i < 7 ? -0.05 : 0 })) },
+    katmanlar: [0.13, 0.24, 0.35, 0.46, 0.57, 0.68, 0.79, 0.91].map((nx, i) => ({ t: 'bar' as const, nx: nx + 0.008 * Math.sin(i * 2.7), w: 0.021 + 0.008 * Math.abs(Math.sin(i * 1.9)), renk: BAR, a: i % 3 === 1 ? 0.62 : 0.8, soft: 0.42, fin: i > 0 && i < 7, slant: i > 3 && i < 7 ? -0.05 : 0 })) },
   { id: 'mavi', grup: VARIANT_GROUPS[0], ad: 'Mavi (Blue)', dogrulanmali: true,
     aciklama: 'Gümüş gövdede mavimsi metalik yansıma ve silik bantlar. Ticarette “blue” adı farklı mavi–gri tonlar için kullanılır; adlandırma tutarlı değildir.',
     govde: { sirt: '#5d7da0', orta: '#9fb8d2', karin: '#dde6ee' }, yuzgec: { renk: '#a9bdd6', isin: '#5f7799', a: 0.45 }, iplik: '#dfe8f2', goz: GOZ, parlak: 0.8,

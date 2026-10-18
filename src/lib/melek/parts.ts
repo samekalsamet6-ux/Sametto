@@ -46,7 +46,7 @@ export const PARTS: Part[] = [
   { id: 'kuyruk-sapi', ad: 'Kuyruk sapı', view: 'yan', ozet: 'Gövdenin ince, kasları yoğun arka ucu.',
     aciklama: 'Kuyruk sapı, gövdenin kuyruk yüzgecine bağlanan ince ve kaslı kısmıdır. Yüzme gücü buradan kuyruk yüzgecine aktarılır. Kuyruk sapındaki koyu dikey bant yabani desenin parçasıdır.' },
   { id: 'kuyruk-yuzgeci', ad: 'Kuyruk yüzgeci', view: 'arka', ozet: 'Hafif çatallı, yelpaze biçimli kuyruk yüzgeci.',
-    aciklama: 'Kuyruk yüzgeci hafif çatallı bir yelpaze biçimindedir; melek balıkları hızlı yüzücü değildir, kuyruk daha çok yön ve ani kaçışta kullanılır. Uzun kuyruklu “veil” (peçe) formları bu modelin dışındadır; bu model standart (kısa yüzgeçli) gövde varsayar.' },
+    aciklama: 'Kuyruk yüzgeci hafif çatallı bir yelpaze biçimindedir; melek balıkları hızlı yüzücü değildir, kuyruk daha çok yön ve ani kaçışta kullanılır. Seçmeli uzun yüzgeçli “veil” (peçe) hatlarında kuyruk çok daha uzun ve akıcıdır; form seçicisiyle görülebilir.' },
 ];
 
 export const partsFor = (_sex?: string, _form?: string): Part[] => PARTS;
