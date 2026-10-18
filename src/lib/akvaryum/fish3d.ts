@@ -1,12 +1,12 @@
 // Ortak balık three.js altyapısı: yalnızca 3B sayfalarda tembel (dynamic import) yüklenir.
 // Gövde kaplaması, yüzgeç/tüp geometrileri, yüzme gölgelendirici eki ve numaralı noktalı görüntüleyici.
 import {
-  ACESFilmicToneMapping, AmbientLight, BufferAttribute, BufferGeometry, CanvasTexture, CatmullRomCurve3, DirectionalLight, DoubleSide,
-  Float32BufferAttribute, Group, HemisphereLight, Material, Mesh, MeshBasicMaterial, PerspectiveCamera, PMREMGenerator, Quaternion, Raycaster,
-  Scene, SphereGeometry, SRGBColorSpace, Texture, Vector3, WebGLRenderer, Box3, Sphere,
+  BufferAttribute, BufferGeometry, CanvasTexture, CatmullRomCurve3, DoubleSide,
+  Float32BufferAttribute, Group, Material, Mesh, MeshBasicMaterial, PerspectiveCamera, Quaternion, Raycaster,
+  Scene, SphereGeometry, SRGBColorSpace, Texture, Vector3, WebGLRenderer, Box3,
 } from 'three';
+import { applyLook, createFitter } from './scene-look';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { SWIM, bodyPoint, finGrid, swimZ, type Body, type FinDef, type Vec3 } from './fishmath';
 import type { SexId, SpeciesPart, SpeciesViewer, SpeciesViewerOptions } from './types';
 
@@ -186,26 +186,10 @@ export function createFishViewer(opts: SpeciesViewerOptions, cfg: FishViewerConf
   const small = matchMedia('(max-width: 700px)').matches || navigator.maxTouchPoints > 0;
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2));
-  renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.92;
-  renderer.outputColorSpace = SRGBColorSpace;
 
   const scene = new Scene();
-  const pmrem = new PMREMGenerator(renderer);
-  const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  scene.environment = envTex;
-  scene.environmentIntensity = 0.5;
-  scene.add(new HemisphereLight(0xcfe8ff, 0x3a3326, 0.6));
-  scene.add(new AmbientLight(0xffffff, 0.22));
-  const key = new DirectionalLight(0xffffff, 1.7);
-  key.position.set(2, 5, 4);
-  scene.add(key);
-  const fill = new DirectionalLight(0xffe8c8, 0.95);
-  fill.position.set(-1, -5, 2);
-  scene.add(fill);
-  const rim = new DirectionalLight(0x9fd8ff, 0.9);
-  rim.position.set(-4, 2, -4);
-  scene.add(rim);
+  const look = applyLook(renderer, scene);
+  const fitter = createFitter();
 
   const camera = new PerspectiveCamera(30, 1, 0.05, 100);
   const controls = new OrbitControls(camera, canvas);
@@ -220,7 +204,7 @@ export function createFishViewer(opts: SpeciesViewerOptions, cfg: FishViewerConf
   let built: FishBuilt | null = null;
   let anchors: Record<string, FishAnchor> = {};
   let swimOn = false, selected: string | null = null, hotOn = true;
-  let radius = 1, visible = true, raf = 0, last = 0, disposed = false, proxyDirty = true;
+  let visible = true, raf = 0, last = 0, disposed = false, proxyDirty = true;
   let tween: { from: [number, number, number]; to: [number, number, number]; t0: number; dur: number } | null = null;
   const texW = small ? 512 : 1024;
   const ray = new Raycaster();
@@ -257,27 +241,28 @@ export function createFishViewer(opts: SpeciesViewerOptions, cfg: FishViewerConf
     camera.position.set(controls.target.x + r * sp * Math.sin(th), controls.target.y + r * Math.cos(ph), controls.target.z + r * sp * Math.cos(th));
     camera.lookAt(controls.target);
   };
-  const fitDistance = () => {
-    const vf = (camera.fov * Math.PI) / 180;
-    const hf = 2 * Math.atan(Math.tan(vf / 2) * camera.aspect);
-    return (radius * 1.08) / Math.sin(Math.min(vf, hf) / 2);
+  /** Kamera uzaklığı: (th, ph) açısından modelin gerçek izdüşümünü kadrajın ~%78'ine sığdırır (verilmezse mevcut açı). */
+  const fitDistance = (th?: number, ph?: number) => {
+    const s = th === undefined || ph === undefined ? spherical() : [th, ph];
+    return fitter.distance(camera, s[0], s[1]);
   };
-  const limits = () => { controls.minDistance = fitDistance() * 0.25; controls.maxDistance = fitDistance() * 1.9; };
+  const limits = () => { const [lo, hi] = fitter.range(camera); controls.minDistance = lo; controls.maxDistance = hi; };
 
-  const load = (first: boolean) => {
+  const load = (first: boolean, refit = false) => {
     const old = built;
     if (old) { scene.remove(old.group); disposeGroup(old.group, old.textures, old.proxy.map((p) => p.mesh)); }
     built = cfg.build(sex, variant, uniforms, texW, form);
     anchors = cfg.anchors(sex, form);
     scene.add(built.group);
     const box = new Box3().setFromObject(built.group);
-    const sph = new Sphere();
-    box.getBoundingSphere(sph);
-    radius = sph.radius;
     const prevTarget = controls.target.clone();
     controls.target.copy(box.getCenter(new Vector3()));
-    if (first) place(...cfg.views[cfg.home], fitDistance() * 0.62);
-    else camera.position.add(controls.target.clone().sub(prevTarget));
+    fitter.measure(built.group, controls.target);
+    if (first) place(...cfg.views[cfg.home], fitDistance(...cfg.views[cfg.home]));
+    else {
+      camera.position.add(controls.target.clone().sub(prevTarget));
+      if (refit) { const sp = spherical(); place(sp[0], sp[1], fitDistance()); }
+    }
     limits();
     rebuildHotspots();
     proxyDirty = true;
@@ -366,6 +351,8 @@ export function createFishViewer(opts: SpeciesViewerOptions, cfg: FishViewerConf
     if (controls.autoRotate) busy = true;
     if (controls.update(dt)) busy = true;
 
+    look.sync(camera, controls.target);
+    fitter.center(camera, controls.target);
     renderer.render(scene, camera);
     updateHotspots();
     canvas.dataset.frames = String((Number(canvas.dataset.frames) || 0) + 1);
@@ -407,7 +394,7 @@ export function createFishViewer(opts: SpeciesViewerOptions, cfg: FishViewerConf
       if (f === form) return;
       form = f;
       if (selected && !cfg.parts(sex, form).some((p) => p.id === selected)) { selected = null; opts.onSelect(null, false); }
-      load(false);
+      load(false, true);
     },
     setVariant(v) { if (v !== variant) { variant = v; load(false); } },
     setAutoRotate(on) { controls.autoRotate = on; invalidate(); },
@@ -419,10 +406,10 @@ export function createFishViewer(opts: SpeciesViewerOptions, cfg: FishViewerConf
       proxyDirty = true;
       invalidate();
     },
-    setView(v) { const a = cfg.views[v] ?? cfg.views[cfg.home]; go(a[0], a[1], fitDistance()); },
+    setView(v) { const a = cfg.views[v] ?? cfg.views[cfg.home]; go(a[0], a[1], fitDistance(a[0], a[1])); },
     zoom(f) { const s = spherical(); place(s[0], s[1], Math.min(controls.maxDistance, Math.max(controls.minDistance, s[2] * f))); controls.update(); invalidate(); },
     rotate(dTh, dPh) { const s = spherical(); place(s[0] + dTh, Math.min(Math.PI - 0.03, Math.max(0.03, s[1] + dPh)), s[2]); controls.update(); invalidate(); },
-    reset() { go(...cfg.views[cfg.home], fitDistance() * 0.62); },
+    reset() { go(...cfg.views[cfg.home], fitDistance(...cfg.views[cfg.home])); },
     select(id) {
       selected = id;
       for (const [pid, b] of hotspots) b.classList.toggle('on', pid === id);
@@ -436,7 +423,7 @@ export function createFishViewer(opts: SpeciesViewerOptions, cfg: FishViewerConf
       document.removeEventListener('visibilitychange', onVis);
       controls.dispose();
       if (built) disposeGroup(built.group, built.textures, built.proxy.map((p) => p.mesh));
-      envTex.dispose(); pmrem.dispose(); renderer.dispose();
+      look.dispose(); renderer.dispose();
     },
   };
 }

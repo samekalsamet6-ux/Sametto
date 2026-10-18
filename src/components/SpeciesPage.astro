@@ -4,6 +4,7 @@
 import Base from '../layouts/Base.astro';
 import type { SpeciesView, SpeciesVariant, SpeciesForm } from '../lib/akvaryum/types';
 import type { FishPart } from '../lib/akvaryum/page';
+import { standardViews } from '../lib/akvaryum/view-standard';
 
 export interface Props {
   title: string;
@@ -93,7 +94,7 @@ const sexName = Object.fromEntries(sexes.map((s) => [s.id, s.ad]));
   <noscript><p class="callout callout-uyari">3B model için JavaScript gerekir. Parça açıklamaları aşağıda metin olarak da verilmiştir.</p></noscript>
 
   <div class="v3-bar" role="group" aria-label="Görünüm ve yakınlaştırma">
-    {views.map((v) => <button type="button" class="v3-btn" data-view={v.id}>{v.ad}</button>)}
+    {standardViews(views).map((v) => <button type="button" class="v3-btn" data-view={v.id}>{v.ad}</button>)}
     <button type="button" class="v3-btn" id="zin" aria-label="Yakınlaştır">+</button>
     <button type="button" class="v3-btn" id="zout" aria-label="Uzaklaştır">−</button>
     <button type="button" class="v3-btn" id="zreset">Sıfırla</button>
@@ -144,7 +145,7 @@ const sexName = Object.fromEntries(sexes.map((s) => [s.id, s.ad]));
   .v3-note{margin:0 0 10px;min-height:1.6em;font-size:.92rem}
   .v3-btn{min-width:44px;min-height:40px;padding:6px 14px}
   .v3-btn[aria-pressed=true]{outline:3px solid var(--accent)}
-  .v3-stage{position:relative;border-radius:var(--r);overflow:hidden;background:radial-gradient(120% 90% at 50% 20%,#2f7f8c 0%,#164b5c 45%,#082530 100%);border:1px solid var(--line);min-height:320px}
+  .v3-stage{position:relative;border-radius:var(--r);overflow:hidden;background:radial-gradient(120% 90% at 50% 18%,#2a8499 0%,#145067 42%,#06232f 100%);border:1px solid var(--line);min-height:320px}
   .v3-stage canvas{display:block;width:100%;height:clamp(340px,64vh,580px);touch-action:none;cursor:grab;outline-offset:-4px}
   .v3-stage canvas:active{cursor:grabbing}
   .v3-stage[data-fallback] canvas,.v3-stage[data-fallback] .v3-hotwrap,.v3-stage[data-fallback] .v3-status{display:none}

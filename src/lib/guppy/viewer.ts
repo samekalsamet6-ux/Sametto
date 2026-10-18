@@ -1,12 +1,12 @@
 // three.js sahnesi: yalnızca 3B lepistes sayfasında, tembel (dynamic import) yüklenir.
 import {
-  ACESFilmicToneMapping, AmbientLight, BufferAttribute, BufferGeometry, CatmullRomCurve3, Color, DirectionalLight, DoubleSide,
-  Float32BufferAttribute, Group, HemisphereLight, LineBasicMaterial, LineSegments, Material, Mesh, MeshPhysicalMaterial,
-  MeshStandardMaterial, PerspectiveCamera, PMREMGenerator, Quaternion, Scene, SRGBColorSpace, SphereGeometry, TubeGeometry, Vector3,
+  BufferAttribute, BufferGeometry, CatmullRomCurve3, Color, DoubleSide,
+  Float32BufferAttribute, Group, LineBasicMaterial, LineSegments, Material, Mesh, MeshPhysicalMaterial,
+  MeshStandardMaterial, PerspectiveCamera, Quaternion, Scene, SRGBColorSpace, SphereGeometry, TubeGeometry, Vector3,
   WebGLRenderer, CanvasTexture, Box3, Texture, Sphere, Raycaster,
 } from 'three';
+import { applyLook, createFitter } from '../akvaryum/scene-look';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import {
   BODY, OPERCULUM_A, SWIM, analFin, bodySurfacePoint, dorsalFin, eyeSpec, gonopodium, mouthLine, operculumEdge, operculumEdgeT,
   operculumFront, pectoralFin, pelvicFin, swimOffsetZ, tailFin, type Fin, type FormId, type Sex, type Vec3,
@@ -380,23 +380,10 @@ export function createViewer(opts: ViewerOptions): Viewer {
   const small = matchMedia('(max-width: 700px)').matches || navigator.maxTouchPoints > 0;
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2));
-  renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
-  renderer.outputColorSpace = SRGBColorSpace;
 
   const scene = new Scene();
-  const pmrem = new PMREMGenerator(renderer);
-  const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  scene.environment = envTex;
-  scene.environmentIntensity = 0.4;
-  scene.add(new HemisphereLight(0xcfe8ff, 0x254052, 0.45));
-  scene.add(new AmbientLight(0xffffff, 0.15));
-  const key = new DirectionalLight(0xffffff, 1.5);
-  key.position.set(3, 5, 4);
-  scene.add(key);
-  const rim = new DirectionalLight(0x9fd8ff, 1.0);
-  rim.position.set(-4, 2, -4);
-  scene.add(rim);
+  const look = applyLook(renderer, scene);
+  const fitter = createFitter();
 
   const camera = new PerspectiveCamera(30, 1, 0.1, 100);
   const controls = new OrbitControls(camera, canvas);
@@ -445,12 +432,12 @@ export function createViewer(opts: ViewerOptions): Viewer {
     camera.position.set(controls.target.x + r * sp * Math.sin(th), controls.target.y + r * Math.cos(ph), controls.target.z + r * sp * Math.cos(th));
     camera.lookAt(controls.target);
   };
-  const fitDistance = () => {
-    const vf = (camera.fov * Math.PI) / 180;
-    const hf = 2 * Math.atan(Math.tan(vf / 2) * camera.aspect);
-    return (radius * 1.08) / Math.sin(Math.min(vf, hf) / 2);
+  /** Kamera uzaklığı: (th, ph) açısından modelin gerçek izdüşümünü kadrajın ~%78'ine sığdırır (verilmezse mevcut açı). */
+  const fitDistance = (th?: number, ph?: number) => {
+    const s = th === undefined || ph === undefined ? spherical() : [th, ph];
+    return fitter.distance(camera, s[0], s[1]);
   };
-  const limits = () => { controls.minDistance = fitDistance() * 0.35; controls.maxDistance = fitDistance() * 1.9; };
+  const limits = () => { const [lo, hi] = fitter.range(camera); controls.minDistance = lo; controls.maxDistance = hi; };
 
   const load = (first: boolean, refit = false) => {
     const old = built;
@@ -461,8 +448,9 @@ export function createViewer(opts: ViewerOptions): Viewer {
     radius = built.bounds.radius;
     const prevTarget = controls.target.clone();
     controls.target.copy(built.center);
+    fitter.measure(built.group, controls.target);
     if (first) {
-      place(0.62, 1.28, fitDistance());
+      place(0.62, 1.28, fitDistance(0.62, 1.28));
     } else {
       camera.position.add(controls.target.clone().sub(prevTarget));
       if (refit) { const sp = spherical(); place(sp[0], sp[1], fitDistance()); }
@@ -551,6 +539,8 @@ export function createViewer(opts: ViewerOptions): Viewer {
     if (controls.autoRotate) busy = true;
     if (controls.update(dt)) busy = true;
 
+    look.sync(camera, controls.target);
+    fitter.center(camera, controls.target);
     renderer.render(scene, camera);
     updateHotspots();
     canvas.dataset.frames = String((Number(canvas.dataset.frames) || 0) + 1);
@@ -594,10 +584,10 @@ export function createViewer(opts: ViewerOptions): Viewer {
     setAutoRotate(on) { controls.autoRotate = on; invalidate(); },
     setSwim(on) { swimOn = on; invalidate(); },
     setHotspots(on) { hotspotsOn = on; overlay.dataset.off = on ? '' : 'true'; if (!on) for (const b of hotspots.values()) { b.hidden = true; b.setAttribute('aria-hidden', 'true'); } occKey = ''; occAt = 0; invalidate(); },
-    setView(v) { const [th, ph] = VIEW_ANGLES[v]; go(th, ph, fitDistance()); },
+    setView(v) { const [th, ph] = VIEW_ANGLES[v]; go(th, ph, fitDistance(th, ph)); },
     zoom(f) { const s = spherical(); const r = Math.min(controls.maxDistance, Math.max(controls.minDistance, s[2] * f)); place(s[0], s[1], r); controls.update(); invalidate(); },
     rotate(dTh, dPh) { const s = spherical(); place(s[0] + dTh, Math.min(Math.PI - 0.03, Math.max(0.03, s[1] + dPh)), s[2]); controls.update(); invalidate(); },
-    reset() { go(0.62, 1.28, fitDistance()); },
+    reset() { go(0.62, 1.28, fitDistance(0.62, 1.28)); },
     select(id) {
       selected = id;
       for (const [pid, b] of hotspots) b.classList.toggle('on', pid === id);
@@ -611,7 +601,7 @@ export function createViewer(opts: ViewerOptions): Viewer {
       document.removeEventListener('visibilitychange', onVis);
       controls.dispose();
       if (built) disposeGroup(built.group, built.textures);
-      envTex.dispose(); pmrem.dispose(); renderer.dispose();
+      look.dispose(); renderer.dispose();
     },
   };
   return api;

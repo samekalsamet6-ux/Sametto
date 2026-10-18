@@ -1,12 +1,12 @@
 // Yanlardan basık balıklar için ortak three.js sahnesi. Yalnızca ilgili 3B sayfasında tembel (dynamic import) yüklenir.
 import {
-  ACESFilmicToneMapping, AmbientLight, BufferAttribute, BufferGeometry, CanvasTexture, CatmullRomCurve3, Color, DirectionalLight, DoubleSide,
-  FrontSide, Float32BufferAttribute, Group, HemisphereLight, Material, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial,
-  PerspectiveCamera, PMREMGenerator, Quaternion, Raycaster, Scene, SphereGeometry, SRGBColorSpace, Texture, TubeGeometry, Vector3,
+  BufferAttribute, BufferGeometry, CanvasTexture, CatmullRomCurve3, Color, DoubleSide,
+  FrontSide, Float32BufferAttribute, Group, Material, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial,
+  PerspectiveCamera, Quaternion, Raycaster, Scene, SphereGeometry, SRGBColorSpace, Texture, TubeGeometry, Vector3,
   WebGLRenderer, Box3,
 } from 'three';
+import { applyLook, createFitter } from './scene-look';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import type { SpeciesViewer, SpeciesViewerOptions, SexId } from './types';
 import {
   atlasUV, bodyPoint, bodySurfaceZ, finPoint, flankNormal, swimZ, type Anchor, type FishSpec, type FishVariant, type Pt, type Vec3,
@@ -261,26 +261,10 @@ export function createFishViewer(def: FishDef, opts: SpeciesViewerOptions): Spec
   const small = matchMedia('(max-width: 700px)').matches || navigator.maxTouchPoints > 0;
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2));
-  renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.82;
-  renderer.outputColorSpace = SRGBColorSpace;
 
   const scene = new Scene();
-  const pmrem = new PMREMGenerator(renderer);
-  const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  scene.environment = envTex;
-  scene.environmentIntensity = 0.38;
-  scene.add(new HemisphereLight(0xcfe8ff, 0x3a3326, 0.6));
-  scene.add(new AmbientLight(0xffffff, 0.25));
-  const key = new DirectionalLight(0xffffff, 1.5);
-  key.position.set(1.5, 4, 5);
-  scene.add(key);
-  const fill = new DirectionalLight(0xffe8c8, 0.8);
-  fill.position.set(-2, 1, -5);
-  scene.add(fill);
-  const rim = new DirectionalLight(0x9fd8ff, 0.8);
-  rim.position.set(-4, 3, 2);
-  scene.add(rim);
+  const look = applyLook(renderer, scene);
+  const fitter = createFitter();
 
   const camera = new PerspectiveCamera(30, 1, 0.1, 100);
   const controls = new OrbitControls(camera, canvas);
@@ -332,13 +316,12 @@ export function createFishViewer(def: FishDef, opts: SpeciesViewerOptions): Spec
     camera.position.set(controls.target.x + r * sp * Math.sin(th), controls.target.y + r * Math.cos(ph), controls.target.z + r * sp * Math.cos(th));
     camera.lookAt(controls.target);
   };
-  const fitDistance = () => {
-    const vf = (camera.fov * Math.PI) / 180;
-    const hf = 2 * Math.atan(Math.tan(vf / 2) * camera.aspect);
-    const needV = (dims.y / 2) / Math.tan(vf / 2), needH = (Math.max(dims.x, 0.6) / 2) / Math.tan(hf / 2);
-    return Math.max(needV, needH) * 1.12 + dims.z / 2;
+  /** Kamera uzaklığı: (th, ph) açısından modelin gerçek izdüşümünü kadrajın ~%78'ine sığdırır (verilmezse mevcut açı). */
+  const fitDistance = (th?: number, ph?: number) => {
+    const s = th === undefined || ph === undefined ? spherical() : [th, ph];
+    return fitter.distance(camera, s[0], s[1]);
   };
-  const limits = () => { controls.minDistance = fitDistance() * 0.3; controls.maxDistance = fitDistance() * 1.9; };
+  const limits = () => { const [lo, hi] = fitter.range(camera); controls.minDistance = lo; controls.maxDistance = hi; };
   const home = (): [number, number] => def.views[def.defaultView];
 
   const load = (first: boolean) => {
@@ -349,7 +332,8 @@ export function createFishViewer(def: FishDef, opts: SpeciesViewerOptions): Spec
     built.box.getSize(dims);
     const prevTarget = controls.target.clone();
     controls.target.copy(built.center);
-    if (first) place(...home(), fitDistance());
+    fitter.measure(built.group, controls.target);
+    if (first) place(...home(), fitDistance(...home()));
     else camera.position.add(controls.target.clone().sub(prevTarget));
     limits();
     rebuildHotspots();
@@ -441,6 +425,8 @@ export function createFishViewer(def: FishDef, opts: SpeciesViewerOptions): Spec
     if (controls.autoRotate) busy = true;
     if (controls.update(dt)) busy = true;
 
+    look.sync(camera, controls.target);
+    fitter.center(camera, controls.target);
     renderer.render(scene, camera);
     updateHotspots();
     canvas.dataset.frames = String((Number(canvas.dataset.frames) || 0) + 1);
@@ -494,10 +480,10 @@ export function createFishViewer(def: FishDef, opts: SpeciesViewerOptions): Spec
       updateHotspots(); // görünür olmasa da hemen güncelle (kare döngüsü durmuş olabilir)
       invalidate();
     },
-    setView(v) { const a = def.views[v]; if (a) go(a[0], a[1], fitDistance()); },
+    setView(v) { const a = def.views[v]; if (a) go(a[0], a[1], fitDistance(a[0], a[1])); },
     zoom(f) { const s = spherical(); const r = Math.min(controls.maxDistance, Math.max(controls.minDistance, s[2] * f)); place(s[0], s[1], r); controls.update(); invalidate(); },
     rotate(dTh, dPh) { const s = spherical(); place(s[0] + dTh, Math.min(Math.PI - 0.03, Math.max(0.03, s[1] + dPh)), s[2]); controls.update(); invalidate(); },
-    reset() { go(...home(), fitDistance()); },
+    reset() { go(...home(), fitDistance(...home())); },
     select(id) {
       selected = id;
       for (const [pid, b] of hotspots) b.classList.toggle('on', pid === id);
@@ -511,7 +497,7 @@ export function createFishViewer(def: FishDef, opts: SpeciesViewerOptions): Spec
       document.removeEventListener('visibilitychange', onVis);
       controls.dispose();
       if (built) disposeGroup(built.group, built.textures, built.proxy);
-      envTex.dispose(); pmrem.dispose(); renderer.dispose();
+      look.dispose(); renderer.dispose();
     },
   };
   return api;

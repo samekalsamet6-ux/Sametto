@@ -1,11 +1,11 @@
 // three.js sahnesi: yalnızca 3B vatoz sayfasında, tembel (dynamic import) yüklenir.
 import {
-  ACESFilmicToneMapping, AmbientLight, BufferAttribute, BufferGeometry, CanvasTexture, Color, DirectionalLight, DoubleSide,
-  Float32BufferAttribute, Group, HemisphereLight, Material, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, PerspectiveCamera,
-  PMREMGenerator, Quaternion, Raycaster, Scene, SRGBColorSpace, SphereGeometry, Vector3, WebGLRenderer, Box3, Texture, Sphere, CatmullRomCurve3, TubeGeometry,
+  BufferAttribute, BufferGeometry, CanvasTexture, Color, DoubleSide,
+  Float32BufferAttribute, Group, Material, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, PerspectiveCamera,
+  Quaternion, Raycaster, Scene, SRGBColorSpace, SphereGeometry, Vector3, WebGLRenderer, Box3, Texture, Sphere, CatmullRomCurve3, TubeGeometry,
 } from 'three';
+import { applyLook, createFitter } from '../akvaryum/scene-look';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import {
   SPINE, SPINE_U, SWIM, clasper, discPoint, discRho, discWaveY, eyeSpec, gillSlits, mouthLine, naresRing, nasalCurtain, pelvicSpec,
   spineProfile, spineSpec, spiracleRing, spiracleSpec, surfaceY, tailPoint, tailRadii, tailSwayZ, texUV, type Face, type Sex, type Vec3,
@@ -369,26 +369,10 @@ export function createViewer(opts: ViewerOptions): Viewer {
   const small = matchMedia('(max-width: 700px)').matches || navigator.maxTouchPoints > 0;
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2));
-  renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
-  renderer.outputColorSpace = SRGBColorSpace;
 
   const scene = new Scene();
-  const pmrem = new PMREMGenerator(renderer);
-  const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  scene.environment = envTex;
-  scene.environmentIntensity = 0.45;
-  scene.add(new HemisphereLight(0xcfe8ff, 0x3a3326, 0.55));
-  scene.add(new AmbientLight(0xffffff, 0.2));
-  const key = new DirectionalLight(0xffffff, 1.6);
-  key.position.set(2, 6, 3);
-  scene.add(key);
-  const under = new DirectionalLight(0xffe8c8, 0.9);
-  under.position.set(-1, -5, 2);
-  scene.add(under);
-  const rim = new DirectionalLight(0x9fd8ff, 0.8);
-  rim.position.set(-4, 2, -4);
-  scene.add(rim);
+  const look = applyLook(renderer, scene);
+  const fitter = createFitter();
 
   const camera = new PerspectiveCamera(30, 1, 0.1, 100);
   const controls = new OrbitControls(camera, canvas);
@@ -402,7 +386,7 @@ export function createViewer(opts: ViewerOptions): Viewer {
   let sex = opts.sex, variant = opts.variant;
   let built: Built | null = null;
   let swimOn = false, selected: PartId | null = null;
-  let radius = 3, visible = true, raf = 0, last = 0, disposed = false;
+  let visible = true, raf = 0, last = 0, disposed = false;
   let tween: { from: [number, number, number]; to: [number, number, number]; t0: number; dur: number } | null = null;
   const texW = small ? 512 : 1024;
   const ray = new Raycaster();
@@ -438,22 +422,22 @@ export function createViewer(opts: ViewerOptions): Viewer {
     camera.position.set(controls.target.x + r * sp * Math.sin(th), controls.target.y + r * Math.cos(ph), controls.target.z + r * sp * Math.cos(th));
     camera.lookAt(controls.target);
   };
-  const fitDistance = () => {
-    const vf = (camera.fov * Math.PI) / 180;
-    const hf = 2 * Math.atan(Math.tan(vf / 2) * camera.aspect);
-    return (radius * 1.08) / Math.sin(Math.min(vf, hf) / 2);
+  /** Kamera uzaklığı: (th, ph) açısından modelin gerçek izdüşümünü kadrajın ~%78'ine sığdırır (verilmezse mevcut açı). */
+  const fitDistance = (th?: number, ph?: number) => {
+    const s = th === undefined || ph === undefined ? spherical() : [th, ph];
+    return fitter.distance(camera, s[0], s[1]);
   };
-  const limits = () => { controls.minDistance = fitDistance() * 0.3; controls.maxDistance = fitDistance() * 1.9; };
+  const limits = () => { const [lo, hi] = fitter.range(camera); controls.minDistance = lo; controls.maxDistance = hi; };
 
   const load = (first: boolean) => {
     const old = built;
     if (old) { scene.remove(old.group); disposeGroup(old.group, old.textures, old.proxy); }
     built = buildRay(sex, variant, uniforms, texW);
     scene.add(built.group);
-    radius = built.bounds.radius;
     const prevTarget = controls.target.clone();
     controls.target.copy(built.center);
-    if (first) place(...VIEW_ANGLES.capraz, fitDistance() * 0.8);
+    fitter.measure(built.group, controls.target);
+    if (first) place(...VIEW_ANGLES.capraz, fitDistance(...VIEW_ANGLES.capraz));
     else camera.position.add(controls.target.clone().sub(prevTarget));
     limits();
     rebuildHotspots();
@@ -549,6 +533,8 @@ export function createViewer(opts: ViewerOptions): Viewer {
     if (controls.autoRotate) busy = true;
     if (controls.update(dt)) busy = true;
 
+    look.sync(camera, controls.target);
+    fitter.center(camera, controls.target);
     renderer.render(scene, camera);
     updateHotspots();
     canvas.dataset.frames = String((Number(canvas.dataset.frames) || 0) + 1);
@@ -585,10 +571,10 @@ export function createViewer(opts: ViewerOptions): Viewer {
     setAutoRotate(on) { controls.autoRotate = on; invalidate(); },
     setSwim(on) { swimOn = on; invalidate(); },
     setHotspots(on) { hotspotsOn = on; overlay.dataset.off = on ? '' : 'true'; if (!on) for (const b of hotspots.values()) { b.hidden = true; b.setAttribute('aria-hidden', 'true'); } invalidate(); },
-    setView(v) { const [th, ph] = VIEW_ANGLES[v]; go(th, ph, fitDistance()); },
+    setView(v) { const [th, ph] = VIEW_ANGLES[v]; go(th, ph, fitDistance(th, ph)); },
     zoom(f) { const s = spherical(); const r = Math.min(controls.maxDistance, Math.max(controls.minDistance, s[2] * f)); place(s[0], s[1], r); controls.update(); invalidate(); },
     rotate(dTh, dPh) { const s = spherical(); place(s[0] + dTh, Math.min(Math.PI - 0.03, Math.max(0.03, s[1] + dPh)), s[2]); controls.update(); invalidate(); },
-    reset() { go(...VIEW_ANGLES.capraz, fitDistance() * 0.8); },
+    reset() { go(...VIEW_ANGLES.capraz, fitDistance(...VIEW_ANGLES.capraz)); },
     select(id) {
       selected = id;
       for (const [pid, b] of hotspots) b.classList.toggle('on', pid === id);
@@ -603,7 +589,7 @@ export function createViewer(opts: ViewerOptions): Viewer {
       document.removeEventListener('visibilitychange', onVis);
       controls.dispose();
       if (built) disposeGroup(built.group, built.textures, built.proxy);
-      envTex.dispose(); pmrem.dispose(); renderer.dispose();
+      look.dispose(); renderer.dispose();
     },
   };
   return api;
