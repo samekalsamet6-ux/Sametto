@@ -1,5 +1,6 @@
 // Canlı doğuran balıklar için ortak renk/desen tipleri ve yüzgeç renk fonksiyonu (saf).
 import type { Sex } from './model';
+import { finDetail } from './finpaint';
 
 export type RGB = [number, number, number];
 export type RGBA = [number, number, number, number];
@@ -103,7 +104,9 @@ export function finColor(v: Variant, _sex: Sex, kind: FinKind, u: number, s: num
     }
   }
   if (!big) a *= 0.9;
-  return [c[0], c[1], c[2], Math.min(1, Math.max(0, a))];
+  // gerçekçi zar: ışın demetleri boyunca renk/opaklık dalgalanması, taban pigmenti, uçta şeffaflık
+  const [dc, da] = finDetail(c, a, big, u, s, v.id.length * 13 + (kind === 'kuyruk' ? 3 : kind === 'sirt' ? 5 : 1));
+  return [dc[0], dc[1], dc[2], da];
 }
 
 /** Bir tür için gruplu varyete yardımcıları üretir. */

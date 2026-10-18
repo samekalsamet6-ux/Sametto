@@ -204,6 +204,7 @@ test.describe('3B plati modeli', () => {
   });
 
   test('her form x birkaç renk x iki cinsiyet hatasız yüklenir; form renk seçimini korur; numaralar çalışır', async ({ page }) => {
+    test.setTimeout(120_000); // 30 yükleme (2 cinsiyet x formlar x 3 renk): yoğun CI/yazılım GL'de 30 sn'yi aşabilir
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(URL);

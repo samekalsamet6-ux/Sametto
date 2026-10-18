@@ -3,6 +3,8 @@
 // v=0 ve v=1 karın orta çizgisi, v=0.5 sırt, v=0.25 +z yanı. Yarısı çizilir, sonra aynalanır.
 import type { Sex } from './model';
 import { mulberry32, type Variant } from './variants';
+import { EYE_A, EYE_T } from './model';
+import { LH, LW, paintBase, paintHead, paintLateralLine, paintScaleBump, paintScales, paintSheen, type DetailOpts } from '../livebearer/scales';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -133,67 +135,22 @@ export function paintBody(variant: Variant, sex: Sex, W = 1024): BodyTextures {
   c.globalAlpha = 1;
   c.restore();
 
-  // ---- kafa: hafif parlak ve solungaç bölgesi yumuşak gölgesi
-  blob(c, W * 0.12, half * 0.7, 120, 60, '#ffffff', 0.12);
-  const gill = c.createLinearGradient(W * 0.255, 0, W * 0.3, 0);
-  gill.addColorStop(0, 'rgba(0,0,0,0)');
-  gill.addColorStop(0.5, 'rgba(20,20,30,0.16)');
-  gill.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = gill;
-  c.fillRect(W * 0.25, 0, W * 0.06, half);
-
-  // ---- pullar
-  b.fillStyle = '#808080';
-  b.fillRect(0, 0, W, half);
-  const sw = 33, sh = 27;
-  for (let row = -1; row < Math.ceil(half / sh) + 1; row++) {
-    for (let col = 0; col * sw < W - 40; col++) {
-      const x = W * 0.235 + col * sw + (row % 2 ? sw / 2 : 0);
-      if (x > W * 0.97) continue;
-      const y = row * sh + sh * 0.5;
-      // pul gövdesi: hafif ışıltı
-      const sg = c.createRadialGradient(x - 6, y - 4, 1, x, y, sw * 0.6);
-      sg.addColorStop(0, 'rgba(255,255,255,0.12)');
-      sg.addColorStop(1, 'rgba(255,255,255,0)');
-      c.fillStyle = sg;
-      c.beginPath(); c.ellipse(x, y, sw * 0.55, sh * 0.6, 0, 0, Math.PI * 2); c.fill();
-      // arka (kuyruğa bakan) kenar: koyu ince yay
-      c.strokeStyle = 'rgba(10,20,30,0.20)';
-      c.lineWidth = 1.5;
-      c.beginPath(); c.ellipse(x, y, sw * 0.55, sh * 0.6, 0, -Math.PI * 0.5, Math.PI * 0.5); c.stroke();
-      // kabartma
-      const bg = b.createRadialGradient(x - 5, y - 3, 1, x, y, sw * 0.6);
-      bg.addColorStop(0, '#d8d8d8');
-      bg.addColorStop(0.8, '#9a9a9a');
-      bg.addColorStop(1, '#606060');
-      b.fillStyle = bg;
-      b.beginPath(); b.ellipse(x, y, sw * 0.55, sh * 0.6, 0, 0, Math.PI * 2); b.fill();
-      b.strokeStyle = '#303030';
-      b.lineWidth = 1.5;
-      b.beginPath(); b.ellipse(x, y, sw * 0.55, sh * 0.6, 0, -Math.PI * 0.5, Math.PI * 0.5); b.stroke();
-    }
-  }
-  // pulsuz baş bölgesi: sönük
-  const headFade = c.createLinearGradient(W * 0.17, 0, W * 0.25, 0);
-  headFade.addColorStop(0, 'rgba(128,128,128,1)');
-  headFade.addColorStop(1, 'rgba(128,128,128,0)');
-  b.fillStyle = headFade;
-  b.fillRect(0, 0, W * 0.25, half);
-
-  // ---- yan çizgi (v = 0.25 -> yarım dokuda y = half/2): noktalı çizgi
-  c.save();
-  c.strokeStyle = 'rgba(15,25,35,0.55)';
-  c.lineWidth = 2.4;
-  c.setLineDash([5, 4]);
-  c.beginPath();
-  const ly = half * 0.5;
-  for (let i = 0; i <= 80; i++) {
-    const x = W * (0.3 + 0.66 * (i / 80));
-    const y = ly + Math.sin((i / 80) * Math.PI) * -6 + (i / 80) * 6;
-    if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
-  }
-  c.stroke();
+  // ---- gerçekçi gövde ayrıntıları (ortak yardımcılar; mantıksal 1024x256 uzayında çizilir)
+  const k = W / LW;
+  const det: DetailOpts = {
+    yan: pal.yan, sirt: pal.sirt, karin: pal.karin, metal: variant.metal ?? 0.3, sw: 24, sh: 20,
+    seed: variant.id.length * 977 + variant.id.charCodeAt(0) * 31 + (male ? 11 : 29),
+    eye: { x: EYE_T * LW, y: (EYE_A / (Math.PI * 2)) * 2 * LH, rx: 54, ry: 46 },
+  };
+  c.save(); c.scale(k, k);
+  paintBase(c, det); paintScales(c, det); paintSheen(c, det); paintLateralLine(c, det); paintHead(c, det);
   c.restore();
+  b.save(); b.scale(k, k);
+  paintScaleBump(b, det);
+  const headFade = b.createLinearGradient(LW * 0.17, 0, LW * 0.25, 0);
+  headFade.addColorStop(0, 'rgba(128,128,128,1)'); headFade.addColorStop(1, 'rgba(128,128,128,0)');
+  b.fillStyle = headFade; b.fillRect(0, 0, LW * 0.25, LH);
+  b.restore();
 
   // ---- gravid spot (dişi): karın arka kısmı, anal yüzgecin hemen önünde
   if (!male) {

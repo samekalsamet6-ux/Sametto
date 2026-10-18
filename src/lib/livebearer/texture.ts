@@ -4,9 +4,11 @@
 // Çizim mantıksal 1024x512 uzayında yapılır; gerçek boyut W'ye göre ölçeklenir.
 import type { Sex } from './model';
 import { mulberry32, type Variant } from './variants';
+import { EYE_A, EYE_T } from './model';
+import { LH as SLH, LW as SLW, paintBase, paintHead, paintLateralLine, paintScaleBump, paintScales, paintSheen, type DetailOpts } from './scales';
 
 type Ctx = CanvasRenderingContext2D;
-const LW = 1024, LH = 256; // yarım doku, mantıksal piksel
+const LW = SLW, LH = SLH; // yarım doku, mantıksal piksel
 
 function hexA(hex: string, a: number): string {
   const n = parseInt(hex.slice(1), 16);
@@ -119,46 +121,23 @@ export function paintBody(variant: Variant, sex: Sex, W = 1024, opts: TextureOpt
     }
   }
 
-  // ---- baş parlaklığı ve solungaç gölgesi
-  blob(c, LW * 0.12, LH * 0.7, 120, 60, '#ffffff', 0.1);
-  const gill = c.createLinearGradient(LW * 0.255, 0, LW * 0.3, 0);
-  gill.addColorStop(0, 'rgba(0,0,0,0)'); gill.addColorStop(0.5, 'rgba(20,20,30,0.16)'); gill.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = gill; c.fillRect(LW * 0.25, 0, LW * 0.06, LH);
-
-  // ---- pullar
-  b.fillStyle = '#808080'; b.fillRect(0, 0, LW, LH);
+  // ---- gerçekçi gövde ayrıntıları: lekelenme, pul pul parlaklık/kenar, iridesans, yan çizgi gözenekleri, baş
   const sw = opts.scaleW ?? 33, sh = opts.scaleH ?? 27;
-  for (let row = -1; row < Math.ceil(LH / sh) + 1; row++) {
-    for (let col = 0; col * sw < LW - 40; col++) {
-      const x = LW * 0.235 + col * sw + (row % 2 ? sw / 2 : 0);
-      if (x > LW * 0.97) continue;
-      const y = row * sh + sh * 0.5;
-      const sg = c.createRadialGradient(x - 6, y - 4, 1, x, y, sw * 0.6);
-      sg.addColorStop(0, 'rgba(255,255,255,0.12)'); sg.addColorStop(1, 'rgba(255,255,255,0)');
-      c.fillStyle = sg; c.beginPath(); c.ellipse(x, y, sw * 0.55, sh * 0.6, 0, 0, Math.PI * 2); c.fill();
-      c.strokeStyle = 'rgba(10,20,30,0.20)'; c.lineWidth = 1.5;
-      c.beginPath(); c.ellipse(x, y, sw * 0.55, sh * 0.6, 0, -Math.PI * 0.5, Math.PI * 0.5); c.stroke();
-      const bg = b.createRadialGradient(x - 5, y - 3, 1, x, y, sw * 0.6);
-      bg.addColorStop(0, '#d8d8d8'); bg.addColorStop(0.8, '#9a9a9a'); bg.addColorStop(1, '#606060');
-      b.fillStyle = bg; b.beginPath(); b.ellipse(x, y, sw * 0.55, sh * 0.6, 0, 0, Math.PI * 2); b.fill();
-      b.strokeStyle = '#303030'; b.lineWidth = 1.5;
-      b.beginPath(); b.ellipse(x, y, sw * 0.55, sh * 0.6, 0, -Math.PI * 0.5, Math.PI * 0.5); b.stroke();
-    }
-  }
+  const det: DetailOpts = {
+    yan: pal.yan, sirt: pal.sirt, karin: pal.karin, metal: variant.metal ?? 0, sw, sh, seed: variant.id.length * 977 + variant.id.charCodeAt(0) * 31 + (sex === 'erkek' ? 11 : 29),
+    eye: { x: EYE_T * LW, y: (EYE_A / (Math.PI * 2)) * 2 * LH, rx: 54, ry: 46 },
+  };
+  paintBase(c, det);
+  paintScales(c, det);
+  paintSheen(c, det);
+  paintLateralLine(c, det);
+  paintHead(c, det);
+
+  // ---- kabartma
+  paintScaleBump(b, det);
   const headFade = c.createLinearGradient(LW * 0.17, 0, LW * 0.25, 0);
   headFade.addColorStop(0, 'rgba(128,128,128,1)'); headFade.addColorStop(1, 'rgba(128,128,128,0)');
   b.fillStyle = headFade; b.fillRect(0, 0, LW * 0.25, LH);
-
-  // ---- yan çizgi (noktalı)
-  c.save();
-  c.strokeStyle = 'rgba(15,25,35,0.4)'; c.lineWidth = 2.2; c.setLineDash([5, 4]);
-  c.beginPath();
-  const ly0 = LH * 0.5;
-  for (let i = 0; i <= 80; i++) {
-    const x = LW * (0.3 + 0.66 * (i / 80)), y = ly0 + Math.sin((i / 80) * Math.PI) * -6 + (i / 80) * 6;
-    if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
-  }
-  c.stroke(); c.restore();
 
   // ---- gravid spot (dişi): karın arka kısmı, anal yüzgecin hemen önünde
   if (sex === 'disi') {

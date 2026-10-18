@@ -4,4 +4,4 @@ import type { Sex } from './model';
 import type { Variant } from './variants';
 
 export type { BodyTextures };
-export const paintBody = (variant: Variant, sex: Sex, W = 1024): BodyTextures => paint(variant, sex, W, { scaleW: 31, scaleH: 25 });
+export const paintBody = (variant: Variant, sex: Sex, W = 1024): BodyTextures => paint(variant, sex, W, { scaleW: 23, scaleH: 19 });

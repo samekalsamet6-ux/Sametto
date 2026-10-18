@@ -8,8 +8,8 @@ export * from '../livebearer/model';
 
 export const CONFIG: LbConfig = {
   body: {
-    erkek: { length: 3.3, height: 1.1, width: 0.7, peak: 0.42, peduncle: 0.38, belly: 0.04, bellyAt: 0.55, bellySpread: 0.2, eye: 0.16, lift: 0.24, frontPow: 0.45 },
-    disi: { length: 3.8, height: 1.2, width: 0.85, peak: 0.45, peduncle: 0.36, belly: 0.24, bellyAt: 0.55, bellySpread: 0.2, eye: 0.17, lift: 0.22, frontPow: 0.45 },
+    erkek: { length: 3.3, height: 1.1, width: 0.7, peak: 0.42, peduncle: 0.38, belly: 0.04, bellyAt: 0.55, bellySpread: 0.2, eye: 0.16, lift: 0.24, frontPow: 0.45, shape: { nape: 0.1, back: 0.1, throat: 0.1, snout: 0.55, gill: 0.05, flank: 0.14, ridge: 0.2 } },
+    disi: { length: 3.8, height: 1.2, width: 0.85, peak: 0.45, peduncle: 0.36, belly: 0.24, bellyAt: 0.55, bellySpread: 0.2, eye: 0.17, lift: 0.22, frontPow: 0.45, shape: { nape: 0.1, back: 0.1, throat: 0.1, snout: 0.55, gill: 0.05, flank: 0.14, ridge: 0.2 } },
   },
   // Yuvarlak kuyruk: arka kenar daire yayı (round=0.9)
   tail: {

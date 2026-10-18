@@ -1,6 +1,8 @@
 // Renk varyeteleri (şematik yorumlar) ve yüzgeç renk fonksiyonları (saf).
 import type { Sex } from './model';
 
+import { finDetail } from '../livebearer/finpaint';
+
 export type VariantId = string;
 
 export interface Palette { sirt: string; yan: string; karin: string }
@@ -273,5 +275,7 @@ export function finColor(v: Variant, sex: Sex, kind: FinKind, u: number, s: numb
     a *= 0.7;
   }
   if (!big) a *= 0.9;
-  return [c[0], c[1], c[2], Math.min(1, Math.max(0, a))];
+  // gerçekçi zar: ışın demetleri boyunca renk/opaklık dalgalanması, taban pigmenti, uçta şeffaflık
+  const [dc, da] = finDetail(c, a, big, u, s, v.id.length * 13 + (kind === 'kuyruk' ? 3 : kind === 'sirt' ? 5 : 1));
+  return [dc[0], dc[1], dc[2], da];
 }

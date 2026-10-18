@@ -4,6 +4,8 @@
 // Koordinatlar: x gövde ekseni (burun -x, kuyruk +x), y yukarı, z yanal (kamera varsayılan olarak +z'den bakar).
 // Birim keyfidir (şematik model); gerçek ölçüm değildir.
 
+import { bodyShape, flankProfile, type BodyShape } from './body';
+
 export type Sex = 'erkek' | 'disi';
 export type Vec3 = [number, number, number];
 export type Vec2 = [number, number];
@@ -21,6 +23,8 @@ export interface BodyParams {
   lift: number;
   /** Ön gövde dolgunluğu: küçük üs = daha küt/dolgun baş (guppy 0.6) */
   frontPow: number;
+  /** Doğal gövde ince ayarı (alın/ense/kamburluk/solungaç/kesit); yoksa ortak varsayılan (bkz. body.ts) */
+  shape?: Partial<BodyShape>;
 }
 
 export interface TailSpec {
@@ -122,7 +126,8 @@ export function createModel(cfg: LbConfig) {
       const k = Math.pow((t - p.peak) / (1 - p.peak), 0.85);
       f = p.peduncle + (1 - p.peduncle) * 0.5 * (1 + Math.cos(Math.PI * k));
     }
-    if (t > 0.975) f *= Math.sqrt(Math.max(0, 1 - ((t - 0.975) / 0.025) ** 2));
+    // yuvarlak kuyruk sapı kapanışı: son %5'te dairesel daralma (düz kapak görünümü olmasın)
+    if (t > 0.95) f *= Math.sqrt(Math.max(0, 1 - ((t - 0.95) / 0.05) ** 2));
     return f;
   }
 
@@ -132,11 +137,12 @@ export function createModel(cfg: LbConfig) {
     const half = p.height / 2;
     const bump = Math.exp(-(((t - p.bellyAt) / p.bellySpread) ** 2));
     const lift = half * p.lift * Math.pow(Math.max(0, 1 - t / 0.2), 1.6);
+    const sh = bodyShape(t, p.shape);
     return {
       cy: lift,
-      up: half * e,
-      down: half * e * (1 + p.belly * bump * 1.6),
-      rz: (p.width / 2) * Math.pow(e, 0.95) * (1 + 0.25 * p.belly * bump) * (1 + 0.32 * Math.exp(-(((t - 0.13) / 0.09) ** 2))),
+      up: half * e * sh.up,
+      down: half * e * (1 + p.belly * bump * 1.6) * sh.down,
+      rz: (p.width / 2) * Math.pow(e, 0.95) * (1 + 0.25 * p.belly * bump) * (1 + 0.32 * Math.exp(-(((t - 0.13) / 0.09) ** 2))) * sh.w,
     };
   }
   const bodyX = (sex: Sex, t: number): number => (t - 0.5) * BODY[sex].length;
@@ -145,7 +151,7 @@ export function createModel(cfg: LbConfig) {
   function bodySurfacePoint(sex: Sex, t: number, a: number, offset = 0): Vec3 {
     const pr = bodyProfile(sex, t);
     const mid = (pr.up + pr.down) / 2, off = (pr.up - pr.down) / 2;
-    return [bodyX(sex, t), pr.cy + off - Math.cos(a) * (mid + offset), (pr.rz + offset) * Math.sin(a)];
+    return [bodyX(sex, t), pr.cy + off - Math.cos(a) * (mid + offset), pr.rz * flankProfile(a, BODY[sex].shape) + offset * Math.sin(a)];
   }
 
   function tailFin(sex: Sex): Fin {
@@ -236,11 +242,12 @@ export function createModel(cfg: LbConfig) {
   function gonopodium(sex: Sex): GonopodiumSpec | null {
     if (sex !== 'erkek') return null;
     const k = cfg.gono;
-    const p0 = bodySurfacePoint(sex, 0.585, 0, -0.02);
-    const path: Vec3[] = [
-      p0, [p0[0] + 0.1 * k, p0[1] - 0.07 * k, 0], [p0[0] + 0.26 * k, p0[1] - 0.12 * k, 0],
-      [p0[0] + 0.46 * k, p0[1] - 0.13 * k, 0], [p0[0] + 0.58 * k, p0[1] - 0.1 * k, 0], [p0[0] + 0.62 * k, p0[1] - 0.03 * k, 0],
-    ];
+    // karın çizgisini izleyen çubuk: gövdeye yakın uzanır, ucu hafifçe aşağı kıvrılır (kanca)
+    const dt = (0.62 * k) / BODY[sex].length;
+    const path: Vec3[] = [0, 0.2, 0.42, 0.64, 0.84, 1].map((f) => {
+      const p = bodySurfacePoint(sex, 0.585 + dt * f, 0, -0.02 + 0.075 * Math.sin(f * Math.PI * 0.5));
+      return [p[0], p[1] - 0.05 * k * f * f * f, 0] as Vec3;
+    });
     return { path, radii: [0.04, 0.034, 0.026, 0.019, 0.013, 0.008].map((r, i) => (i === 0 ? r : r * Math.max(0.8, k))) };
   }
 

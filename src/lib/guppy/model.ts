@@ -4,6 +4,8 @@
 // Koordinatlar: x gövde ekseni (burun -x, kuyruk +x), y yukarı, z yanal (kamera varsayılan olarak +z'den bakar).
 // Birim keyfidir (şematik model); gerçek ölçüm değildir.
 
+import { bodyShape, flankProfile, type BodyShape } from '../livebearer/body';
+
 export type Sex = 'erkek' | 'disi';
 export type Vec3 = [number, number, number];
 export type Vec2 = [number, number];
@@ -27,11 +29,13 @@ export interface BodyParams {
   bellySpread: number;
   /** Göz yarıçapı */
   eye: number;
+  /** Doğal gövde ince ayarı (bkz. livebearer/body.ts) */
+  shape?: Partial<BodyShape>;
 }
 
 export const BODY: Record<Sex, BodyParams> = {
-  erkek: { length: 2.7, height: 0.62, width: 0.4, peak: 0.36, peduncle: 0.3, belly: 0.03, bellyAt: 0.55, bellySpread: 0.2, eye: 0.125 },
-  disi: { length: 3.1, height: 0.96, width: 0.66, peak: 0.45, peduncle: 0.28, belly: 0.3, bellyAt: 0.55, bellySpread: 0.2, eye: 0.14 },
+  erkek: { length: 2.7, height: 0.62, width: 0.4, peak: 0.36, peduncle: 0.3, belly: 0.03, bellyAt: 0.55, bellySpread: 0.2, eye: 0.125, shape: { nape: 0.07, back: 0.02, throat: 0.09, snout: 0.7, gill: 0.035, flank: 0.1, ridge: 0.14 } },
+  disi: { length: 3.1, height: 0.96, width: 0.66, peak: 0.45, peduncle: 0.28, belly: 0.3, bellyAt: 0.55, bellySpread: 0.2, eye: 0.14, shape: { nape: 0.06, back: 0.05, throat: 0.08, snout: 0.6, gill: 0.04, flank: 0.12, ridge: 0.16 } },
 };
 
 /** Gövde kesit zarfı: t=0 burun, t=1 kuyruk sapı sonu; 0..1 arası ölçek. */
@@ -45,7 +49,8 @@ export function envelope(sex: Sex, t: number): number {
     const k = Math.pow((t - p.peak) / (1 - p.peak), 0.85);
     f = p.peduncle + (1 - p.peduncle) * 0.5 * (1 + Math.cos(Math.PI * k));
   }
-  if (t > 0.975) f *= Math.sqrt(Math.max(0, 1 - ((t - 0.975) / 0.025) ** 2));
+  // yuvarlak kuyruk sapı kapanışı: son %5'te dairesel daralma (düz kapak görünümü olmasın)
+  if (t > 0.95) f *= Math.sqrt(Math.max(0, 1 - ((t - 0.95) / 0.05) ** 2));
   return f;
 }
 
@@ -67,11 +72,12 @@ export function bodyProfile(sex: Sex, t: number): Profile {
   const bump = Math.exp(-(((t - p.bellyAt) / p.bellySpread) ** 2));
   // Ağız hafif yukarı bakar (üst konumlu ağız): baş bölgesinde merkez çizgisi yukarı kayar.
   const lift = half * 0.16 * Math.pow(Math.max(0, 1 - t / 0.2), 1.6);
+  const sh = bodyShape(t, p.shape);
   return {
     cy: lift,
-    up: half * e,
-    down: half * e * (1 + p.belly * bump * 1.6),
-    rz: (p.width / 2) * Math.pow(e, 0.95) * (1 + 0.25 * p.belly * bump) * (1 + 0.32 * Math.exp(-(((t - 0.13) / 0.09) ** 2))),
+    up: half * e * sh.up,
+    down: half * e * (1 + p.belly * bump * 1.6) * sh.down,
+    rz: (p.width / 2) * Math.pow(e, 0.95) * (1 + 0.25 * p.belly * bump) * (1 + 0.32 * Math.exp(-(((t - 0.13) / 0.09) ** 2))) * sh.w,
   };
 }
 
@@ -87,7 +93,7 @@ export function bodySurfacePoint(sex: Sex, t: number, a: number, offset = 0): Ve
   const off = (pr.up - pr.down) / 2;
   const c = Math.cos(a);
   const y = pr.cy + off - c * (mid + offset);
-  const z = (pr.rz + offset) * Math.sin(a);
+  const z = pr.rz * flankProfile(a, BODY[sex].shape) + offset * Math.sin(a);
   return [bodyX(sex, t), y, z];
 }
 
@@ -344,15 +350,12 @@ export interface GonopodiumSpec { path: Vec3[]; radii: number[] }
 /** Erkeğin anal yüzgecinden dönüşen çubuk biçimli üreme organı (uçta küçük kanca). */
 export function gonopodium(sex: Sex): GonopodiumSpec | null {
   if (sex !== 'erkek') return null;
-  const p0 = bodySurfacePoint(sex, 0.585, 0, -0.02);
-  const path: Vec3[] = [
-    p0,
-    [p0[0] + 0.1, p0[1] - 0.07, 0],
-    [p0[0] + 0.26, p0[1] - 0.12, 0],
-    [p0[0] + 0.46, p0[1] - 0.13, 0],
-    [p0[0] + 0.58, p0[1] - 0.1, 0],
-    [p0[0] + 0.62, p0[1] - 0.03, 0],
-  ];
+  // karın çizgisini izleyen çubuk: gövdeye yakın uzanır, ucu hafifçe aşağı kıvrılır (kanca)
+  const dt = 0.62 / BODY[sex].length;
+  const path: Vec3[] = [0, 0.2, 0.42, 0.64, 0.84, 1].map((f) => {
+    const p = bodySurfacePoint(sex, 0.585 + dt * f, 0, -0.02 + 0.07 * Math.sin(f * Math.PI * 0.5));
+    return [p[0], p[1] - 0.05 * f * f * f, 0] as Vec3;
+  });
   return { path, radii: [0.04, 0.034, 0.026, 0.019, 0.013, 0.008] };
 }
 
