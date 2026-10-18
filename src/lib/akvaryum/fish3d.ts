@@ -2,12 +2,13 @@
 // Gövde kaplaması, yüzgeç/tüp geometrileri, yüzme gölgelendirici eki ve numaralı noktalı görüntüleyici.
 import {
   BufferAttribute, BufferGeometry, CanvasTexture, CatmullRomCurve3, DoubleSide,
-  Float32BufferAttribute, Group, Material, Mesh, MeshBasicMaterial, PerspectiveCamera, Quaternion, Raycaster,
-  Scene, SphereGeometry, SRGBColorSpace, Texture, Vector3, WebGLRenderer, Box3,
+  Float32BufferAttribute, Group, Material, Mesh, MeshBasicMaterial, PerspectiveCamera, Raycaster,
+  Scene, SRGBColorSpace, Texture, Vector3, WebGLRenderer, Box3,
 } from 'three';
 import { applyLook, createFitter } from './scene-look';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { SWIM, bodyPoint, finGrid, swimZ, type Body, type FinDef, type Vec3 } from './fishmath';
+import type { FaceHost, FaceRig } from './fishface';
 import type { SexId, SpeciesPart, SpeciesViewer, SpeciesViewerOptions } from './types';
 
 // ------------------------------------------------------------------ yüzme gölgelendirici eki
@@ -43,13 +44,19 @@ export function put(group: Group, geo: BufferGeometry, mat: Material, order = 0)
 
 // ------------------------------------------------------------------ geometri
 
-export function loftBody(body: Body, NS = 72, NA = 44): BufferGeometry {
+/** cut: burnu (c, dir) düzlemiyle keser; dir dışa bakar. Ağız bu düz yüze oturur (kapak noktası yerine). */
+export function loftBody(body: Body, NS = 72, NA = 44, cut?: { c: Vec3; dir: Vec3 }): BufferGeometry {
   const pos: number[] = [], uv: number[] = [], idx: number[] = [];
   for (let i = 0; i <= NS; i++) {
     const s = 0.5 - 0.5 * Math.cos((i / NS) * Math.PI);
     for (let j = 0; j <= NA; j++) {
       const phi = (j / NA) * Math.PI * 2;
-      pos.push(...bodyPoint(body, s, phi));
+      const q = bodyPoint(body, s, phi);
+      if (cut) {
+        const d = (q[0] - cut.c[0]) * cut.dir[0] + (q[1] - cut.c[1]) * cut.dir[1] + (q[2] - cut.c[2]) * cut.dir[2];
+        if (d > 0) { q[0] -= d * cut.dir[0]; q[1] -= d * cut.dir[1]; q[2] -= d * cut.dir[2]; }
+      }
+      pos.push(...q);
       uv.push(s, j / NA);
     }
   }
@@ -112,18 +119,9 @@ export function taperedTube(points: Vec3[], radii: number[], radial = 10, sample
 
 export const tube = (points: Vec3[], r: number, samples = 24, closed = false) => taperedTube(points, [r], 6, samples, closed);
 
-export interface EyeColors { ball: string; iris: string; pupil: string }
-
-/** Göz: küre + iris + gözbebeği; normal yönünde bakar. */
-export function addEye(group: Group, center: Vec3, r: number, normal: Vec3, c: EyeColors, mk: (color: string, rough: number, metal?: number) => Material, irisAngle = 1.0, pupilAngle = 0.5) {
-  const q = new Quaternion().setFromUnitVectors(new Vector3(0, 0, 1), new Vector3(...normal).normalize());
-  const part = (geo: BufferGeometry, mat: Material, scale = 1) => {
-    geo.rotateX(Math.PI / 2); geo.scale(scale, scale, scale); geo.applyQuaternion(q); geo.translate(...center);
-    put(group, geo, mat);
-  };
-  part(new SphereGeometry(r, 28, 18), mk(c.ball, 0.35));
-  part(new SphereGeometry(r, 28, 10, 0, Math.PI * 2, 0, irisAngle), mk(c.iris, 0.25, 0.4), 1.012);
-  part(new SphereGeometry(r, 28, 8, 0, Math.PI * 2, 0, pupilAngle), mk(c.pupil, 0.15), 1.024);
+/** Yüz oluşturucuları (fishface) için ev sahibi: ağı gruba ekler, malzemeye yüzme gölgelendiricisini uygular */
+export function faceHost(group: Group, u: SwimUniforms, textures: Texture[]): FaceHost {
+  return { add: (geo, mat, order = 0) => put(group, geo, mat, order), wrap: (m) => swimify(m, u), textures };
 }
 
 export function canvasTexture(c: HTMLCanvasElement, srgb: boolean, store: Texture[], anisotropy = 4): CanvasTexture {
@@ -163,6 +161,8 @@ export interface FishBuilt {
   /** Görünmez, kaba gövde vekili (nokta gizlenme sınaması için) */
   proxy: { mesh: Mesh; base: Float32Array }[];
   textures: Texture[];
+  /** Yüz canlandırması (ağız açılıp kapanır, solungaç kapağı atar); yüzme açıkken her karede çağrılır */
+  face?: FaceRig;
 }
 
 export interface FishViewerConfig {
@@ -339,8 +339,8 @@ export function createFishViewer(opts: SpeciesViewerOptions, cfg: FishViewerConf
 
     const targetAmp = swimOn ? SWIM.amp : 0;
     uniforms.uAmp.value += (targetAmp - uniforms.uAmp.value) * (1 - Math.exp(-dt * 5));
-    if (swimOn || uniforms.uAmp.value > 0.0008) { uniforms.uTime.value += dt; busy = true; }
-    else if (uniforms.uAmp.value !== 0) { uniforms.uAmp.value = 0; proxyDirty = true; }
+    if (swimOn || uniforms.uAmp.value > 0.0008) { uniforms.uTime.value += dt; busy = true; if (!opts.reducedMotion) built?.face?.update(uniforms.uTime.value, Math.min(1, uniforms.uAmp.value / SWIM.amp)); }
+    else if (uniforms.uAmp.value !== 0) { uniforms.uAmp.value = 0; proxyDirty = true; built?.face?.update(uniforms.uTime.value, 0); }
 
     if (tween) {
       const p = tween.dur <= 0 ? 1 : Math.min(1, (now - tween.t0) / tween.dur);

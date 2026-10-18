@@ -195,7 +195,12 @@ describe('japon: tür modülü', () => {
     expect(species.latin).toBe('Carassius auratus');
     expect(species.sexes.map((s) => s.id)).toEqual(['erkek', 'disi']);
     for (const s of species.sexes) expect(s.not).toMatch(/çok benzer/);
-    expect(species.not).toMatch(/oranda/);
+    expect(species.not).toMatch(/oranda/i);
     expect(species.forms?.length).toBe(14);
   });
+});
+
+import { mouthSpec as jMouth } from './model';
+describe('japon: uç ağız', () => {
+  it('terminal, yumuşak dudaklı; yön öne', () => { for (const s of SEXES) { const m = jMouth(s); expect(m.dir[0]).toBeLessThan(-0.95); expect(m.c[0]).toBeLessThan(-0.46); expect(m.gap).toBeGreaterThan(m.lip); } });
 });

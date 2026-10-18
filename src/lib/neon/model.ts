@@ -1,6 +1,6 @@
 // Neon tetra (Paracheirodon innesi; şematik) 3B modeli için SAF geometri parametreleri.
 // DOM ve three.js kullanılmaz: birim testlenir, SVG yedeği de aynı sayılardan üretilir. Koordinatlar: bkz. ../akvaryum/fishmath.ts
-import { bodyOutline, finOutline, lerp, lineOnBody, makeBody, norm3, spline, surfaceAt, type Body, type FinDef, type Silhouette, type Vec3 } from '../akvaryum/fishmath';
+import { bodyOutline, finOutline, lerp, lineOnBody, makeBody, norm3, snoutFace, spline, surfaceAt, type Body, type FinDef, type MouthGeom, type Silhouette, type Vec3 } from '../akvaryum/fishmath';
 import type { SexId } from '../akvaryum/types';
 
 export type Sex = SexId;
@@ -32,7 +32,7 @@ export function bodyFor(sex: Sex, form: Form = 'standart'): Body {
   });
 }
 
-export const EYE = { s: 0.088, phi: 1.3, radius: 0.034 } as const;
+export const EYE = { s: 0.088, phi: 1.3, radius: 0.031 } as const;
 export const OPERCULUM = { s: 0.195, phi0: 0.25, phi1: 2.1 } as const;
 
 /** Mavi şeridin gövdedeki aralığı (s) ve ortası (w: 0 sırt orta çizgisi .. 1 karın orta çizgisi). Dişide şerit karnın dolgunluğuyla aşağı bükülür. */
@@ -49,13 +49,20 @@ export const RED = { s0: 0.34 } as const;
 export function eyeSpec(): { s: number; radius: number } { return { s: EYE.s, radius: EYE.radius }; }
 export function eyeGeom(sex: Sex, form: Form = 'standart'): { center: Vec3; normal: Vec3; radius: number } {
   const b = bodyFor(sex, form), r = EYE.radius;
-  const sf = surfaceAt(b, EYE.s, EYE.phi, -r * 0.3);
+  // göz küresi gövdeye kısmen gömülü: merkez yüzeyin ~0,5 r altında; dışa yalnızca hafif kabarır
+  const sf = surfaceAt(b, EYE.s, EYE.phi, -r * 0.62);
   return { center: sf.pos, normal: norm3([sf.normal[0] - 0.2, sf.normal[1], sf.normal[2]]), radius: r };
 }
 
 export function mouthLine(sex: Sex, side: 1 | -1, form: Form = 'standart'): Vec3[] {
   const b = bodyFor(sex, form), c = b.section(0.004), q = b.section(0.05);
   return [[c.x - 0.002, (c.yTop + c.yBot) / 2 - 0.002, 0], [lerp(c.x, q.x, 0.5), (c.yTop + c.yBot) / 2 - 0.006, side * q.hw * 0.3], [q.x, (q.yTop + q.yBot) / 2 - 0.016, side * q.hw * 0.5]];
+}
+
+/** Küçük uç (terminal) ağız: burnun düz kesilmiş yüzüne oturur, hafif yukarı eğimli, ince dudaklı */
+export function mouthSpec(sex: Sex, form: Form = 'standart'): MouthGeom {
+  const b = bodyFor(sex, form), dir = norm3([-1, 0.14, 0]), c = snoutFace(b, 0.0125);
+  return { c: [c[0], c[1] - 0.001, 0], dir, hw: 0.0082, gap: 0.0036, lip: 0.002, upper: 0.0007, lower: 0.001, depth: 0.0025, drop: 1.6 };
 }
 
 export function operculumArc(sex: Sex, side: 1 | -1, n = 14, form: Form = 'standart'): Vec3[] {

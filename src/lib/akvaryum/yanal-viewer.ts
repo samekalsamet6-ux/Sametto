@@ -2,7 +2,7 @@
 import {
   BufferAttribute, BufferGeometry, CanvasTexture, CatmullRomCurve3, Color, DoubleSide,
   FrontSide, Float32BufferAttribute, Group, Material, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial,
-  PerspectiveCamera, Quaternion, Raycaster, Scene, SphereGeometry, SRGBColorSpace, Texture, TubeGeometry, Vector3,
+  PerspectiveCamera, Raycaster, Scene, SRGBColorSpace, Texture, TubeGeometry, Vector3,
   WebGLRenderer, Box3,
 } from 'three';
 import { applyLook, createFitter } from './scene-look';
@@ -12,6 +12,7 @@ import {
   atlasUV, bodyPoint, bodySurfaceZ, finPoint, flankNormal, swimZ, type Anchor, type FishSpec, type FishVariant, type Pt, type Vec3,
 } from './yanal-model';
 import { paintAtlas } from './yanal-texture';
+import { addEye, addMouth, createFaceRig, pulseGill, type FaceHost, type FaceRig } from './fishface';
 
 export interface FishDef {
   id: string;
@@ -74,8 +75,12 @@ function ringsFor(spec: FishSpec, NX: number, NA: number): Vec3[][] {
   return rings;
 }
 
-function bodyGeometry(spec: FishSpec, NX: number, NA: number): BufferGeometry {
+function bodyGeometry(spec: FishSpec, NX: number, NA: number, cut?: { c: Vec3; dir: Vec3 }): BufferGeometry {
   const rings = ringsFor(spec, NX, NA);
+  if (cut) for (const r of rings) for (const q of r) {
+    const d = (q[0] - cut.c[0]) * cut.dir[0] + (q[1] - cut.c[1]) * cut.dir[1] + (q[2] - cut.c[2]) * cut.dir[2];
+    if (d > 0) { q[0] -= d * cut.dir[0]; q[1] -= d * cut.dir[1]; q[2] -= d * cut.dir[2]; }
+  }
   const pos: number[] = [], uv: number[] = [], idx: number[] = [];
   for (const r of rings) for (const p of r) { pos.push(...p); uv.push(...atlasUV(spec.atlas, p[0], p[1])); }
   const W = NA + 1;
@@ -155,6 +160,7 @@ interface Built {
   center: Vector3;
   proxy: Mesh;
   proxyBase: Float32Array;
+  face: FaceRig;
 }
 
 export function buildFish(def: FishDef, variantId: string, u: SwimUniforms, texW: number, specIn?: FishSpec): Built {
@@ -170,7 +176,7 @@ export function buildFish(def: FishDef, variantId: string, u: SwimUniforms, texW
   const map = mk(tex.map, true), bump = mk(tex.bump, false);
 
   // ---- gövde
-  add(swimAttr(bodyGeometry(spec, 84, 40)), swimify(new MeshPhysicalMaterial({
+  add(swimAttr(bodyGeometry(spec, 84, 40, spec.mouthGeom)), swimify(new MeshPhysicalMaterial({
     map, bumpMap: bump, bumpScale: v.inci ? 2.4 : 1.1, roughness: 0.5 - 0.28 * shine, metalness: 0.28 * shine,
     clearcoat: 0.25 + 0.5 * shine, clearcoatRoughness: 0.35, envMapIntensity: 0.55 + 0.7 * shine, side: FrontSide,
   }), u, sw, def.id));
@@ -189,35 +195,23 @@ export function buildFish(def: FishDef, variantId: string, u: SwimUniforms, texW
     }), u, sw, def.id), 3);
   }
 
-  // ---- gözler
-  const e = spec.eye;
-  const eyeMat = {
-    ball: std(shade(v.goz.halka, 0.7), 0.35),
-    iris: swimify(new MeshPhysicalMaterial({ color: new Color(v.goz.iris), roughness: 0.25, metalness: 0.35, clearcoat: 1, polygonOffset: true, polygonOffsetFactor: -1 }), u, sw, def.id),
-    pupil: swimify(new MeshPhysicalMaterial({ color: new Color(v.goz.pupil), roughness: 0.12, clearcoat: 1, polygonOffset: true, polygonOffsetFactor: -2 }), u, sw, def.id),
-  };
+  // ---- gözler, ağız, solungaç kapağı
+  const host: FaceHost = { add: (geo, mat, order = 0) => add(swimAttr(geo), mat, order), wrap: (m) => swimify(m, u, sw, def.id), textures };
+  const rig = createFaceRig();
+  const e = spec.eye, socket = bodyGeometry(spec, 44, 28);
+  let eyeTex;
   for (const side of [1, -1] as const) {
     const n0 = flankNormal(spec.body, e.x, e.y);
     const nrm = new Vector3(n0[0] - 0.12, n0[1] + 0.02, n0[2] * side).normalize();
-    const cz = side * (bodySurfaceZ(spec.body, e.x, e.y) - e.r * 0.28);
-    const q = new Quaternion().setFromUnitVectors(new Vector3(0, 0, 1), nrm);
-    const part = (geo: BufferGeometry, mat: Material, scale = 1) => {
-      geo.rotateX(Math.PI / 2); geo.scale(scale, scale, scale); geo.applyQuaternion(q); geo.translate(e.x, e.y, cz);
-      add(swimAttr(geo), mat);
-    };
-    part(new SphereGeometry(e.r, 32, 20), eyeMat.ball);
-    part(new SphereGeometry(e.r, 32, 12, 0, Math.PI * 2, 0, 1.0), eyeMat.iris, 1.012);
-    part(new SphereGeometry(e.r, 32, 10, 0, Math.PI * 2, 0, 0.5), eyeMat.pupil, 1.024);
+    const cz = side * (bodySurfaceZ(spec.body, e.x, e.y) - e.r * 0.55);
+    eyeTex = addEye(host, { center: [e.x, e.y, cz], r: e.r, normal: [nrm.x, nrm.y, nrm.z], style: { ball: v.goz.halka, iris: v.goz.iris, pupil: v.goz.pupil, pupilAngle: 0.5, irisAngle: 1.0, ring: '#' + shade(v.govde.sirt, 0.45).getHexString() }, body: socket }, eyeTex);
   }
-
-  // ---- ağız ve solungaç kapağı çizgileri (gövde yüzeyine oturur)
+  socket.dispose();
   const onSurface = (pts: Pt[], side: 1 | -1, lift = 0.0035): Vec3[] => pts.map(([x, y]) => [x, y, side * (bodySurfaceZ(spec.body, x, y) + lift)]);
-  const dark = shade(v.govde.sirt, 0.32);
-  for (const side of [1, -1] as const) {
-    add(swimAttr(tube(onSurface(spec.gill, side), 0.0055, 30)), std(shade(v.govde.orta, 0.55), 0.55));
-    const m = onSurface(spec.mouth, side, 0.002);
-    m[0][2] = 0;
-    add(swimAttr(tube(m, 0.0065, 14)), std(dark, 0.55));
+  for (const side of [1, -1] as const) pulseGill(rig, add(swimAttr(tube(onSurface(spec.gill, side), 0.0055, 30)), std(shade(v.govde.orta, 0.55), 0.55)), side, 0.004);
+  if (spec.mouthGeom) {
+    const lipCol = '#' + shade(v.govde.karin, 0.8).lerp(new Color('#b87a6a'), 0.25).getHexString();
+    addMouth(host, rig, { ...spec.mouthGeom, lipColor: lipCol, innerColor: '#1a0a0a' });
   }
 
   // ---- karın yüzgeci iplikleri
@@ -235,7 +229,7 @@ export function buildFish(def: FishDef, variantId: string, u: SwimUniforms, texW
   const proxyBase = Float32Array.from(pg.getAttribute('position').array as ArrayLike<number>);
 
   const box = new Box3().setFromObject(group);
-  return { group, textures, box, center: box.getCenter(new Vector3()), proxy, proxyBase };
+  return { group, textures, box, center: box.getCenter(new Vector3()), proxy, proxyBase, face: rig };
 }
 
 function disposeGroup(g: Group, textures: Texture[], proxy: Mesh) {
@@ -412,8 +406,8 @@ export function createFishViewer(def: FishDef, opts: SpeciesViewerOptions): Spec
     const targetAmp = swimOn ? 1 : 0;
     const k = 1 - Math.exp(-dt * 5);
     uniforms.uAmp.value += (targetAmp - uniforms.uAmp.value) * k;
-    if (swimOn || uniforms.uAmp.value > 0.0015) { uniforms.uTime.value += dt; busy = true; }
-    else uniforms.uAmp.value = 0;
+    if (swimOn || uniforms.uAmp.value > 0.0015) { uniforms.uTime.value += dt; busy = true; if (!opts.reducedMotion) built?.face.update(uniforms.uTime.value, uniforms.uAmp.value); }
+    else if (uniforms.uAmp.value !== 0) { uniforms.uAmp.value = 0; built?.face.update(uniforms.uTime.value, 0); }
 
     if (tween) {
       const p = tween.dur <= 0 ? 1 : Math.min(1, (now - tween.t0) / tween.dur);

@@ -212,3 +212,25 @@ export function svgFigure(sil: Silhouette): { vb: string; body: string; fins: { 
     body: path(sil.body), fins: sil.fins.map((f) => ({ id: f.id, d: path(f.pts) })), eye: { cx: sil.eye.c[0], cy: -sil.eye.c[1], r: sil.eye.r },
   };
 }
+
+// ------------------------------------------------------------------ ağız geometrisi (saf veri; üç boyutlu oluşturucu fishface.ts içindedir)
+
+/** Dudaklı ağız: açıklık merkezi c (orta çizgi), dışa bakan birim yön dir (xy düzlemi), yarı genişlik hw, dudak çizgileri arası yarı aralık gap, dudak yarıçapı lip */
+export interface MouthGeom {
+  c: Vec3; dir: Vec3; hw: number; gap: number; lip: number;
+  upper?: number; lower?: number; depth?: number; drop?: number; corner?: number;
+}
+
+/** Gövdenin orta çizgisinde, s kesitinde, sırttan karına f oranında nokta (burun ucuna yakın ağız yerleştirmek için) */
+export function midlinePoint(b: Body, s: number, f = 0.5): Vec3 {
+  const sec = b.section(s);
+  return [sec.x, sec.yTop + (sec.yBot - sec.yTop) * f, 0];
+}
+
+/** Burun kesme düzlemi: yüz genişliği (yarı) `face` olan en öndeki kesitin yakınında, dir normalli düzlem. Ağız bu düz yüze oturur. */
+export function snoutFace(b: Body, face: number, fy = 0.5): Vec3 {
+  let s = 0.002;
+  while (s < 0.3 && b.section(s).hw < face) s += 0.002;
+  const p = midlinePoint(b, s, fy);
+  return p;
+}

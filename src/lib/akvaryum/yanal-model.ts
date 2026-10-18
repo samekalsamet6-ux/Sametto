@@ -3,6 +3,8 @@
 //
 // Koordinatlar: x gövde ekseni (burun -x, kuyruk +x), y yukarı, z yanal. Birim keyfidir (şematik model).
 
+import type { MouthGeom } from './fishmath';
+
 export type Pt = [number, number];
 export type Vec3 = [number, number, number];
 
@@ -177,6 +179,8 @@ export interface FishSpec {
   pectoral: PairedFinSpec;
   filaments: FilamentSpec[];
   mouth: Pt[];
+  /** Dudaklı 3B ağız (burun düz kesilip ağız bu yüze oturur); yoksa çizilmez */
+  mouthGeom?: MouthGeom;
   gill: Pt[];
   nostril: Pt;
   lateral: Pt[];
@@ -333,4 +337,12 @@ export function atlasFor(body: BodySpec, fins: FinSpec[], filaments: FilamentSpe
   pectoral.base.forEach(take); pectoral.edge.forEach(take);
   for (const f of filaments) f.path.forEach(take);
   return { x0: x0 - margin, x1: x1 + margin, y0: y0 - margin, y1: y1 + margin };
+}
+
+/** Burun yüzü: yarı genişliği `face` olan ilk kesitte orta çizgi noktası (ağız yerleşimi); fy: sırttan karına 0..1 */
+export function snoutFace(b: BodySpec, face: number, fy = 0.5): Vec3 {
+  const f = bodyFns(b);
+  let t = 0.002;
+  while (t < 0.3 && f.w(t) < face) t += 0.002;
+  return [xOfT(b, t), f.top(t) + (f.bot(t) - f.top(t)) * fy, 0];
 }

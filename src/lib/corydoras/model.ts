@@ -1,7 +1,7 @@
 // Corydoras (C. aeneus / C. paleatus tipi gövde; şematik) 3B modeli için SAF geometri parametreleri.
 // Yüksek sırtlı, düz karınlı, zırh plakalı kedibalığı; farklı gövde biçimli türler (ör. uzun burunlu, Brochis) bilerek dahil değildir.
 // Koordinatlar: bkz. ../akvaryum/fishmath.ts (gövde uzunluğu 1; burun -x).
-import { bodyOutline, finOutline, lerp, lineOnBody, makeBody, norm3, spline, surfaceAt, type Body, type FinDef, type Silhouette, type Vec3 } from '../akvaryum/fishmath';
+import { bodyOutline, finOutline, lerp, lineOnBody, makeBody, norm3, snoutFace, spline, surfaceAt, type Body, type FinDef, type MouthGeom, type Silhouette, type Vec3 } from '../akvaryum/fishmath';
 import type { SexId } from '../akvaryum/types';
 
 export type Sex = SexId;
@@ -37,14 +37,14 @@ export function bodyFor(sex: Sex, form: Form = 'standart'): Body {
   });
 }
 
-export const EYE = { s: 0.118, phi: 0.92, radius: 0.034 } as const;
+export const EYE = { s: 0.118, phi: 0.92, radius: 0.03 } as const;
 export const OPERCULUM = { s: 0.205, phi0: 0.35, phi1: 2.35 } as const;
 /** Zırh: iki sıra kemikli levha (üst sıra sırt, alt sıra karın tarafı); s aralığı ve yan çizginin w'si */
 export const ARMOR = { s0: 0.22, s1: 0.97, plates: 24, split: 0.5 } as const;
 
 export function eyeGeom(sex: Sex, form: Form = 'standart'): { center: Vec3; normal: Vec3; radius: number } {
   const b = bodyFor(sex, form), r = EYE.radius;
-  const sf = surfaceAt(b, EYE.s, EYE.phi, -r * 0.35);
+  const sf = surfaceAt(b, EYE.s, EYE.phi, -r * 0.55);
   return { center: sf.pos, normal: norm3([sf.normal[0] - 0.2, sf.normal[1] + 0.35, sf.normal[2]]), radius: r };
 }
 
@@ -59,14 +59,20 @@ export function lipsLoop(sex: Sex, n = 16, form: Form = 'standart'): Vec3[] {
   return out;
 }
 
-/** Üç çift bıyık (+z yanı için); her biri nokta dizisi ve yarıçaplar */
+/** Alt (ventral) ağız: burnun eğik kesilmiş alt yüzünde, kalın etli dudaklar; bıyıklar dudak köşelerine oturur */
+export function mouthSpec(sex: Sex, form: Form = 'standart'): MouthGeom {
+  const b = bodyFor(sex, form), dir = norm3([-0.42, -0.9, 0]), c = snoutFace(b, 0.036, 0.88);
+  return { c: [c[0] + 0.005, c[1] + 0.003, 0], dir, hw: 0.024, gap: 0.0052, lip: 0.0068, upper: 0.0025, lower: 0.0035, drop: 0.9, corner: 0.8 };
+}
+
+/** Üç çift bıyık (+z yanı için); her biri nokta dizisi ve yarıçaplar. Maksiller bıyık üst dudak köşesinden, mandibulerler alt dudaktan çıkar. */
 export function barbels(sex: Sex, form: Form = 'standart'): { id: string; path: Vec3[]; radii: number[] }[] {
-  const b = bodyFor(sex, form), c = b.section(0.05), y = c.yBot;
-  const z = c.hw * 0.4, x = c.x;
+  const m = mouthSpec(sex, form), x = m.c[0], y = m.c[1], z = m.hw;
+  const rel = (p: Vec3[], ox: number, oy: number, oz: number): Vec3[] => p.map((q): Vec3 => [x + ox + q[0], y + oy + q[1], oz + q[2]]);
   return [
-    { id: 'maksiller', path: [[x - 0.01, y + 0.004, z], [x - 0.05, y - 0.016, z + 0.03], [x - 0.085, y - 0.03, z + 0.05], [x - 0.1, y - 0.045, z + 0.045]], radii: [0.0055, 0.004, 0.0028, 0.002] },
-    { id: 'mandibular-1', path: [[x + 0.006, y + 0.002, z * 0.55], [x - 0.03, y - 0.022, z * 0.8 + 0.01], [x - 0.06, y - 0.042, z * 0.9 + 0.02], [x - 0.072, y - 0.06, z * 0.9 + 0.02]], radii: [0.0045, 0.0034, 0.0024, 0.0017] },
-    { id: 'mandibular-2', path: [[x + 0.014, y + 0.002, z * 0.45], [x - 0.012, y - 0.028, z * 0.55], [x - 0.036, y - 0.05, z * 0.65], [x - 0.044, y - 0.07, z * 0.66]], radii: [0.0042, 0.0031, 0.0022, 0.0016] },
+    { id: 'maksiller', path: rel([[0, 0, 0], [-0.03, -0.012, 0.016], [-0.058, -0.03, 0.034], [-0.076, -0.05, 0.036]], 0.004, 0.003, z * 0.92), radii: [0.0058, 0.0042, 0.003, 0.002] },
+    { id: 'mandibular-1', path: rel([[0, 0, 0], [-0.026, -0.016, 0.006], [-0.052, -0.036, 0.016], [-0.064, -0.056, 0.018]], 0.012, -0.001, z * 0.55), radii: [0.0045, 0.0034, 0.0024, 0.0017] },
+    { id: 'mandibular-2', path: rel([[0, 0, 0], [-0.012, -0.022, 0.004], [-0.03, -0.046, 0.012], [-0.04, -0.068, 0.014]], 0.02, -0.002, z * 0.3), radii: [0.0042, 0.0031, 0.0022, 0.0016] },
   ];
 }
 

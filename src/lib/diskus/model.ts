@@ -1,7 +1,7 @@
 // Diskus (Symphysodon cinsi; şematik) için SAF geometri parametreleri.
 // Ortak mantık src/lib/akvaryum/yanal-model.ts içindedir. Birim keyfidir; gerçek ölçüm değildir.
 // Koordinatlar: x gövde ekseni (burun -x), y yukarı, z yanal. Gövde ~1,0 birim uzunlukta, yaklaşık daire biçimlidir.
-import { cornerPath, resample, ridgeFin, smoothPath, type BodySpec, type FinSpec, type FishSpec, type Pt } from '../akvaryum/yanal-model';
+import { cornerPath, resample, ridgeFin, smoothPath, snoutFace, type BodySpec, type FinSpec, type FishSpec, type Pt } from '../akvaryum/yanal-model';
 
 export * from '../akvaryum/yanal-model';
 
@@ -37,7 +37,7 @@ export const SPEC: FishSpec = {
   body: BODY,
   atlas: { x0: -0.58, x1: 0.72, y0: -0.72, y1: 0.72 },
   swim: { x0: -0.05, x1: 0.7, amp: 0.045, k: 6, speed: 5.5 },
-  eye: { x: -0.3, y: 0.07, r: 0.062 },
+  eye: { x: -0.3, y: 0.07, r: 0.046 },
   fins: FINS,
   pectoral: {
     base: [[-0.17, 0.0], [-0.17, -0.04], [-0.17, -0.09], [-0.17, -0.14]],
@@ -45,6 +45,8 @@ export const SPEC: FishSpec = {
   },
   filaments: [{ path: smoothPath([[-0.22, -0.455], [-0.205, -0.52], [-0.18, -0.6]], 8), radii: [0.024, 0.015, 0.006], z: 0.03 }],
   mouth: [[-0.517, 0.0], [-0.49, -0.015], [-0.465, -0.03]],
+  // küçük uç ağız; burun düz kesilip ağız bu yüze oturur
+  mouthGeom: (() => { const c = snoutFace(BODY, 0.03, 0.5); return { c: [c[0] + 0.003, c[1], 0] as [number, number, number], dir: [-1, 0.08, 0] as [number, number, number], hw: 0.0145, gap: 0.0056, lip: 0.0042, upper: 0.0016, lower: 0.0022, drop: 1.6 }; })(),
   gill: smoothPath([[-0.12, 0.33], [-0.08, 0.16], [-0.075, 0.0], [-0.09, -0.16], [-0.14, -0.3]], 8),
   nostril: [-0.44, 0.08],
   lateral: smoothPath([[-0.07, 0.2], [0.12, 0.2], [0.28, 0.12]], 8),

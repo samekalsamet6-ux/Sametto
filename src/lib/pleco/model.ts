@@ -22,7 +22,7 @@ export function bodyFor(sex: Sex): Body {
   });
 }
 
-export const EYE = { s: 0.152, phi: 0.5, radius: 0.031 } as const;
+export const EYE = { s: 0.152, phi: 0.5, radius: 0.024 } as const;
 export const OPERCULUM = { s: 0.272, phi0: 0.4, phi1: 2.3 } as const;
 /** Kemikli plakalar: dört sıra (sırt, üst yan, alt yan, karın yanı), gövdenin arka bölümünde */
 export const ARMOR = { s0: 0.28, s1: 0.97, plates: 22, rows: 4 } as const;
@@ -33,7 +33,7 @@ export const fin = (base: number, gain: number, tul: number): number => base * (
 
 export function eyeSpec(sex: Sex): { center: Vec3; normal: Vec3; radius: number } {
   const b = bodyFor(sex), r = EYE.radius;
-  const sf = surfaceAt(b, EYE.s, EYE.phi, -r * 0.3);
+  const sf = surfaceAt(b, EYE.s, EYE.phi, -r * 0.5);
   return { center: sf.pos, normal: norm3([sf.normal[0] - 0.08, sf.normal[1] + 0.45, sf.normal[2] * 0.8]), radius: r };
 }
 

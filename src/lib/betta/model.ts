@@ -2,7 +2,7 @@
 // DOM ve three.js kullanılmaz: birim testlenir, SVG yedeği de aynı sayılardan üretilir.
 // Koordinatlar ve birimler için bkz. ../akvaryum/fishmath.ts (gövde uzunluğu 1; burun -x).
 import {
-  clamp, bodyOutline, finOutline, lerp, lineOnBody, makeBody, norm3, spline, surfaceAt, type Body, type FinDef, type Silhouette, type Vec3,
+  clamp, bodyOutline, finOutline, lerp, lineOnBody, makeBody, norm3, snoutFace, spline, surfaceAt, type Body, type FinDef, type MouthGeom, type Silhouette, type Vec3,
 } from '../akvaryum/fishmath';
 import type { SexId } from '../akvaryum/types';
 
@@ -112,8 +112,14 @@ export const OPERCULUM = { s: 0.215, phi0: 0.2, phi1: 2.0 } as const;
 
 export function eyeSpec(sex: Sex, form?: string): { center: Vec3; normal: Vec3; radius: number } {
   const b = bodyFor(sex, form), r = EYE.radius[sex];
-  const sf = surfaceAt(b, EYE.s, EYE.phi, -r * 0.35);
+  const sf = surfaceAt(b, EYE.s, EYE.phi, -r * 0.55);
   return { center: sf.pos, normal: norm3([sf.normal[0] - 0.25, sf.normal[1] + 0.05, sf.normal[2]]), radius: r };
+}
+
+/** Üste dönük (süperior) küçük ağız: burnun eğik kesilmiş yüzünde; alt çene biraz öne çıkık */
+export function mouthSpec(sex: Sex, form?: string): MouthGeom {
+  const b = bodyFor(sex, form), dir = norm3([-0.55, 0.84, 0]), c = snoutFace(b, 0.022, 0.5);
+  return { c: [c[0] + 0.004, c[1] + 0.002, 0], dir, hw: 0.0155, gap: 0.0045, lip: 0.0028, upper: 0.001, lower: 0.0075, drop: 1.7 };
 }
 
 /** Ağız: üste dönük (üst ağız) küçük yarık; çene ucundan geriye ve YUKARI doğru çıkar, alt çene öne çıkıktır */

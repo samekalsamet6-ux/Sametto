@@ -124,3 +124,18 @@ describe('neon: tür modülü', () => {
     expect(species.partsFor('disi').length).toBe(species.partsFor('erkek').length);
   });
 });
+
+import { mouthSpec as neonMouth } from './model';
+describe('neon: yüz (göz ve ağız) geometrisi', () => {
+  it('göz küresi gövdeye kısmen gömülü; ağız küçük, uçta ve dudaklı (açıklık dudak yarıçapından geniş)', () => {
+    for (const s of SEXES) {
+      const e = eyeGeom(s), b = bodyFor(s), sec = b.section(0.088);
+      expect(e.center[2]).toBeLessThan(sec.hw * 1.1);
+      const m = neonMouth(s);
+      expect(m.c[0]).toBeLessThan(-0.47);
+      expect(m.hw).toBeLessThan(0.02);
+      expect(m.gap).toBeGreaterThan(m.lip);
+      expect(Math.hypot(...m.dir)).toBeCloseTo(1, 6);
+    }
+  });
+});

@@ -1,7 +1,8 @@
 // Pleko three.js sahnesi: yalnızca 3B pleko sayfasında, tembel (dynamic import) yüklenir.
 import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, Material, MeshPhysicalMaterial, MeshStandardMaterial, RepeatWrapping, SphereGeometry } from 'three';
-import { addEye, canvasTexture, createFishViewer, finGeometry, loftBody, proxyFrom, put, swimify, taperedTube, tube, type FishBuilt, type SwimUniforms } from '../akvaryum/fish3d';
+import { canvasTexture, faceHost, createFishViewer, finGeometry, loftBody, proxyFrom, put, swimify, taperedTube, tube, type FishBuilt, type SwimUniforms } from '../akvaryum/fish3d';
 import { mixHex, type Vec3 } from '../akvaryum/fishmath';
+import { addEye, addMouth, createFaceRig, pulseGill } from '../akvaryum/fishface';
 import type { SexId, SpeciesViewer, SpeciesViewerOptions } from '../akvaryum/types';
 import { bodyFor, bristles, eyeSpec, finsFor, mouthPapillae, mouthRing, mouthSlit, mouthSpec, operculumArc, spines } from './model';
 import { partAnchors, partsFor } from './parts';
@@ -50,19 +51,24 @@ export function buildPleco(sex: SexId, variantId: string, u: SwimUniforms, texW:
   put(group, loftBody(body, 84, 48), skin);
 
   const std = (color: string, rough = 0.5, metal = 0): Material => swimify(new MeshStandardMaterial({ color: new Color(color), roughness: rough, metalness: metal }), u);
-  const e = eyeSpec(sex);
+  const host = faceHost(group, u, textures), rig = createFaceRig();
+  const e = eyeSpec(sex), socket = loftBody(body, 40, 36);
+  let eyeTex;
   for (const side of [1, -1] as const) {
-    addEye(group, [e.center[0], e.center[1], e.center[2] * side], e.radius, [e.normal[0], e.normal[1], e.normal[2] * side], v.eye, std, 1.05, 0.55);
-    put(group, tube(operculumArc(sex, side), 0.0034, 16), std(mixHex(v.body.yan, '#000000', 0.5), 0.55));
+    eyeTex = addEye(host, { center: [e.center[0], e.center[1], e.center[2] * side], r: e.radius, normal: [e.normal[0], e.normal[1], e.normal[2] * side], style: { ...v.eye, pupilAngle: 0.62, irisAngle: 1.05, omega: true, ring: mixHex(v.body.bas, '#000000', 0.5) }, body: socket }, eyeTex);
+    pulseGill(rig, put(group, tube(operculumArc(sex, side), 0.0034, 16), std(mixHex(v.body.yan, '#000000', 0.5), 0.55)), side);
   }
+  socket.dispose();
 
   // vantuz ağız: etli dudak diski, dış/iç halka, yarık, papiller
   const m = mouthSpec(sex);
   const lipCol = mixHex(v.body.karin, '#c97f68', 0.55);
   put(group, discGeometry(mouthRing(sex), [m.c[0], m.c[1] - 0.001, 0], m.bulge), std(lipCol, 0.7));
-  put(group, tube(mouthRing(sex, 1.0), 0.0042, 40, true), std(mixHex(lipCol, '#ffffff', 0.18), 0.65));
-  put(group, tube(mouthRing(sex, 0.62), 0.0028, 32, true), std(mixHex(lipCol, '#000000', 0.18), 0.65));
-  put(group, tube(mouthSlit(sex), 0.0048, 14), std('#2a1612', 0.5));
+  put(group, tube(mouthRing(sex, 1.0), 0.0064, 40, true), std(mixHex(lipCol, '#ffffff', 0.18), 0.65));
+  put(group, tube(mouthRing(sex, 0.62), 0.0038, 32, true), std(mixHex(lipCol, '#000000', 0.18), 0.65));
+  // ağız yarığı: dudak disk yüzünde, önde üst dudak, arkada alt dudak (çene ve dişler arasında koyu iç boşluk)
+  const sl = mouthSlit(sex, 9), mid = sl[4];
+  addMouth(host, rig, { c: [mid[0], mid[1] - 0.002, 0], dir: [-0.01, -1, 0], hw: Math.min(0.078, Math.abs(sl[8][2]) * 1.2), gap: 0.0085, lip: 0.0058, upper: 0.0025, lower: 0.0025, drop: 1.4, corner: 0.7, lipColor: mixHex(lipCol, '#ffffff', 0.1), lowerColor: mixHex(lipCol, '#000000', 0.08), innerColor: '#1d0b08' });
   for (const p of mouthPapillae(sex)) { const g = new SphereGeometry(0.0034, 8, 6); g.translate(p[0], p[1], p[2]); put(group, g, std(mixHex(lipCol, '#ffffff', 0.28), 0.7)); }
   // çene dişleri (şematik): yarık boyunca küçük açık renkli noktalar
   for (const p of mouthSlit(sex, 13)) { const g = new SphereGeometry(0.0018, 6, 5); g.translate(p[0] + 0.004, p[1] - 0.001, p[2]); put(group, g, std('#efe6d2', 0.4)); }
@@ -83,7 +89,7 @@ export function buildPleco(sex: SexId, variantId: string, u: SwimUniforms, texW:
     const mat = swimify(new MeshStandardMaterial({ map: canvasTexture(tex.fins[f.id], true, textures), transparent: true, side: DoubleSide, depthWrite: false, roughness: 0.6, alphaTest: 0.01 }), u);
     for (const side of f.paired ? ([1, -1] as const) : ([1] as const)) put(group, finGeometry(f, side, 6), mat, 2);
   }
-  return { group, proxy: [proxyFrom(loftBody(body, 30, 20))], textures };
+  return { group, proxy: [proxyFrom(loftBody(body, 30, 20))], textures, face: rig };
 }
 
 export function createViewer(opts: SpeciesViewerOptions): SpeciesViewer {

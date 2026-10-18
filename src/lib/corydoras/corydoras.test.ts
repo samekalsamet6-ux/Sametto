@@ -113,7 +113,7 @@ describe('corydoras: hörgüçlü gövde (tür karakteri)', () => {
     expect(c.yTop - c.yBot).toBeGreaterThan(0.33); // derinlik/boy ≈ 1/2.9
   });
   it('büyük gözler; sırt dikeni ve göğüs dikeni belirgin kalın; sırt yüzgeci yüksek', () => {
-    expect(eyeGeom('erkek').radius).toBeGreaterThanOrEqual(0.033);
+    expect(eyeGeom("erkek").radius).toBeGreaterThanOrEqual(0.029);
     const sp = spines('erkek');
     expect(sp.find((x) => x.id === 'sirt')!.r).toBeGreaterThanOrEqual(0.0065);
     expect(sp.find((x) => x.id === 'gogus')!.r).toBeGreaterThanOrEqual(0.006);
@@ -154,5 +154,15 @@ describe('corydoras: tür modülü', () => {
     expect(species.not).toMatch(/doğrulanmalı/);
     expect(PARTS.find((p) => p.id === 'dikenler')?.uyari).toBe(true);
     expect(species.sexes[1].not).toMatch(/geniş/);
+  });
+});
+
+import { mouthSpec as cMouth } from './model';
+describe('corydoras: alt ağız ve bıyık kökleri', () => {
+  it('ağız aşağı bakar, dudaklar kalın; bıyıklar dudak köşelerinden çıkar', () => {
+    for (const s of SEXES) {
+      const m = cMouth(s); expect(m.dir[1]).toBeLessThan(-0.7); expect(m.lip).toBeGreaterThan(0.005);
+      for (const x of barbels(s)) { expect(Math.abs(x.path[0][2])).toBeLessThanOrEqual(m.hw + 1e-9); expect(Math.abs(x.path[0][0] - m.c[0])).toBeLessThan(0.03); }
+    }
   });
 });

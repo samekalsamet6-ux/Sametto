@@ -2,7 +2,7 @@
 // Ortak mantık src/lib/akvaryum/yanal-model.ts içindedir. Birim keyfidir; gerçek ölçüm değildir.
 // Koordinatlar: x gövde ekseni (burun -x), y yukarı, z yanal. Gövde ~1,14 birim uzunluktadır.
 import {
-  atlasFor, cornerPath, resample, smoothPath, triFin, xOfT, bodyFns,
+  atlasFor, cornerPath, resample, smoothPath, snoutFace, triFin, xOfT, bodyFns,
   type BodySpec, type FinSpec, type FishSpec, type Pt,
 } from '../akvaryum/yanal-model';
 
@@ -100,6 +100,12 @@ const PECTORAL = {
   edge: [[-0.09, 0.05], [-0.03, -0.02], [-0.04, -0.1], [-0.12, -0.17]] as Pt[],
 };
 
+const MOUTH = (() => {
+  const c = snoutFace(BODY, 0.022, 0.5);
+  const d = Math.hypot(0.93, 0.37);
+  return { c: [c[0] + 0.003, c[1], 0] as [number, number, number], dir: [-0.93 / d, 0.37 / d, 0] as [number, number, number], hw: 0.0165, gap: 0.006, lip: 0.0046, upper: 0.002, lower: 0.0026, drop: 1.6 };
+})();
+
 const specCache = new Map<string, FishSpec>();
 /** Forma göre tam geometri (gövde aynı; yüzgeçler, iplik ve atlas değişir) */
 export function specFor(form: string = DEFAULT_FORM): FishSpec {
@@ -113,11 +119,13 @@ export function specFor(form: string = DEFAULT_FORM): FishSpec {
       body: BODY,
       atlas: atlasFor(BODY, fins, filaments, PECTORAL),
       swim: { x0: -0.1, x1: 1.0, amp: 0.055, k: 5.2, speed: 6 },
-      eye: { x: -0.43, y: 0.075, r: 0.068 },
+      eye: { x: -0.43, y: 0.075, r: 0.048 },
       fins,
       pectoral: PECTORAL,
       filaments,
       mouth: [[-0.617, 0.03], [-0.58, 0.005], [-0.55, -0.02]],
+      // küçük, eğik (hafif yukarı bakan) uç ağız; burun düz kesilip ağız bu yüze oturur
+      mouthGeom: MOUTH,
       gill: smoothPath([[-0.32, 0.27], [-0.27, 0.14], [-0.255, 0.0], [-0.27, -0.14], [-0.31, -0.26]], 8),
       nostril: [-0.54, 0.1],
       lateral: smoothPath([[-0.25, 0.22], [0.0, 0.2], [0.25, 0.14], [0.42, 0.06]], 8),

@@ -2,7 +2,7 @@
 // Formlar: common, comet, Bristol shubunkin (tek kuyruklu); fantail, veiltail, ryukin, oranda, lionhead, ranchu, pompom, telescope (moor),
 // celestial, bubble eye, pearlscale (çift kuyruklu süs biçimleri). Şematik: gerçek ırk standartları değildir.
 // Koordinatlar: bkz. ../akvaryum/fishmath.ts (gövde uzunluğu 1; burun -x).
-import { bodyOutline, finOutline, lerp, lineOnBody, makeBody, norm3, spline, surfaceAt, type Body, type FinDef, type Silhouette, type Vec3 } from '../akvaryum/fishmath';
+import { bodyOutline, finOutline, lerp, lineOnBody, makeBody, norm3, snoutFace, spline, surfaceAt, type Body, type FinDef, type MouthGeom, type Silhouette, type Vec3 } from '../akvaryum/fishmath';
 import type { SexId } from '../akvaryum/types';
 
 export type Sex = SexId;
@@ -107,7 +107,7 @@ export function bodyFor(sex: Sex, form: Form = 'standart'): Body {
   });
 }
 
-export const EYE = { s: 0.105, phi: 1.15, radius: 0.03 } as const;
+export const EYE = { s: 0.105, phi: 1.15, radius: 0.028 } as const;
 export const OPERCULUM = { s: 0.2, phi0: 0.35, phi1: 2.3 } as const;
 export const LATERAL = { s0: 0.22, s1: 0.97, w: 0.5 } as const;
 
@@ -128,7 +128,7 @@ export function eyeGeom(sex: Sex, form: Form = 'standart'): { center: Vec3; norm
     const sf = surfaceAt(b, 0.1, 0.62, 0.0);
     return { center: [sf.pos[0], sf.pos[1] - 0.004, sf.pos[2]], normal: norm3([-0.15, 1, 0.35]), radius: 0.04 };
   }
-  const r = EYE.radius, sf = surfaceAt(b, EYE.s, EYE.phi, -r * 0.35);
+  const r = EYE.radius, sf = surfaceAt(b, EYE.s, EYE.phi, -r * 0.5);
   return { center: sf.pos, normal: norm3([sf.normal[0] - 0.2, sf.normal[1] + 0.05, sf.normal[2]]), radius: r };
 }
 
@@ -158,6 +158,12 @@ export function wenSpec(sex: Sex, form: Form = 'standart'): null | { center: Vec
   if (w === 3) return { center: [top.x + 0.012, top.yTop - 0.012, 0], radii: [0.105, 0.075, 0.105], bumps: 8, amp: 0.13 };
   const sec = b.section(0.12);
   return { center: [sec.x - 0.01, sec.yTop - 0.045, 0], radii: [0.16, 0.13, sec.hw * 1.12], bumps: 9, amp: 0.15 };
+}
+
+/** Uç (terminal) ağız: burnun düz kesilmiş yüzünde, yumuşak etli dudaklar */
+export function mouthSpec(sex: Sex, form: Form = 'standart'): MouthGeom {
+  const b = bodyFor(sex, form), dir = norm3([-1, 0.06, 0]), c = snoutFace(b, 0.03, 0.52);
+  return { c: [c[0] + 0.003, c[1], 0], dir, hw: 0.0165, gap: 0.0062, lip: 0.0046, upper: 0.0018, lower: 0.0024, drop: 1.6 };
 }
 
 export function mouthLine(sex: Sex, side: 1 | -1, form: Form = 'standart'): Vec3[] {

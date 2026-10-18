@@ -231,3 +231,10 @@ describe('betta: baş ve pul dokusu (tür karakteri)', () => {
     expect(hueShift('#808080', 90)).toBe('#808080');
   });
 });
+
+import { mouthSpec as bMouth } from './model';
+describe('betta: ağız yukarı bakar, alt çene öne çıkık', () => {
+  it('süperior ağız: yön yukarı-öne; alt dudak üst dudaktan daha çok çıkıntılı', () => {
+    for (const s of SEXES) { const m = bMouth(s); expect(m.dir[1]).toBeGreaterThan(0.5); expect(m.dir[0]).toBeLessThan(0); expect(m.lower!).toBeGreaterThan(m.upper! * 3); expect(m.c[0]).toBeLessThan(-0.47); }
+  });
+});

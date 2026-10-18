@@ -1,9 +1,10 @@
 // Japon balığı three.js sahnesi: yalnızca 3B japon sayfasında, tembel (dynamic import) yüklenir.
 import { Color, DoubleSide, Group, IcosahedronGeometry, Material, MeshPhysicalMaterial, MeshStandardMaterial, RepeatWrapping, SphereGeometry } from 'three';
-import { addEye, canvasTexture, createFishViewer, finGeometry, loftBody, proxyFrom, put, swimify, taperedTube, tube, type FishBuilt, type SwimUniforms } from '../akvaryum/fish3d';
+import { canvasTexture, faceHost, createFishViewer, finGeometry, loftBody, proxyFrom, put, swimify, taperedTube, tube, type FishBuilt, type SwimUniforms } from '../akvaryum/fish3d';
 import { mixHex } from '../akvaryum/fishmath';
+import { addEye, addMouth, createFaceRig, pulseGill } from '../akvaryum/fishface';
 import type { SexId, SpeciesViewer, SpeciesViewerOptions } from '../akvaryum/types';
-import { FORM_IDS, bodyFor, eyeExtras, eyeGeom, finsFor, mouthLine, nostrils, operculumArc, pompomSpec, specOf, tubercles, wenSpec, type Form } from './model';
+import { FORM_IDS, bodyFor, eyeExtras, eyeGeom, finsFor, mouthSpec, nostrils, operculumArc, pompomSpec, specOf, tubercles, wenSpec, type Form } from './model';
 import { partAnchors, partsFor } from './parts';
 import { paintBody } from './texture';
 import { variantById } from './variants';
@@ -27,17 +28,22 @@ export function buildJapon(sex: SexId, variantId: string, u: SwimUniforms, texW:
     map, bumpMap: bump, bumpScale: specOf(form).inci ? 2.2 : 0.9, roughness: 0.5 - 0.22 * v.parlak, metalness: 0.05 + 0.18 * v.parlak, clearcoat: 0.12 + 0.25 * v.parlak, clearcoatRoughness: 0.4, envMapIntensity: 0.35 + 0.45 * v.parlak,
     ...(v.sedef ? { iridescence: 0.5, iridescenceIOR: 1.5 } : {}),
   }), u);
-  put(group, loftBody(body), skin);
+  const mouth = mouthSpec(sex, form);
+  put(group, loftBody(body, 72, 44, mouth), skin);
 
   const std = (color: string, rough = 0.5, metal = 0): Material => swimify(new MeshStandardMaterial({ color: new Color(color), roughness: rough, metalness: metal }), u);
-  const e = eyeGeom(sex, form);
-  const dark = mixHex(v.body.yan, '#000000', 0.55);
+  const host = faceHost(group, u, textures), rig = createFaceRig();
+  const e = eyeGeom(sex, form), dark = mixHex(v.body.yan, '#000000', 0.55);
+  // normal gözlerde göz çukuru halkası gövdeye oturur; teleskop / gökyüzü / balon gözlerde göz kendi sapına ya da kesesine oturur
+  const socket = specOf(form).eyes === 'normal' ? loftBody(body, 40, 36) : undefined;
+  let eyeTex;
   for (const side of [1, -1] as const) {
-    addEye(group, [e.center[0], e.center[1], e.center[2] * side], e.radius, [e.normal[0], e.normal[1], e.normal[2] * side], v.eye, std, 1.0, 0.55);
-    put(group, tube(mouthLine(sex, side, form), 0.0034, 12), std(dark, 0.6));
-    put(group, tube(operculumArc(sex, side, 16, form), 0.0036, 18), std(mixHex(v.body.yan, '#000000', 0.45), 0.5));
+    eyeTex = addEye(host, { center: [e.center[0], e.center[1], e.center[2] * side], r: e.radius, normal: [e.normal[0], e.normal[1], e.normal[2] * side], style: { ...v.eye, pupilAngle: 0.55, irisAngle: 1.0, ring: mixHex(v.body.yan, '#000000', 0.6) }, body: socket }, eyeTex);
+    pulseGill(rig, put(group, tube(operculumArc(sex, side, 16, form), 0.0036, 18), std(mixHex(v.body.yan, '#000000', 0.45), 0.5)), side);
     for (const n of nostrils(sex, form)) { const g = new SphereGeometry(n.r, 10, 8); g.translate(n.pos[0], n.pos[1], n.pos[2] * side); put(group, g, std(dark, 0.7)); }
   }
+  socket?.dispose();
+  addMouth(host, rig, { ...mouth, lipColor: mixHex(v.body.yan, '#b86a5a', 0.22), innerColor: '#240c0c' });
   // telescope: göz sapı; bubble eye: sıvı keseleri
   const ex = eyeExtras(sex, form);
   for (const side of [1, -1] as const) {
@@ -79,7 +85,7 @@ export function buildJapon(sex: SexId, variantId: string, u: SwimUniforms, texW:
     const mat = swimify(new MeshStandardMaterial({ map: canvasTexture(tex.fins[f.id], true, textures), transparent: true, side: DoubleSide, depthWrite: false, roughness: 0.55, alphaTest: 0.01 }), u);
     for (const side of f.paired ? ([1, -1] as const) : ([1] as const)) put(group, finGeometry(f, side, 8), mat, 2);
   }
-  return { group, proxy: [proxyFrom(loftBody(body, 30, 20))], textures };
+  return { group, proxy: [proxyFrom(loftBody(body, 30, 20))], textures, face: rig };
 }
 
 export function createViewer(opts: SpeciesViewerOptions): SpeciesViewer {
