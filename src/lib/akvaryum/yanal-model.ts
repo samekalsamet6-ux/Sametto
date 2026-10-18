@@ -155,7 +155,7 @@ export function outline(b: BodySpec, n = 64): Pt[] {
 // ------------------------------------------------------------------ yüzgeçler
 
 export interface FinSpec {
-  id: 'sirt' | 'anal' | 'kuyruk';
+  id: 'sirt' | 'anal' | 'kuyruk' | 'yag';
   /** Taban ve uç çizgisi: aynı sayıda nokta; ışınlar base[i] -> edge[i] */
   base: Pt[]; edge: Pt[];
   /** Zar dalgalanması (z) ve yüzerken uç çırpınması (0..1) */
