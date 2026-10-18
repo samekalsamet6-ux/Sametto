@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2023", "module": "ESNext", "moduleResolution": "Bundler", "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "strict": true, "noEmit": true, "skipLibCheck": true, "allowImportingTsExtensions": true,
-    "erasableSyntaxOnly": true, "verbatimModuleSyntax": true, "resolveJsonModule": true, "types": ["node"]
+    "verbatimModuleSyntax": true, "resolveJsonModule": true, "types": ["node"]
   },
   "include": ["server", "client", "shared", "scripts/*.ts", "tests", "*.ts"]
 }

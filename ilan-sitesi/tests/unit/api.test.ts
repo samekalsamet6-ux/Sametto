@@ -37,7 +37,7 @@ class Client {
     const fd = new FormData();
     if (token !== null) fd.set('_csrf', token);
     for (const [k, v] of Object.entries(fields)) fd.set(k, v);
-    for (const f of files) fd.append('photos', new Blob([f.data], { type: f.type }), f.name);
+    for (const f of files) fd.append('photos', new Blob([f.data as BlobPart], { type: f.type }), f.name);
     const headers: Record<string, string> = opts.origin ? { origin: opts.origin } : {};
     return this.req(p, { method: 'POST', body: fd, headers });
   }

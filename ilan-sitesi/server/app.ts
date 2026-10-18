@@ -45,7 +45,7 @@ async function parseBody(req: IncomingMessage, kind: 'form' | 'upload'): Promise
     for (const [k, v] of new URLSearchParams(buf.toString('utf8'))) fields[k] = v;
   } else if (kind === 'upload' && ct.startsWith('multipart/form-data')) {
     let fd: FormData;
-    try { fd = await new Response(buf, { headers: { 'content-type': ct } }).formData(); } catch { throw new HttpError(400, 'Form verisi okunamadı.'); }
+    try { fd = await new Response(new Uint8Array(buf), { headers: { 'content-type': ct } }).formData(); } catch { throw new HttpError(400, 'Form verisi okunamadı.'); }
     for (const [k, v] of fd.entries()) { if (typeof v === 'string') fields[k] = v; else if (k === 'photos') files.push(v); }
   } else if (buf.length) throw new HttpError(415, 'Desteklenmeyen içerik türü.');
   return { fields, files };
