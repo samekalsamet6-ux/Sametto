@@ -253,6 +253,22 @@ describe('animasyon (yüzme, çene, solungaç, eklemler)', () => {
     a.dispose(); b.dispose();
   });
 
+  it('neon (normal): çene ve solungaç matrisleri her kopyada ayrı oynar; low düzeyinde yüz animasyonu atlanır', () => {
+    const sp = byId('neon');
+    const frozen = (g: FishGroup) => { const l: number[][] = []; g.object.traverse((o) => { if (!o.matrixAutoUpdate) l.push(Array.from(o.matrix.elements)); }); return l; };
+    const a = make(sp, 'erkek', undefined, sp.variants[0].id, 'normal'), b = make(sp, 'erkek', undefined, sp.variants[0].id, 'normal');
+    expect(frozen(a).length, 'çene + 2 solungaç').toBeGreaterThanOrEqual(3);
+    const a0 = frozen(a);
+    a.update(0.016, 0.5);
+    expect(frozen(a).some((m, i) => m.some((x, j) => Math.abs(x - a0[i][j]) > 1e-7))).toBe(true);
+    expect(frozen(b)).toEqual(a0); // b henüz oynamadı
+    const low = make(sp, 'erkek', undefined, sp.variants[0].id, 'low');
+    const l0 = frozen(low);
+    low.update(0.016, 0.5);
+    expect(frozen(low)).toEqual(l0);
+    a.dispose(); b.dispose(); low.dispose();
+  });
+
   it('lepistes: çene/solungaç geometrisi balık başına kopyadır (CPU animasyonu paylaşımı bozmaz)', () => {
     const sp = byId('lepistes');
     const a = make(sp, 'erkek', undefined, sp.variants[0].id, 'normal'), b = make(sp, 'erkek', undefined, sp.variants[0].id, 'normal');
