@@ -19,7 +19,7 @@ export const species: SpeciesModule = {
     { id: 'disi', ad: 'Dişi (üreme dönemi)', not: 'Dişi: üreme döneminde yumurtalı dişinin karnı daha dolgun çizilmiştir (şematik). Üreme dışında erkek ve dişi dışarıdan çok benzer; cinsiyet ayrımı güçtür.' },
   ],
   views: VIEWS,
-  not: 'Şematik model: formlar (common, comet, Bristol shubunkin, fantail, ryukin, oranda, lionhead, telescope, bubble eye, pearlscale) gerçek ırk standartları değil, şematik yorumdur; ranchu, pompom, celestial vb. diğer biçimler modellenmemiştir. Renk adları kaynağa göre değişir; “kaynakla doğrulanmalı” işaretli kayıtlar belirsizdir.',
+  not: `Şematik model: ${FORMS.length} form (${FORMS.map((f) => f.ad).join(', ')}) gerçek ırk standartları değil, şematik yorumdur; tosakin, jikin gibi diğer biçimler modellenmemiştir. Renk adları kaynağa göre değişir; “kaynakla doğrulanmalı” işaretli kayıtlar belirsizdir.`,
   partsFor,
   parts: PARTS,
   variants: VARIANTS,
