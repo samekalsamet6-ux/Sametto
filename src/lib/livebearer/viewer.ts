@@ -243,7 +243,7 @@ export function buildFish(D: LbDeps, sex: Sex, variantId: string, u: SwimUniform
 
   // baş: gözler, ağız (iki dudak + iç boşluk), solungaç kapakları
   const head = buildHead({
-    bsp: (t, a, off) => bodySurfacePoint(sex, t, a, off), eye: eyeSpec(sex), goz: variant.goz, mouthT0: M.mouthT0(sex), sirt: pal.sirt, yan: pal.yan,
+    bsp: (t, a, off) => bodySurfacePoint(sex, t, a, off), eye: eyeSpec(sex), goz: variant.goz, mouthT0: M.mouthT0(sex), sirt: pal.sirt, yan: pal.yan, karin: pal.karin,
     bodyMat: body, swim: (m) => swimify(m, u), reducedMotion,
     gill: { front: operculumFront, edgeT: operculumEdgeT, edge: () => operculumEdge(16), a0: OPERCULUM_A[0], a1: OPERCULUM_A[1] },
   });
