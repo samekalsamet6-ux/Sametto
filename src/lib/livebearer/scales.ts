@@ -163,7 +163,12 @@ export function paintLateralLine(c: Ctx, o: DetailOpts) {
   void o;
 }
 
-/** Baş: solungaç kapağı (parlak levha, ışınsal çizgiler, kenar), göz çukuru, dudak. */
+/** Göz çukuru gölgesinin doku boyutu (mantıksal piksel): gerçek göz yarıçapına (dünya birimi), gövde boyuna ve yüksekliğine göre. */
+export function eyeHalo(r: number, length: number, height: number): { rx: number; ry: number } {
+  return { rx: ((1.12 * r) / length) * LW, ry: ((1.12 * r) / (0.33 * height)) * (LH / Math.PI) };
+}
+
+/** Baş: solungaç kapağı (parlak levha, ışınsal çizgiler, kenar), göz çukuru gölgesi (ağız ve dudak 3B). */
 export function paintHead(c: Ctx, o: DetailOpts) {
   const rnd = mulberry32(o.seed + 404);
   const light = lumOf(o.yan) > 0.5;
@@ -193,7 +198,7 @@ export function paintHead(c: Ctx, o: DetailOpts) {
     const e = o.eye;
     c.save(); c.translate(e.x, e.y); c.scale(e.rx, e.ry);
     const g = c.createRadialGradient(0, 0, 0.55, 0, 0, 1.25);
-    g.addColorStop(0, 'rgba(10,8,6,0.55)'); g.addColorStop(0.5, 'rgba(10,8,6,0.3)'); g.addColorStop(1, 'rgba(10,8,6,0)');
+    g.addColorStop(0, 'rgba(10,8,6,0.5)'); g.addColorStop(0.55, 'rgba(10,8,6,0.22)'); g.addColorStop(1, 'rgba(10,8,6,0)');
     c.fillStyle = g; c.beginPath(); c.arc(0, 0, 1.25, 0, Math.PI * 2); c.fill();
     c.restore();
   }
@@ -201,12 +206,7 @@ export function paintHead(c: Ctx, o: DetailOpts) {
   const hg = c.createLinearGradient(0, LH * 0.7, 0, LH);
   hg.addColorStop(0, 'rgba(0,0,0,0)'); hg.addColorStop(1, 'rgba(0,0,0,0.22)');
   c.fillStyle = hg; c.fillRect(0, LH * 0.7, LW * 0.18, LH * 0.3);
-  // dudaklar: pembemsi, ağız hattında
-  const lg = c.createLinearGradient(0, 0, LW * 0.05, 0);
-  lg.addColorStop(0, 'rgba(214,150,130,0.4)'); lg.addColorStop(1, 'rgba(214,150,130,0)');
-  c.fillStyle = lg; c.fillRect(0, LH * 0.2, LW * 0.05, LH * 0.55);
-  c.fillStyle = 'rgba(30,12,8,0.35)';
-  c.beginPath(); c.ellipse(LW * 0.018, LH * 0.4, 14, 2.2, 0, 0, Math.PI * 2); c.fill();
+  // dudaklar ve ağız artık 3B geometridir (head.ts); dokuya ağız çizgisi/dudak boyası çizilmez.
 }
 
 /** Kabartma haritası (gri 128 = düz): daha sığ pul kubbesi, ince kenar oluğu ve ince tane. */

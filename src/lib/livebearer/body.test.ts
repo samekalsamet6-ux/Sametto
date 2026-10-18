@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { bodyShape, flankProfile } from './body';
+import { bodyShape, flankProfile, mouthCutT, mouthStation, MOUTH_SHEAR } from './body';
+import { EYE_DEPTH } from './model';
+import { eyeSpec as GEYE, BODY as GB, mouthT0 as GMOUTH } from '../guppy/model';
 import { finDetail, streak } from './finpaint';
 import { M as MOLLY, BODY as MB } from '../molly/model';
 import { M as PLATY } from '../platy/model';
@@ -57,5 +59,53 @@ describe('yüzgeç zarı ayrıntısı', () => {
   it('doygun renk tabanda uca göre daha doygun', () => {
     const sat = (c: number[]) => Math.max(...c) - Math.min(...c);
     expect(sat(finDetail([0.8, 0.4, 0.2], 0.8, true, 0.05, 0.5, 1)[0])).toBeGreaterThan(sat(finDetail([0.8, 0.4, 0.2], 0.8, true, 0.95, 0.5, 1)[0]));
+  });
+});
+
+describe('göz ve ağız (ortak kurallar)', () => {
+  const species = [
+    ['lepistes', GB, GEYE, GMOUTH, GP, GS],
+    ['molly', MB, MOLLY.eyeSpec, MOLLY.mouthT0, MOLLY.bodyProfile, MOLLY.bodySurfacePoint],
+    ['plati', PLATY.BODY, PLATY.eyeSpec, PLATY.mouthT0, PLATY.bodyProfile, PLATY.bodySurfacePoint],
+  ] as const;
+
+  it('göz küresi yüzeye gömülü: yalnızca hafif şişkinlik dışarıda, plaka gibi değil', () => {
+    expect(EYE_DEPTH).toBeGreaterThan(0.5);
+    expect(EYE_DEPTH).toBeLessThan(0.9);
+    for (const [, BODY, eyeSpec, , bodyProfile] of species) for (const s of GSEX) {
+      const e = eyeSpec(s), pr = bodyProfile(s, 0.118);
+      // göz yarıçapı baş yüksekliğine göre büyük ama dev değil (gövde yüksekliğinin ~%8–22'si)
+      expect(e.radius / BODY[s].height).toBeGreaterThan(0.08);
+      expect(e.radius / BODY[s].height).toBeLessThan(0.22);
+      // küre merkezi gövde yarı genişliğinin içinde, dışarı taşan kısım yarıçapın yarısından az
+      expect(e.center[2]).toBeLessThan(pr.rz);
+      expect(e.center[2] + e.radius - pr.rz).toBeLessThan(0.5 * e.radius);
+    }
+  });
+
+  it('ağız halkası burunda, gözden önce; alt çene (karın) üst çeneden (sırt) ileride: ağız yukarı bakar', () => {
+    for (const [, BODY, eyeSpec, mouthT0] of species) for (const s of GSEX) {
+      const t0 = mouthT0(s);
+      expect(t0).toBeGreaterThan(0.004);
+      expect(t0).toBeLessThan(0.05);
+      expect(t0 * BODY[s].length - BODY[s].length / 2).toBeLessThan(eyeSpec(s).center[0]);
+      expect(mouthCutT(t0, 0)).toBeLessThan(mouthCutT(t0, Math.PI));
+      expect(mouthCutT(t0, 0)).toBeGreaterThan(0); // alt çene ucu gövdenin dışına taşmaz
+      expect(mouthCutT(t0, Math.PI / 2)).toBeCloseTo(t0, 9); // yan köşelerde değişmez
+      expect(MOUTH_SHEAR).toBeGreaterThan(0);
+    }
+  });
+
+  it('ağız genişliği gövde genişliğinin küçük bir oranı; halka kesiti açık (sıfır değil)', () => {
+    for (const [, BODY, , mouthT0, bodyProfile] of species) for (const s of GSEX) {
+      const pr = bodyProfile(s, mouthT0(s));
+      expect(pr.rz / (BODY[s].width / 2)).toBeLessThan(0.55);
+      expect(pr.up + pr.down).toBeGreaterThan(0.03);
+    }
+  });
+
+  it('mouthStation hedef yarı genişliği bulur ve alt sınırı korur', () => {
+    expect(mouthStation((t) => t * 2, 1, 0.05)).toBeCloseTo(0.025, 3);
+    expect(mouthStation(() => 10, 1)).toBeGreaterThanOrEqual(0.005);
   });
 });

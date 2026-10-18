@@ -4,7 +4,10 @@
 // Koordinatlar: x gövde ekseni (burun -x, kuyruk +x), y yukarı, z yanal (kamera varsayılan olarak +z'den bakar).
 // Birim keyfidir (şematik model); gerçek ölçüm değildir.
 
-import { bodyShape, flankProfile, type BodyShape } from '../livebearer/body';
+import { bodyShape, flankProfile, mouthStation, type BodyShape } from '../livebearer/body';
+import { EYE_DEPTH } from '../livebearer/model';
+
+export { EYE_DEPTH };
 
 export type Sex = 'erkek' | 'disi';
 export type Vec3 = [number, number, number];
@@ -34,8 +37,8 @@ export interface BodyParams {
 }
 
 export const BODY: Record<Sex, BodyParams> = {
-  erkek: { length: 2.7, height: 0.62, width: 0.4, peak: 0.36, peduncle: 0.3, belly: 0.03, bellyAt: 0.55, bellySpread: 0.2, eye: 0.125, shape: { nape: 0.07, back: 0.02, throat: 0.09, snout: 0.7, gill: 0.035, flank: 0.1, ridge: 0.14 } },
-  disi: { length: 3.1, height: 0.96, width: 0.66, peak: 0.45, peduncle: 0.28, belly: 0.3, bellyAt: 0.55, bellySpread: 0.2, eye: 0.14, shape: { nape: 0.06, back: 0.05, throat: 0.08, snout: 0.6, gill: 0.04, flank: 0.12, ridge: 0.16 } },
+  erkek: { length: 2.7, height: 0.62, width: 0.4, peak: 0.36, peduncle: 0.3, belly: 0.03, bellyAt: 0.55, bellySpread: 0.2, eye: 0.098, shape: { nape: 0.07, back: 0.02, throat: 0.09, snout: 0.7, gill: 0.035, flank: 0.1, ridge: 0.14 } },
+  disi: { length: 3.1, height: 0.96, width: 0.66, peak: 0.45, peduncle: 0.28, belly: 0.3, bellyAt: 0.55, bellySpread: 0.2, eye: 0.112, shape: { nape: 0.06, back: 0.05, throat: 0.08, snout: 0.6, gill: 0.04, flank: 0.12, ridge: 0.16 } },
 };
 
 /** Gövde kesit zarfı: t=0 burun, t=1 kuyruk sapı sonu; 0..1 arası ölçek. */
@@ -381,12 +384,15 @@ export const EYE_T = 0.118;
 export const EYE_A = Math.PI / 2 + 0.14;
 export function eyeSpec(sex: Sex): EyeSpec {
   const R = BODY[sex].eye;
-  const s = bodySurfacePoint(sex, EYE_T, EYE_A, -0.5 * R);
+  const s = bodySurfacePoint(sex, EYE_T, EYE_A, -EYE_DEPTH * R);
   const pr = bodyProfile(sex, EYE_T);
   const axis: Vec3 = [s[0], pr.cy + (pr.up - pr.down) / 2, 0];
   const n = norm([s[0] - axis[0] - 0.22 * R, s[1] - axis[1], s[2] - axis[2]]);
   return { center: s, normal: n, radius: R };
 }
+
+/** Ağız halkasının orta konumu (t); gövde burada kesilir ve dudaklar bu halkaya oturur */
+export const mouthT0 = (sex: Sex): number => mouthStation((t) => bodyProfile(sex, t).rz, BODY[sex].width);
 
 /** Ağız yarığı: burundan geriye, yüzeyde iki yana uzanan eğri (her yan için nokta dizisi) */
 export function mouthLine(sex: Sex, side: 1 | -1): Vec3[] {

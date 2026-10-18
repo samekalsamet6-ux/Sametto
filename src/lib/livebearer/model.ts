@@ -4,7 +4,7 @@
 // Koordinatlar: x gövde ekseni (burun -x, kuyruk +x), y yukarı, z yanal (kamera varsayılan olarak +z'den bakar).
 // Birim keyfidir (şematik model); gerçek ölçüm değildir.
 
-import { bodyShape, flankProfile, type BodyShape } from './body';
+import { bodyShape, flankProfile, mouthStation, type BodyShape } from './body';
 
 export type Sex = 'erkek' | 'disi';
 export type Vec3 = [number, number, number];
@@ -104,6 +104,8 @@ export function operculumEdge(n = 14): Vec2[] {
   return out;
 }
 export const EYE_T = 0.118;
+/** Göz küresi merkezinin yüzeyin altındaki derinliği (yarıçap oranı): yalnızca hafif şişkinlik dışarıda kalır */
+export const EYE_DEPTH = 0.74;
 export const EYE_A = Math.PI / 2 + 0.14;
 export const TAIL_BASE_T = 0.955;
 export const SWIM = { amp: 0.055, wavenumber: 3.2, speed: 5.0, flapSpeed: 9.0 };
@@ -253,11 +255,14 @@ export function createModel(cfg: LbConfig) {
 
   function eyeSpec(sex: Sex): EyeSpec {
     const R = BODY[sex].eye;
-    const s = bodySurfacePoint(sex, EYE_T, EYE_A, -0.5 * R);
+    const s = bodySurfacePoint(sex, EYE_T, EYE_A, -EYE_DEPTH * R);
     const pr = bodyProfile(sex, EYE_T);
     const axis: Vec3 = [s[0], pr.cy + (pr.up - pr.down) / 2, 0];
     return { center: s, normal: norm([s[0] - axis[0] - 0.22 * R, s[1] - axis[1], s[2] - axis[2]]), radius: R };
   }
+
+  /** Ağız halkasının orta konumu (t); gövde burada kesilir ve dudaklar bu halkaya oturur */
+  const mouthT0 = (sex: Sex): number => mouthStation((t) => bodyProfile(sex, t).rz, BODY[sex].width);
 
   function mouthLine(sex: Sex, side: 1 | -1): Vec3[] {
     const pts: Vec3[] = [];
@@ -294,7 +299,7 @@ export function createModel(cfg: LbConfig) {
 
   return {
     BODY, TAIL, DORSAL, SEXES, SWIM, envelope, bodyProfile, bodyX, bodySurfacePoint, tailFin, dorsalFin, analFin, pectoralFin, pelvicFin,
-    gonopodium, eyeSpec, mouthLine, silhouette, swimOffsetZ, operculumEdge, operculumEdgeT, operculumFront, OPERCULUM_A, fanFin,
+    gonopodium, eyeSpec, mouthLine, mouthT0, silhouette, swimOffsetZ, operculumEdge, operculumEdgeT, operculumFront, OPERCULUM_A, fanFin,
   };
 }
 export type LbModel = ReturnType<typeof createModel>;

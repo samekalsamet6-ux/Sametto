@@ -31,9 +31,11 @@ export interface ShapeMul { up: number; down: number; w: number }
 export function bodyShape(t: number, s: Partial<BodyShape> | undefined): ShapeMul {
   const p = { ...DEFAULT_SHAPE, ...s };
   const snout = 1 - 0.3 * p.snout * (1 - ss(0, 0.11, t));
-  const up = snout * (1 - p.nape * g(t, 0.175, 0.05) + p.back * g(t, 0.4, 0.12));
-  const down = (1 - 0.28 * p.snout * 0.5 * (1 - ss(0, 0.09, t))) * (1 - p.throat * g(t, 0.075, 0.07));
-  const w = (0.72 + 0.28 * ss(0, 0.1, t)) * (1 + p.gill * ss(0.15, 0.225, t) * (1 - ss(0.265, 0.33, t)));
+  // burun ucu: yassı, geniş (üstten bakınca yuvarlak) ve kısa bir kama; ağız halkası burada açılır
+  const beak = 1 - ss(0, 0.07, t);
+  const up = snout * (1 - 0.3 * beak) * (1 - p.nape * g(t, 0.175, 0.05) + p.back * g(t, 0.4, 0.12));
+  const down = (1 - 0.28 * p.snout * 0.5 * (1 - ss(0, 0.09, t))) * (1 - 0.26 * beak) * (1 - p.throat * g(t, 0.075, 0.07));
+  const w = (0.9 + 0.1 * ss(0, 0.1, t)) * (1 + p.gill * ss(0.15, 0.225, t) * (1 - ss(0.265, 0.33, t)));
   return { up, down, w };
 }
 
@@ -45,3 +47,26 @@ export function flankProfile(a: number, s: Partial<BodyShape> | undefined): numb
   const back = Math.max(0, -Math.cos(a));
   return k * (1 - p.ridge * back * back);
 }
+
+// ---------------------------------------------------------------- ağız (üst konumlu, uçta)
+// Gövde burunda sivri bir uçla bitmez; ağız halkasında (gövde kesitinin kesildiği yerde) açılır: dudaklar bu halkaya oturur.
+// Halka hafif eğiktir: karın tarafı (alt çene) daha ileride, sırt tarafı (üst çene) daha geride; ağız yukarı-öne bakar.
+
+/** Ağız halkası eğikliği (gövde t biriminde; alt çene ucu bu kadar öne, üst çene o kadar geriye) */
+export const MOUTH_SHEAR = 0.011;
+/** Ağız açıklığının yarı genişliğinin gövde genişliğine oranı */
+export const MOUTH_WIDTH_FRAC = 0.1;
+
+/** Ağız halkasının orta konumu (t): yarı genişlik `rzAt(t)` hedef ağız yarı genişliğine ulaştığı yer (ikili arama). */
+export function mouthStation(rzAt: (t: number) => number, width: number, frac = MOUTH_WIDTH_FRAC): number {
+  const want = width * frac;
+  let lo = 0.002, hi = 0.12;
+  for (let i = 0; i < 30; i++) {
+    const m = (lo + hi) / 2;
+    if (rzAt(m) < want) lo = m; else hi = m;
+  }
+  return Math.max(0.005, (lo + hi) / 2); // alt çene ucu burun ucunun (t=0) gerisinde kalsın
+}
+
+/** Halka açısı a (0 karın, π sırt) için ağız halkasının t konumu (eğik kesim). */
+export const mouthCutT = (t0: number, a: number): number => t0 - Math.min(MOUTH_SHEAR, 0.75 * t0) * Math.cos(a);

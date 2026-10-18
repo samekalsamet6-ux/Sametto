@@ -2,10 +2,12 @@
 import {
   BufferAttribute, BufferGeometry, CatmullRomCurve3, Color, DoubleSide,
   Float32BufferAttribute, Group, LineBasicMaterial, LineSegments, Material, Mesh, MeshPhysicalMaterial,
-  MeshStandardMaterial, PerspectiveCamera, Quaternion, Scene, SRGBColorSpace, SphereGeometry, TubeGeometry, Vector3,
+  MeshStandardMaterial, PerspectiveCamera, Scene, SRGBColorSpace, SphereGeometry, Vector3,
   WebGLRenderer, CanvasTexture, Box3, Texture, Sphere, Raycaster,
 } from 'three';
 import { applyLook, createFitter } from '../akvaryum/scene-look';
+import { buildHead, type HeadParts } from '../livebearer/head';
+import { mouthCutT } from '../livebearer/body';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { SWIM, OPERCULUM_A, type Fin, type LbModel, type Sex, type Vec3 } from './model';
 import type { Anchor, Part, PartId, ViewId } from './anchors';
@@ -69,12 +71,13 @@ function withFlap(g: BufferGeometry, flap?: Float32Array): BufferGeometry {
 
 function bodyGeometry(M: LbModel, sex: Sex): BufferGeometry {
   const { bodySurfacePoint } = M;
-  const NT = 88, NA = 44;
+  const NT = 88, NA = 44, t0 = M.mouthT0(sex);
   const pos: number[] = [], uv: number[] = [], idx: number[] = [];
   for (let i = 0; i <= NT; i++) {
-    const t = 0.5 * (1 - Math.cos((Math.PI * i) / NT));
+    const u = 0.5 * (1 - Math.cos((Math.PI * i) / NT));
     for (let j = 0; j <= NA; j++) {
       const a = (j / NA) * Math.PI * 2;
+      const tc = mouthCutT(t0, a), t = tc + (1 - tc) * u; // gövde burunda eğik ağız halkasında başlar
       pos.push(...bodySurfacePoint(sex, t, a));
       uv.push(t, a / (Math.PI * 2));
     }
@@ -184,11 +187,6 @@ function taperedTube(points: Vec3[], radii: number[], radial = 12, samples = 30)
   return withFlap(g);
 }
 
-function tubeFrom(points: Vec3[], radius: number, segs = 24): BufferGeometry {
-  const curve = new CatmullRomCurve3(points.map((p) => new Vector3(...p)));
-  return withFlap(new TubeGeometry(curve, segs, radius, 6, false));
-}
-
 // ------------------------------------------------------------------ balığı kur
 
 /**
@@ -209,15 +207,16 @@ interface Built {
   group: Group;
   anchors: Partial<Record<PartId, Anchor>>;
   textures: Texture[];
+  head: HeadParts;
   bounds: Sphere;
   center: Vector3;
 }
 
 const darker = (c: RGBA, f: number, a: number): RGBA => [c[0] * f, c[1] * f, c[2] * f, Math.min(1, c[3] * a + 0.1)];
 
-export function buildFish(D: LbDeps, sex: Sex, variantId: string, u: SwimUniforms, texW: number): Built {
+export function buildFish(D: LbDeps, sex: Sex, variantId: string, u: SwimUniforms, texW: number, reducedMotion = false): Built {
   const { M, variantById, paintBody, finColor, partAnchors } = D;
-  const { bodySurfacePoint, eyeSpec, mouthLine, operculumFront, operculumEdgeT, operculumEdge, tailFin, dorsalFin, analFin, pectoralFin, pelvicFin, gonopodium } = M;
+  const { bodySurfacePoint, eyeSpec, operculumFront, operculumEdgeT, operculumEdge, tailFin, dorsalFin, analFin, pectoralFin, pelvicFin, gonopodium } = M;
   const variant = variantById(variantId);
   const pal = variant[sex];
   const group = new Group();
@@ -242,63 +241,14 @@ export function buildFish(D: LbDeps, sex: Sex, variantId: string, u: SwimUniform
   }), u);
   const bodyMesh = add(bodyGeometry(M, sex), body) as Mesh;
 
-  // göz
-  const eye = eyeSpec(sex);
-  const R = eye.radius;
-  const q = new Quaternion().setFromUnitVectors(new Vector3(0, 0, 1), new Vector3(...eye.normal));
-  const eyePart = (geo: BufferGeometry, mat: Material, scale = 1, order = 0) => {
-    geo.rotateX(Math.PI / 2); // kutup +z
-    geo.scale(scale, scale, scale);
-    geo.applyQuaternion(q);
-    geo.translate(...eye.center);
-    withFlap(geo);
-    return add(geo, mat, 'mesh', order);
-  };
-  const gold = new Color(variant.goz.halka);
-  eyePart(new SphereGeometry(R, 32, 20), swimify(new MeshStandardMaterial({ color: gold.multiplyScalar(0.5), roughness: 0.5, metalness: 0.3 }), u));
-  eyePart(new SphereGeometry(R, 32, 12, 0, Math.PI * 2, 0, 1.08), swimify(new MeshStandardMaterial({ color: new Color(variant.goz.iris), roughness: 0.28, metalness: 0.7, polygonOffset: true, polygonOffsetFactor: -1 }), u), 1.004);
-  eyePart(new SphereGeometry(R, 32, 8, 0, Math.PI * 2, 0, 0.62), swimify(new MeshStandardMaterial({ color: new Color(variant.goz.halka), roughness: 0.4, metalness: 0.3, polygonOffset: true, polygonOffsetFactor: -2 }), u), 1.007);
-  eyePart(new SphereGeometry(R, 32, 8, 0, Math.PI * 2, 0, 0.46), swimify(new MeshStandardMaterial({ color: new Color(variant.goz.pupil), roughness: 0.15, metalness: 0, polygonOffset: true, polygonOffsetFactor: -3 }), u), 1.01);
-  // kornea: şeffaf, parlak
-  eyePart(new SphereGeometry(R, 32, 20), swimify(new MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.12, roughness: 0.03, clearcoat: 1, depthWrite: false }), u), 1.05, 6);
-
-  // ağız yarığı
-  const dark = new Color(pal.sirt).multiplyScalar(0.25);
-  for (const side of [1, -1] as const) {
-    add(tubeFrom(mouthLine(sex, side), 0.0075, 14), swimify(new MeshStandardMaterial({ color: dark, roughness: 0.6 }), u));
-  }
-  // dudak: burun ucunda küçük yumru (üst konumlu ağız)
-  const lipC = bodySurfacePoint(sex, 0.006, Math.PI * 0.46);
-  const lip = new SphereGeometry(0.034, 14, 10);
-  lip.scale(1.2, 0.7, 1.35);
-  lip.translate(lipC[0] + 0.006, lipC[1] - 0.012, 0);
-  add(withFlap(lip), swimify(new MeshStandardMaterial({ color: new Color(pal.yan).lerp(new Color('#e9b8a8'), 0.45), roughness: 0.45 }), u));
-
-  // solungaç kapağı: yarı saydam yama + arka kenar çizgisi
-  {
-    const NA = 18, NC = 6;
-    const pos: number[] = [], idx: number[] = [];
-    for (let i = 0; i <= NA; i++) {
-      const a = OPERCULUM_A[0] + ((OPERCULUM_A[1] - OPERCULUM_A[0]) * i) / NA;
-      const t0 = operculumFront(a), t1 = operculumEdgeT(a);
-      for (let k = 0; k <= NC; k++) pos.push(...bodySurfacePoint(sex, t0 + ((t1 - t0) * k) / NC, a, 0.007));
-    }
-    for (let i = 0; i < NA; i++) for (let k = 0; k < NC; k++) {
-      const a = i * (NC + 1) + k, b = a + 1, c = a + NC + 1, d = c + 1;
-      idx.push(a, c, b, b, c, d);
-    }
-    const g = new BufferGeometry();
-    g.setAttribute('position', new Float32BufferAttribute(pos, 3));
-    g.setIndex(idx);
-    g.computeVertexNormals();
-    withFlap(g);
-    add(g, swimify(new MeshPhysicalMaterial({
-      color: new Color(pal.yan).lerp(new Color('#ffffff'), 0.4), transparent: true, opacity: 0.34, roughness: 0.2, metalness: 0.1,
-      iridescence: 0.9, iridescenceIOR: 1.6, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1,
-    }), u), 'mesh', 3);
-    const edge = operculumEdge(16).map(([t, a]) => bodySurfacePoint(sex, t, a, 0.011));
-    add(tubeFrom(edge, 0.0045, 30), swimify(new MeshStandardMaterial({ color: new Color(pal.yan).multiplyScalar(0.5), roughness: 0.5 }), u));
-  }
+  // baş: gözler, ağız (iki dudak + iç boşluk), solungaç kapakları
+  const head = buildHead({
+    bsp: (t, a, off) => bodySurfacePoint(sex, t, a, off), eye: eyeSpec(sex), goz: variant.goz, mouthT0: M.mouthT0(sex), sirt: pal.sirt, yan: pal.yan,
+    bodyMat: body, swim: (m) => swimify(m, u), reducedMotion,
+    gill: { front: operculumFront, edgeT: operculumEdgeT, edge: () => operculumEdge(16), a0: OPERCULUM_A[0], a1: OPERCULUM_A[1] },
+  });
+  group.add(head.group);
+  textures.push(...head.textures);
 
   // yüzgeçler
   const finMat = () => swimify(new MeshStandardMaterial({
@@ -337,7 +287,7 @@ export function buildFish(D: LbDeps, sex: Sex, variantId: string, u: SwimUniform
   const box = new Box3().setFromObject(group);
   const bounds = new Sphere();
   box.getBoundingSphere(bounds);
-  return { body: bodyMesh, group, anchors: partAnchors(sex), textures, bounds, center: box.getCenter(new Vector3()) };
+  return { body: bodyMesh, group, anchors: partAnchors(sex), textures, head, bounds, center: box.getCenter(new Vector3()) };
 }
 
 function disposeGroup(g: Group, textures: Texture[]) {
@@ -463,7 +413,7 @@ export function createLbViewer(D: LbDeps, opts: ViewerOptions): Viewer {
     const old = built;
     if (old) { scene.remove(old.group); disposeGroup(old.group, old.textures); }
     uniforms.uLen.value = curM().BODY[sex].length;
-    built = buildFish(curD(), sex, variant, uniforms, texW);
+    built = buildFish(curD(), sex, variant, uniforms, texW, opts.reducedMotion);
     scene.add(built.group);
     radius = built.bounds.radius;
     const prevTarget = controls.target.clone();
@@ -561,6 +511,7 @@ export function createLbViewer(D: LbDeps, opts: ViewerOptions): Viewer {
 
     look.sync(camera, controls.target);
     fitter.center(camera, controls.target);
+    built?.head.update(uniforms.uTime.value, uniforms.uFlap.value);
     renderer.render(scene, camera);
     updateHotspots();
     canvas.dataset.frames = String((Number(canvas.dataset.frames) || 0) + 1);

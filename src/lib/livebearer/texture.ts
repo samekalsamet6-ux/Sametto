@@ -5,7 +5,7 @@
 import type { Sex } from './model';
 import { mulberry32, type Variant } from './variants';
 import { EYE_A, EYE_T } from './model';
-import { LH as SLH, LW as SLW, paintBase, paintHead, paintLateralLine, paintScaleBump, paintScales, paintSheen, type DetailOpts } from './scales';
+import { eyeHalo, LH as SLH, LW as SLW, paintBase, paintHead, paintLateralLine, paintScaleBump, paintScales, paintSheen, type DetailOpts } from './scales';
 
 type Ctx = CanvasRenderingContext2D;
 const LW = SLW, LH = SLH; // yarım doku, mantıksal piksel
@@ -30,7 +30,11 @@ function blob(ctx: Ctx, x: number, y: number, rx: number, ry: number, color: str
 }
 
 export interface BodyTextures { map: HTMLCanvasElement; bump: HTMLCanvasElement }
-export interface TextureOpts { scaleW?: number; scaleH?: number }
+export interface TextureOpts {
+  scaleW?: number; scaleH?: number;
+  /** Göz çukuru gölgesi için türün göz yarıçapı/gövde boyu/yüksekliği (yoksa varsayılan boyut) */
+  eye?: (sex: Sex) => { r: number; length: number; height: number };
+}
 
 export function paintBody(variant: Variant, sex: Sex, W = 1024, opts: TextureOpts = {}): BodyTextures {
   const k = W / LW;
@@ -125,7 +129,7 @@ export function paintBody(variant: Variant, sex: Sex, W = 1024, opts: TextureOpt
   const sw = opts.scaleW ?? 33, sh = opts.scaleH ?? 27;
   const det: DetailOpts = {
     yan: pal.yan, sirt: pal.sirt, karin: pal.karin, metal: variant.metal ?? 0, sw, sh, seed: variant.id.length * 977 + variant.id.charCodeAt(0) * 31 + (sex === 'erkek' ? 11 : 29),
-    eye: { x: EYE_T * LW, y: (EYE_A / (Math.PI * 2)) * 2 * LH, rx: 54, ry: 46 },
+    eye: { x: EYE_T * LW, y: (EYE_A / (Math.PI * 2)) * 2 * LH, ...(opts.eye ? eyeHalo(opts.eye(sex).r, opts.eye(sex).length, opts.eye(sex).height) : { rx: 40, ry: 40 }) },
   };
   paintBase(c, det);
   paintScales(c, det);

@@ -3,8 +3,8 @@
 // v=0 ve v=1 karın orta çizgisi, v=0.5 sırt, v=0.25 +z yanı. Yarısı çizilir, sonra aynalanır.
 import type { Sex } from './model';
 import { mulberry32, type Variant } from './variants';
-import { EYE_A, EYE_T } from './model';
-import { LH, LW, paintBase, paintHead, paintLateralLine, paintScaleBump, paintScales, paintSheen, type DetailOpts } from '../livebearer/scales';
+import { BODY, EYE_A, EYE_T } from './model';
+import { eyeHalo, LH, LW, paintBase, paintHead, paintLateralLine, paintScaleBump, paintScales, paintSheen, type DetailOpts } from '../livebearer/scales';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -140,7 +140,7 @@ export function paintBody(variant: Variant, sex: Sex, W = 1024): BodyTextures {
   const det: DetailOpts = {
     yan: pal.yan, sirt: pal.sirt, karin: pal.karin, metal: variant.metal ?? 0.3, sw: 24, sh: 20,
     seed: variant.id.length * 977 + variant.id.charCodeAt(0) * 31 + (male ? 11 : 29),
-    eye: { x: EYE_T * LW, y: (EYE_A / (Math.PI * 2)) * 2 * LH, rx: 54, ry: 46 },
+    eye: { x: EYE_T * LW, y: (EYE_A / (Math.PI * 2)) * 2 * LH, ...eyeHalo(BODY[sex].eye, BODY[sex].length, BODY[sex].height) },
   };
   c.save(); c.scale(k, k);
   paintBase(c, det); paintScales(c, det); paintSheen(c, det); paintLateralLine(c, det); paintHead(c, det);
