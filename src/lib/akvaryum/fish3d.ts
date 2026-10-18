@@ -10,6 +10,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { SWIM, bodyPoint, finGrid, swimZ, type Body, type FinDef, type Vec3 } from './fishmath';
 import type { FaceHost, FaceRig } from './fishface';
 import type { SexId, SpeciesPart, SpeciesViewer, SpeciesViewerOptions } from './types';
+import { seg } from './fishgroup';
 
 // ------------------------------------------------------------------ yüzme gölgelendirici eki
 
@@ -46,6 +47,7 @@ export function put(group: Group, geo: BufferGeometry, mat: Material, order = 0)
 
 /** cut: burnu (c, dir) düzlemiyle keser; dir dışa bakar. Ağız bu düz yüze oturur (kapak noktası yerine). */
 export function loftBody(body: Body, NS = 72, NA = 44, cut?: { c: Vec3; dir: Vec3 }): BufferGeometry {
+  NS = seg(NS, 16); NA = seg(NA, 12);
   const pos: number[] = [], uv: number[] = [], idx: number[] = [];
   for (let i = 0; i <= NS; i++) {
     const s = 0.5 - 0.5 * Math.cos((i / NS) * Math.PI);
@@ -86,7 +88,7 @@ export function loftBody(body: Body, NS = 72, NA = 44, cut?: { c: Vec3; dir: Vec
 }
 
 export function finGeometry(f: FinDef, side: 1 | -1, rows = 6): BufferGeometry {
-  const grid = finGrid(f, side, rows);
+  const grid = finGrid(f, side, seg(rows, 2));
   const g = new BufferGeometry();
   g.setAttribute('position', new Float32BufferAttribute(grid.pos, 3));
   g.setAttribute('uv', new Float32BufferAttribute(grid.uv, 2));
@@ -97,6 +99,7 @@ export function finGeometry(f: FinDef, side: 1 | -1, rows = 6): BufferGeometry {
 }
 
 export function taperedTube(points: Vec3[], radii: number[], radial = 10, samples = 24, closed = false): BufferGeometry {
+  radial = seg(radial, 4); samples = seg(samples, 6);
   const curve = new CatmullRomCurve3(points.map((p) => new Vector3(...p)), closed);
   const frames = curve.computeFrenetFrames(samples, closed);
   const pos: number[] = [], idx: number[] = [];

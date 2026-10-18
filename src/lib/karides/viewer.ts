@@ -6,6 +6,7 @@ import {
   Raycaster, Scene, Shape, SphereGeometry, SRGBColorSpace, Texture, Vector3, WebGLRenderer, Box3, Sphere, Quaternion, Euler,
 } from 'three';
 import { applyLook, createFitter } from '../akvaryum/scene-look';
+import { seg } from '../akvaryum/fishgroup';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
   ANIM, BODY, CARAPACE, LEGS, LEG_Y, LEG_Z, PLEON_PIVOT, REST_ANGLES, SEG, TELSON, UROPOD, antennaSway, carapaceRing, clamp, eggPositions, jointAngle,
@@ -19,6 +20,7 @@ import { hexToRgb, sexTone, variantById, type Variant } from './variants';
 
 /** Kesit halkalarından kabuk: u boyunca halkalar, çevrede θ = -π/2 (karın) .. 3π/2. UV: (u, v) */
 function shellGeometry(ringAt: (u: number) => Ring, flare: number, u0: number, u1: number, ext: number, nu: number, na: number, caps: { front?: boolean; rear?: boolean }): BufferGeometry {
+  nu = seg(nu, 5); na = seg(na, 10);
   const pos: number[] = [], uv: number[] = [], idx: number[] = [];
   const ringVerts: Vec[][] = [];
   for (let i = 0; i <= nu; i++) {
@@ -100,7 +102,7 @@ function rostrumGeometry(): BufferGeometry {
 }
 
 function ellipsoid(rx: number, ry: number, rz: number, w = 14, h = 10): BufferGeometry {
-  const g = new SphereGeometry(1, w, h);
+  const g = new SphereGeometry(1, seg(w, 6), seg(h, 4));
   g.scale(rx, ry, rz);
   return g;
 }
@@ -123,11 +125,11 @@ function makeChain(parent: Object3D, mat: Material, lens: number[] | number, n: 
     if (k > 0) g.position.x = L(k - 1);
     p.add(g);
     const a = r0 + (r1 - r0) * (k / n), b = r0 + (r1 - r0) * ((k + 1) / n);
-    const geo = new CylinderGeometry(b, a, linkLen * 1.05, 7, 1);
+    const geo = new CylinderGeometry(b, a, linkLen * 1.05, seg(7, 4), 1);
     geo.rotateZ(-Math.PI / 2);
     geo.translate(linkLen / 2, 0, 0);
     g.add(new Mesh(geo, mat));
-    if (joints) g.add(new Mesh(new SphereGeometry(a * 1.15, 8, 6), mat));
+    if (joints) g.add(new Mesh(new SphereGeometry(a * 1.15, seg(8, 5), seg(6, 4)), mat));
     links.push(g);
     p = g;
   }
@@ -221,7 +223,7 @@ export function buildShrimp(sex: Sex, variantId: string, texW: number): Built {
     body.add(eg);
     const stalk = new Mesh(new CylinderGeometry(0.03, 0.036, 0.11, 8).rotateZ(-Math.PI / 2).translate(0.055, 0, 0), stalkMat);
     eg.add(stalk);
-    const ball = new Mesh(new SphereGeometry(0.064, 20, 14), eyeMat);
+    const ball = new Mesh(new SphereGeometry(0.064, seg(20, 8), seg(14, 6)), eyeMat);
     ball.scale.set(0.95, 1.05, 1.0);
     ball.position.x = 0.12;
     eg.add(ball);

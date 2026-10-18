@@ -65,6 +65,49 @@ export interface SpeciesViewer {
 
 export interface SpeciesView { id: string; ad: string }
 
+/** Ayrıntı düzeyi: 'low' = seyrek ağ, küçük doku, yalnızca gölgelendirici yüzmesi (kalabalık sahne); 'normal' = tam model. */
+export type FishLod = 'low' | 'normal';
+
+export interface FishGroupOptions {
+  sex: SexId;
+  /** Form varyetesi kimliği (SpeciesModule.forms[].id); yoksa standart form */
+  form?: string;
+  variant: string;
+  /** true ise hiç animasyon yok (durağan poz) */
+  reducedMotion: boolean;
+  lod?: FishLod;
+}
+
+/** Bir balığın hafif, renderer'sız 3B nesnesi: bir paylaşımlı sahneye (tek WebGLRenderer) istenen sayıda eklenir. */
+export interface FishGroup {
+  /** Balık orijinde, burun +X, sırt +Y, gövde uzunluğu ~1 birim; konumlandırma/ölçekleme bu nesne üzerinden yapılır. */
+  object: import('three').Object3D;
+  /** Yüzme, kuyruk, yüzgeç ve ağız/solungaç animasyonu. swimTime verilirse mutlak yüzme zamanı (sn), yoksa dt biriktirilir. */
+  update(dt: number, swimTime?: number): void;
+  /** Nesneyi sahneden çıkarır; paylaşımlı geometri/malzeme/doku, son kullanıcı bırakınca (referans sayısı 0) serbest kalır. */
+  dispose(): void;
+  /** Orijin merkezli, normalleştirilmiş ölçekte kapsayan küre yarıçapı (yüzgeçler dahil). */
+  boundingRadius: number;
+  /**
+   * Saydam yüzgeçlerin balıklar arası doğru sıralanması için: balığın tüm grup düğümlerinin renderOrder'ını ayarlar
+   * (three, Group.renderOrder'ı çizim sırasında öncelikli sıralama anahtarı yapar). Uzaktan yakına artan sıra verin;
+   * `sortFishGroups` bunu kameraya göre yapar.
+   */
+  setSortRank(rank: number): void;
+  /** Bu balığın çizim bütçesi (aynı anahtarlı balıklar geometri ve dokuyu paylaşır). */
+  budget: FishGroupBudget;
+}
+
+export interface FishGroupBudget {
+  triangles: number;
+  drawCalls: number;
+  /** Bu balığın kullandığı doku sayısı ve toplam piksel (paylaşımlı; aynı anahtarlı balıklarda tekrar sayılmaz) */
+  textures: number;
+  texturePixels: number;
+  /** Paylaşım anahtarı: tür|form|varyete|cinsiyet|lod */
+  key: string;
+}
+
 export interface SpeciesModule {
   /** Kısa, URL'ye uygun kimlik: 'lepistes', 'vatoz', 'molly', 'melek', 'karides', ... */
   id: string;
@@ -84,4 +127,9 @@ export interface SpeciesModule {
   parts: SpeciesPart[];
   variants: SpeciesVariant[];
   createViewer(opts: SpeciesViewerOptions): SpeciesViewer;
+  /**
+   * İsteğe bağlı, renderer'sız hafif balık nesnesi (paylaşımlı çok balıklı sahne, ör. satıcı akvaryumu için).
+   * Tuval, renderer, hotspot ve arayüz içermez; aynı tür/form/varyete/cinsiyet geometri ve dokuyu paylaşır.
+   */
+  createFishGroup?(opts: FishGroupOptions): FishGroup;
 }

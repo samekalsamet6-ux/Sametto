@@ -5,6 +5,7 @@ import {
   Quaternion, Raycaster, Scene, SRGBColorSpace, SphereGeometry, Vector3, WebGLRenderer, Box3, Texture, Sphere, CatmullRomCurve3, TubeGeometry,
 } from 'three';
 import { applyLook, createFitter } from '../akvaryum/scene-look';
+import { seg } from '../akvaryum/fishgroup';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
   SPINE, SPINE_U, SWIM, clasper, discPoint, discRho, discWaveY, eyeSpec, gillSlits, mouthLine, naresRing, nasalCurtain, pelvicSpec,
@@ -55,6 +56,7 @@ const ringRho = (i: number, nr: number) => 1 - Math.pow(1 - i / nr, 1.6);
 interface DiscMeshData { geo: BufferGeometry; base: Float32Array; rho: Float32Array }
 
 function discGeometry(sex: Sex, face: Face, NR = 44, NS = 120): DiscMeshData {
+  NR = seg(NR, 14); NS = seg(NS, 40);
   const pos: number[] = [], uv: number[] = [], rho: number[] = [], idx: number[] = [];
   for (let i = 0; i <= NR; i++) {
     const r = ringRho(i, NR);
@@ -92,10 +94,11 @@ function discGeometry(sex: Sex, face: Face, NR = 44, NS = 120): DiscMeshData {
 
 function tubeFrom(points: Vec3[], radius: number, segs = 24, closed = false): BufferGeometry {
   const curve = new CatmullRomCurve3(points.map((p) => new Vector3(...p)), closed);
-  return new TubeGeometry(curve, segs, radius, 6, closed);
+  return new TubeGeometry(curve, seg(segs, 8), radius, seg(6, 4), closed);
 }
 
 function taperedTube(points: Vec3[], radii: number[], radial = 12, samples = 30): BufferGeometry {
+  radial = seg(radial, 4); samples = seg(samples, 8);
   const curve = new CatmullRomCurve3(points.map((p) => new Vector3(...p)));
   const frames = curve.computeFrenetFrames(samples, false);
   const pos: number[] = [], idx: number[] = [];
@@ -243,13 +246,13 @@ export function buildRay(sex: Sex, variantId: string, u: SwimUniforms, texW: num
       add(swimAttr(geo, onDiscSwim(sex)), mat);
     };
     // göz çukuru çevresi: deri yükseltisi
-    const mound = new SphereGeometry(R * 1.45, 24, 12);
+    const mound = new SphereGeometry(R * 1.45, seg(24, 8), seg(12, 5));
     mound.scale(1, 0.55, 1);
     mound.translate(eye.center[0], eye.center[1] - R * 0.55, eye.center[2]);
     add(swimAttr(mound, onDiscSwim(sex)), eyeMat.mound);
-    part(new SphereGeometry(R, 28, 18), eyeMat.ball);
-    part(new SphereGeometry(R, 28, 10, 0, Math.PI * 2, 0, 0.95), eyeMat.iris, 1.01);
-    part(new SphereGeometry(R, 28, 8, 0, Math.PI * 2, 0, 0.5), eyeMat.pupil, 1.02);
+    part(new SphereGeometry(R, seg(28, 10), seg(18, 8)), eyeMat.ball);
+    part(new SphereGeometry(R, seg(28, 10), seg(10, 4), 0, Math.PI * 2, 0, 0.95), eyeMat.iris, 1.01);
+    part(new SphereGeometry(R, seg(28, 10), seg(8, 3), 0, Math.PI * 2, 0, 0.5), eyeMat.pupil, 1.02);
   }
 
   // ---- spirakül

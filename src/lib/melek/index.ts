@@ -2,7 +2,8 @@ import type { SpeciesModule } from '../akvaryum/types';
 import { FORMS } from './forms';
 import { PARTS, VIEWS } from './parts';
 import { VARIANTS } from './variants';
-import { createViewer } from './viewer';
+import { DEF, createViewer } from './viewer';
+import { createYanalGroup } from '../akvaryum/yanal-group';
 
 export const species: SpeciesModule = {
   id: 'melek',
@@ -19,4 +20,5 @@ export const species: SpeciesModule = {
   parts: PARTS,
   variants: VARIANTS.map((v) => ({ id: v.id, ad: v.ad, aciklama: v.aciklama, grup: v.grup, dogrulanmali: v.dogrulanmali })),
   createViewer,
+  createFishGroup: (o) => createYanalGroup(DEF, o),
 };

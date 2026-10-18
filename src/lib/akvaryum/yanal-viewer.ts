@@ -13,6 +13,7 @@ import {
 } from './yanal-model';
 import { paintAtlas } from './yanal-texture';
 import { addEye, addMouth, createFaceRig, pulseGill, type FaceHost, type FaceRig } from './fishface';
+import { seg } from './fishgroup';
 
 export interface FishDef {
   id: string;
@@ -76,6 +77,7 @@ function ringsFor(spec: FishSpec, NX: number, NA: number): Vec3[][] {
 }
 
 function bodyGeometry(spec: FishSpec, NX: number, NA: number, cut?: { c: Vec3; dir: Vec3 }): BufferGeometry {
+  NX = seg(NX, 20); NA = seg(NA, 14);
   const rings = ringsFor(spec, NX, NA);
   if (cut) for (const r of rings) for (const q of r) {
     const d = (q[0] - cut.c[0]) * cut.dir[0] + (q[1] - cut.c[1]) * cut.dir[1] + (q[2] - cut.c[2]) * cut.dir[2];
@@ -105,6 +107,7 @@ function bodyGeometry(spec: FishSpec, NX: number, NA: number, cut?: { c: Vec3; d
 }
 
 function finGeometry(spec: FishSpec, fin: { base: Pt[]; edge: Pt[] }, ripple: number, flutter: number, NS: number, NR = 8, side = 0, zOff?: (x: number, y: number, r: number) => number): BufferGeometry {
+  NS = seg(NS, 8); NR = seg(NR, 3);
   const pos: number[] = [], uv: number[] = [], sw: number[] = [], idx: number[] = [];
   for (let i = 0; i <= NS; i++) {
     const s = i / NS;
@@ -128,6 +131,7 @@ function finGeometry(spec: FishSpec, fin: { base: Pt[]; edge: Pt[] }, ripple: nu
 }
 
 function taperedTube(points: Vec3[], radii: number[], radial = 10, samples = 28): BufferGeometry {
+  radial = seg(radial, 4); samples = seg(samples, 8);
   const curve = new CatmullRomCurve3(points.map((p) => new Vector3(...p)));
   const frames = curve.computeFrenetFrames(samples, false);
   const pos: number[] = [], idx: number[] = [];
@@ -148,7 +152,7 @@ function taperedTube(points: Vec3[], radii: number[], radial = 10, samples = 28)
   return g;
 }
 
-const tube = (pts: Vec3[], radius: number, segs = 24) => new TubeGeometry(new CatmullRomCurve3(pts.map((p) => new Vector3(...p))), segs, radius, 6, false);
+const tube = (pts: Vec3[], radius: number, segs = 24) => new TubeGeometry(new CatmullRomCurve3(pts.map((p) => new Vector3(...p))), seg(segs, 8), radius, seg(6, 4), false);
 const shade = (hex: string, k: number) => new Color(hex).multiplyScalar(k);
 
 // ------------------------------------------------------------------ balığı kur

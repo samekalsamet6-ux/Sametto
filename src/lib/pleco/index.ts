@@ -3,7 +3,8 @@ import type { SpeciesModule, SpeciesView } from '../akvaryum/types';
 import { FORMS } from './forms';
 import { PARTS, partsFor } from './parts';
 import { VARIANTS } from './variants';
-import { createViewer } from './viewer';
+import { createViewer, buildPleco } from './viewer';
+import { createFish3dGroup } from '../akvaryum/fish3d-group';
 
 export const VIEWS: SpeciesView[] = [
   { id: 'yan', ad: 'Yan' }, { id: 'ust', ad: 'Üst' }, { id: 'alt', ad: 'Alt (ağız)' }, { id: 'on', ad: 'Ön' }, { id: 'arka', ad: 'Arka' }, { id: 'capraz', ad: 'Çapraz' },
@@ -25,4 +26,5 @@ export const species: SpeciesModule = {
   parts: PARTS,
   variants: VARIANTS,
   createViewer,
+  createFishGroup: (o) => createFish3dGroup('pleco', buildPleco, o),
 };

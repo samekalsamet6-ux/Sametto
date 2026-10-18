@@ -7,6 +7,7 @@ import {
   MeshPhysicalMaterial, MeshStandardMaterial, Quaternion, SRGBColorSpace, SphereGeometry, TorusGeometry, Vector3, Texture,
 } from 'three';
 import { mouthCutT } from './body';
+import { seg, tess } from '../akvaryum/fishgroup';
 import { EYE_DEPTH, type Vec3 } from './model';
 
 type Surf = (t: number, a: number, off?: number) => Vec3;
@@ -78,7 +79,7 @@ class Rig {
 
 /** Göz küresi dokusu: dik eksen = kutuptan açı (0..π), yatay eksen = boylam. Dikey çizgiler = ışınsal iris lifleri. */
 function eyeTexture(goz: GozRenk): HTMLCanvasElement {
-  const W = 512, H = 256;
+  const W = tess.eye, H = tess.eye / 2;
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
   const g = c.getContext('2d')!;
@@ -118,12 +119,12 @@ function buildEye(D: HeadDeps, side: 1 | -1, mats: { ball: Material; ring: Mater
   // köşeler dünya koordinatlarında (yüzme gölgelendiricisi gövdeyle aynı dalgayı uygulasın diye grup dönüşümü kullanılmaz)
   const place = (g: BufferGeometry) => { g.applyQuaternion(q); g.translate(c[0], c[1], c[2] * side); return plain(g); };
   const grp = new Group();
-  const ballGeo = new SphereGeometry(R, 44, 30);
+  const ballGeo = new SphereGeometry(R, seg(44, 14), seg(30, 10));
   ballGeo.rotateX(Math.PI / 2); // kutup +z
   grp.add(new Mesh(place(ballGeo), mats.ball));
   // göz çukuru kenarı: gözün yüzeyle kesiştiği yerde yassı halka
   const d = EYE_DEPTH * R, rr = Math.sqrt(R * R - d * d);
-  const ringGeo = new TorusGeometry(rr, 0.085 * R, 8, 40);
+  const ringGeo = new TorusGeometry(rr, 0.085 * R, seg(8, 4), seg(40, 14));
   ringGeo.scale(1, 1, 0.55);
   ringGeo.translate(0, 0, d * 0.97);
   grp.add(new Mesh(place(ringGeo), mats.ring));
@@ -134,6 +135,7 @@ function buildEye(D: HeadDeps, side: 1 | -1, mats: { ball: Material; ring: Mater
 
 /** Yarıçapı uçlara doğru incelen, uçları kapalı tüp. */
 function lipTube(points: Vec3[], rMid: number, rEnd: number, radial = 9): BufferGeometry {
+  radial = seg(radial, 4);
   const N = points.length;
   const P = points.map((p) => new Vector3(...p));
   const pos: number[] = [], idx: number[] = [];

@@ -1,5 +1,5 @@
 // three.js sahnesi: yalnızca Plati sayfasında, tembel (dynamic import) yüklenir. Sahne kodu livebearer/viewer.ts içindedir.
-import { createLbViewer, type Viewer, type ViewerOptions } from '../livebearer/viewer';
+import { createLbViewer, type LbDeps, type Viewer, type ViewerOptions } from '../livebearer/viewer';
 import { M } from './model';
 import { partAnchors, partsFor } from './parts';
 import { kit } from './forms';
@@ -8,6 +8,8 @@ import { finColor, variantById } from './variants';
 
 export type { Viewer, ViewerOptions };
 
+export const LB_DEPS: LbDeps = { M, modelFor: kit.modelFor, anchorsFor: kit.anchorsFor, cls: 'lb3', partsFor, partAnchors, variantById, finColor, paintBody };
+
 export function createViewer(opts: ViewerOptions): Viewer {
-  return createLbViewer({ M, modelFor: kit.modelFor, anchorsFor: kit.anchorsFor, cls: 'lb3', partsFor, partAnchors, variantById, finColor, paintBody }, opts);
+  return createLbViewer(LB_DEPS, opts);
 }

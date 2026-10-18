@@ -7,6 +7,7 @@ import {
 } from 'three';
 import { applyLook, createFitter } from '../akvaryum/scene-look';
 import { buildHead, type HeadParts } from '../livebearer/head';
+import { seg } from '../akvaryum/fishgroup';
 import { mouthCutT } from '../livebearer/body';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { SWIM, OPERCULUM_A, type Fin, type LbModel, type Sex, type Vec3 } from './model';
@@ -71,7 +72,7 @@ function withFlap(g: BufferGeometry, flap?: Float32Array): BufferGeometry {
 
 function bodyGeometry(M: LbModel, sex: Sex): BufferGeometry {
   const { bodySurfacePoint } = M;
-  const NT = 88, NA = 44, t0 = M.mouthT0(sex);
+  const NT = seg(88, 24), NA = seg(44, 14), t0 = M.mouthT0(sex);
   const pos: number[] = [], uv: number[] = [], idx: number[] = [];
   for (let i = 0; i <= NT; i++) {
     const u = 0.5 * (1 - Math.cos((Math.PI * i) / NT));
@@ -106,6 +107,7 @@ function bodyGeometry(M: LbModel, sex: Sex): BufferGeometry {
 
 /** Yüzgeç zarı: ışınlar arasındaki şerit (sub kat ara ışınla bölünür); köşe başına RGBA ve çırpma özniteliği */
 function finMembrane(fin: Fin, color: (s: number, u: number) => RGBA, flap: FlapFn, sub = 1, ripple = 0.01): BufferGeometry {
+  sub = seg(sub, 1);
   const R0 = fin.rays.length, P = fin.rays[0].length;
   const R = (R0 - 1) * sub + 1;
   const pos = new Float32Array(R * P * 3), col = new Float32Array(R * P * 4), fl = new Float32Array(R * P * 4);
@@ -155,6 +157,7 @@ function finLines(fin: Fin, color: (i: number, u: number) => RGBA, flap: FlapFn)
 }
 
 function taperedTube(points: Vec3[], radii: number[], radial = 12, samples = 30): BufferGeometry {
+  radial = seg(radial, 4); samples = seg(samples, 8);
   const curve = new CatmullRomCurve3(points.map((p) => new Vector3(...p)));
   const frames = curve.computeFrenetFrames(samples, false);
   const pos: number[] = [];
@@ -279,7 +282,7 @@ export function buildFish(D: LbDeps, sex: Sex, variantId: string, u: SwimUniform
     add(taperedTube(g.path, g.radii), swimify(new MeshStandardMaterial({ color: gm, roughness: 0.5 }), u));
     // kanca ucu
     const tip = g.path[g.path.length - 1];
-    const hook = new SphereGeometry(0.012, 10, 8);
+    const hook = new SphereGeometry(0.012, seg(10, 5), seg(8, 4));
     hook.translate(tip[0] + 0.012, tip[1] + 0.012, 0);
     add(withFlap(hook), swimify(new MeshStandardMaterial({ color: 0x2a1a14, roughness: 0.4 }), u));
   }

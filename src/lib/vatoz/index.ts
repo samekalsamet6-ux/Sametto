@@ -3,6 +3,7 @@ import type { SpeciesModule, SpeciesPart, SpeciesVariant, SexId } from '../akvar
 import { PARTS, partsFor } from './parts';
 import { VARIANTS } from './variants';
 import { createViewer } from './viewer';
+import { createVatozGroup } from './group';
 
 const toPart = (p: (typeof PARTS)[number]): SpeciesPart => ({
   id: p.id, ad: p.ad, ozet: p.ozet, aciklama: p.aciklama, sex: p.sex, dogrulanmali: p.dogrulanmali, uyari: p.uyari,
@@ -26,4 +27,5 @@ export const species: SpeciesModule = {
   parts: PARTS.map(toPart),
   variants: VARIANTS.map((v): SpeciesVariant => ({ id: v.id, ad: v.ad, aciklama: v.aciklama, grup: v.grup, dogrulanmali: v.dogrulanmali })),
   createViewer: (o) => createViewer(o as Parameters<typeof createViewer>[0]) as unknown as ReturnType<SpeciesModule['createViewer']>,
+  createFishGroup: createVatozGroup,
 };

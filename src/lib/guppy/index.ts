@@ -4,6 +4,7 @@ import { FORM_PARTS, PARTS, partsFor } from './parts';
 import { FORMS } from './forms';
 import { VARIANTS } from './variants';
 import { createViewer } from './viewer';
+import { createGuppyGroup } from './group';
 
 const toPart = (p: (typeof PARTS)[number]): SpeciesPart => ({
   id: p.id, ad: p.ad, ozet: p.ozet, aciklama: p.aciklama, sex: p.sex, dogrulanmali: p.dogrulanmali, wiki: p.wiki,
@@ -28,4 +29,5 @@ export const species: SpeciesModule = {
   parts: [...PARTS, ...FORM_PARTS].map(toPart),
   variants: VARIANTS.map((v): SpeciesVariant => ({ id: v.id, ad: v.ad, aciklama: v.aciklama, grup: v.grup })),
   createViewer: (o) => createViewer(o as Parameters<typeof createViewer>[0]) as unknown as ReturnType<SpeciesModule['createViewer']>,
+  createFishGroup: createGuppyGroup,
 };

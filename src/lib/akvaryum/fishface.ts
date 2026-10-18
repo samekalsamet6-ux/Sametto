@@ -7,6 +7,7 @@ import {
   BufferGeometry, CanvasTexture, CatmullRomCurve3, DoubleSide, Float32BufferAttribute, Group, Material, Matrix4, Mesh, MeshBasicMaterial,
   MeshPhysicalMaterial, MeshStandardMaterial, Color, Raycaster, SphereGeometry, SRGBColorSpace, Texture, Vector3,
 } from 'three';
+import { seg, tess } from './fishgroup';
 
 type V3 = [number, number, number];
 
@@ -44,7 +45,7 @@ export interface EyeStyle {
 
 /** Küre için doku: dikey eksen ön kutuptan (üst satır) arka kutba açı; yatay eksen kutup çevresindeki açı. "Yukarı" u = 0.75. */
 export function eyeTexture(st: EyeStyle): CanvasTexture {
-  const W = 512, H = 256, cv = document.createElement('canvas');
+  const W = tess.eye, H = tess.eye / 2, cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d')!;
   const img = ctx.createImageData(W, H), d = img.data;
@@ -140,6 +141,7 @@ function socketCurve(body: BufferGeometry, c: Vector3, n: Vector3, r: number, N 
 
 /** Kapalı/açık eğri boyunca değişken yarıçaplı tüp */
 export function lipTube(points: V3[] | Vector3[], radii: number[], radial = 10, samples = 32, closed = false): BufferGeometry {
+  radial = seg(radial, 4); samples = seg(samples, 8);
   const curve = new CatmullRomCurve3(points.map((p) => (p instanceof Vector3 ? p.clone() : new Vector3(...p))), closed);
   const frames = curve.computeFrenetFrames(samples, closed);
   const rAt = (u: number) => { if (radii.length === 1) return radii[0]; const f = u * (radii.length - 1); const i = Math.min(radii.length - 2, Math.floor(f)); return radii[i] + (radii[i + 1] - radii[i]) * (f - i); };
@@ -164,7 +166,7 @@ export function lipTube(points: V3[] | Vector3[], radii: number[], radial = 10, 
 export function addEye(host: FaceHost, spec: EyeSpec, tex?: Texture): Texture {
   const { r } = spec, c = new Vector3(...spec.center), n = new Vector3(...spec.normal).normalize();
   const t = tex ?? (() => { const x = eyeTexture(spec.style); host.textures.push(x); return x; })();
-  const geo = new SphereGeometry(r, 44, 30);
+  const geo = new SphereGeometry(r, seg(44, 14), seg(30, 10));
   geo.applyMatrix4(rotXHalfPi());
   geo.applyMatrix4(eyeBasis(n));
   geo.translate(c.x, c.y, c.z);
@@ -209,7 +211,7 @@ export function addMouth(host: FaceHost, rig: FaceRig | null, m: MouthSpec): Mou
   if (ey.y < 0 || (Math.abs(ey.y) < 1e-6 && ey.x < 0)) { ey.negate(); flipped = true; }
   const ez = new Vector3(0, 0, 1);
   const toW = (lx: number, ly: number, lz: number): V3 => { const p = c.clone().addScaledVector(ex, lx).addScaledVector(ey, ly).addScaledVector(ez, lz); return [p.x, p.y, p.z]; };
-  const N = 22, up = m.upper ?? m.lip * 0.4, lo = m.lower ?? m.lip * 0.4, cr = m.corner ?? 0.62;
+  const N = seg(22, 10), up = m.upper ?? m.lip * 0.4, lo = m.lower ?? m.lip * 0.4, cr = m.corner ?? 0.62;
   const arc = (sgn: 1 | -1, prot: number): { pts: V3[]; rad: number[] } => {
     const pts: V3[] = [], rad: number[] = [];
     for (let i = 0; i <= N; i++) {
@@ -224,7 +226,7 @@ export function addMouth(host: FaceHost, rig: FaceRig | null, m: MouthSpec): Mou
 
   // iç boşluk: koyu, kenarı kırmızımsı, ortası siyaha giden yassı yama (düz burun yüzünün hemen önünde; dudaklar kenarını örter)
   const cy = m.gap + m.lip * 0.9, ins = new Color(m.innerColor), blk = new Color('#050202');
-  const pos: number[] = [], col: number[] = [], idx: number[] = [], R = 4, M = 28;
+  const pos: number[] = [], col: number[] = [], idx: number[] = [], R = 4, M = seg(28, 12);
   const lift = m.lip * 0.25;
   pos.push(...toW(lift, 0, 0)); col.push(blk.r, blk.g, blk.b);
   for (let k = 1; k <= R; k++) {
