@@ -52,6 +52,8 @@ const PLAN: [string, number, number, string, number, number, string][] = [
   ['diger', 0, 0, 'bilinmiyor', 2, 75, 'Örnek ilan metni: listede 3B modeli olmayan bir tür; yalnızca fotoğraflarla gösterilir.'],
 ];
 
+// Türe özel örnek alanlar (plan sırası): pleco -> L144, karides -> Sakura grade
+const EXTRA: Record<number, Partial<ListingInput>> = { 10: { lNumber: 'L144' }, 13: { grade: 'sakura' } };
 let seed = 1;
 if (!hasListings) PLAN.forEach(([sid, fi, vi, sex, qty, price, desc], i) => {
   const sp = sid === 'diger' ? null : spec(sid);
@@ -60,7 +62,7 @@ if (!hasListings) PLAN.forEach(([sid, fi, vi, sex, qty, price, desc], i) => {
     variantId: sp ? sp.variants[Math.min(vi, sp.variants.length - 1)].id : null,
     sex: sp && sex !== UNKNOWN_SEX && !sp.sexes.some((s) => s.id === sex) ? sp.sexes[0].id : sex,
     quantity: qty, priceKurus: price * 100, city: cities[i % cities.length], district: DISTRICTS[cities[i % cities.length]][i % 2], title: '', description: desc,
-    whatsapp: null, phone: null,
+    whatsapp: null, phone: null, ...EXTRA[i],
   };
   v.title = `${sp ? sp.ad : 'Zebra danio'} — ${sp ? [sp.forms[Math.min(fi, sp.forms.length - 1)]?.ad, sp.variants[Math.min(vi, sp.variants.length - 1)]?.ad].filter(Boolean).join(', ') : 'diğer'} (ÖRNEK)`;
   const n = 1 + (i % 3);

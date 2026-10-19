@@ -1,8 +1,9 @@
 // Arama sorgusu kurucusu: saf fonksiyon; her değer parametre olarak bağlanır (SQL enjeksiyonu yok).
 import { CITIES } from '../shared/cities.ts';
 import { OTHER_ID, speciesById } from '../shared/catalog.ts';
+import { normalizeLFilter, gradeById } from '../shared/species-fields.ts';
 
-export interface SearchParams { species?: string; form?: string; variant?: string; city?: string; district?: string; minPrice?: string; maxPrice?: string; sort?: string; page?: string | number; userId?: number }
+export interface SearchParams { species?: string; form?: string; variant?: string; city?: string; district?: string; minPrice?: string; maxPrice?: string; sort?: string; page?: string | number; userId?: number; lnum?: string; grade?: string }
 export const PAGE_SIZE = 12;
 export const SORTS: Record<string, { ad: string; sql: string }> = {
   yeni: { ad: 'En yeni', sql: 'l.created_at DESC, l.id DESC' },
@@ -25,7 +26,7 @@ export function priceToKurus(v: unknown): number | null {
 }
 
 export function buildSearch(p: SearchParams): BuiltSearch {
-  const where: string[] = [`l.status = 'active'`];
+  const where: string[] = [`l.status = 'active'`, 'l.sold_at IS NULL']; // satıldı/stokta yok ilanlar herkese açık aramada yok
   const args: (string | number)[] = [];
   if (idOk(p.species) && (p.species === OTHER_ID || speciesById(p.species))) { where.push('l.species_id = ?'); args.push(p.species); }
   if (idOk(p.form)) { where.push('l.form_id = ?'); args.push(p.form); }
@@ -36,6 +37,9 @@ export function buildSearch(p: SearchParams): BuiltSearch {
     // Alt dize eşleşmesi, büyük/küçük harf duyarsız (Türkçe İ/ı dahil); LIKE joker karakterleri kaçırılır, değer parametredir.
     if (d) { where.push("tr_lower(l.district) LIKE ? ESCAPE '\\'"); args.push('%' + d.toLocaleLowerCase('tr-TR').replace(/[\\%_]/g, '\\$&') + '%'); }
   }
+  const ln = normalizeLFilter(p.lnum);
+  if (ln) { where.push('l.l_number = ?'); args.push(ln); }
+  if (gradeById(p.grade)) { where.push('l.grade = ?'); args.push(p.grade as string); }
   const min = priceToKurus(p.minPrice), max = priceToKurus(p.maxPrice);
   if (min !== null) { where.push('l.price_kurus >= ?'); args.push(min); }
   if (max !== null) { where.push('l.price_kurus <= ?'); args.push(max); }

@@ -59,7 +59,7 @@ describe('filtre çipleri ve daraltma', () => {
   it('seçili filtreler çip olur; tür çipi şekil/renk bağımlılarını da kaldırır', () => {
     const c = filterChips({ species: 'lepistes', form: 'delta', city: 'Ankara', minPrice: '10', maxPrice: '50' });
     expect(c.map((x) => x.label)).toEqual(['Tür: Lepistes', 'Şekil: Delta', 'Şehir: Ankara', 'Fiyat: 10–50 ₺']);
-    expect(c[0].drop).toEqual(['tur', 'sekil', 'renk']); expect(c[3].drop).toEqual(['min', 'max']);
+    expect(c[0].drop).toEqual(['tur', 'sekil', 'renk', 'l', 'grade']); expect(c[3].drop).toEqual(['min', 'max']);
     expect(filterChips({})).toEqual([]); expect(filterChips({ species: '', city: ' ' })).toEqual([]);
     expect(filterChips({ minPrice: '5' })[0].label).toBe('En az 5 ₺');
   });

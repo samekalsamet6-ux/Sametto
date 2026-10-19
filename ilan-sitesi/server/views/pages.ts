@@ -4,7 +4,8 @@ import { CATALOG, OTHER_ID, speciesById, speciesLabel, sexOptions, fishSexOption
 import { CITIES } from '../../shared/cities.ts';
 import { unitPriceText, UNIT_NOTE, relativeDay, absoluteDate } from '../../shared/listing-format.ts';
 import { filterChips, narrowOptions } from '../../shared/filters.ts';
-import { formatPrice, formatPhone, formatPhoneLocal, REPORT_REASONS, MAX_FISH, MAX_KARIDES, MAX_HEAVY, type Errors } from '../validation.ts';
+import { formatPrice, formatPhone, formatPhoneLocal, REPORT_REASONS, MAX_FISH, MAX_KARIDES, MAX_HEAVY, MAX_BULK_ROWS, type Errors } from '../validation.ts';
+import { specBadges, GRADES, gradeLabel, GRADE_NOTE, gradeById, normalizeLFilter, L_SPECIES, GRADE_SPECIES } from '../../shared/species-fields.ts';
 import { PAGE_SIZE, SORTS, type SearchParams } from '../search.ts';
 import type { Listing, Photo, ReportRow, AquariumFish } from '../db.ts';
 
@@ -40,24 +41,25 @@ export function listingShortFacts(l: Listing): { species: string; form: string |
 }
 const UNVERIFIED_BADGE = 'Şekil ya da renk adı kaynaklarda tutarsız; satıcıyla doğrulayın. Ayrıntı ilan sayfasındadır.';
 const dateTag = (ms: number, now: number) => html`<time datetime="${new Date(ms).toISOString()}" title="İlan tarihi: ${absoluteDate(ms)}">${relativeDay(ms, now)}</time>`;
-export function listingCard(l: Listing, now: number = Date.now()): SafeHtml {
+export function listingCard(l: Listing, now: number = Date.now(), extra?: SafeHtml): SafeHtml {
   const f = listingShortFacts(l);
   const demo = l.is_demo ? html`<span class="tag tag-demo">Örnek ilan</span>` : '';
   const unit = unitPriceText(l.price_kurus, l.quantity);
+  const specs = specBadges(l);
   return html`<li class="card">
   <a class="card-link" href="/ilan/${l.id}">
     <span class="card-photo">${l.first_photo ? html`<img src="/yuklemeler/${l.first_photo}" alt="${f.species} ilanının satıcı fotoğrafı" loading="lazy" decoding="async" width="400" height="300">` : html`<span class="photo-none">Fotoğraf yok</span>`}${demo}</span>
     <span class="card-body">
       <span class="card-title">${l.title}</span>
-      <span class="card-meta">${[f.species, f.form, f.variant].filter(Boolean).join(' · ')}${f.unverified ? html` <span class="badge-verify" title="${UNVERIFIED_BADGE}">doğrulanmalı<span class="sr-only"> (${UNVERIFIED_BADGE})</span></span>` : ''}</span>
+      <span class="card-meta">${[f.species, f.form, f.variant].filter(Boolean).join(' · ')}${f.unverified ? html` <span class="badge-verify" title="${UNVERIFIED_BADGE}">doğrulanmalı<span class="sr-only"> (${UNVERIFIED_BADGE})</span></span>` : ''}${specs.map((b) => html` <span class="badge-spec" data-testid="rozet-ozel">${b}</span>`)}</span>
       <span class="card-price"><strong class="price">${formatPrice(l.price_kurus)}</strong>${unit ? html`<span class="price-total">toplam</span>` : ''}</span>
       ${unit ? html`<span class="card-unit" title="Tanesi ${unit}: ${UNIT_NOTE}">tanesi ≈ ${unit}<span class="sr-only"> (${UNIT_NOTE})</span></span>` : ''}
       <span class="card-row"><span class="card-loc muted">${l.quantity} adet · ${locationLabel(l)}</span><span class="card-date muted">${dateTag(l.created_at, now)}</span></span>
     </span>
-  </a>
+  </a>${extra ?? ''}
 </li>`;
 }
-const cardGrid = (items: Listing[]) => { const now = Date.now(); return html`<ul class="grid" role="list">${items.map((l) => listingCard(l, now))}</ul>`; };
+const cardGrid = (items: Listing[], extra?: (l: Listing) => SafeHtml) => { const now = Date.now(); return html`<ul class="grid" role="list">${items.map((l) => listingCard(l, now, extra?.(l)))}</ul>`; };
 
 // ---------- ana sayfa ----------
 export function homePage(ctx: PageCtx, latest: Listing[]): string {
@@ -92,7 +94,7 @@ export function listingsPage(ctx: PageCtx, o: { params: SearchParams; result: { 
   const p = o.params, r = o.result;
   const qs = (extra: Record<string, string | number>) => {
     const u = new URLSearchParams();
-    const base: Record<string, string | undefined> = { tur: p.species, sekil: p.form, renk: p.variant, sehir: p.city, ilce: p.district, min: p.minPrice, max: p.maxPrice, sirala: p.sort };
+    const base: Record<string, string | undefined> = { tur: p.species, sekil: p.form, renk: p.variant, sehir: p.city, ilce: p.district, min: p.minPrice, max: p.maxPrice, sirala: p.sort, l: p.lnum, grade: p.grade };
     for (const [k, v] of Object.entries({ ...base, ...extra })) if (v !== undefined && v !== '') u.set(k, String(v));
     return u.toString();
   };
@@ -118,6 +120,14 @@ export function listingsPage(ctx: PageCtx, o: { params: SearchParams; result: { 
     <label for="f-renk">Renk</label>
     <select id="f-renk" name="renk"${sp ? '' : raw(' disabled')}><option value="">Tümü</option>${varOptions.map((x) => html`<option value="${x.id}"${selectedVar === x.id ? raw(' selected') : ''}>${x.ad}</option>`)}</select>
   </div>
+  ${p.species === L_SPECIES ? html`<div class="f">
+    <label for="f-l">L-numarası</label>
+    <input id="f-l" name="l" maxlength="5" placeholder="örn. L144" value="${p.lnum ?? ''}" autocomplete="off">
+  </div>` : ''}
+  ${p.species === GRADE_SPECIES ? html`<div class="f">
+    <label for="f-grade">Grade</label>
+    <select id="f-grade" name="grade"><option value="">Tümü</option>${GRADES.map((g) => html`<option value="${g.id}"${p.grade === g.id ? raw(' selected') : ''}>${gradeLabel(g)}</option>`)}</select>
+  </div>` : ''}
   <div class="f">
     <label for="f-sehir">Şehir</label>
     <select id="f-sehir" name="sehir"><option value="">Tüm şehirler</option>${CITIES.map((c) => html`<option${p.city === c ? raw(' selected') : ''}>${c}</option>`)}</select>
@@ -162,6 +172,12 @@ export function detailPage(ctx: PageCtx, o: { l: Listing; photos: Photo[]; alrea
   const facts: [string, string][] = [['Tür', f.species]];
   if (f.form) facts.push(['Şekil', f.form]);
   if (f.variant) facts.push(['Renk', f.variant]);
+  if (l.species_id === L_SPECIES) {
+    if (l.l_number) facts.push(['L-numarası', `${l.l_number} (satıcı beyanı${l.l_unverified ? ', doğrulanmamış' : ''})`]);
+    else if (l.l_unverified) facts.push(['L-numarası', 'Satıcı bilmiyor / doğrulanmamış']);
+  }
+  const gr = l.species_id === GRADE_SPECIES ? gradeById(l.grade) : undefined;
+  if (gr) facts.push(['Grade', `${gradeLabel(gr)} (satıcı beyanı)`]);
   facts.push(['Cinsiyet', f.sex], ['Adet', String(l.quantity)], ['Konum', locationLabel(l)], ['İlan tarihi', `${fmtDate(l.created_at)} (${relativeDay(l.created_at, Date.now())})`]);
   const canReport = !o.alreadyReported && !isOwner;
   const reportInner = html`${o.reported ? html`<p class="flash flash-ok" role="status">Şikayetiniz alındı. İlan incelenmek üzere işaretlendi, teşekkürler.</p>` : ''}${o.alreadyReported && !o.reported ? html`<p class="muted">Bu ilanı daha önce şikayet ettiniz.</p>` : ''}${canReport
@@ -187,6 +203,8 @@ export function detailPage(ctx: PageCtx, o: { l: Listing; photos: Photo[]; alrea
     <h1>${l.title}</h1>
     <p class="detail-price"><strong class="price">${formatPrice(l.price_kurus)}</strong> ${l.quantity > 1 ? html`<span class="muted">(toplam, ${l.quantity} adet için satıcının beyanı)</span>` : ''}</p>
     ${unit ? html`<p class="detail-unit" data-testid="adet-basi"><strong>tanesi ≈ ${unit}</strong> <span class="muted">(${UNIT_NOTE})</span></p>` : ''}
+    ${specBadges(l).length ? html`<p class="spec-badges">${specBadges(l).map((b) => html`<span class="badge-spec" data-testid="rozet-ozel">${b}</span> `)}<span class="muted small">Satıcı beyanı${gr ? '. ' + GRADE_NOTE : ''}</span></p>` : ''}
+    ${l.sold_at ? html`<p class="flash flash-err" role="status" data-testid="satildi-uyari">Bu ilan "stokta yok / satıldı" olarak işaretli; yalnızca siz görebilirsiniz. <a href="/profil/toplu">Toplu ilan / stok sayfasından</a> yeniden aktif edebilirsiniz.</p>` : ''}
     ${l.is_demo ? html`<p class="tag tag-demo">Örnek ilan — gerçek bir satış değildir</p>` : ''}
   </header>
   <div class="detail-grid">
@@ -233,6 +251,7 @@ export function detailPage(ctx: PageCtx, o: { l: Listing; photos: Photo[]; alrea
         </ul>`
         : html`<p class="muted">Satıcı iletişim bilgisi eklememiş.</p>`}
       <p class="note small">Sitede ödeme ya da mesajlaşma yoktur. Parayı göndermeden önce balığı görmeyi ya da kanlı canlı görüntülü görüşmeyi tercih edin.</p>
+      ${isOwner ? html`<p><a class="btn btn-small btn-ghost" href="/ilan/yeni?kopya=${l.id}" data-testid="kopyala">İlanı kopyala</a> <span class="muted small">Aynı bilgilerle yeni ilan formu açar; fotoğraflar kopyalanmaz.</span></p>` : ''}
       ${isOwner ? html`<form method="post" action="/ilan/${l.id}/kaldir" data-confirm="İlan kaldırılsın mı? Fotoğrafları da silinir.">${csrfField(ctx)}<button class="btn btn-danger btn-small" type="submit">İlanı kaldır</button></form>` : ''}
     </aside>
   </div>
@@ -242,13 +261,14 @@ export function detailPage(ctx: PageCtx, o: { l: Listing; photos: Photo[]; alrea
 }
 
 // ---------- ilan formu ----------
-export interface FormValues { species?: string; speciesOther?: string; form?: string; variant?: string; sex?: string; quantity?: string; price?: string; city?: string; district?: string; title?: string; description?: string; whatsapp?: string; phone?: string }
-export function listingFormPage(ctx: PageCtx, o: { values: FormValues; errors: Errors }): string {
+export interface FormValues { species?: string; speciesOther?: string; form?: string; variant?: string; sex?: string; quantity?: string; price?: string; city?: string; district?: string; title?: string; description?: string; whatsapp?: string; phone?: string; lnum?: string; lunknown?: string; grade?: string }
+export function listingFormPage(ctx: PageCtx, o: { values: FormValues; errors: Errors; copiedFrom?: { id: number; title: string } }): string {
   const v = o.values, e = o.errors;
   const sel = (cur: string | undefined, val: string) => (cur === val ? raw(' selected') : '');
   const sp = v.species ? speciesById(v.species) : undefined;
   const body = html`
 <h1>İlan ver</h1>
+${o.copiedFrom ? html`<p class="flash flash-ok" role="status" data-testid="kopya-uyari">“${o.copiedFrom.title}” ilanınızdan kopyalandı: bilgileri kontrol edin, adet ve fiyatı güncelleyin. <strong>Fotoğraflar kopyalanmaz</strong>; yeni ilan için bu balığın gerçek fotoğraflarını yeniden yüklemelisiniz.</p>` : ''}
 <p class="lead small">Önce gerçek fotoğrafları ekleyin, sonra balığı tarif edin. Sağdaki 3B önizleme seçimlerinizle birlikte değişir; ilanda yalnızca temsili bir görünüm olarak yer alır.</p>
 ${Object.keys(e).length ? html`<div class="flash flash-err" role="alert" tabindex="-1" id="hata-ozeti"><strong>Formda düzeltilmesi gereken yerler var.</strong><ul>${Object.entries(e).map(([k, m]) => html`<li><a href="#${k === 'photos' ? 'foto' : k === 'species' ? 'tur' : k}">${m}</a></li>`)}</ul></div>` : ''}
 <form class="listing-form" method="post" action="/ilan/yeni" enctype="multipart/form-data" novalidate>
@@ -289,6 +309,17 @@ ${Object.keys(e).length ? html`<div class="flash flash-err" role="alert" tabinde
         <select id="city" name="city" required${invalid(e, 'city')}><option value="">Seçin…</option>${CITIES.map((c) => html`<option${sel(v.city, c)}>${c}</option>`)}</select>${err(e, 'city')}</div>
       <div class="f"><label for="district">İlçe</label>
         <input id="district" name="district" maxlength="60" autocomplete="off" placeholder="örn. Kadıköy" value="${v.district ?? ''}" required${invalid(e, 'district')}>${err(e, 'district')}</div>
+    </div>
+    <div class="row2 spec-fields" id="ozel-l"${v.species === L_SPECIES ? '' : raw(' hidden')}>
+      <div class="f"><label for="lnum">L-numarası <span class="muted">(isteğe bağlı)</span></label>
+        <input id="lnum" name="lnum" maxlength="12" autocomplete="off" placeholder="örn. L144" value="${v.lnum ?? ''}"${invalid(e, 'lnum')}>${err(e, 'lnum')}
+        <p class="muted small">Satıcı beyanıdır; doğrulanmaz.</p></div>
+      <div class="f"><label class="check"><input type="checkbox" id="lunknown" name="lunknown" value="1"${v.lunknown === '1' || v.lunknown === 'on' ? raw(' checked') : ''}> L-numarasını bilmiyorum / doğrulanmamış</label></div>
+    </div>
+    <div class="f spec-fields" id="ozel-grade"${v.species === GRADE_SPECIES ? '' : raw(' hidden')}>
+      <label for="grade">Grade <span class="muted">(isteğe bağlı, yalnızca Neocaridina)</span></label>
+      <select id="grade" name="grade"${invalid(e, 'grade')}><option value="">Belirtmiyorum</option>${GRADES.map((g) => html`<option value="${g.id}"${sel(v.grade, g.id)}>${gradeLabel(g)}</option>`)}</select>${err(e, 'grade')}
+      <p class="muted small">${GRADE_NOTE}</p>
     </div>
   </fieldset>
   <fieldset>
@@ -377,7 +408,16 @@ export function stockJson(items: Listing[]): string {
   return JSON.stringify(items.map((l) => ({ id: l.id, t: l.title, s: l.species_id, f: l.form_id ?? '', v: l.variant_id ?? '', x: l.sex, q: l.quantity, p: l.price_kurus })));
 }
 
-export function sellerPage(ctx: PageCtx, o: { seller: { id: number; display_name: string; created_at: number; is_demo?: number }; items: Listing[]; fish: AquariumFish[]; isOwner?: boolean }): string {
+/** Dükkân bilgisi: yalnızca düz metin (kaçışlı); en az bir alan doluysa gösterilir. */
+export function shopBlock(s: { shop_name?: string | null; shop_address?: string | null; shop_hours?: string | null; shop_about?: string | null }): SafeHtml {
+  if (!s.shop_name && !s.shop_address && !s.shop_hours && !s.shop_about) return html``;
+  return html`<section class="shop-info" aria-labelledby="dukkan-b" data-testid="dukkan-bilgisi"><h2 id="dukkan-b">${s.shop_name || 'Dükkân bilgisi'}</h2>
+  <dl class="facts">${s.shop_address ? html`<div><dt>Adres</dt><dd>${s.shop_address}</dd></div>` : ''}${s.shop_hours ? html`<div><dt>Çalışma saatleri</dt><dd>${s.shop_hours}</dd></div>` : ''}</dl>
+  ${s.shop_about ? html`<p>${s.shop_about}</p>` : ''}
+  <p class="muted small">Satıcının kendi beyanıdır; site doğrulamaz.</p></section>`;
+}
+
+export function sellerPage(ctx: PageCtx, o: { seller: { id: number; display_name: string; created_at: number; is_demo?: number; shop_name?: string | null; shop_address?: string | null; shop_hours?: string | null; shop_about?: string | null }; items: Listing[]; fish: AquariumFish[]; isOwner?: boolean }): string {
   const name = o.seller.display_name;
   const fishSorted = [...o.fish].sort((a, b) => (a.species_id < b.species_id ? -1 : a.species_id > b.species_id ? 1 : a.id - b.id)); // listede türe göre gruplu
   const tank = o.fish.length
@@ -417,12 +457,14 @@ export function sellerPage(ctx: PageCtx, o: { seller: { id: number; display_name
     : html`<p class="empty" data-testid="akv-bos">Bu satıcı henüz akvaryum oluşturmadı</p>`;
   const body = html`<h1>${name}</h1>
 <p class="muted">Üyelik: ${fmtDate(o.seller.created_at)} · ${o.items.length} aktif ilan</p>
+${shopBlock(o.seller)}
+${o.isOwner ? html`<p class="owner-tools" data-testid="sahip-araclari"><a class="btn btn-small" href="/profil/toplu">Toplu ilan / stok</a> <a class="btn btn-small btn-ghost" href="/profil/dukkan">Dükkân bilgisi</a> <a class="btn btn-small btn-ghost" href="/ilan/yeni">Yeni ilan</a></p>` : ''}
 <section class="akv" id="akvaryum" aria-labelledby="akv-b" data-testid="akvaryum">
   <div class="akv-head"><h2 id="akv-b">Akvaryum</h2>${o.fish.length ? html`<span class="akv-count">${o.fish.length} balık</span>` : ''}${o.seller.is_demo && o.fish.length ? html`<span class="tag tag-demo">Örnek akvaryum</span>` : ''}${o.isOwner ? html`<a class="btn btn-small" href="/profil/akvaryum">${o.fish.length ? 'Akvaryumu düzenle' : 'Akvaryum oluştur'}</a>` : ''}</div>
   ${tank}
 </section>
 <h2>İlanlar</h2>
-${o.items.length ? cardGrid(o.items) : html`<p class="empty">Bu satıcının aktif ilanı yok.</p>`}`;
+${o.items.length ? cardGrid(o.items, o.isOwner ? (l) => html`<p class="card-owner"><a class="btn btn-small btn-ghost" href="/ilan/yeni?kopya=${l.id}" aria-label="İlanı kopyala: ${l.title}">İlanı kopyala</a></p>` : undefined) : html`<p class="empty">Bu satıcının aktif ilanı yok.</p>`}`;
   return layout(ctx, { title: name, description: `${name} — satıcı profili${o.fish.length ? ' ve temsili 3B akvaryum' : ''}`, body, path: '/satici/' + o.seller.id, entry: o.fish.length ? 'satici' : undefined });
 }
 
@@ -479,6 +521,61 @@ ${Object.keys(e).length ? html`<div class="flash flash-err" role="alert" tabinde
   </aside>
 </div>`;
   return layout(ctx, { title: 'Akvaryumum', body, path: '/profil/akvaryum', entry: 'akvaryumDuzenle' });
+}
+
+// ---------- toplu giriş (dükkân modu) ----------
+export interface BulkRowState { quantity?: string; price?: string; state?: string; errors?: Errors }
+export function bulkPage(ctx: PageCtx, o: { items: Listing[]; rows?: Record<number, BulkRowState>; saved?: number; failed?: number; capped?: boolean }): string {
+  const uid = ctx.user!.id;
+  const rows = o.rows ?? {};
+  const body = html`
+<nav class="crumbs" aria-label="Sayfa yolu"><a href="/satici/${uid}">Profilim</a> <span aria-hidden="true">/</span> Toplu ilan / stok</nav>
+<h1>Toplu ilan / stok</h1>
+<p class="lead small">Mevcut ilanlarınızın adet ve fiyatını tek seferde güncelleyin; satılan ya da stoğu biten ilanı “Stokta yok / satıldı” yapın (herkese açık listeden, aramadan ve profil stok kartından çıkar; sizin bu sayfada kalır, istediğiniz zaman yeniden aktif edebilirsiniz).</p>
+<p class="note small" data-testid="toplu-foto-notu"><strong>Yeni ilan toplu açılamaz:</strong> her yeni ilan için o balığın gerçek fotoğrafı zorunludur. Benzer bir ilan için ilan sayfasındaki ya da profilinizdeki “İlanı kopyala” düğmesini kullanın (bilgiler gelir, fotoğrafları yeniden yüklersiniz).</p>
+${o.saved !== undefined && !o.failed ? html`<p class="flash flash-ok" role="status" data-testid="toplu-sonuc">${o.saved} ilan güncellendi.</p>` : ''}
+${o.failed ? html`<div class="flash flash-err" role="alert" tabindex="-1" id="hata-ozeti" data-testid="toplu-sonuc"><strong>${o.saved ?? 0} ilan güncellendi, ${o.failed} satırda hata var.</strong> Hatalı satırlar kaydedilmedi; aşağıda işaretli, düzeltip tekrar kaydedin.</div>` : ''}
+${o.capped ? html`<p class="flash flash-err" role="alert">En fazla ${MAX_BULK_ROWS} satır işlenir.</p>` : ''}
+${o.items.length ? html`<form method="post" action="/profil/toplu" novalidate data-testid="toplu-form">
+${csrfField(ctx)}
+<div class="table-wrap"><table class="bulk">
+<caption class="sr-only">Ilanlarım: adet, fiyat ve durum</caption>
+<thead><tr><th scope="col">İlan</th><th scope="col">Adet</th><th scope="col">Fiyat (₺, toplam)</th><th scope="col">Durum</th></tr></thead><tbody>
+${o.items.map((l) => {
+    const r = rows[l.id] ?? {}, e = r.errors ?? {};
+    const q = r.quantity ?? String(l.quantity), pr = r.price ?? String(l.price_kurus / 100).replace('.', ','), st = r.state ?? (l.sold_at ? 'satildi' : 'aktif');
+    return html`<tr data-row="${l.id}"${Object.keys(e).length ? raw(' class="row-err"') : ''}>
+  <th scope="row"><a href="/ilan/${l.id}">${l.title}</a><span class="muted small block">${[listingShortFacts(l).species, locationLabel(l)].join(' · ')}</span>${e.row ? html`<span class="field-err block">${e.row}</span>` : ''}</th>
+  <td><label class="sr-only" for="q_${l.id}">Adet: ${l.title}</label><input id="q_${l.id}" name="q_${l.id}" type="number" min="1" max="10000" inputmode="numeric" value="${q}"${e.quantity ? raw(` aria-invalid="true" aria-describedby="q_${l.id}-err"`) : ''}>${e.quantity ? html`<p class="field-err" id="q_${l.id}-err">${e.quantity}</p>` : ''}</td>
+  <td><label class="sr-only" for="p_${l.id}">Fiyat (₺): ${l.title}</label><input id="p_${l.id}" name="p_${l.id}" inputmode="decimal" value="${pr}"${e.price ? raw(` aria-invalid="true" aria-describedby="p_${l.id}-err"`) : ''}>${e.price ? html`<p class="field-err" id="p_${l.id}-err">${e.price}</p>` : ''}</td>
+  <td><label class="sr-only" for="s_${l.id}">Durum: ${l.title}</label><select id="s_${l.id}" name="s_${l.id}"><option value="aktif"${st === 'aktif' ? raw(' selected') : ''}>Aktif</option><option value="satildi"${st === 'satildi' ? raw(' selected') : ''}>Stokta yok / satıldı</option></select></td>
+</tr>`;
+  })}
+</tbody></table></div>
+<p class="muted small">Fiyat, o adet için beyan ettiğiniz TOPLAM tutardır (ilan sayfasındaki gibi).</p>
+<button class="btn btn-big" type="submit">Tüm değişiklikleri kaydet</button>
+</form>` : html`<p class="empty">Henüz ilanınız yok. <a href="/ilan/yeni">İlk ilanı verin</a>.</p>`}`;
+  return layout(ctx, { title: 'Toplu ilan / stok', body, path: '/profil/toplu' });
+}
+
+// ---------- dükkân bilgisi ----------
+export function shopPage(ctx: PageCtx, o: { values: { shopName?: string; shopAddress?: string; shopHours?: string; shopAbout?: string }; errors: Errors; saved?: boolean }): string {
+  const v = o.values, e = o.errors, uid = ctx.user!.id;
+  const body = html`
+<nav class="crumbs" aria-label="Sayfa yolu"><a href="/satici/${uid}">Profilim</a> <span aria-hidden="true">/</span> Dükkân bilgisi</nav>
+<h1>Dükkân bilgisi</h1>
+<p class="lead small">İsteğe bağlı. Doldurduğunuz alanlar herkese açık satıcı sayfanızda düz metin olarak görünür (harita, logo ve doğrulama yoktur). Boş bıraktıklarınız gösterilmez.</p>
+${o.saved ? html`<p class="flash flash-ok" role="status">Dükkân bilgisi kaydedildi.</p>` : ''}
+${Object.keys(e).length ? html`<div class="flash flash-err" role="alert" tabindex="-1" id="hata-ozeti"><strong>Kaydedilemedi.</strong><ul>${Object.entries(e).map(([k, m]) => html`<li><a href="#${k}">${m}</a></li>`)}</ul></div>` : ''}
+<form method="post" action="/profil/dukkan" class="stack" novalidate>
+  ${csrfField(ctx)}
+  <label for="shopName">Dükkân adı (en çok 60)</label><input id="shopName" name="shopName" maxlength="80" value="${v.shopName ?? ''}"${invalid(e, 'shopName')}>${err(e, 'shopName')}
+  <label for="shopAddress">Açık adres (en çok 160)</label><input id="shopAddress" name="shopAddress" maxlength="200" autocomplete="street-address" value="${v.shopAddress ?? ''}"${invalid(e, 'shopAddress')}>${err(e, 'shopAddress')}
+  <label for="shopHours">Çalışma saatleri (en çok 100)</label><input id="shopHours" name="shopHours" maxlength="120" placeholder="örn. Hafta içi 10:00–19:00" value="${v.shopHours ?? ''}"${invalid(e, 'shopHours')}>${err(e, 'shopHours')}
+  <label for="shopAbout">Kısa tanıtım (en çok 400)</label><textarea id="shopAbout" name="shopAbout" rows="4" maxlength="500"${invalid(e, 'shopAbout')}>${v.shopAbout ?? ''}</textarea>${err(e, 'shopAbout')}
+  <button class="btn" type="submit">Kaydet</button>
+</form>`;
+  return layout(ctx, { title: 'Dükkân bilgisi', body, path: '/profil/dukkan', main: 'wrap narrow' });
 }
 
 // ---------- yönetim ----------

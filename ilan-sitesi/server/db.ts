@@ -94,6 +94,13 @@ export function openDb(file: string): DB {
   // Geçiş (veri silinmez): listings.district (ilçe) eski veritabanlarında yoktu; mevcut satırlar NULL kalır.
   const lcols = db.prepare('PRAGMA table_info(listings)').all() as unknown as { name: string }[];
   if (!lcols.some((c) => c.name === 'district')) db.exec('ALTER TABLE listings ADD COLUMN district TEXT');
+  // Geçiş (veri silinmez): türe özel alanlar ve stok durumu (hepsi NULL olabilir; eski satırlar NULL kalır).
+  for (const [col, ddl] of [['l_number', 'TEXT'], ['l_unverified', 'INTEGER'], ['grade', 'TEXT'], ['sold_at', 'INTEGER']] as const) {
+    if (!lcols.some((c) => c.name === col)) db.exec(`ALTER TABLE listings ADD COLUMN ${col} ${ddl}`);
+  }
+  // Geçiş: dükkân bilgisi (isteğe bağlı düz metin).
+  const ucols = db.prepare('PRAGMA table_info(users)').all() as unknown as { name: string }[];
+  for (const col of ['shop_name', 'shop_address', 'shop_hours', 'shop_about']) if (!ucols.some((c) => c.name === col)) db.exec(`ALTER TABLE users ADD COLUMN ${col} TEXT`);
   const rcols = db.prepare('PRAGMA table_info(reports)').all() as unknown as { name: string }[];
   if (!rcols.some((c) => c.name === 'resolved_at')) db.exec('ALTER TABLE reports ADD COLUMN resolved_at INTEGER');
   // Geçiş (veri silinmez): 'Ayrım yok' türlerinde (melek, diskus) eski 'disi' cinsiyeti 'bilinmiyor' olur.
@@ -107,11 +114,12 @@ export function openDb(file: string): DB {
 const now = () => Date.now();
 export const SESSION_TTL_MS = 14 * 24 * 3600 * 1000;
 
-export interface User { id: number; email: string; display_name: string; whatsapp: string | null; phone: string | null; is_demo: number; is_admin: number; created_at: number }
+export interface User { id: number; email: string; display_name: string; whatsapp: string | null; phone: string | null; is_demo: number; is_admin: number; created_at: number; shop_name?: string | null; shop_address?: string | null; shop_hours?: string | null; shop_about?: string | null }
 export interface Photo { id: number; listing_id: number; file: string; mime: string; bytes: number; position: number }
 export interface Listing {
   id: number; user_id: number; title: string; species_id: string; species_other: string | null; form_id: string | null; variant_id: string | null;
   sex: string; quantity: number; price_kurus: number; city: string; district: string | null; description: string; is_demo: number; flagged: number; status: string; created_at: number;
+  l_number?: string | null; l_unverified?: number | null; grade?: string | null; sold_at?: number | null;
   seller_name?: string; seller_whatsapp?: string | null; seller_phone?: string | null; first_photo?: string | null;
 }
 
@@ -127,7 +135,7 @@ export function createUser(db: DB, email: string, passwordHash: string, displayN
   }
 }
 export const findUserByEmail = (db: DB, email: string) => db.prepare('SELECT * FROM users WHERE email = ?').get(email) as (User & { password_hash: string }) | undefined;
-export const getUser = (db: DB, id: number) => db.prepare('SELECT id,email,display_name,whatsapp,phone,is_demo,is_admin,created_at FROM users WHERE id = ?').get(id) as User | undefined;
+export const getUser = (db: DB, id: number) => db.prepare('SELECT id,email,display_name,whatsapp,phone,is_demo,is_admin,created_at,shop_name,shop_address,shop_hours,shop_about FROM users WHERE id = ?').get(id) as User | undefined;
 /** Yönetici bayrağını ayarlar. Web arayüzünden ÇAĞRILMAZ; yalnızca scripts/make-admin.ts (yerel komut). Kullanıcı yoksa false. */
 export function setAdmin(db: DB, email: string, admin = true): boolean {
   return Number(db.prepare('UPDATE users SET is_admin = ? WHERE email = ?').run(admin ? 1 : 0, email).changes) > 0;
@@ -163,8 +171,8 @@ export function createListing(db: DB, userId: number, v: ListingInput, photos: N
   if (photos.length > MAX_PHOTOS) throw new Error('En fazla 5 fotoğraf');
   db.exec('BEGIN');
   try {
-    const r = db.prepare(`INSERT INTO listings (user_id,title,species_id,species_other,form_id,variant_id,sex,quantity,price_kurus,city,district,description,is_demo,created_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(userId, v.title, v.speciesId, v.speciesOther, v.formId, v.variantId, v.sex, v.quantity, v.priceKurus, v.city, v.district, v.description, opts.demo ? 1 : 0, opts.createdAt ?? now());
+    const r = db.prepare(`INSERT INTO listings (user_id,title,species_id,species_other,form_id,variant_id,sex,quantity,price_kurus,city,district,description,is_demo,created_at,l_number,l_unverified,grade)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(userId, v.title, v.speciesId, v.speciesOther, v.formId, v.variantId, v.sex, v.quantity, v.priceKurus, v.city, v.district, v.description, opts.demo ? 1 : 0, opts.createdAt ?? now(), v.lNumber ?? null, v.lUnverified ? 1 : null, v.grade ?? null);
     const id = Number(r.lastInsertRowid);
     const ins = db.prepare('INSERT INTO listing_photos (listing_id,file,mime,bytes,position) VALUES (?,?,?,?,?)');
     photos.forEach((p, i) => ins.run(id, p.file, p.mime, p.bytes, i));
@@ -176,8 +184,9 @@ export function createListing(db: DB, userId: number, v: ListingInput, photos: N
 const LISTING_COLS = `l.*, u.display_name AS seller_name, u.whatsapp AS seller_whatsapp, u.phone AS seller_phone,
   (SELECT file FROM listing_photos p WHERE p.listing_id = l.id ORDER BY position LIMIT 1) AS first_photo`;
 
-export function getListing(db: DB, id: number): Listing | undefined {
-  return db.prepare(`SELECT ${LISTING_COLS} FROM listings l JOIN users u ON u.id = l.user_id WHERE l.id = ? AND l.status = 'active'`).get(id) as Listing | undefined;
+/** Herkese açık ilan: kaldırılmış ve "stokta yok / satıldı" ilanlar yok sayılır. `includeSold`: yalnızca sahibine göstermek için çağıran denetler. */
+export function getListing(db: DB, id: number, includeSold = false): Listing | undefined {
+  return db.prepare(`SELECT ${LISTING_COLS} FROM listings l JOIN users u ON u.id = l.user_id WHERE l.id = ? AND l.status = 'active'${includeSold ? '' : ' AND l.sold_at IS NULL'}`).get(id) as Listing | undefined;
 }
 export const getPhotos = (db: DB, listingId: number) => db.prepare('SELECT * FROM listing_photos WHERE listing_id = ? ORDER BY position').all(listingId) as unknown as Photo[];
 export const getPhotoByFile = (db: DB, file: string) => db.prepare(`SELECT p.* FROM listing_photos p JOIN listings l ON l.id = p.listing_id WHERE p.file = ? AND l.status = 'active'`).get(file) as Photo | undefined;
@@ -189,7 +198,24 @@ export function searchListings(db: DB, params: SearchParams): { items: Listing[]
   return { items, total, page: q.page, pages: Math.max(1, Math.ceil(total / q.limit)) };
 }
 export function listingsBySeller(db: DB, userId: number): Listing[] {
+  return db.prepare(`SELECT ${LISTING_COLS} FROM listings l JOIN users u ON u.id = l.user_id WHERE l.user_id = ? AND l.status = 'active' AND l.sold_at IS NULL ORDER BY l.created_at DESC, l.id DESC`).all(userId) as unknown as Listing[];
+}
+/** Sahibin yönetim görünümü: kaldırılmamış tüm ilanlar (satıldı/stokta yok olanlar dahil). Herkese açık sayfalarda KULLANILMAZ. */
+export function listingsByOwnerAll(db: DB, userId: number): Listing[] {
   return db.prepare(`SELECT ${LISTING_COLS} FROM listings l JOIN users u ON u.id = l.user_id WHERE l.user_id = ? AND l.status = 'active' ORDER BY l.created_at DESC, l.id DESC`).all(userId) as unknown as Listing[];
+}
+export interface StockEdit { id: number; quantity: number; priceKurus: number; sold?: boolean }
+/** Toplu giriş: yalnızca sahibinin kaldırılmamış ilanı güncellenir. false = ilan sahibine ait değil / yok. `sold` undefined ise durum değişmez. */
+export function updateStock(db: DB, userId: number, e: StockEdit): boolean {
+  const row = db.prepare(`SELECT sold_at FROM listings WHERE id = ? AND user_id = ? AND status = 'active'`).get(e.id, userId) as { sold_at: number | null } | undefined;
+  if (!row) return false;
+  const soldAt = e.sold === undefined ? row.sold_at : e.sold ? (row.sold_at ?? now()) : null;
+  db.prepare('UPDATE listings SET quantity = ?, price_kurus = ?, sold_at = ? WHERE id = ?').run(e.quantity, e.priceKurus, soldAt, e.id);
+  return true;
+}
+export interface ShopInfo { name: string | null; address: string | null; hours: string | null; about: string | null }
+export function updateShop(db: DB, userId: number, s: ShopInfo): void {
+  db.prepare('UPDATE users SET shop_name = ?, shop_address = ?, shop_hours = ?, shop_about = ? WHERE id = ?').run(s.name, s.address, s.hours, s.about, userId);
 }
 /** Sahibi tarafından kaldırma: kayıt 'removed' olur, dosyalar çağıran tarafından silinir. Dosya adlarını döndürür. */
 export function removeListing(db: DB, id: number, userId: number): string[] | null {

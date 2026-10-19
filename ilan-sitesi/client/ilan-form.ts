@@ -23,6 +23,9 @@ function onSpecies(first: boolean) {
   const keep = sex.value;
   sex.replaceChildren(...sexOptions(tur.value || OTHER_ID).map((o) => new Option(o.ad, o.id)));
   sex.value = [...sex.options].some((o) => o.value === keep) ? keep : UNKNOWN_SEX;
+  const ozelL = document.getElementById('ozel-l'), ozelG = document.getElementById('ozel-grade');
+  if (ozelL) ozelL.hidden = tur.value !== 'pleco';
+  if (ozelG) ozelG.hidden = tur.value !== 'karides';
   preview();
 }
 

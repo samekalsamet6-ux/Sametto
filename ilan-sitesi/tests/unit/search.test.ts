@@ -4,7 +4,7 @@ import { buildSearch, priceToKurus, PAGE_SIZE } from '../../server/search.ts';
 describe('buildSearch', () => {
   it('filtresiz: yalnızca aktif ilanlar, en yeni önce', () => {
     const q = buildSearch({});
-    expect(q.where).toBe("l.status = 'active'"); expect(q.args).toEqual([]); expect(q.orderBy).toContain('created_at DESC'); expect(q.limit).toBe(PAGE_SIZE); expect(q.offset).toBe(0);
+    expect(q.where).toBe("l.status = 'active' AND l.sold_at IS NULL"); expect(q.args).toEqual([]); expect(q.orderBy).toContain('created_at DESC'); expect(q.limit).toBe(PAGE_SIZE); expect(q.offset).toBe(0);
   });
   it('tür, şekil, renk, şehir ve fiyat aralığı parametre olarak bağlanır', () => {
     const q = buildSearch({ species: 'lepistes', form: 'delta', variant: 'mozaik', city: 'İzmir', minPrice: '50', maxPrice: '1.250,50' });

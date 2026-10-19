@@ -258,3 +258,17 @@ th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--lin
 .tank[data-state=nowebgl] + .fish-card, .tank[data-state=error] + .fish-card { position: static; width: auto; margin: 0 12px 12px; max-height: none; }
 @media (max-width: 599px) { .fish-card { position: static; width: auto; max-height: none; margin-top: 8px; box-shadow: none; border-width: 2px; } }
 .fish-card a { color: var(--ink); font-weight: 700; }
+
+/* Türe özel rozetler, sahip araçları, toplu giriş tablosu, dükkân bilgisi */
+.badge-spec { display: inline-block; font-size: .875rem; font-weight: 700; padding: 0 8px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); border: 1px solid var(--accent); white-space: nowrap; }
+.spec-badges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
+.spec-fields[hidden] { display: none; }
+.owner-tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.card-owner { margin: 0; padding: 0 10px 10px; }
+.shop-info { border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin: 12px 0; background: var(--surface); }
+.shop-info h2 { margin-top: 0; }
+table.bulk th[scope=row] { text-align: left; min-width: 180px; font-weight: 600; }
+table.bulk td input, table.bulk td select { width: 100%; min-width: 96px; min-height: 44px; }
+table.bulk td:nth-child(2) input { min-width: 72px; }
+table.bulk .block { display: block; }
+table.bulk tr.row-err { background: color-mix(in srgb, var(--danger) 12%, var(--surface)); }

@@ -5,7 +5,7 @@ import { timingSafeEqual, randomBytes } from 'node:crypto';
 import type { Config } from './config.ts';
 import * as repo from './db.ts';
 import { hashPassword, verifyPassword, RateLimiter } from './auth.ts';
-import { validateRegister, validateListing, validateReport, validateFish, normalizeEmail, type Errors } from './validation.ts';
+import { validateRegister, validateListing, validateStockRow, validateShop, MAX_BULK_ROWS, validateReport, validateFish, normalizeEmail, type Errors } from './validation.ts';
 import { cleanImage } from './imageclean.ts';
 import { checkPhoto, savePhoto, deletePhotoFiles, isSafeFileName, MIME_BY_EXT, MAX_REQUEST_BYTES } from './uploads.ts';
 import type { SearchParams } from './search.ts';
@@ -69,6 +69,7 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
     listing: new RateLimiter(20, 60 * 60_000),
     report: new RateLimiter(20, 60 * 60_000),
     aquarium: new RateLimiter(60, 60 * 60_000), // ekleme + silme, kullanıcı başına
+    bulk: new RateLimiter(30, 60 * 60_000), // toplu stok kaydı + dükkân bilgisi, kullanıcı başına
   };
   // Eşzamanlı yükleme sınırı: gövdenin belleğe okunması ve görüntü işleme sürecinde tutulan yuva sayısı.
   let uploadSlots = cfg.maxConcurrentUploads;
@@ -147,13 +148,23 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
 
       if (p === '/ilanlar' && method === 'GET') {
         const q = url.searchParams;
-        const params: SearchParams = { species: q.get('tur') ?? undefined, form: q.get('sekil') ?? undefined, variant: q.get('renk') ?? undefined, city: q.get('sehir') ?? undefined, district: q.get('ilce') ?? undefined, minPrice: q.get('min') ?? undefined, maxPrice: q.get('max') ?? undefined, sort: q.get('sirala') ?? undefined, page: q.get('sayfa') ?? 1 };
+        const params: SearchParams = { species: q.get('tur') ?? undefined, form: q.get('sekil') ?? undefined, variant: q.get('renk') ?? undefined, city: q.get('sehir') ?? undefined, district: q.get('ilce') ?? undefined, lnum: q.get('l') ?? undefined, grade: q.get('grade') ?? undefined, minPrice: q.get('min') ?? undefined, maxPrice: q.get('max') ?? undefined, sort: q.get('sirala') ?? undefined, page: q.get('sayfa') ?? 1 };
         return page(V.listingsPage(ctx, { params, result: repo.searchListings(db, params) }));
       }
 
       if (p === '/ilan/yeni') {
         if (!user) return redirect('/giris?next=/ilan/yeni');
-        if (method === 'GET') return page(V.listingFormPage(ctx, { values: {}, errors: {} }));
+        if (method === 'GET') {
+          // ?kopya=<id>: yalnızca sahibi, kendi ilanından (satıldı/stokta yok dahil) ön dolu form açar. Fotoğraf kopyalanmaz; kayıt yok, salt okuma.
+          const kopya = url.searchParams.get('kopya');
+          if (kopya !== null) {
+            const src = /^\d{1,9}$/.test(kopya) ? repo.getListing(db, Number(kopya), true) : undefined;
+            if (!src || src.user_id !== user.id) return notFound();
+            const values = { species: src.species_id, speciesOther: src.species_other ?? '', form: src.form_id ?? '', variant: src.variant_id ?? '', sex: src.sex, quantity: String(src.quantity), price: String(src.price_kurus / 100).replace('.', ','), city: src.city, district: src.district ?? '', description: src.description, lnum: src.l_number ?? '', lunknown: src.l_unverified ? '1' : '', grade: src.grade ?? '' };
+            return page(V.listingFormPage(ctx, { values, errors: {}, copiedFrom: { id: src.id, title: src.title } }));
+          }
+          return page(V.listingFormPage(ctx, { values: {}, errors: {} }));
+        }
         // POST: ilan + fotoğraflar
         if (uploadSlots <= 0) { res.setHeader('Retry-After', '5'); throw new HttpError(503, 'Sunucu şu an çok sayıda yükleme işliyor. Birkaç saniye sonra tekrar deneyin.'); }
         uploadSlots--;
@@ -182,7 +193,7 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
         }
         } finally { uploadSlots++; }
         if (Object.keys(errors).length) {
-          return page(V.listingFormPage(ctx, { values: { species: fields.species, speciesOther: fields.speciesOther, form: fields.form, variant: fields.variant, sex: fields.sex, quantity: fields.quantity, price: fields.price, city: fields.city, district: fields.district, title: fields.title, description: fields.description, whatsapp: fields.whatsapp, phone: fields.phone }, errors }), 422);
+          return page(V.listingFormPage(ctx, { values: { species: fields.species, speciesOther: fields.speciesOther, form: fields.form, variant: fields.variant, sex: fields.sex, quantity: fields.quantity, price: fields.price, city: fields.city, district: fields.district, title: fields.title, description: fields.description, whatsapp: fields.whatsapp, phone: fields.phone, lnum: fields.lnum, lunknown: fields.lunknown, grade: fields.grade }, errors }), 422);
         }
         const saved: string[] = [];
         try {
@@ -195,8 +206,8 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
 
       const detail = /^\/ilan\/(\d{1,9})$/.exec(p);
       if (detail && method === 'GET') {
-        const l = repo.getListing(db, Number(detail[1]));
-        if (!l) return notFound();
+        const l = repo.getListing(db, Number(detail[1]), true);
+        if (!l || (l.sold_at && l.user_id !== user?.id)) return notFound(); // satıldı/stokta yok: yalnızca sahibi görür
         const flash = url.searchParams.get('yeni') === '1' && user?.id === l.user_id ? { kind: 'ok' as const, text: 'İlanınız yayınlandı.' } : undefined;
         return page(V.detailPage({ ...ctx, flash }, { l, photos: repo.getPhotos(db, l.id), alreadyReported: !!user && repo.hasReported(db, l.id, user.id), reported: url.searchParams.get('sikayet') === 'ok' }));
       }
@@ -229,6 +240,51 @@ export function createApp(cfg: Config, db: repo.DB, assets: Assets, staticRoot?:
         const s = repo.getUser(db, Number(seller[1]));
         if (!s) return notFound();
         return page(V.sellerPage(ctx, { seller: s, items: repo.listingsBySeller(db, s.id), fish: repo.listAquariumFish(db, s.id), isOwner: user?.id === s.id }));
+      }
+
+      // ---- toplu giriş / stok (yalnızca sahibi) ----
+      if (p === '/profil/toplu' && method === 'GET') {
+        if (!user) return redirect('/giris?next=/profil/toplu');
+        return page(V.bulkPage(ctx, { items: repo.listingsByOwnerAll(db, user.id) }));
+      }
+      if (p === '/profil/toplu' && method === 'POST') {
+        if (!user) return redirect('/giris?next=/profil/toplu');
+        if (limiters.bulk.hit('u' + user.id)) throw new HttpError(429, 'Çok fazla toplu kayıt denemesi. Bir süre sonra tekrar deneyin.');
+        const { fields } = await parseBody(req, 'form');
+        checkCsrf(fields);
+        const ids = [...new Set(Object.keys(fields).map((k) => /^q_(\d{1,9})$/.exec(k)?.[1]).filter((x): x is string => !!x).map(Number))];
+        const capped = ids.length > MAX_BULK_ROWS;
+        const rows: Record<number, { quantity?: string; price?: string; state?: string; errors?: Errors }> = {};
+        let saved = 0, failed = 0;
+        for (const id of ids.slice(0, MAX_BULK_ROWS)) {
+          const v = validateStockRow({ quantity: fields['q_' + id], price: fields['p_' + id] });
+          const st = fields['s_' + id];
+          const errors: Errors = { ...v.errors };
+          if (st !== undefined && st !== 'aktif' && st !== 'satildi') errors.row = 'Geçersiz durum.';
+          rows[id] = { quantity: fields['q_' + id], price: fields['p_' + id], state: st, errors };
+          if (Object.keys(errors).length) { failed++; continue; }
+          const ok = repo.updateStock(db, user.id, { id, quantity: v.value!.quantity, priceKurus: v.value!.priceKurus, sold: st === undefined ? undefined : st === 'satildi' });
+          if (ok) saved++; else { failed++; rows[id].errors = { row: 'Bu ilan bulunamadı ya da size ait değil.' }; }
+        }
+        const items = repo.listingsByOwnerAll(db, user.id);
+        // Başarılı satırlar kaydedildi: formda yeni değerleri göster; yalnızca hatalı satırlar girilen değerlerini korur.
+        for (const id of Object.keys(rows).map(Number)) if (!Object.keys(rows[id].errors ?? {}).length) delete rows[id];
+        return page(V.bulkPage(ctx, { items, rows, saved, failed, capped }), failed || capped ? 422 : 200);
+      }
+
+      // ---- dükkân bilgisi (yalnızca sahibi) ----
+      if (p === '/profil/dukkan') {
+        if (!user) return redirect('/giris?next=/profil/dukkan');
+        const cur = { shopName: user.shop_name ?? '', shopAddress: user.shop_address ?? '', shopHours: user.shop_hours ?? '', shopAbout: user.shop_about ?? '' };
+        if (method === 'GET') return page(V.shopPage(ctx, { values: cur, errors: {}, saved: url.searchParams.get('kaydedildi') === '1' }));
+        if (limiters.bulk.hit('u' + user.id)) throw new HttpError(429, 'Çok fazla değişiklik denemesi. Bir süre sonra tekrar deneyin.');
+        const { fields } = await parseBody(req, 'form');
+        checkCsrf(fields);
+        const v = validateShop(fields);
+        const values = { shopName: fields.shopName, shopAddress: fields.shopAddress, shopHours: fields.shopHours, shopAbout: fields.shopAbout };
+        if (!v.ok) return page(V.shopPage(ctx, { values, errors: v.errors }), 422);
+        repo.updateShop(db, user.id, v.value!);
+        return redirect('/profil/dukkan?kaydedildi=1');
       }
 
       // ---- akvaryum düzenleme (yalnızca sahibi: oturumdaki kullanıcının kendi akvaryumu) ----

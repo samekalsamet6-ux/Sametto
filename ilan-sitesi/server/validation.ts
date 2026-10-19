@@ -1,4 +1,5 @@
 import { CITIES } from '../shared/cities.ts';
+import { normalizeLNumber, gradeById, L_SPECIES, GRADE_SPECIES } from '../shared/species-fields.ts';
 import { OTHER_ID, UNKNOWN_SEX, sexOptions, fishSexOptions, noSexSplit, speciesById } from '../shared/catalog.ts';
 
 export type Errors = Record<string, string>;
@@ -58,6 +59,8 @@ export interface ListingInput {
   speciesId: string; speciesOther: string | null; formId: string | null; variantId: string | null; sex: string;
   quantity: number; priceKurus: number; city: string; district: string; title: string; description: string;
   whatsapp: string | null; phone: string | null;
+  /** Türe özel isteğe bağlı alanlar (pleco: L-numarası; Neocaridina: grade). Diğer türlerde her zaman null. */
+  lNumber?: string | null; lUnverified?: boolean; grade?: string | null;
 }
 /** İlçe: serbest metin, yalnızca harf/rakam/boşluk ve . ' ’ - ( ) / (HTML/kontrol karakteri yok). */
 const DISTRICT_RE = /^[\p{L}\p{M}\p{N} .'’()\/-]{2,60}$/u;
@@ -106,7 +109,19 @@ export function validateListing(f: Record<string, unknown>): Result<ListingInput
   if (wRaw) { whatsapp = normalizePhone(wRaw); if (!whatsapp) errors.whatsapp = 'WhatsApp numarasını 05xx xxx xx xx biçiminde yazın.'; }
   if (pRaw) { phone = normalizePhone(pRaw); if (!phone) errors.phone = 'Telefon numarasını 05xx xxx xx xx biçiminde yazın.'; }
 
-  return { ok: Object.keys(errors).length === 0, errors, value: { speciesId, speciesOther: speciesId === OTHER_ID ? speciesOther : null, formId, variantId, sex, quantity, priceKurus: priceKurus ?? 0, city, district, title, description, whatsapp, phone } };
+  // Türe özel alanlar (yalnızca ilgili türde geçerli; başka türde sessizce yok sayılır).
+  let lNumber: string | null = null, lUnverified = false, grade: string | null = null;
+  if (speciesId === L_SPECIES) {
+    const raw = clean(f.lnum, 12);
+    if (raw) { lNumber = normalizeLNumber(raw); if (!lNumber) errors.lnum = 'L-numarasını "L144" gibi yazın (L ve 1-3 haneli sayı) ya da boş bırakın.'; }
+    lUnverified = f.lunknown === '1' || f.lunknown === 'on';
+  }
+  if (speciesId === GRADE_SPECIES) {
+    const g = clean(f.grade, 40);
+    if (g) { if (gradeById(g)) grade = g; else errors.grade = 'Listeden bir grade seçin ya da boş bırakın.'; }
+  }
+
+  return { ok: Object.keys(errors).length === 0, errors, value: { speciesId, speciesOther: speciesId === OTHER_ID ? speciesOther : null, formId, variantId, sex, quantity, priceKurus: priceKurus ?? 0, city, district, title, description, whatsapp, phone, lNumber, lUnverified, grade } };
 }
 
 export const REPORT_REASONS = [
@@ -164,3 +179,30 @@ export function aquariumCapError(current: string[], add: string): string | null 
 }
 
 export { UNKNOWN_SEX };
+
+// ---- Toplu giriş (dükkân modu) ve dükkân bilgisi ----
+export function validateStockRow(f: { quantity: unknown; price: unknown }): Result<{ quantity: number; priceKurus: number }> {
+  const errors: Errors = {};
+  const qRaw = clean(f.quantity, 8);
+  const quantity = /^\d+$/.test(qRaw) ? parseInt(qRaw, 10) : NaN;
+  if (!(quantity >= 1 && quantity <= MAX_QTY)) errors.quantity = `Adet 1 ile ${MAX_QTY} arasında olmalı.`;
+  const priceKurus = parsePriceKurus(f.price);
+  if (priceKurus === null || priceKurus < 100 || priceKurus > MAX_PRICE_KURUS) errors.price = 'Fiyat en az 1 ₺ olmalı (örn. 250 ya da 249,90).';
+  return { ok: !Object.keys(errors).length, errors, value: { quantity, priceKurus: priceKurus ?? 0 } };
+}
+export const MAX_BULK_ROWS = 200;
+
+export interface ShopInput { name: string | null; address: string | null; hours: string | null; about: string | null }
+const oneLine = (v: unknown, max: number) => clean(v, max * 3).replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, max);
+export function validateShop(f: Record<string, unknown>): Result<ShopInput> {
+  const errors: Errors = {};
+  const raw = { name: clean(f.shopName, 1000), address: clean(f.shopAddress, 1000), hours: clean(f.shopHours, 1000), about: clean(f.shopAbout, 2000) };
+  const caps = { name: 60, address: 160, hours: 100, about: 400 } as const;
+  const labels = { name: 'Dükkân adı', address: 'Adres', hours: 'Çalışma saatleri', about: 'Kısa tanıtım' } as const;
+  const out = {} as ShopInput;
+  for (const k of ['name', 'address', 'hours', 'about'] as const) {
+    if (raw[k].length > caps[k]) errors[k === 'name' ? 'shopName' : k === 'address' ? 'shopAddress' : k === 'hours' ? 'shopHours' : 'shopAbout'] = `${labels[k]} en fazla ${caps[k]} karakter olabilir.`;
+    out[k] = oneLine(raw[k], caps[k]) || null;
+  }
+  return { ok: !Object.keys(errors).length, errors, value: out };
+}
