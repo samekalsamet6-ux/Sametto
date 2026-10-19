@@ -1,0 +1,334 @@
+---
+import Base from '../../layouts/Base.astro';
+import { PARTS } from '../../lib/amano/parts';
+import { VARIANTS, groupedVariants } from '../../lib/amano/variants';
+import { silhouette, type Sex, type Vec2 } from '../../lib/karides/model';
+import { AMANO_BODY } from '../../lib/amano/profile';
+import { FORMS } from '../../lib/amano/forms';
+
+// WebGL kullanılamadığında gösterilen statik yandan SVG: 3B modelle aynı sayılardan türetilir. SVG y ekseni aşağı olduğundan y çevrilir.
+const P = (p: Vec2) => `${p[0].toFixed(3)},${(-p[1]).toFixed(3)}`;
+const poly = (pts: Vec2[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${P(p)}`).join(' ') + ' Z';
+const line = (pts: Vec2[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${P(p)}`).join(' ');
+const sexName = { erkek: 'Erkek', disi: 'Dişi' } as const;
+const figures = (['disi', 'erkek'] as Sex[]).map((sex) => ({ sex, s: silhouette(sex, AMANO_BODY[sex]) }));
+const VB = '-1.3 -0.75 3.9 1.5';
+---
+<Base title="3B Amano karidesi modeli" description="Amano (Yamato) karidesinin, Caridina multidentata, etkileşimli 3B modeli: yarı saydam gri-yeşil gövde, yan benek sırası (erkekte nokta, dişide çizgi), sırt çizgisi, çok dişli rostrum, fırça kıskaçlar, antenler, kuyruk yelpazesi, dişide eyer ve yumurta.">
+  <p><a href="/araclar">← Araçlar</a></p>
+  <h1>3B Amano karidesi modeli</h1>
+  <p class="muted">Akvaryumda yosun temizleyicisi olarak bilinen Amano (Yamato) karidesinin şematik, etkileşimli 3B modeli. Sürükleyerek döndürün, erkek ve dişiyi karşılaştırın (erkekte yan işaretler nokta, dişide uzamış çizgi), <strong>Alt</strong> görünümde yüzme bacaklarına bakın; numaralı noktalara ya da listeye tıklayıp açıklamaları okuyun.</p>
+
+  <div class="callout callout-bilgi">
+    <strong>Tür ve model varsayımı.</strong> Model <em>Caridina multidentata</em> türünün (eski adıyla <em>C. japonica</em>; “Amano” ya da “Yamato” karidesi) yetişkin bir bireyinin <strong>şematik</strong> biçimidir: oranlar, kıl ve anten ayrıntıları gerçek ölçüm değildir, gözler küre, kuyruk yelpazesi tek yaprak olarak çizilmiştir; gerçekte yarı saydam olan kabuk burada opak çizilir. Bu bir <strong>bakım rehberi değildir</strong>. Tanınan ayrı bir renk hattı ya da şekil varyetesi yoktur; erkekte nokta / dişide çizgi ayrımı yaygın bir anlatımdır ama her bireyde kesin değildir (“doğrulanmalı”). <em>Neocaridina</em> (cherry) karidesi ayrı bir türdür: <a href="/araclar/3d-karides">3B Neocaridina karidesi modeli</a>.
+  </div>
+
+  <div class="v3-bar">
+    <fieldset class="v3-seg">
+      <legend>Cinsiyet</legend>
+      <label><input type="radio" name="sex" value="disi" checked /> Dişi</label>
+      <label><input type="radio" name="sex" value="erkek" /> Erkek</label>
+    </fieldset>
+    <label class="v3-sel">Renk varyetesi
+      <select id="variant">{groupedVariants().map((g) => <optgroup label={g.grup}>{g.items.map((v) => <option value={v.id}>{v.ad}</option>)}</optgroup>)}</select>
+    </label>
+    <label class="v3-sel">Şekil (form)
+      <select id="form" disabled aria-describedby="formnote">{FORMS.map((f) => <option value={f.id}>{f.ad}</option>)}</select>
+    </label>
+    <label class="v3-chk"><input type="checkbox" id="swim" /> Hareket animasyonu</label>
+    <label class="v3-chk"><input type="checkbox" id="rot" /> Otomatik döndür</label>
+    <label class="v3-chk"><input type="checkbox" id="hots" checked /> Numaraları göster</label>
+    <label class="v3-chk" id="berrywrap"><input type="checkbox" id="berry" checked /> Yumurtalı (berry)</label>
+  </div>
+  <p class="muted v3-note" id="sexnote" aria-live="polite"></p>
+  <p class="muted v3-note" id="formnote">Şekil (form): Standart (tek biçim). Amano karidesinde akvaryum ticaretinde tanınan bir şekil varyetesi yoktur, bu yüzden form seçici yoktur. Renk: tanınan ayrı bir renk hattı yoktur; tek doğal görünüm vardır ve renk seçicisinde tek öğe olarak gösterilir. Erkek/dişi farkı (nokta ve çizgi) renk varyetesi değil cinsiyet farkıdır (kaynakla doğrulanmalı).</p>
+
+  <div class="v3-stage" id="stage" data-sex="disi" data-variant="dogal" data-swim="off" data-rotate="off" data-view="capraz" data-hotspots="on">
+    <canvas id="cv" tabindex="0" role="img" aria-describedby="v3-help"
+      aria-label="Amano karidesinin etkileşimli 3B modeli. Ok tuşlarıyla döndürebilir, artı ve eksi tuşlarıyla yakınlaştırabilirsiniz."></canvas>
+    <div class="v3-hotwrap" id="hot" data-pagefind-ignore></div>
+    <p class="v3-status" id="status" role="status">3B model, görünür olunca yüklenecek…</p>
+    <div class="v3-fallback" id="fallback" hidden>
+      <p><strong>3B görüntü bu tarayıcıda açılamadı.</strong> WebGL desteklenmiyor ya da kapalı olabilir. Aşağıda şematik yandan görünüş ile parça açıklamaları yer alıyor.</p>
+      <div class="v3-figs">
+        {figures.map((f) => (
+          <figure>
+            <svg viewBox={VB} role="img" aria-label={`${sexName[f.sex]} Amano karidesi, yandan şematik çizim`} class="v3-svg">
+              {f.s.antennae.map((a) => <path class="svg-line" d={line(a)} />)}
+              {f.s.legs.map((a) => <path class="svg-line" d={line(a)} />)}
+              {f.s.pleopods.map((a) => <path class="svg-line" d={line(a)} />)}
+              <path class="svg-leaf" d={poly(f.s.uropod)} />
+              <path class="svg-leaf" d={poly(f.s.telson)} />
+              {f.s.segments.map((a) => <path class="svg-body" d={poly(a)} />)}
+              <path class="svg-body" d={poly(f.s.carapace)} />
+              <path class="svg-body" d={poly(f.s.rostrum)} />
+              {f.s.eggs.map((e) => <circle class="svg-egg" cx={e.x} cy={-e.y} r={e.r} />)}
+              <circle class="svg-eye" cx={f.s.eye.x} cy={-f.s.eye.y} r={f.s.eye.r} />
+            </svg>
+            <figcaption>{sexName[f.sex]}, yandan görünüş</figcaption>
+          </figure>
+        ))}
+      </div>
+    </div>
+  </div>
+  <p class="muted" id="v3-help">Sürükleyin ya da ok tuşlarıyla döndürün; fare tekerleği, çimdik hareketi veya + / − tuşlarıyla yakınlaştırın; <kbd>0</kbd> görünümü sıfırlar. Sayfayı kaydırmak için modelin dışına dokunun. Numaralı noktalar yalnızca o an görünen parçalar için gösterilir (ör. üstten bakınca karın altındaki yüzme bacakları gizlenir); “Numaraları göster” kutusunu kapatırsanız noktalar kaybolur ama parça listesi çalışmaya devam eder. Hareket azaltma tercihiniz açıksa animasyonlar kapalı başlar.</p>
+  <noscript><p class="callout callout-uyari">3B model için JavaScript gerekir. Parça açıklamaları aşağıda metin olarak da verilmiştir.</p></noscript>
+
+  <div class="v3-bar" role="group" aria-label="Görünüm ve yakınlaştırma">
+    <button type="button" class="v3-btn" data-view="yan">Yan</button>
+    <button type="button" class="v3-btn" data-view="ust">Üst</button>
+    <button type="button" class="v3-btn" data-view="on">Ön</button>
+    <button type="button" class="v3-btn" data-view="arka">Arka</button>
+    <button type="button" class="v3-btn" data-view="alt">Alt</button>
+    <button type="button" class="v3-btn" data-view="capraz">Çapraz</button>
+    <button type="button" class="v3-btn" id="zin" aria-label="Yakınlaştır">+</button>
+    <button type="button" class="v3-btn" id="zout" aria-label="Uzaklaştır">−</button>
+    <button type="button" class="v3-btn" id="zreset">Sıfırla</button>
+  </div>
+
+  <h2>Anatomi parçaları</h2>
+  <div class="v3-info">
+    <ul class="v3-parts" id="parts">
+      {PARTS.map((p) => (
+        <li data-part={p.id} data-sex={p.sex ?? ''}><button type="button" class="v3-part" aria-pressed="false" data-part={p.id}><span class="v3-n" aria-hidden="true"></span><span>{p.ad}{p.sex && <small class="muted"> · {sexName[p.sex].toLowerCase()}</small>}</span></button></li>
+      ))}
+    </ul>
+    <div class="v3-detail" id="detail" aria-live="polite">
+      <p class="muted">Bir parça seçin: modelde numaralı noktaya ya da listeden bir öğeye tıklayın.</p>
+    </div>
+  </div>
+
+  <details class="v3-all">
+    <summary>Tüm parçaların metin açıklamaları</summary>
+    <dl>
+      {PARTS.map((p) => (<><dt>{p.ad}{p.sex && <span class="muted"> ({sexName[p.sex].toLowerCase()})</span>}</dt><dd>{p.aciklama}{p.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</dd></>))}
+    </dl>
+  </details>
+
+  <h2>Renk varyeteleri</h2>
+  <p class="muted">Amano karidesinde tanınan ayrı bir renk hattı bulunmadığı için tek doğal görünüm gösterilir; bu liste bilerek uydurma renk içermez. Erkek–dişi farkı (yan işaretlerin nokta ya da tire olması) renk değil cinsiyet farkıdır ve cinsiyet seçicisiyle görülür. Ticarette “beyaz/kar” gibi adlarla satılan başka karides türleriyle karıştırmayın (kaynakla doğrulanmalı).</p>
+  {groupedVariants().map((g) => (<><h3>{g.grup}</h3><ul>{g.items.map((v) => <li><strong>{v.ad}:</strong> {v.aciklama}{v.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</li>)}</ul></>))}
+  <p class="muted">Modellenmeyenler: saydamlık (kabuk opak çizilir), kıllar/setalar ayrıntısı (kıskaçlarda yalnızca küçük fırça tutamı vardır), ağız parçalarının ayrıntısı, solungaçlar ve iç organlar gösterilmemiştir. Cinsiyetler arası boyut ve benek biçimi farkı şematiktir; oranlar ve diş sayısı kaynakla doğrulanmalıdır. Larvalar acı su gerektirdiğinden tatlı su akvaryumunda yavru beklenmez.</p>
+
+  <div class="callout callout-bilgi">
+    <strong>Bu model şematiktir.</strong> Oranlar, desenler ve renkler eğitim amaçlı bir yorumdur; gerçek bir bireyin ölçüsü ya da bir standart değildir. Aynı serideki diğer karides için <a href="/araclar/3d-karides">3B Neocaridina karidesi modeline</a> bakabilirsiniz.
+  </div>
+</Base>
+
+<style is:global>
+  .v3-bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:14px 0}
+  .v3-seg{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:var(--r);padding:2px 10px 6px;margin:0;background:var(--card)}
+  .v3-seg legend{font-size:.85rem;padding:0 4px;color:var(--muted)}
+  .v3-seg label,.v3-chk{display:inline-flex;gap:6px;align-items:center;min-height:36px;padding:0 6px;cursor:pointer;font-weight:600}
+  .v3-seg input,.v3-chk input{width:20px;height:20px;accent-color:var(--brand)}
+  .v3-sel{display:grid;gap:2px;font-weight:600;font-size:.9rem;max-width:100%}
+  .v3-sel select{min-height:40px;max-width:100%}
+  .v3-note{margin:0 0 10px;min-height:1.6em;font-size:.92rem}
+  .v3-btn{min-width:44px;min-height:40px;padding:6px 14px}
+  .v3-btn[aria-pressed=true]{outline:3px solid var(--accent)}
+  .v3-stage{position:relative;border-radius:var(--r);overflow:hidden;background:radial-gradient(120% 90% at 50% 18%,#2a8499 0%,#145067 42%,#06232f 100%);border:1px solid var(--line);min-height:320px}
+  .v3-stage canvas{display:block;width:100%;height:clamp(340px,64vh,580px);touch-action:none;cursor:grab;outline-offset:-4px}
+  .v3-stage canvas:active{cursor:grabbing}
+  .v3-stage[data-fallback] canvas,.v3-stage[data-fallback] .v3-hotwrap,.v3-stage[data-fallback] .v3-status{display:none}
+  .v3-hotwrap{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .v3-hot{position:absolute;left:0;top:0;pointer-events:auto;width:26px;height:26px;padding:0;border-radius:50%;background:rgba(11,31,43,.82);color:#fff;border:2px solid #ffa94d;font-size:.72rem;font-weight:800;line-height:1;cursor:pointer;display:grid;place-items:center;will-change:transform}
+  .v3-hot[hidden]{display:none}
+  .v3-hot.on{background:#ffa94d;color:#0c1822;box-shadow:0 0 0 4px rgba(255,169,77,.35)}
+  .v3-hot::after{content:attr(data-label);position:absolute;bottom:125%;left:50%;transform:translateX(-50%);white-space:nowrap;background:#0b1f2b;color:#fff;padding:2px 8px;border-radius:6px;font-size:.8rem;font-weight:600;opacity:0;pointer-events:none}
+  .v3-hot:hover::after,.v3-hot.on::after{opacity:1}
+  .v3-status{position:absolute;left:12px;bottom:8px;margin:0;color:#e6f3f8;font-size:.9rem;text-shadow:0 1px 2px #000}
+  .v3-stage[data-ready] .v3-status{display:none}
+  .v3-fallback{padding:16px;color:#e6f3f8}
+  .v3-figs{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+  .v3-figs figure{margin:0;text-align:center}
+  .v3-svg{width:100%;height:auto;max-height:340px}
+  .v3-hotwrap[hidden],.v3-chk[hidden]{display:none}
+  .v3-svg .svg-body{fill:#8f9c85;stroke:#f1e8d6;stroke-width:.012}
+  .v3-svg .svg-leaf{fill:#b4bfaa;stroke:#f1e8d6;stroke-width:.01}
+  .v3-svg .svg-line{fill:none;stroke:#e8d9c4;stroke-width:.014;stroke-linecap:round}
+  .v3-svg .svg-eye{fill:#111;stroke:#e8d9c4;stroke-width:.01}
+  .v3-svg .svg-egg{fill:#6f7f4f;stroke:#3d4a2a;stroke-width:.004}
+  .v3-info{display:grid;gap:16px;grid-template-columns:minmax(0,1fr);align-items:start}
+  @media(min-width:760px){.v3-info{grid-template-columns:minmax(0,5fr) minmax(0,6fr)}}
+  .v3-parts{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  .v3-parts li[hidden]{display:none}
+  .v3-part{width:100%;min-height:44px;text-align:left;display:flex;gap:10px;align-items:center;background:var(--card);color:var(--fg);border:1px solid var(--line);padding:6px 12px;font-weight:600}
+  .v3-part[aria-pressed=true]{border-color:var(--accent);outline:2px solid var(--accent)}
+  .v3-part small{font-weight:400}
+  .v3-n{display:inline-grid;flex:none;place-items:center;min-width:26px;height:26px;border-radius:50%;background:#0b1f2b;color:#fff;border:2px solid #ffa94d;font-size:.78rem;font-weight:800}
+  .v3-detail{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px;min-height:120px}
+  .v3-detail h3{margin:.2em 0}
+  .v3-detail .badge{color:var(--mid)}
+  .v3-detail .warn{border-left:4px solid #d9480f;padding-left:10px;font-weight:600}
+  .v3-all{margin:14px 0}
+  .v3-all summary{cursor:pointer;min-height:32px;font-weight:600}
+  .v3-all dt{font-weight:700;margin-top:.6em}.v3-all dd{margin:0 0 .4em}
+  @media (prefers-reduced-motion:no-preference){.v3-hot.on{animation:v3pulse 1.6s ease-in-out infinite}@keyframes v3pulse{50%{box-shadow:0 0 0 8px rgba(255,169,77,.1)}}}
+</style>
+
+<script>
+  import { PARTS, partsFor, type PartId, type ViewId } from '../../lib/amano/parts';
+  import { variantById } from '../../lib/amano/variants';
+  import type { Sex } from '../../lib/karides/model';
+  import type { Viewer } from '../../lib/amano/viewer';
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const stage = $('stage'), cv = $<HTMLCanvasElement>('cv'), hot = $('hot'), status = $('status'), fallback = $('fallback');
+  const detail = $('detail'), sexnote = $('sexnote');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let sex: Sex = 'disi';
+  let selected: PartId | null = null;
+  let viewer: Viewer | null = null;
+
+  const notes: Record<Sex, string> = {
+    erkek: 'Erkek: dişiden küçük ve ince çizilmiştir; yan işaretler yuvarlak noktalardır; ikinci yüzme bacağında küçük bir çıkıntı (appendix masculina) şematik gösterilir (kaynakla doğrulanmalı).',
+    disi: 'Dişi: daha büyük çizilmiştir; yan işaretler uzamış tire (çizgi) biçimindedir; sırtta eyer, karın altında yumurtalar (berry) gösterilebilir (şematik; kaynakla doğrulanmalı).',
+  };
+
+  function renderList() {
+    const vis = partsFor(sex).map((p) => p.id);
+    document.querySelectorAll<HTMLLIElement>('#parts li').forEach((li) => {
+      const id = li.dataset.part as PartId;
+      const i = vis.indexOf(id);
+      li.hidden = i < 0;
+      const n = li.querySelector('.v3-n');
+      if (n && i >= 0) n.textContent = String(i + 1);
+    });
+    $('berrywrap').hidden = sex !== 'disi';
+  }
+
+  function renderDetail() {
+    detail.textContent = '';
+    const p = PARTS.find((x) => x.id === selected);
+    if (!p) {
+      const m = document.createElement('p');
+      m.className = 'muted';
+      m.textContent = 'Bir parça seçin: modelde numaralı noktaya ya da listeden bir öğeye tıklayın.';
+      detail.appendChild(m);
+      return;
+    }
+    const h = document.createElement('h3');
+    h.textContent = p.ad;
+    const t = document.createElement('p');
+    t.textContent = p.aciklama;
+    detail.append(h, t);
+    if (p.dogrulanmali) {
+      const b = document.createElement('p');
+      b.innerHTML = '<span class="badge">Kaynakla doğrulanmalı</span>';
+      detail.appendChild(b);
+    }
+  }
+
+  function select(id: PartId | null, fromList = false) {
+    selected = id;
+    stage.dataset.selected = id ?? '';
+    document.querySelectorAll<HTMLButtonElement>('.v3-part').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.part === id)));
+    renderDetail();
+    viewer?.select(id);
+    if (id && fromList && viewer && !viewer.isPartVisible(id)) {
+      const v = PARTS.find((x) => x.id === id)!.view;
+      stage.dataset.view = v;
+      viewer.setView(v);
+    }
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.v3-part').forEach((b) => b.addEventListener('click', () => {
+    const id = b.dataset.part as PartId;
+    select(selected === id ? null : id, true);
+  }));
+
+  function setSex(s: Sex) {
+    sex = s;
+    stage.dataset.sex = s;
+    sexnote.textContent = notes[s];
+    if (selected && !partsFor(s).some((p) => p.id === selected)) select(null);
+    renderList();
+    viewer?.setSex(s);
+  }
+  document.querySelectorAll<HTMLInputElement>('input[name=sex]').forEach((r) => r.addEventListener('change', () => { if (r.checked) setSex(r.value as Sex); }));
+
+  const variantSel = $<HTMLSelectElement>('variant');
+  variantSel.addEventListener('change', () => {
+    stage.dataset.variant = variantSel.value;
+    viewer?.setVariant(variantSel.value);
+    status.textContent = '';
+    const v = variantById(variantSel.value);
+    sexnote.textContent = `${notes[sex]} Renk — ${v.ad}: ${v.aciklama}${v.dogrulanmali ? ' (Kaynakla doğrulanmalı.)' : ''}`;
+  });
+
+  const swim = $<HTMLInputElement>('swim'), rot = $<HTMLInputElement>('rot'), hots = $<HTMLInputElement>('hots'), berry = $<HTMLInputElement>('berry');
+  swim.checked = !reduced;
+  swim.addEventListener('change', () => { stage.dataset.swim = swim.checked ? 'on' : 'off'; viewer?.setSwim(swim.checked); });
+  rot.addEventListener('change', () => { stage.dataset.rotate = rot.checked ? 'on' : 'off'; viewer?.setAutoRotate(rot.checked); });
+  hots.addEventListener('change', () => { stage.dataset.hotspots = hots.checked ? 'on' : 'off'; viewer?.setHotspots(hots.checked); });
+  berry.addEventListener('change', () => { stage.dataset.berry = berry.checked ? 'on' : 'off'; viewer?.setBerry(berry.checked); });
+  stage.dataset.swim = swim.checked ? 'on' : 'off';
+  stage.dataset.berry = 'on';
+
+  document.querySelectorAll<HTMLButtonElement>('.v3-btn[data-view]').forEach((b) => b.addEventListener('click', () => {
+    stage.dataset.view = b.dataset.view!;
+    viewer?.setView(b.dataset.view as ViewId);
+  }));
+  $('zin').addEventListener('click', () => viewer?.zoom(0.8));
+  $('zout').addEventListener('click', () => viewer?.zoom(1.25));
+  $('zreset').addEventListener('click', () => { stage.dataset.view = 'capraz'; viewer?.reset(); });
+
+  cv.addEventListener('keydown', (e) => {
+    if (!viewer) return;
+    const step = 0.16;
+    const k = e.key;
+    if (k === 'ArrowLeft') viewer.rotate(-step, 0);
+    else if (k === 'ArrowRight') viewer.rotate(step, 0);
+    else if (k === 'ArrowUp') viewer.rotate(0, -step);
+    else if (k === 'ArrowDown') viewer.rotate(0, step);
+    else if (k === '+' || k === '=') viewer.zoom(0.85);
+    else if (k === '-' || k === '_') viewer.zoom(1.18);
+    else if (k === '0' || k === 'Home') viewer.reset();
+    else return;
+    e.preventDefault();
+  });
+
+  function showFallback(msg?: string) {
+    stage.setAttribute('data-fallback', '');
+    fallback.hidden = false;
+    status.textContent = msg ?? '';
+  }
+
+  function hasWebGL(): boolean {
+    try {
+      const c = document.createElement('canvas');
+      return !!(c.getContext('webgl2') || c.getContext('webgl'));
+    } catch { return false; }
+  }
+
+  let started = false;
+  async function start() {
+    if (started) return;
+    started = true;
+    if (!hasWebGL()) { showFallback(); return; }
+    status.textContent = '3B model yükleniyor…';
+    try {
+      const { createViewer } = await import('../../lib/amano/viewer');
+      viewer = createViewer({
+        canvas: cv, overlay: hot, sex, variant: variantSel.value, reducedMotion: reduced,
+        onSelect: (id) => select(id),
+      });
+      viewer.setSwim(swim.checked);
+      viewer.setAutoRotate(rot.checked);
+      viewer.setHotspots(hots.checked);
+      viewer.setBerry(berry.checked);
+      if (selected) viewer.select(selected);
+    } catch (err) {
+      console.error(err);
+      showFallback();
+    }
+  }
+
+  setSex('disi');
+  renderDetail();
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) { io.disconnect(); start(); } }, { rootMargin: '1400px' });
+    io.observe(stage);
+  } else start();
+</script>

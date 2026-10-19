@@ -1,0 +1,183 @@
+---
+// Balık 3B araç sayfalarının ortak iskeleti (betta, neon, corydoras, japon ...). Tür verisi props ile gelir;
+// 3B paket sayfa betiğinde tembel yüklenir (bkz. src/lib/akvaryum/page.ts).
+import Base from '../layouts/Base.astro';
+import type { SpeciesView, SpeciesVariant, SpeciesForm } from '../lib/akvaryum/types';
+import type { FishPart } from '../lib/akvaryum/page';
+import { standardViews } from '../lib/akvaryum/view-standard';
+
+export interface Props {
+  title: string;
+  description: string;
+  intro: string;
+  /** Çubukta gösterilen bakış düğmeleri */
+  views: SpeciesView[];
+  sexes: { id: string; ad: string; not: string }[];
+  parts: FishPart[];
+  /** Gruplu varyete listesi */
+  groups: { grup: string; items: SpeciesVariant[] }[];
+  variantIntro: string;
+  /** SVG yedeği: her biri bir cinsiyet için */
+  figures: { label: string; vb: string; body: string; fins: { id: string; d: string }[]; eye: { cx: number; cy: number; r: number } }[];
+  fill: string;
+  variantLabel?: string;
+  helpExtra?: string;
+  stageLabel: string;
+  groupLabels?: boolean;
+  /** Form (şekil) varyeteleri; verilirse "Form" seçicisi ve form listesi gösterilir */
+  forms?: SpeciesForm[];
+  formLabel?: string;
+  formIntro?: string;
+}
+const { title, description, intro, views, sexes, parts, groups, variantIntro, figures, fill, stageLabel } = Astro.props;
+const variantLabel = Astro.props.variantLabel ?? 'Renk / varyete';
+const forms = Astro.props.forms ?? [];
+const formLabel = Astro.props.formLabel ?? 'Form';
+const formGroups = forms.length ? [...new Set(forms.map((f) => f.grup ?? ''))].map((g) => ({ grup: g, items: forms.filter((f) => (f.grup ?? '') === g) })) : [];
+const total = groups.reduce((n, g) => n + g.items.length, 0);
+const first = groups[0].items[0].id;
+const sexName = Object.fromEntries(sexes.map((s) => [s.id, s.ad]));
+---
+<Base title={title} description={description}>
+  <p><a href="/araclar">← Araçlar</a></p>
+  <h1>{title}</h1>
+  <p class="muted" set:html={intro} />
+
+  <slot name="tur" />
+
+  <div class="v3-bar">
+    {sexes.length > 1 && (
+      <fieldset class="v3-seg">
+        <legend>Cinsiyet</legend>
+        {sexes.map((s, i) => <label><input type="radio" name="sex" value={s.id} checked={i === 0} /> {s.ad}</label>)}
+      </fieldset>
+    )}
+    <label class="v3-sel">{variantLabel}
+      <select id="variant">{groups.map((g) => <optgroup label={g.grup}>{g.items.map((v) => <option value={v.id}>{v.ad}</option>)}</optgroup>)}</select>
+    </label>
+    {forms.length > 0 && (
+      <label class="v3-sel">{formLabel}
+        <select id="form">{formGroups.map((g) => g.grup
+          ? <optgroup label={g.grup}>{g.items.map((f) => <option value={f.id}>{f.ad}</option>)}</optgroup>
+          : g.items.map((f) => <option value={f.id}>{f.ad}</option>))}</select>
+      </label>
+    )}
+    <label class="v3-chk"><input type="checkbox" id="swim" /> Yüzme animasyonu</label>
+    <label class="v3-chk"><input type="checkbox" id="rot" /> Otomatik döndür</label>
+    <label class="v3-chk"><input type="checkbox" id="hotspots" checked /> Numaraları göster</label>
+  </div>
+  <p class="muted v3-note" id="sexnote" aria-live="polite"></p>
+  {forms.length > 0 && <p class="muted v3-note" id="formnote" aria-live="polite"></p>}
+
+  <div class="v3-stage" id="stage" data-sex={sexes[0].id} data-variant={first} data-form={forms[0]?.id} data-swim="off" data-rotate="off" data-view="capraz" data-hotspots="on">
+    <canvas id="cv" tabindex="0" role="img" aria-describedby="v3-help"
+      aria-label={`${stageLabel} Etkileşimli 3B model. Ok tuşlarıyla döndürebilir, artı ve eksi tuşlarıyla yakınlaştırabilirsiniz.`}></canvas>
+    <div class="v3-hotwrap" id="hot" data-pagefind-ignore></div>
+    <p class="v3-status" id="status" role="status">3B model, görünür olunca yüklenecek…</p>
+    <div class="v3-fallback" id="fallback" hidden>
+      <p><strong>3B görüntü bu tarayıcıda açılamadı.</strong> WebGL desteklenmiyor ya da kapalı olabilir. Aşağıda şematik yan görünüş ve parça açıklamaları yer alıyor.</p>
+      <div class="v3-figs" style={`--fish:${fill}`}>
+        {figures.map((f) => (
+          <figure>
+            <svg viewBox={f.vb} role="img" aria-label={`${f.label}, yandan şematik çizim`} class="v3-svg">
+              {f.fins.map((x) => <path class="svg-fin" d={x.d} />)}
+              <path class="svg-body" d={f.body} />
+              <circle class="svg-eye" cx={f.eye.cx} cy={f.eye.cy} r={f.eye.r} />
+            </svg>
+            <figcaption>{f.label}, yandan</figcaption>
+          </figure>
+        ))}
+      </div>
+    </div>
+  </div>
+  <p class="muted" id="v3-help">Sürükleyin ya da ok tuşlarıyla döndürün; fare tekerleği, çimdik hareketi veya + / − tuşlarıyla yakınlaştırın; <kbd>0</kbd> görünümü sıfırlar. Sayfayı kaydırmak için modelin dışına dokunun. Numaralı noktalar yalnızca o an görünen yüzdeki parçalar için gösterilir (gövdenin arkasında kalanlar gizlenir); “Numaraları göster” kutusunu kaldırırsanız noktalar kapanır, parça listesi çalışmaya devam eder. Hareket azaltma tercihiniz açıksa animasyonlar kapalı başlar.</p>
+  <noscript><p class="callout callout-uyari">3B model için JavaScript gerekir. Parça açıklamaları aşağıda metin olarak da verilmiştir.</p></noscript>
+
+  <div class="v3-bar" role="group" aria-label="Görünüm ve yakınlaştırma">
+    {standardViews(views).map((v) => <button type="button" class="v3-btn" data-view={v.id}>{v.ad}</button>)}
+    <button type="button" class="v3-btn" id="zin" aria-label="Yakınlaştır">+</button>
+    <button type="button" class="v3-btn" id="zout" aria-label="Uzaklaştır">−</button>
+    <button type="button" class="v3-btn" id="zreset">Sıfırla</button>
+  </div>
+
+  <slot name="ek" />
+
+  <h2>Anatomi parçaları</h2>
+  <div class="v3-info">
+    <ul class="v3-parts" id="parts">
+      {parts.map((p) => (
+        <li data-part={p.id} data-sex={p.sex ?? ''}><button type="button" class="v3-part" aria-pressed="false" data-part={p.id}><span class="v3-n" aria-hidden="true"></span><span>{p.ad}{p.sex && <small class="muted"> · {sexName[p.sex]?.toLowerCase() ?? p.sex}</small>}</span></button></li>
+      ))}
+    </ul>
+    <div class="v3-detail" id="detail" aria-live="polite">
+      <p class="muted">Bir parça seçin: modelde numaralı noktaya ya da listeden bir öğeye tıklayın.</p>
+    </div>
+  </div>
+
+  <details class="v3-all">
+    <summary>Tüm parçaların metin açıklamaları</summary>
+    <dl>
+      {parts.map((p) => (<><dt>{p.ad}{p.sex && <span class="muted"> ({sexName[p.sex]?.toLowerCase() ?? p.sex})</span>}</dt><dd>{p.aciklama}{p.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</dd></>))}
+    </dl>
+  </details>
+
+  <h2>Renk varyeteleri</h2>
+  <p class="muted" set:html={variantIntro.replace('{n}', String(total))} />
+  {groups.map((g) => (<><h3>{g.grup}</h3><ul>{g.items.map((v) => <li><strong>{v.ad}:</strong> {v.aciklama}{v.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</li>)}</ul></>))}
+
+  {forms.length > 0 && (<>
+    <h2>Form (şekil) varyeteleri</h2>
+    {Astro.props.formIntro && <p class="muted" set:html={Astro.props.formIntro} />}
+    {formGroups.map((g) => (<>{g.grup && <h3>{g.grup}</h3>}<ul>{g.items.map((f) => <li><strong>{f.ad}:</strong> {f.aciklama}{f.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</li>)}</ul></>))}
+  </>)}
+
+  <slot />
+</Base>
+
+<style is:global>
+  .v3-bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:14px 0}
+  .v3-seg{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:var(--r);padding:2px 10px 6px;margin:0;background:var(--card)}
+  .v3-seg legend{font-size:.85rem;padding:0 4px;color:var(--muted)}
+  .v3-seg label,.v3-chk{display:inline-flex;gap:6px;align-items:center;min-height:36px;padding:0 6px;cursor:pointer;font-weight:600}
+  .v3-seg input,.v3-chk input{width:20px;height:20px;accent-color:var(--brand)}
+  .v3-sel{display:grid;gap:2px;font-weight:600;font-size:.9rem;max-width:100%}
+  .v3-sel select{min-height:40px;max-width:100%}
+  .v3-note{margin:0 0 10px;min-height:1.6em;font-size:.92rem}
+  .v3-btn{min-width:44px;min-height:40px;padding:6px 14px}
+  .v3-btn[aria-pressed=true]{outline:3px solid var(--accent)}
+  .v3-stage{position:relative;border-radius:var(--r);overflow:hidden;background:radial-gradient(120% 90% at 50% 18%,#2a8499 0%,#145067 42%,#06232f 100%);border:1px solid var(--line);min-height:320px}
+  .v3-stage canvas{display:block;width:100%;height:clamp(340px,64vh,580px);touch-action:none;cursor:grab;outline-offset:-4px}
+  .v3-stage canvas:active{cursor:grabbing}
+  .v3-stage[data-fallback] canvas,.v3-stage[data-fallback] .v3-hotwrap,.v3-stage[data-fallback] .v3-status{display:none}
+  .v3-hotwrap{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .v3-hot{position:absolute;left:0;top:0;pointer-events:auto;width:26px;height:26px;padding:0;border-radius:50%;background:rgba(11,31,43,.82);color:#fff;border:2px solid #ffa94d;font-size:.72rem;font-weight:800;line-height:1;cursor:pointer;display:grid;place-items:center;will-change:transform}
+  .v3-hot[hidden]{display:none}
+  .v3-hot.on{background:#ffa94d;color:#0c1822;box-shadow:0 0 0 4px rgba(255,169,77,.35)}
+  .v3-hot::after{content:attr(data-label);position:absolute;bottom:125%;left:50%;transform:translateX(-50%);white-space:nowrap;background:#0b1f2b;color:#fff;padding:2px 8px;border-radius:6px;font-size:.8rem;font-weight:600;opacity:0;pointer-events:none}
+  .v3-hot:hover::after,.v3-hot.on::after{opacity:1}
+  .v3-status{position:absolute;left:12px;bottom:8px;margin:0;color:#e6f3f8;font-size:.9rem;text-shadow:0 1px 2px #000}
+  .v3-stage[data-ready] .v3-status{display:none}
+  .v3-fallback{padding:16px;color:#e6f3f8}
+  .v3-figs{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+  .v3-figs figure{margin:0;text-align:center}
+  .v3-svg{width:100%;height:auto;max-height:300px}
+  .v3-svg .svg-body{fill:var(--fish,#c8a060);stroke:#f1e8d6;stroke-width:.006}
+  .v3-svg .svg-fin{fill:var(--fish,#c8a060);fill-opacity:.55;stroke:#f1e8d6;stroke-width:.004}
+  .v3-svg .svg-eye{fill:#111;stroke:#fff;stroke-width:.004}
+  .v3-info{display:grid;gap:16px;grid-template-columns:minmax(0,1fr);align-items:start}
+  @media(min-width:760px){.v3-info{grid-template-columns:minmax(0,5fr) minmax(0,6fr)}}
+  .v3-parts{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  .v3-parts li[hidden]{display:none}
+  .v3-part{width:100%;min-height:44px;text-align:left;display:flex;gap:10px;align-items:center;background:var(--card);color:var(--fg);border:1px solid var(--line);padding:6px 12px;font-weight:600}
+  .v3-part[aria-pressed=true]{border-color:var(--accent);outline:2px solid var(--accent)}
+  .v3-part small{font-weight:400}
+  .v3-n{display:inline-grid;flex:none;place-items:center;min-width:26px;height:26px;border-radius:50%;background:#0b1f2b;color:#fff;border:2px solid #ffa94d;font-size:.78rem;font-weight:800}
+  .v3-detail{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px;min-height:120px}
+  .v3-detail h3{margin:.2em 0}
+  .v3-detail .badge{color:var(--mid)}
+  .v3-detail .warn{border-left:4px solid #d9480f;padding-left:10px;font-weight:600}
+  .v3-all{margin:14px 0}
+  .v3-all summary{cursor:pointer;min-height:32px;font-weight:600}
+  .v3-all dt{font-weight:700;margin-top:.6em}.v3-all dd{margin:0 0 .4em}
+  @media (prefers-reduced-motion:no-preference){.v3-hot.on{animation:v3pulse 1.6s ease-in-out infinite}@keyframes v3pulse{50%{box-shadow:0 0 0 8px rgba(255,169,77,.1)}}}
+</style>

@@ -1,0 +1,58 @@
+---
+import SpeciesPage from '../../components/SpeciesPage.astro';
+import { PARTS } from '../../lib/ram/parts';
+import { FORMS } from '../../lib/ram/forms';
+import { VARIANTS, groupedVariants } from '../../lib/ram/variants';
+import { SEXES, FORM_IDS, specFor, silhouette } from '../../lib/ram/model';
+import { svgFigure } from '../../lib/akvaryum/fishmath';
+
+// WebGL yokken gösterilen SVG yedeği, 3B modelle aynı geometriden türetilir.
+const sexName = { erkek: 'Erkek ram çiklit', disi: 'Dişi ram çiklit' } as const;
+const formName = { standart: 'standart', 'uzun-yuzgec': 'uzun yüzgeçli', balon: 'balon' } as const;
+const figures = FORM_IDS.flatMap((f) => SEXES.map((s) => {
+  const sil = silhouette(specFor(f, s));
+  const fins = [...sil.fins.map((pts, i) => ({ id: `f${i}`, pts })), { id: 'pec', pts: sil.pectoral }];
+  return { label: `${sexName[s]} (${formName[f]})`, ...svgFigure({ body: sil.body, fins, eye: { c: [sil.eye.x, sil.eye.y], r: sil.eye.r } }) };
+}));
+---
+<SpeciesPage
+  title="3B ram çiklit (kelebek çiklit) modeli"
+  description="Ram çiklitinin (Mikrogeophagus ramirezi, “German blue ram”) etkileşimli 3B modeli: gözden geçen siyah çubuk, gövde lekesi, parlak mavi benekler, dikenli sırt yüzgeci, kırmızı göz; standart, uzun yüzgeçli ve balon form; normal, altın, elektrik mavisi, siyah, albino renk hatları."
+  intro="Ram çiklitinin (<em>Mikrogeophagus ramirezi</em>, kelebek çiklit) şematik, etkileşimli 3B modeli. Sürükleyerek döndürün, erkek ve dişiyi karşılaştırın, <strong>Form</strong> ve <strong>Renk</strong> seçicilerini birbirinden bağımsız deneyin; numaralı noktalara ya da listeye tıklayıp açıklamaları okuyun."
+  views={[{ id: 'yan', ad: 'Yan' }, { id: 'ust', ad: 'Üst' }, { id: 'on', ad: 'Ön' }, { id: 'arka', ad: 'Arka' }, { id: 'alt', ad: 'Alt' }, { id: 'capraz', ad: 'Çapraz' }]}
+  sexes={[{ id: 'erkek', ad: 'Erkek', not: '' }, { id: 'disi', ad: 'Dişi', not: '' }]}
+  parts={PARTS}
+  forms={FORMS}
+  formIntro="Üç form gösterilir: doğadaki biçime yakın standart, uzun yüzgeçli ve balon (kısa, yuvarlak gövde). Uzun yüzgeçli ve balon formların tanımı ve yaygınlığı kaynaklarda tutarsızdır, bu yüzden doğrulanmalı olarak işaretlidir. Her form her renkle birleşir. Başka bir form kaynaklarda net bulunamadığı için eklenmemiştir."
+  groups={groupedVariants()}
+  variantLabel="Renk / desen"
+  variantIntro={`${VARIANTS.length} şematik renk hattı (normal yabani tip / “German blue”, altın, elektrik mavisi, siyah, albino); hepsi aynı gövdeyi paylaşır, yalnızca renk ve desen değişir. Boyanmış ya da enjekte edilmiş balıklar gösterilmez. Hat adları standart değildir; “Kaynakla doğrulanmalı” işaretli kayıtların adı ya da sınırı belirsizdir.`}
+  figures={figures}
+  fill="#c9a23c"
+  stageLabel="Ram çiklitinin etkileşimli 3B modeli."
+>
+  <div class="callout callout-bilgi" slot="tur">
+    <strong>Kapsam.</strong> Bu model <em>Mikrogeophagus ramirezi</em> için <strong>şematik</strong> bir gövdedir. <strong>Bolivya ramı</strong> (<em>Mikrogeophagus altispinosus</em>) <strong>ayrı bir türdür</strong> ve burada modellenmemiştir. Erkek–dişi farkı (erkekte uzayan 2. sırt dikeni ve sivri yüzgeçler; dişide daha kısa, yuvarlak sırt yüzgeci ve üreme döneminde pembe karın lekesi) kaynaklarda tutarsızdır, özellikle yetiştirme hatlarında zayıftır ve doğrulanmalıdır. Boyanmış balıklar kapsam dışıdır. Model bakım, hastalık ya da tedavi rehberi değildir.
+  </div>
+  <p class="muted" slot="ek">Karın yüzgeçleri bu modelde şematik olarak tek parça kalın bir iplik gösterilir; gerçekte ilk ışını uzun, ışınlı küçük yelpazelerdir.</p>
+  <p class="muted">Modellenmeyenler: pullar tek tek çizilmemiştir (doku olarak vardır), yüzgeç ışınları tek tek hareket etmez, iç organlar gösterilmemiştir; mavi benekler ışığa göre değişen gerçek yapısal rengin yalnızca sabit bir yorumudur, desen ve renk bireye ve yetiştirme hattına göre değişir. Yüzme animasyonu gövdenin yanal dalgalanmasını basitçe taklit eder.</p>
+  <div class="callout callout-bilgi">
+    Aynı serideki diğer modeller: <a href="/araclar/3d-melek">3B melek balığı</a> ve <a href="/araclar/3d-diskus">3B diskus</a> (diğer çiklitler).
+  </div>
+</SpeciesPage>
+
+<script>
+  import { initSpeciesPage } from '../../lib/akvaryum/page';
+  import { PARTS, partsFor } from '../../lib/ram/parts';
+  import { FORMS } from '../../lib/ram/forms';
+  import { VARIANTS } from '../../lib/ram/variants';
+
+  initSpeciesPage({
+    parts: PARTS, partsFor, variants: VARIANTS, forms: FORMS, defaultSex: 'erkek', defaultView: 'capraz',
+    sexNotes: {
+      erkek: 'Erkek: biraz daha büyük; sırt yüzgecinin 2. dikeni/ışınları uzar, yüzgeç uçları sivri (şematik). Fark gençlerde ve yetiştirme hatlarında zayıftır; doğrulanmalı.',
+      disi: 'Dişi: biraz daha küçük; sırt yüzgeci kısa ve yuvarlak, karında pembe leke (şematik). Fark zayıftır, kaynaklarda tutarsızdır; doğrulanmalı.',
+    },
+    load: () => import('../../lib/ram/index'),
+  });
+</script>

@@ -1,0 +1,29 @@
+{
+  "name": "ilan-sitesi",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Balık ilanları: gerçek fotoğraflar + temsili 3B görünüm (yerel geliştirme sürümü)",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "dev": "node server/main.ts",
+    "start": "NODE_ENV=production node server/main.ts",
+    "build": "vite build",
+    "catalog": "node scripts/gen-catalog.mjs",
+    "seed": "node scripts/seed.ts",
+    "make-admin": "node scripts/make-admin.ts",
+    "test": "vitest run",
+    "e2e": "playwright test --workers=2",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^22.10.0",
+    "axe-core": "^4.14.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}

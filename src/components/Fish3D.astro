@@ -1,0 +1,341 @@
+---
+// Yanlardan basık disk balıklar (melek, diskus ...) için ortak 3B sayfa gövdesi. Türe özgü içerik props ve slot ile gelir;
+// three.js yalnızca modele görünür olunca tembel yüklenir (tür modülü id'ye göre dynamic import edilir).
+import type { Silhouette, Pt } from '../lib/akvaryum/yanal-model';
+import { standardViews } from '../lib/akvaryum/view-standard';
+
+interface PartData { id: string; ad: string; ozet: string; aciklama: string; view: string; dogrulanmali?: boolean; uyari?: boolean }
+interface VariantData { id: string; ad: string; aciklama: string; dogrulanmali: boolean }
+interface FormData { id: string; ad: string; aciklama: string; grup?: string; dogrulanmali?: boolean }
+interface Props {
+  id: string;
+  forms: FormData[];
+  /** Kısa tür adı (ör. "Melek balığı") ve etiket */
+  ad: string;
+  latin: string;
+  sexNote: { ad: string; not: string };
+  views: { id: string; ad: string }[];
+  parts: PartData[];
+  groups: { grup: string; items: VariantData[] }[];
+  defaultVariant: string;
+  silhouette: Silhouette;
+  /** Yedek SVG renkleri */
+  colors: { body: string; fin: string; stroke: string };
+  /** Varyete bölümünün tanıtım metni */
+  variantIntro: string;
+  /** Modellenmeyenler ve kapsam notu */
+  limits: string;
+  /** Diğer 3B modellere bağlantı */
+  seeAlso: { href: string; ad: string }[];
+}
+const { id, forms, ad, latin, sexNote, views, parts, groups, defaultVariant, silhouette: sil, colors, variantIntro, limits, seeAlso } = Astro.props;
+const total = groups.reduce((n, g) => n + g.items.length, 0);
+
+const P = (p: Pt) => `${p[0].toFixed(3)},${(-p[1]).toFixed(3)}`;
+const poly = (pts: Pt[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${P(p)}`).join(' ') + ' Z';
+const line = (pts: Pt[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${P(p)}`).join(' ');
+const bb = sil.bbox;
+const vb = `${bb.x0} ${-bb.y1} ${(bb.x1 - bb.x0).toFixed(2)} ${(bb.y1 - bb.y0).toFixed(2)}`;
+const formGroups = forms.some((f) => f.grup) ? [...new Set(forms.map((f) => f.grup ?? ''))].map((g) => ({ grup: g, items: forms.filter((f) => (f.grup ?? '') === g) })) : [{ grup: '', items: forms }];
+const data = JSON.stringify({ id, forms, parts, variants: groups.flatMap((g) => g.items), defaultVariant, sexNote });
+---
+<p><a href="/araclar">← Araçlar</a></p>
+<h1>3B {ad} modeli</h1>
+<slot name="intro" />
+
+<div class="callout callout-bilgi"><slot name="tur" /></div>
+
+<div class="v3-bar">
+  <fieldset class="v3-seg">
+    <legend>Cinsiyet</legend>
+    <label><input type="radio" name="sex" value="yok" checked /> {sexNote.ad}</label>
+  </fieldset>
+  <label class="v3-sel">Form (şekil)
+    <select id="form">{formGroups.map((g) => g.grup ? <optgroup label={g.grup}>{g.items.map((f) => <option value={f.id}>{f.ad}{f.dogrulanmali ? ' (doğrulanmalı)' : ''}</option>)}</optgroup> : g.items.map((f) => <option value={f.id}>{f.ad}{f.dogrulanmali ? ' (doğrulanmalı)' : ''}</option>))}</select>
+  </label>
+  <label class="v3-sel">Renk / desen
+    <select id="variant">{groups.map((g) => <optgroup label={g.grup}>{g.items.map((v) => <option value={v.id} selected={v.id === defaultVariant}>{v.ad}{v.dogrulanmali ? ' (doğrulanmalı)' : ''}</option>)}</optgroup>)}</select>
+  </label>
+  <label class="v3-chk"><input type="checkbox" id="swim" /> Yüzme animasyonu</label>
+  <label class="v3-chk"><input type="checkbox" id="rot" /> Otomatik döndür</label>
+  <label class="v3-chk"><input type="checkbox" id="hotspots" checked /> Numaraları göster</label>
+</div>
+<p class="muted v3-note" id="sexnote" aria-live="polite">{sexNote.not}</p>
+
+<div class="v3-stage" id="stage" data-species={id} data-sex="yok" data-form={forms[0].id} data-variant={defaultVariant} data-swim="off" data-rotate="off" data-view="capraz" data-hotspots="on">
+  <canvas id="cv" tabindex="0" role="img" aria-describedby="v3-help"
+    aria-label={`${ad} etkileşimli 3B modeli. Ok tuşlarıyla döndürebilir, artı ve eksi tuşlarıyla yakınlaştırabilirsiniz.`}></canvas>
+  <div class="v3-hotwrap" id="hot" data-pagefind-ignore></div>
+  <p class="v3-status" id="status" role="status">3B model, görünür olunca yüklenecek…</p>
+  <div class="v3-fallback" id="fallback" hidden>
+    <p><strong>3B görüntü bu tarayıcıda açılamadı.</strong> WebGL desteklenmiyor ya da kapalı olabilir. Aşağıda şematik yan görünüş ile parça açıklamaları yer alıyor.</p>
+    <div class="v3-figs">
+      <figure>
+        <svg viewBox={vb} role="img" aria-label={`${ad}, yandan şematik çizim`} class="v3-svg" style={`--fb:${colors.body};--ff:${colors.fin};--fs:${colors.stroke}`}>
+          {sil.fins.map((f) => <path class="svg-fin" d={poly(f)} />)}
+          {sil.filaments.map((f) => <path class="svg-fil" d={line(f)} />)}
+          <path class="svg-body" d={poly(sil.body)} />
+          <path class="svg-pec" d={poly(sil.pectoral)} />
+          <path class="svg-gill" d={line(sil.gill)} />
+          <path class="svg-gill" d={line(sil.mouth)} />
+          <circle class="svg-eye" cx={sil.eye.x} cy={-sil.eye.y} r={sil.eye.r} />
+        </svg>
+        <figcaption>{ad}, yandan (şematik)</figcaption>
+      </figure>
+    </div>
+  </div>
+</div>
+<p class="muted" id="v3-help">Sürükleyin ya da ok tuşlarıyla döndürün; fare tekerleği, çimdik hareketi veya + / − tuşlarıyla yakınlaştırın; <kbd>0</kbd> görünümü sıfırlar. Sayfayı kaydırmak için modelin dışına dokunun. Numaralı noktalar yalnızca o an görünen parçalar için gösterilir (gövdenin arkasında kalanlar gizlenir). “Numaraları göster” kapalıyken parçalara yine listeden ulaşabilirsiniz. Hareket azaltma tercihiniz açıksa animasyonlar kapalı başlar.</p>
+<noscript><p class="callout callout-uyari">3B model için JavaScript gerekir. Parça açıklamaları aşağıda metin olarak da verilmiştir.</p></noscript>
+
+<div class="v3-bar" role="group" aria-label="Görünüm ve yakınlaştırma">
+  {standardViews(views).map((v) => <button type="button" class="v3-btn" data-view={v.id}>{v.ad}</button>)}
+  <button type="button" class="v3-btn" id="zin" aria-label="Yakınlaştır">+</button>
+  <button type="button" class="v3-btn" id="zout" aria-label="Uzaklaştır">−</button>
+  <button type="button" class="v3-btn" id="zreset">Sıfırla</button>
+</div>
+
+<h2>Anatomi parçaları</h2>
+<div class="v3-info">
+  <ul class="v3-parts" id="parts">
+    {parts.map((p, i) => (
+      <li data-part={p.id}><button type="button" class="v3-part" aria-pressed="false" data-part={p.id}><span class="v3-n" aria-hidden="true">{i + 1}</span><span>{p.ad}</span></button></li>
+    ))}
+  </ul>
+  <div class="v3-detail" id="detail" aria-live="polite">
+    <p class="muted">Bir parça seçin: modelde numaralı noktaya ya da listeden bir öğeye tıklayın.</p>
+  </div>
+</div>
+
+<details class="v3-all">
+  <summary>Tüm parçaların metin açıklamaları</summary>
+  <dl>
+    {parts.map((p) => (<><dt>{p.ad}</dt><dd>{p.aciklama}{p.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</dd></>))}
+  </dl>
+</details>
+
+<h2>Form (şekil) varyeteleri</h2>
+<p class="muted">Form, yüzgeç ve kuyruk geometrisini değiştirir; renk varyetesinden bağımsızdır ve her form her renkle birleştirilebilir. “Kaynakla doğrulanmalı” işaretli kayıtların adı, genetiği ya da tarifi kaynaklarda tutarsızdır.</p>
+<ul>{forms.map((f) => <li><strong>{f.ad}:</strong> {f.aciklama}{f.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</li>)}</ul>
+
+<h2>Renk ve desen varyeteleri</h2>
+<p class="muted">{total} şematik varyete; hepsi aynı standart gövdeyi paylaşır, yalnızca renk ve desen değişir. {variantIntro} “Kaynakla doğrulanmalı” işaretli kayıtların adı, varlığı ya da tarifi belirsizdir.</p>
+{groups.map((g) => (<><h3>{g.grup}</h3><ul>{g.items.map((v) => <li><strong>{v.ad}:</strong> {v.aciklama}{v.dogrulanmali && <> <em>(Kaynakla doğrulanmalı.)</em></>}</li>)}</ul></>))}
+<p class="muted">{limits}</p>
+
+<div class="callout callout-bilgi">
+  <strong>Bu model şematiktir.</strong> Oranlar, desenler ve renkler eğitim amaçlı bir yorumdur ({latin}); gerçek bir bireyin ölçüsü, türü ya da bir standart değildir. Bakım, hastalık ya da tedavi rehberi değildir.
+  {seeAlso.length > 0 && <> Diğer 3B modeller: {seeAlso.map((s, i) => <>{i > 0 && ', '}<a href={s.href}>{s.ad}</a></>)}.</>}
+</div>
+
+<script type="application/json" id="fish-data" set:html={data} />
+
+<style is:global>
+  .v3-bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:14px 0}
+  .v3-seg{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:var(--r);padding:2px 10px 6px;margin:0;background:var(--card)}
+  .v3-seg legend{font-size:.85rem;padding:0 4px;color:var(--muted)}
+  .v3-seg label,.v3-chk{display:inline-flex;gap:6px;align-items:center;min-height:36px;padding:0 6px;cursor:pointer;font-weight:600}
+  .v3-seg input,.v3-chk input{width:20px;height:20px;accent-color:var(--brand)}
+  .v3-sel{display:grid;gap:2px;font-weight:600;font-size:.9rem;max-width:100%}
+  .v3-sel select{min-height:40px;max-width:100%}
+  .v3-note{margin:0 0 10px;min-height:1.6em;font-size:.92rem}
+  .v3-btn{min-width:44px;min-height:40px;padding:6px 14px}
+  .v3-btn[aria-pressed=true]{outline:3px solid var(--accent)}
+  .v3-stage{position:relative;border-radius:var(--r);overflow:hidden;background:radial-gradient(120% 90% at 50% 18%,#2a8499 0%,#145067 42%,#06232f 100%);border:1px solid var(--line);min-height:320px}
+  .v3-stage canvas{display:block;width:100%;height:clamp(360px,68vh,640px);touch-action:none;cursor:grab;outline-offset:-4px}
+  .v3-stage canvas:active{cursor:grabbing}
+  .v3-stage[data-fallback] canvas,.v3-stage[data-fallback] .v3-hotwrap,.v3-stage[data-fallback] .v3-status{display:none}
+  .v3-hotwrap{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .v3-hotwrap[hidden]{display:none}
+  .v3-hot{position:absolute;left:0;top:0;pointer-events:auto;width:26px;height:26px;padding:0;border-radius:50%;background:rgba(11,31,43,.82);color:#fff;border:2px solid #ffa94d;font-size:.72rem;font-weight:800;line-height:1;cursor:pointer;display:grid;place-items:center;will-change:transform}
+  .v3-hot[hidden]{display:none}
+  .v3-hot.on{background:#ffa94d;color:#0c1822;box-shadow:0 0 0 4px rgba(255,169,77,.35)}
+  .v3-hot::after{content:attr(data-label);position:absolute;bottom:125%;left:50%;transform:translateX(-50%);white-space:nowrap;background:#0b1f2b;color:#fff;padding:2px 8px;border-radius:6px;font-size:.8rem;font-weight:600;opacity:0;pointer-events:none}
+  .v3-hot:hover::after,.v3-hot.on::after{opacity:1}
+  .v3-status{position:absolute;left:12px;bottom:8px;margin:0;color:#e6f3f8;font-size:.9rem;text-shadow:0 1px 2px #000}
+  .v3-stage[data-ready] .v3-status{display:none}
+  .v3-fallback{padding:16px;color:#e6f3f8}
+  .v3-figs{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+  .v3-figs figure{margin:0;text-align:center}
+  .v3-svg{width:100%;height:auto;max-height:360px}
+  .v3-svg .svg-body{fill:var(--fb);stroke:var(--fs);stroke-width:.012}
+  .v3-svg .svg-fin{fill:var(--ff);fill-opacity:.6;stroke:var(--fs);stroke-width:.01}
+  .v3-svg .svg-pec{fill:var(--ff);fill-opacity:.7;stroke:var(--fs);stroke-width:.008}
+  .v3-svg .svg-fil{fill:none;stroke:var(--ff);stroke-width:.025;stroke-linecap:round}
+  .v3-svg .svg-gill{fill:none;stroke:var(--fs);stroke-width:.012;stroke-linecap:round}
+  .v3-svg .svg-eye{fill:#111;stroke:#e0a070;stroke-width:.012}
+  .v3-info{display:grid;gap:16px;grid-template-columns:minmax(0,1fr);align-items:start}
+  @media(min-width:760px){.v3-info{grid-template-columns:minmax(0,5fr) minmax(0,6fr)}}
+  .v3-parts{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  .v3-part{width:100%;min-height:44px;text-align:left;display:flex;gap:10px;align-items:center;background:var(--card);color:var(--fg);border:1px solid var(--line);padding:6px 12px;font-weight:600}
+  .v3-part[aria-pressed=true]{border-color:var(--accent);outline:2px solid var(--accent)}
+  .v3-n{display:inline-grid;flex:none;place-items:center;min-width:26px;height:26px;border-radius:50%;background:#0b1f2b;color:#fff;border:2px solid #ffa94d;font-size:.78rem;font-weight:800}
+  .v3-detail{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px;min-height:120px}
+  .v3-detail h3{margin:.2em 0}
+  .v3-detail .badge{color:var(--mid)}
+  .v3-detail .warn{border-left:4px solid #d9480f;padding-left:10px;font-weight:600}
+  .v3-all{margin:14px 0}
+  .v3-all summary{cursor:pointer;min-height:32px;font-weight:600}
+  .v3-all dt{font-weight:700;margin-top:.6em}.v3-all dd{margin:0 0 .4em}
+  @media (prefers-reduced-motion:no-preference){.v3-hot.on{animation:v3pulse 1.6s ease-in-out infinite}@keyframes v3pulse{50%{box-shadow:0 0 0 8px rgba(255,169,77,.1)}}}
+</style>
+
+<script>
+  import type { SpeciesViewer } from '../lib/akvaryum/types';
+
+  interface PartData { id: string; ad: string; aciklama: string; view: string; dogrulanmali?: boolean; uyari?: boolean }
+  const data = JSON.parse(document.getElementById('fish-data')!.textContent || '{}') as {
+    id: 'melek' | 'diskus'; forms: { id: string; ad: string; aciklama: string; dogrulanmali?: boolean }[]; parts: PartData[]; variants: { id: string; ad: string; aciklama: string; dogrulanmali: boolean }[]; defaultVariant: string; sexNote: { ad: string; not: string };
+  };
+  // Tür modülleri tembel yüklenir (three.js yalnızca bu sayfa için gerekir).
+  const loaders = { melek: () => import('../lib/melek'), diskus: () => import('../lib/diskus') };
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const stage = $('stage'), cv = $<HTMLCanvasElement>('cv'), hot = $('hot'), status = $('status'), fallback = $('fallback');
+  const detail = $('detail'), sexnote = $('sexnote');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let selected: string | null = null;
+  let viewer: SpeciesViewer | null = null;
+
+  function renderDetail() {
+    detail.textContent = '';
+    const p = data.parts.find((x) => x.id === selected);
+    if (!p) {
+      const m = document.createElement('p');
+      m.className = 'muted';
+      m.textContent = 'Bir parça seçin: modelde numaralı noktaya ya da listeden bir öğeye tıklayın.';
+      detail.appendChild(m);
+      return;
+    }
+    const h = document.createElement('h3');
+    h.textContent = p.ad;
+    const t = document.createElement('p');
+    t.textContent = p.aciklama;
+    if (p.uyari) t.className = 'warn';
+    detail.append(h, t);
+    if (p.dogrulanmali) {
+      const b = document.createElement('p');
+      b.innerHTML = '<span class="badge">Kaynakla doğrulanmalı</span>';
+      detail.appendChild(b);
+    }
+  }
+
+  function select(id: string | null, fromList = false) {
+    selected = id;
+    stage.dataset.selected = id ?? '';
+    document.querySelectorAll<HTMLButtonElement>('.v3-part').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.part === id)));
+    renderDetail();
+    viewer?.select(id);
+    if (id && fromList && viewer && !viewer.isPartVisible(id)) {
+      const v = data.parts.find((x) => x.id === id)!.view;
+      stage.dataset.view = v;
+      viewer.setView(v);
+    }
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.v3-part').forEach((b) => b.addEventListener('click', () => {
+    const id = b.dataset.part!;
+    select(selected === id ? null : id, true);
+  }));
+
+  const variantSel = $<HTMLSelectElement>('variant'), formSel = $<HTMLSelectElement>('form');
+  let noteForm = false, noteVariant = false;
+  function updateNote() {
+    let t = data.sexNote.not;
+    if (noteForm) { const f = data.forms.find((x) => x.id === formSel.value)!; t += ` Form — ${f.ad}: ${f.aciklama}${f.dogrulanmali ? ' (Kaynakla doğrulanmalı.)' : ''}`; }
+    if (noteVariant) { const v = data.variants.find((x) => x.id === variantSel.value)!; t += ` Varyete — ${v.ad}: ${v.aciklama}${v.dogrulanmali ? ' (Kaynakla doğrulanmalı.)' : ''}`; }
+    sexnote.textContent = t;
+  }
+  variantSel.addEventListener('change', () => {
+    stage.dataset.variant = variantSel.value;
+    viewer?.setVariant(variantSel.value);
+    status.textContent = '';
+    noteVariant = true;
+    updateNote();
+  });
+  formSel.addEventListener('change', () => {
+    stage.dataset.form = formSel.value;
+    viewer?.setForm?.(formSel.value);
+    noteForm = true;
+    updateNote();
+  });
+
+  const swim = $<HTMLInputElement>('swim'), rot = $<HTMLInputElement>('rot');
+  swim.checked = !reduced;
+  swim.addEventListener('change', () => { stage.dataset.swim = swim.checked ? 'on' : 'off'; viewer?.setSwim(swim.checked); });
+  rot.addEventListener('change', () => { stage.dataset.rotate = rot.checked ? 'on' : 'off'; viewer?.setAutoRotate(rot.checked); });
+  stage.dataset.swim = swim.checked ? 'on' : 'off';
+
+  // Numaralı noktalar: tercih yalnızca bu tarayıcıda hatırlanır (depolama yoksa varsayılan açık).
+  const HS_KEY = `${data.id}-numaralar`;
+  const hs = $<HTMLInputElement>('hotspots');
+  try { if (localStorage.getItem(HS_KEY) === 'off') hs.checked = false; } catch { /* depolama kapalı */ }
+  const applyHs = () => { stage.dataset.hotspots = hs.checked ? 'on' : 'off'; viewer?.setHotspots(hs.checked); };
+  hs.addEventListener('change', () => { applyHs(); try { localStorage.setItem(HS_KEY, hs.checked ? 'on' : 'off'); } catch { /* yok say */ } });
+  stage.dataset.hotspots = hs.checked ? 'on' : 'off';
+
+  document.querySelectorAll<HTMLButtonElement>('.v3-btn[data-view]').forEach((b) => b.addEventListener('click', () => {
+    stage.dataset.view = b.dataset.view!;
+    viewer?.setView(b.dataset.view!);
+  }));
+  $('zin').addEventListener('click', () => viewer?.zoom(0.8));
+  $('zout').addEventListener('click', () => viewer?.zoom(1.25));
+  $('zreset').addEventListener('click', () => { stage.dataset.view = 'capraz'; viewer?.reset(); });
+
+  cv.addEventListener('keydown', (e) => {
+    if (!viewer) return;
+    const step = 0.16;
+    const k = e.key;
+    if (k === 'ArrowLeft') viewer.rotate(-step, 0);
+    else if (k === 'ArrowRight') viewer.rotate(step, 0);
+    else if (k === 'ArrowUp') viewer.rotate(0, -step);
+    else if (k === 'ArrowDown') viewer.rotate(0, step);
+    else if (k === '+' || k === '=') viewer.zoom(0.85);
+    else if (k === '-' || k === '_') viewer.zoom(1.18);
+    else if (k === '0' || k === 'Home') viewer.reset();
+    else return;
+    e.preventDefault();
+  });
+
+  function showFallback(msg?: string) {
+    stage.setAttribute('data-fallback', '');
+    fallback.hidden = false;
+    status.textContent = msg ?? '';
+  }
+
+  function hasWebGL(): boolean {
+    try {
+      const c = document.createElement('canvas');
+      return !!(c.getContext('webgl2') || c.getContext('webgl'));
+    } catch { return false; }
+  }
+
+  let started = false;
+  async function start() {
+    if (started) return;
+    started = true;
+    if (!hasWebGL()) { showFallback(); return; }
+    status.textContent = '3B model yükleniyor…';
+    try {
+      const { species } = await loaders[data.id]();
+      viewer = species.createViewer({
+        canvas: cv, overlay: hot, sex: species.sexes[0].id, form: formSel.value, variant: variantSel.value, reducedMotion: reduced,
+        onSelect: (id) => select(id),
+      });
+      viewer.setSwim(swim.checked);
+      viewer.setAutoRotate(rot.checked);
+      viewer.setHotspots(hs.checked);
+      if (selected) viewer.select(selected);
+    } catch (err) {
+      console.error(err);
+      showFallback();
+    }
+  }
+
+  renderDetail();
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) { io.disconnect(); start(); } }, { rootMargin: '1400px' });
+    io.observe(stage);
+  } else start();
+</script>

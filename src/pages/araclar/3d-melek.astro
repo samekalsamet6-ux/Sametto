@@ -1,0 +1,20 @@
+---
+import Base from '../../layouts/Base.astro';
+import Fish3D from '../../components/Fish3D.astro';
+import { FORMS } from '../../lib/melek/forms';
+import { PARTS, VIEWS } from '../../lib/melek/parts';
+import { groupedVariants } from '../../lib/melek/variants';
+import { SPEC, silhouette } from '../../lib/melek/model';
+---
+<Base title="3B melek balığı modeli" description="Melek balığının (Pterophyllum scalare) etkileşimli 3B modeli: yanlardan basık disk gövde, uzun üçgen sırt ve anal yüzgeç, karın iplikleri, dikey şeritler ve renk varyeteleri.">
+  <Fish3D forms={FORMS} id="melek" ad="melek balığı" latin="Pterophyllum scalare"
+    sexNote={{ ad: 'Ayrım yok / belirgin değil', not: 'Melek balıklarında cinsiyet dışarıdan güvenilir biçimde ayırt edilemez; yalnızca üreme döneminde yumurtlama borusu (dişide daha geniş ve küt, erkekte daha ince ve sivri) görülebilir. Baş ya da yüzgeç biçimi gibi ipuçları kanıtlı değildir; bu yüzden model tek biçimlidir.' }}
+    views={VIEWS} parts={PARTS} groups={groupedVariants()} defaultVariant="gumus" silhouette={silhouette(SPEC)}
+    colors={{ body: '#b9c2c4', fin: '#8fa0a6', stroke: '#2b3538' }}
+    variantIntro="Ticaret adları standart değildir; satıcıdan satıcıya değişir ve çoğu melek balığı birkaç seçmeli hattın karışımıdır."
+    limits="Modellenmeyenler: pul tek tek çizilmemiştir (yalnızca doku olarak vardır), yüzgeç ışınları tek tek hareket etmez, iç organlar ve yüzme kesesi gösterilmemiştir. Yüzme animasyonu gövdenin yanal dalgalanmasını basitçe taklit eder."
+    seeAlso={[{ href: '/araclar/3d-lepistes', ad: '3B lepistes' }, { href: '/araclar/3d-diskus', ad: '3B diskus' }]}>
+    <p slot="intro" class="muted">Akvaryumda tutulan melek balığının şematik, etkileşimli 3B modeli. Sürükleyerek döndürün, <strong>Ön</strong> görünümde gövdenin ne kadar ince olduğuna bakın, renk varyetelerini deneyin ve numaralı noktalara ya da listeye tıklayıp açıklamaları okuyun.</p>
+    <Fragment slot="tur"><strong>Tür varsayımı.</strong> Bu model, akvaryumda en sık tutulan <em>Pterophyllum scalare</em> türüne (ticaretteki “melek balığı”) benzeyen <strong>genel ve şematik</strong> bir gövdedir. Evcil melek balıkları çoğunlukla seçmeli üretilmiş melezlerdir; belirli bir bireyin ya da hattın ölçüsü değildir ve <strong>tür kimliği kaynakla doğrulanmalıdır</strong>. Cinsiyet ayrımı dışarıdan güvenilir olmadığı için tek bir (cinsiyetsiz) gövde gösterilir.</Fragment>
+  </Fish3D>
+</Base>

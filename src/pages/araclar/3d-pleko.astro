@@ -1,0 +1,59 @@
+---
+import SpeciesPage from '../../components/SpeciesPage.astro';
+import { PARTS } from '../../lib/pleco/parts';
+import { FORMS } from '../../lib/pleco/forms';
+import { VARIANTS, groupedVariants } from '../../lib/pleco/variants';
+import { SEXES, silhouette } from '../../lib/pleco/model';
+import { svgFigure } from '../../lib/akvaryum/fishmath';
+
+const figures = [
+  { label: 'Erkek pleko (yandan, standart yüzgeç)', ...svgFigure(silhouette('erkek', 0)) },
+  { label: 'Dişi pleko (yandan, standart yüzgeç)', ...svgFigure(silhouette('disi', 0)) },
+  { label: 'Erkek pleko (yandan, tül / uzun yüzgeç)', ...svgFigure(silhouette('erkek', 1)) },
+];
+void SEXES;
+---
+<SpeciesPage
+  title="3B pleko modeli"
+  description="Pleko / Ancistrus (bristlenose, L144 limon mavi göz ve tül formu) için etkileşimli 3B model: kemikli plakalar, vantuz ağız, erkekte dallı bristle’lar, yağ yüzgeci, dikenler ve renk formları."
+  intro="Akvaryumların dip temizleyicisi bristlenose pleko’nun (Ancistrus) şematik, etkileşimli 3B modeli; kullanıcı isteğiyle <strong>L144 limon mavi göz</strong> rengi ve <strong>tül (uzun yüzgeç)</strong> şekli de var. Sürükleyerek döndürün, <strong>Alt (ağız)</strong> görünümünde vantuz ağıza, <strong>Üst</strong> görünümde yassı başa ve bristle’lara bakın; erkek ve dişiyi karşılaştırın; numaralı noktalara ya da listeye tıklayıp açıklamaları okuyun."
+  views={[{ id: 'yan', ad: 'Yan' }, { id: 'ust', ad: 'Üst' }, { id: 'alt', ad: 'Alt (ağız)' }, { id: 'on', ad: 'Ön' }, { id: 'arka', ad: 'Arka' }, { id: 'capraz', ad: 'Çapraz' }]}
+  sexes={[{ id: 'erkek', ad: 'Erkek', not: '' }, { id: 'disi', ad: 'Dişi', not: '' }]}
+  parts={PARTS}
+  groups={groupedVariants()}
+  forms={FORMS}
+  formLabel="Şekil (form)"
+  formIntro="Şekil (form) renkten bağımsızdır: seçtiğiniz her renk formu Normal ya da Tül yüzgeçle birleştirilebilir. Yalnızca yüzgeç geometrisi değişir."
+  variantLabel="Renk formu"
+  variantIntro={`${VARIANTS.length} şematik form; hepsi aynı Ancistrus gövdesini paylaşır, yalnızca renk ve desen değişir (yüzgeç uzunluğu ayrı “Şekil” seçicisindedir). “L144” gibi L-numaraları bilimsel ad değil ticari/katalog kodlarıdır; ticarette bu adla satılan balık çoğu kez seçilimle üretilmiş limon formdur ve gerçek L144 ile aynı olmayabilir. Albino Ancistrus sık sık “L144” diye yanlış etiketlenir. Ticaret adları standart değildir; “kaynakla doğrulanmalı” işaretli kayıtların adı ya da tanımı belirsizdir.`}
+  figures={figures}
+  fill="#c8a43c"
+  stageLabel="Pleko (Ancistrus) kedibalığının etkileşimli 3B modeli."
+>
+  <div class="callout callout-bilgi" slot="tur">
+    <strong>L144 ve tür kimliği.</strong> Model, akvaryumda yaygın tutulan <em>Ancistrus</em> (bristlenose) biçimini <strong>şematik</strong> olarak gösterir. “L144”, kedibalıkları için kullanılan bir ticari L-numarasıdır; hobi kaynaklarında, bu adla satılan limon-mavi gözlü balığın gerçek L144 olmadığı, seçilimle üretilmiş bir Ancistrus formu olduğu savunulur (<strong>kaynakla doğrulanmalı</strong>). Gözü pembe-kırmızı olan albino formlar sık sık yanlış etiketlenir. <strong>Tül (uzun yüzgeç)</strong> ise renkten bağımsız bir şekil (form) seçeneğidir: yalnızca sırt, kuyruk, göğüs, karın ve anal yüzgeçleri uzatır. Oranlar, renkler ve plaka düzeni eğitim amaçlıdır.
+  </div>
+  <div class="callout callout-uyari" slot="ek" id="safety">
+    <strong>Dikenler.</strong> Göğüs ve sırt yüzgeçlerinin ön ışını sert bir dikendir; balık tehdit altında bunları açıp kilitleyebilir. Ağa ve dekora takılabilir, ele batabilir; tutarken dikkat edin. Bu sayfa bakım ya da üretim rehberi değildir (kaynakla doğrulanmalı).
+  </div>
+  <p class="muted">Modellenmeyenler: çene dişleri, iç organlar (bağırsak hava solunumu), yanak odontodlarının dışarı çıkışı, bireye özgü benek/yama düzeni ve levha sayısının gerçek değeri. Bristle sayısı ve boyu, cinsiyet farkı ve yüzgeç uzunlukları şematiktir ve bireyden bireye, tür ve yaşa göre çok değişir; genç bireylerde ayrım güvenilir değildir.</p>
+  <div class="callout callout-bilgi">
+    Aynı serideki diğer modeller: <a href="/araclar/3d-corydoras">3B corydoras</a>, <a href="/araclar/3d-betta">3B betta</a> ve <a href="/araclar/3d-lepistes">3B lepistes</a>.
+  </div>
+</SpeciesPage>
+
+<script>
+  import { initSpeciesPage } from '../../lib/akvaryum/page';
+  import { PARTS, partsFor } from '../../lib/pleco/parts';
+  import { VARIANTS } from '../../lib/pleco/variants';
+  import { FORMS } from '../../lib/pleco/forms';
+
+  initSpeciesPage({
+    parts: PARTS, partsFor, variants: VARIANTS, forms: FORMS, defaultSex: 'erkek', defaultView: 'capraz',
+    sexNotes: {
+      erkek: 'Erkek: burun kenarında büyük, dallı bristle’lar; baş biraz geniş çizilmiştir (şematik). Genç bireylerde ayrım güvenilir değildir.',
+      disi: 'Dişi: bristle yok ya da yalnızca birkaç küçük çıkıntı; orta gövde daha dolgun çizilmiştir (şematik). Genç bireylerde ayrım güvenilir değildir.',
+    },
+    load: () => import('../../lib/pleco/index'),
+  });
+</script>

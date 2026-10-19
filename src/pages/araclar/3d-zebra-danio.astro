@@ -1,0 +1,58 @@
+---
+import SpeciesPage from '../../components/SpeciesPage.astro';
+import { PARTS } from '../../lib/zebradanio/parts';
+import { FORMS } from '../../lib/zebradanio/forms';
+import { VARIANTS, groupedVariants } from '../../lib/zebradanio/variants';
+import { SEXES, FORM_IDS, specFor, silhouette } from '../../lib/zebradanio/model';
+import { svgFigure } from '../../lib/akvaryum/fishmath';
+
+// WebGL yokken gösterilen SVG yedeği, 3B modelle aynı geometriden türetilir.
+const sexName = { erkek: 'Erkek zebra danio', disi: 'Dişi zebra danio' } as const;
+const formName = { standart: 'standart', 'uzun-yuzgec': 'uzun yüzgeçli' } as const;
+const figures = FORM_IDS.flatMap((f) => SEXES.map((s) => {
+  const sil = silhouette(specFor(f, s));
+  const fins = [...sil.fins.map((pts, i) => ({ id: `f${i}`, pts })), { id: 'pec', pts: sil.pectoral }];
+  return { label: `${sexName[s]} (${formName[f]})`, ...svgFigure({ body: sil.body, fins, eye: { c: [sil.eye.x, sil.eye.y], r: sil.eye.r } }) };
+}));
+---
+<SpeciesPage
+  title="3B zebra balığı (zebra danio) modeli"
+  description="Zebra balığının (zebra danio, Danio rerio) etkileşimli 3B modeli: ince mekik gövde, solungaç kapağından kuyruğa uzanan yatay mavi çizgiler, iki çift küçük bıyık, yukarı bakan ağız; standart ve uzun yüzgeçli form; çizgili, leopar, altın, albino gibi renk hatları."
+  intro="Zebra balığının (zebra danio, <em>Danio rerio</em>) şematik, etkileşimli 3B modeli. Sürükleyerek döndürün, erkek ve dişiyi karşılaştırın, <strong>Form</strong> ve <strong>Renk</strong> seçicilerini birbirinden bağımsız deneyin; numaralı noktalara ya da listeye tıklayıp açıklamaları okuyun."
+  views={[{ id: 'yan', ad: 'Yan' }, { id: 'ust', ad: 'Üst' }, { id: 'on', ad: 'Ön' }, { id: 'arka', ad: 'Arka' }, { id: 'alt', ad: 'Alt' }, { id: 'capraz', ad: 'Çapraz' }]}
+  sexes={[{ id: 'erkek', ad: 'Erkek', not: '' }, { id: 'disi', ad: 'Dişi', not: '' }]}
+  parts={PARTS}
+  forms={FORMS}
+  formIntro="İki form gösterilir: doğadaki biçime yakın standart ve ticarette “longfin” ya da “veil” adıyla satılan seçmeli uzun yüzgeçli hat. Form yalnızca yüzgeç geometrisini değiştirir; her form her renkle birleşir. Başka (örn. balon gövdeli) bir form kaynaklarda bulunamadığı için eklenmemiştir."
+  groups={groupedVariants()}
+  variantLabel="Renk / desen"
+  variantIntro={`${VARIANTS.length} şematik renk hattı (normal çizgili, leopar, çizgi–benek karışımı, altın, albino); hepsi aynı gövdeyi paylaşır, yalnızca renk ve desen değişir. GloFish benzeri floresan ya da boyanmış balıklar gösterilmez. Ticaret adları standart değildir; “Kaynakla doğrulanmalı” işaretli kayıtların adı ya da varlığı belirsizdir.`}
+  figures={figures}
+  fill="#d9b24a"
+  stageLabel="Zebra danionun etkileşimli 3B modeli."
+>
+  <div class="callout callout-bilgi" slot="tur">
+    <strong>Kapsam.</strong> Bu model <em>Danio rerio</em> (zebra balığı, zebra danio) için <strong>şematik</strong> bir gövdedir; leopar, altın ve albino aynı türün seçmeli renk/desen biçimleridir. İki çift bıyık (rostral ve maksiller) çok küçüktür; modelde ince kısa iplikler olarak gösterilmiştir ve kaynakla doğrulanmalıdır. Erkek–dişi farkı (dişide dolgun, gümüşi–sarımsı karın; erkekte ince gövde ve mavi çizgiler arasında altın şeritler) zayıf olabilir ve doğrulanmalıdır. GloFish gibi floresan balıklar kapsam dışıdır. Model bakım, hastalık ya da tedavi rehberi değildir.
+  </div>
+  <p class="muted" slot="ek">Karın yüzgeçleri bu modelde şematik olarak kısa, tek parça gösterilir; gerçekte ışınlı küçük yelpazelerdir.</p>
+  <p class="muted">Modellenmeyenler: pullar tek tek çizilmemiştir (doku olarak vardır), yüzgeç ışınları tek tek hareket etmez, iç organlar ve yüzme kesesi gösterilmemiştir; çizgi sayısı, kalınlığı ve konumu bireyden bireye değişir. Yüzme animasyonu gövdenin yanal dalgalanmasını basitçe taklit eder.</p>
+  <div class="callout callout-bilgi">
+    Aynı serideki diğer modeller: <a href="/araclar/3d-kaplan-barb">3B kaplan barb</a>, <a href="/araclar/3d-neon">3B neon tetra</a> ve <a href="/araclar/3d-melek">3B melek balığı</a>.
+  </div>
+</SpeciesPage>
+
+<script>
+  import { initSpeciesPage } from '../../lib/akvaryum/page';
+  import { PARTS, partsFor } from '../../lib/zebradanio/parts';
+  import { FORMS } from '../../lib/zebradanio/forms';
+  import { VARIANTS } from '../../lib/zebradanio/variants';
+
+  initSpeciesPage({
+    parts: PARTS, partsFor, variants: VARIANTS, forms: FORMS, defaultSex: 'erkek', defaultView: 'capraz',
+    sexNotes: {
+      erkek: 'Erkek: daha ince ve torpido biçimli; mavi çizgiler arasındaki şeritler altın–sarımsı (şematik). Fark zayıf olabilir, gençlerde görülmeyebilir.',
+      disi: 'Dişi: daha dolgun ve yuvarlak karınlı; karın gümüşi–sarımsı, çizgiler arası daha soluk (şematik). Fark zayıf olabilir, gençlerde görülmeyebilir.',
+    },
+    load: () => import('../../lib/zebradanio/index'),
+  });
+</script>

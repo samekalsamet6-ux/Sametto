@@ -10,12 +10,12 @@ Lepistes (guppy, *Poecilia reticulata*) üretimi için Türkçe **rehber**, **wi
 |---|---|---|
 | Rehber | `src/content/guide/{baslangic,orta,ileri}` | 3 yol × 15 ders (MDX) |
 | Wiki | `src/content/wiki` | 63 madde: terimler, su kimyası, ekipman, hastalıklar, beslenme, genetik… |
-| Araçlar | `src/pages/araclar`, `src/lib` | 13 araç (aşağıda) |
+| Araçlar | `src/pages/araclar`, `src/lib` | 32 araç (aşağıda) |
 | Sorun giderme | `/sorun-giderme` | Belirtiden olası nedene karar aracı |
 | Seviye testi | `/seviye-testi` | 18 soruluk yönlendirme testi |
 | SSS, Sözlük, Kaynaklar | `/sss`, `/sozluk`, `/kaynaklar` | |
 
-**Araçlar:** akvaryum hacmi · su değişimi · balık sayısı planlayıcı · gebelik/doğum takvimi · yem planlayıcı · bakım takvimi (.ics) · azot döngüsü takipçisi · yavru büyüme takipçisi · maliyet ve kârlılık · etiket oranı ölçekleyici (doz önermez) · pedigri çizici · Punnett hesaplayıcı · inbreeding (Wright F).
+**Araçlar:** akvaryum hacmi · su değişimi · balık sayısı planlayıcı · gebelik/doğum takvimi · yem planlayıcı · bakım takvimi (.ics) · azot döngüsü takipçisi · yavru büyüme takipçisi · maliyet ve kârlılık · etiket oranı ölçekleyici (doz önermez) · pedigri çizici · Punnett hesaplayıcı · inbreeding (Wright F) · 3B akvaryum modelleri: lepistes (29 renk, 15 form) · molly · plati · kılıçkuyruk (5 form, 10 renk) · cüce gurami (8 renk, erkek/dişi) · kaplan barb (6 renk, 2 form, erkek/dişi) · zebra danio (5 renk, 2 form, erkek/dişi) · kardinal tetra (4 renk, 2 form, erkek/dişi; kırmızı şerit tam boy) · ram çiklit (5 renk, 3 form, erkek/dişi) · betta (12 form) · melek · diskus · pleko (L144) · neon tetra · corydoras · japon balığı (10 form) · Amano karidesi (tek doğal görünüm, erkek/dişi) · Neocaridina karidesi (her birinde renk + form varyetesi, numaralı noktaları açıp kapama) · 3B tatlı su vatozu modeli (üst/alt yüz anatomisi, klasper, kuyruk dikeni; 6 şematik desen: motoro, leopoldi, cururu vb.; genel Potamotrygon benzeri disk, tür kimliği kaynakla doğrulanmalı).
 
 Tüm hesaplar tarayıcıda yapılır; hesap/giriş yoktur, veriler sunucuya gönderilmez (takipçi verisi yalnızca `localStorage`'da tutulur).
 
@@ -39,7 +39,7 @@ npm run dev        # geliştirme sunucusu (arama dizini yalnızca build sonrası
 | `npm run build` | Siteyi `dist/` içine derler ve Pagefind dizinini oluşturur |
 | `npm run preview` | Derlenmiş siteyi yerelde açar |
 | `npm run check:links` | `dist/` içindeki dahili bağlantıları denetler (önce `build`) |
-| `npm run e2e` | Playwright E2E testleri (106 test = 53 senaryo × masaüstü/mobil): araçlar, sorun giderme, seviye testi, gezinti, arama (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
+| `npm run e2e` | Playwright E2E testleri (154 test = 77 senaryo × masaüstü/mobil): araçlar, sorun giderme, seviye testi, gezinti, arama (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
 | `npm run a11y` | Tüm sayfalarda axe taraması, açık ve koyu tema (önce `build`; `CHROME=<yol>` ile tarayıcı verilebilir) |
 | `npm run pwa` | Manifest, simgeler, hizmet çalışanı ve **gerçek çevrimdışı** gezinti/arama/araç denetimi (önce `build`) |
 | `npm run lighthouse` | Seçili 7 sayfada Lighthouse (mobil); performans ≥ 85, erişilebilirlik/en iyi uygulamalar/SEO ≥ 95 |

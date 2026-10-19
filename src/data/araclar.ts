@@ -1,4 +1,4 @@
-export interface Tool { slug: string; title: string; desc: string; group: 'Hesaplayıcı' | 'Planlayıcı' | 'Takip' | 'Genetik' }
+export interface Tool { slug: string; title: string; desc: string; group: 'Hesaplayıcı' | 'Planlayıcı' | 'Takip' | 'Genetik' | 'Görsel' }
 export const tools: Tool[] = [
   { slug: 'hacim', title: 'Akvaryum hacmi', desc: 'Brüt ve net litre hesabı.', group: 'Hesaplayıcı' },
   { slug: 'su-degisimi', title: 'Su değişimi', desc: 'Hedef nitrata göre değişim oranı.', group: 'Hesaplayıcı' },
@@ -13,4 +13,23 @@ export const tools: Tool[] = [
   { slug: 'pedigri', title: 'Pedigri çizici', desc: 'Soy ağacınızı çizer, her bireyin F değerini gösterir.', group: 'Genetik' },
   { slug: 'punnett', title: 'Punnett hesaplayıcı', desc: 'Otozomal, X- ve Y-bağlantılı olasılıklar.', group: 'Genetik' },
   { slug: 'inbreeding', title: 'İnbreeding (Wright F)', desc: 'Soy ağacından planlanan çiftleşmenin F değeri.', group: 'Genetik' },
+  { slug: '3d-lepistes', title: '3B lepistes modeli', desc: 'Erkek ve dişi lepistesin etkileşimli 3B modeli: anatomi, 29 renk varyetesi, 15 form (delta, fil kulak, kılıç kuyruk...), yüzme animasyonu.', group: 'Görsel' },
+  { slug: '3d-vatoz', title: '3B tatlı su vatozu modeli', desc: 'Akvaryumda tutulan tatlı su vatozunun (Potamotrygon) şematik 3B modeli: üst/alt yüz anatomisi, klasper, kuyruk dikeni, motoro, leopoldi, cururu gibi desen varyeteleri.', group: 'Görsel' },
+  { slug: '3d-molly', title: '3B molly modeli', desc: 'Molly modelinin (Poecilia) şematik 3B modeli: gonopodium, gravid spot, standart/sailfin/lyretail formları ve renk varyeteleri.', group: 'Görsel' },
+  { slug: '3d-platy', title: '3B plati modeli', desc: 'Platinin (Xiphophorus) şematik 3B modeli: hifin, pintail gibi formlar; Red Wag, Mickey Mouse, Tuxedo gibi renk varyeteleri.', group: 'Görsel' },
+  { slug: '3d-kilickuyruk', title: '3B kılıçkuyruk modeli', desc: 'Kılıçkuyruğun (Xiphophorus hellerii) şematik 3B modeli: erkekte kılıç ve gonopodium; hifin, lyretail gibi formlar; Red Wagtail, Tuxedo, Koi gibi renk varyeteleri.', group: 'Görsel' },
+  { slug: '3d-cuce-gurami', title: '3B cüce gurami modeli', desc: 'Cüce guraminin (Trichogaster lalius) şematik 3B modeli: dokunma iplikleri, kesintisiz anal yüzgeç, erkekte sivri sırt yüzgeci; neon mavi, toz mavi, kobalt, gün batımı, alev gibi renk hatları (ayrı form yok).', group: 'Görsel' },
+  { slug: '3d-kaplan-barb', title: '3B kaplan barb modeli', desc: 'Kaplan barbın (Puntigrus tetrazona) şematik 3B modeli: dört dikey bant, kırmızı kenarlı sırt yüzgeci, erkekte kırmızı burun; standart ve uzun yüzgeçli form; normal, yeşil, albino, altın gibi renk hatları.', group: 'Görsel' },
+  { slug: '3d-zebra-danio', title: '3B zebra balığı (zebra danio) modeli', desc: 'Zebra danionun (Danio rerio) şematik 3B modeli: solungaç kapağından kuyruğa uzanan yatay mavi çizgiler, iki çift küçük bıyık, yukarı bakan ağız; standart ve uzun yüzgeçli form; çizgili, leopar, altın, albino gibi renk hatları.', group: 'Görsel' },
+  { slug: '3d-kardinal-tetra', title: '3B kardinal tetra modeli', desc: 'Kardinal tetranın (Paracheirodon axelrodi) şematik 3B modeli: gözden yağ yüzgecine mavi-yeşil iridofor şerit, gövdenin tüm boyunca uzanan kırmızı şerit (neondan farkı); standart ve uzun yüzgeçli form; normal, diamond, gold, albino renk hatları.', group: 'Görsel' },
+  { slug: '3d-ram-ciklit', title: '3B ram çiklit (kelebek çiklit) modeli', desc: 'Ram çiklitinin (Mikrogeophagus ramirezi, “German blue ram”) şematik 3B modeli: gözden geçen siyah çubuk, gövde lekesi, parlak mavi benekler, dikenli sırt yüzgeci (erkekte uzayan 2. diken); standart, uzun yüzgeçli ve balon form; normal, altın, elektrik mavisi, siyah, albino renk hatları. Bolivya ramı ayrı bir türdür.', group: 'Görsel' },
+  { slug: '3d-betta', title: '3B betta modeli', desc: 'Bettanın (Betta splendens) şematik 3B modeli: plakat, halfmoon, crowntail, çift kuyruk, fil kulak gibi 12 form ve 14 renk varyetesi.', group: 'Görsel' },
+  { slug: '3d-melek', title: '3B melek balığı modeli', desc: 'Melek balığının (Pterophyllum scalare) şematik 3B modeli: standart, veil, halfmoon formları ve renk varyeteleri.', group: 'Görsel' },
+  { slug: '3d-diskus', title: '3B diskus modeli', desc: 'Diskusun (Symphysodon) şematik 3B modeli: yuvarlak gövde, anatomi ve renk hatları (ayrı form yok).', group: 'Görsel' },
+  { slug: '3d-pleko', title: '3B pleko modeli (L144)', desc: 'Ancistrus (bristlenose) plekosunun şematik 3B modeli: vantuz ağız, plakalar, bristle; normal ve tül (uzun yüzgeç) formu, L144 dahil renk varyeteleri.', group: 'Görsel' },
+  { slug: '3d-neon', title: '3B neon tetra modeli', desc: 'Neon tetranın şematik 3B modeli: iridofor şerit, kırmızı alt yarı; standart, uzun yüzgeçli ve balon formları.', group: 'Görsel' },
+  { slug: '3d-corydoras', title: '3B corydoras modeli', desc: 'Corydorasın şematik 3B modeli: zırh plakaları, bıyıklar, alt ağız, dikenler; bronz, albino, benekli renkleri ve formları.', group: 'Görsel' },
+  { slug: '3d-japon', title: '3B japon balığı modeli', desc: 'Japon balığının 10 şematik formu (common, comet, fantail, ryukin, oranda, lionhead, telescope, bubble eye, pearlscale...) ve 9 renk varyetesi.', group: 'Görsel' },
+  { slug: '3d-amano-karidesi', title: '3B Amano karidesi modeli', desc: 'Amano (Yamato) karidesinin, Caridina multidentata, şematik 3B modeli: yarı saydam gri-yeşil gövde, erkekte nokta / dişide çizgi yan işaretleri, sırt çizgisi, çok dişli rostrum, fırça kıskaçlar, dişide eyer/yumurta; tanınan renk hattı ya da şekil varyetesi yok.', group: 'Görsel' },
+  { slug: '3d-karides', title: '3B Neocaridina karides modeli', desc: 'Neocaridina davidi karidesinin şematik 3B modeli: eklemli karın, antenler, bacaklar, dişide eyer/yumurta ve 16 renk varyetesi.', group: 'Görsel' },
 ];

@@ -1,0 +1,2260 @@
+[
+ {
+  "id": "lepistes",
+  "ad": "Lepistes",
+  "latin": "Poecilia reticulata",
+  "kisaAciklama": "Erkek ve dişi lepistesin anatomisi ve 29 şematik renk varyetesi ile 15 form (şekil) varyetesi: delta, veiltail, lyretail, kılıç kuyruk, fil kulak ve diğerleri.",
+  "not": "Şematik model: oranlar, desenler ve renkler eğitim amaçlı bir yorumdur; gerçek bir bireyin ya da standardın ölçüsü değildir.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart (bu sayfadaki temel biçim)",
+    "grup": "Standart"
+   },
+   {
+    "id": "dogal",
+    "ad": "Doğal (yabani tip benzeri)",
+    "grup": "Standart"
+   },
+   {
+    "id": "delta",
+    "ad": "Delta",
+    "grup": "Üçgen ve yelpaze kuyruklar"
+   },
+   {
+    "id": "fantail",
+    "ad": "Fantail (yelpaze kuyruk)",
+    "grup": "Üçgen ve yelpaze kuyruklar"
+   },
+   {
+    "id": "veiltail",
+    "ad": "Veiltail (peçe kuyruk)",
+    "grup": "Üçgen ve yelpaze kuyruklar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "lyretail",
+    "ad": "Lyretail (lir kuyruk)",
+    "grup": "Yuvarlak ve sivri kuyruklar"
+   },
+   {
+    "id": "pintail",
+    "ad": "Pintail (iğne kuyruk)",
+    "grup": "Yuvarlak ve sivri kuyruklar"
+   },
+   {
+    "id": "round",
+    "ad": "Round tail (yuvarlak kuyruk)",
+    "grup": "Yuvarlak ve sivri kuyruklar"
+   },
+   {
+    "id": "spade",
+    "ad": "Spade tail (maça kuyruk)",
+    "grup": "Yuvarlak ve sivri kuyruklar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "flag",
+    "ad": "Flag tail (bayrak kuyruk)",
+    "grup": "Uzun ve özel yüzgeçler",
+    "dogrulanmali": true
+   },
+   {
+    "id": "ribbon",
+    "ad": "Ribbon (şerit / uzun yüzgeç)",
+    "grup": "Uzun ve özel yüzgeçler",
+    "dogrulanmali": true
+   },
+   {
+    "id": "kilic-ust",
+    "ad": "Üst kılıç (top sword)",
+    "grup": "Kılıç kuyruklar"
+   },
+   {
+    "id": "kilic-alt",
+    "ad": "Alt kılıç (bottom sword)",
+    "grup": "Kılıç kuyruklar"
+   },
+   {
+    "id": "kilic-cift",
+    "ad": "Çift kılıç (double sword)",
+    "grup": "Kılıç kuyruklar"
+   },
+   {
+    "id": "dumbo",
+    "ad": "Fil kulak (dumbo ear)",
+    "grup": "Göğüs yüzgeci"
+   }
+  ],
+  "variants": [
+   {
+    "id": "mozaik",
+    "ad": "Mozaik",
+    "grup": "Desenli"
+   },
+   {
+    "id": "red-mosaic",
+    "ad": "Red Mosaic (Kırmızı mozaik)",
+    "grup": "Desenli"
+   },
+   {
+    "id": "cobra",
+    "ad": "Cobra",
+    "grup": "Desenli"
+   },
+   {
+    "id": "red-cobra",
+    "ad": "Red Cobra (Kırmızı cobra)",
+    "grup": "Desenli"
+   },
+   {
+    "id": "blue-cobra",
+    "ad": "Blue Cobra (Mavi cobra)",
+    "grup": "Desenli"
+   },
+   {
+    "id": "blue-grass",
+    "ad": "Blue Grass",
+    "grup": "Desenli"
+   },
+   {
+    "id": "red-grass",
+    "ad": "Red Grass (Kırmızı grass)",
+    "grup": "Desenli"
+   },
+   {
+    "id": "green-grass",
+    "ad": "Green Grass (Yeşil grass)",
+    "grup": "Desenli"
+   },
+   {
+    "id": "snakeskin",
+    "ad": "Snakeskin",
+    "grup": "Desenli"
+   },
+   {
+    "id": "leopard",
+    "ad": "Leopard",
+    "grup": "Desenli"
+   },
+   {
+    "id": "koi",
+    "ad": "Koi",
+    "grup": "Desenli"
+   },
+   {
+    "id": "endler",
+    "ad": "Endler tipi",
+    "grup": "Desenli"
+   },
+   {
+    "id": "full-red",
+    "ad": "Full Red (Tam kırmızı)",
+    "grup": "Tek renk"
+   },
+   {
+    "id": "neon-blue",
+    "ad": "Neon Blue (Parlak mavi)",
+    "grup": "Tek renk"
+   },
+   {
+    "id": "emerald",
+    "ad": "Emerald / Yeşil",
+    "grup": "Tek renk"
+   },
+   {
+    "id": "purple",
+    "ad": "Purple (Mor)",
+    "grup": "Tek renk"
+   },
+   {
+    "id": "yellow",
+    "ad": "Yellow / Golden (Sarı–altın)",
+    "grup": "Tek renk"
+   },
+   {
+    "id": "albino",
+    "ad": "Albino",
+    "grup": "Soluk ve metalik"
+   },
+   {
+    "id": "platinum",
+    "ad": "Platinum",
+    "grup": "Soluk ve metalik"
+   },
+   {
+    "id": "blonde",
+    "ad": "Blonde (Sarışın)",
+    "grup": "Soluk ve metalik"
+   },
+   {
+    "id": "pastel",
+    "ad": "Pastel",
+    "grup": "Soluk ve metalik"
+   },
+   {
+    "id": "japan-blue",
+    "ad": "Japan Blue",
+    "grup": "Soluk ve metalik"
+   },
+   {
+    "id": "red-tuxedo",
+    "ad": "Red Tuxedo (Kırmızı tuxedo)",
+    "grup": "Yarı siyah (tuxedo)"
+   },
+   {
+    "id": "half-black-blue",
+    "ad": "Half Black Blue",
+    "grup": "Yarı siyah (tuxedo)"
+   },
+   {
+    "id": "half-black-green",
+    "ad": "Half Black Green",
+    "grup": "Yarı siyah (tuxedo)"
+   },
+   {
+    "id": "half-black-purple",
+    "ad": "Half Black Purple",
+    "grup": "Yarı siyah (tuxedo)"
+   },
+   {
+    "id": "moscow-black",
+    "ad": "Moscow Black (Moskova siyahı)",
+    "grup": "Moskova"
+   },
+   {
+    "id": "moscow-blue",
+    "ad": "Moscow Blue (Moskova mavisi)",
+    "grup": "Moskova"
+   },
+   {
+    "id": "moscow-green",
+    "ad": "Moscow Green (Moskova yeşili)",
+    "grup": "Moskova"
+   }
+  ]
+ },
+ {
+  "id": "molly",
+  "ad": "Molly",
+  "latin": "Poecilia sphenops / latipinna / velifera",
+  "kisaAciklama": "Lepistesten iri, derin gövdeli molly: yuvarlak kuyruk, gonopodium, gravid spot, 5 form ve 9 renk varyetesi.",
+  "not": "Şematik, standart (yuvarlak kuyruklu, normal sırt yüzgeçli) bir molly gövdesi; belirli bir türün (sphenops, latipinna, velifera) ya da bireyin ölçüsü değildir. Form varyeteleri (sailfin, lyretail, veiltail, balon) renkten bağımsız seçilir; adlandırma satıcıya göre değişir, veiltail ve balon kaynakla doğrulanmalıdır. Renk adları satıcıya göre değişir.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart",
+    "grup": "Yüzgeç biçimi"
+   },
+   {
+    "id": "sailfin",
+    "ad": "Sailfin (yelken)",
+    "grup": "Yüzgeç biçimi"
+   },
+   {
+    "id": "lyretail",
+    "ad": "Lyretail (lira kuyruk)",
+    "grup": "Yüzgeç biçimi"
+   },
+   {
+    "id": "veiltail",
+    "ad": "Veiltail / longfin (geniş kuyruk)",
+    "grup": "Yüzgeç biçimi",
+    "dogrulanmali": true
+   },
+   {
+    "id": "balloon",
+    "ad": "Balloon (balon)",
+    "grup": "Gövde biçimi",
+    "dogrulanmali": true
+   }
+  ],
+  "variants": [
+   {
+    "id": "dogal",
+    "ad": "Doğal form (P. sphenops)",
+    "grup": "Doğal ve gümüş"
+   },
+   {
+    "id": "silver",
+    "ad": "Silver (Gümüş)",
+    "grup": "Doğal ve gümüş"
+   },
+   {
+    "id": "black",
+    "ad": "Black (Siyah / karbon)",
+    "grup": "Koyu"
+   },
+   {
+    "id": "chocolate",
+    "ad": "Chocolate (Çikolata)",
+    "grup": "Koyu",
+    "dogrulanmali": true
+   },
+   {
+    "id": "gold",
+    "ad": "Gold (Altın)",
+    "grup": "Altın ve turuncu"
+   },
+   {
+    "id": "gold-dust",
+    "ad": "Gold Dust (Altın tozu)",
+    "grup": "Altın ve turuncu"
+   },
+   {
+    "id": "orange",
+    "ad": "Orange (Turuncu)",
+    "grup": "Altın ve turuncu"
+   },
+   {
+    "id": "dalmatian",
+    "ad": "Dalmatian (Dalmaçyalı)",
+    "grup": "Benekli ve alacalı"
+   },
+   {
+    "id": "marble",
+    "ad": "Marble (Mermer)",
+    "grup": "Benekli ve alacalı"
+   }
+  ]
+ },
+ {
+  "id": "platy",
+  "ad": "Plati",
+  "latin": "Xiphophorus maculatus / variatus",
+  "kisaAciklama": "Kısa, tıknaz plati: yuvarlak kuyruk, gonopodium, gravid spot, 5 form ve 10 renk/desen varyetesi.",
+  "not": "Şematik, standart gövdeli (kılıçsız, yuvarlak kuyruklu) bir plati; X. maculatus ve X. variatus ayrımı gösterilmemiştir, ticari platiler çoğunlukla bu iki türün melezleridir. Form varyeteleri (hifin, pintail, lyretail, balon) renkten bağımsız seçilir; lyretail ve balon kaynakla doğrulanmalıdır. “Comet” ve “wagtail” biçim değil renk desenidir. Renk adları satıcıya göre değişir.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart",
+    "grup": "Yüzgeç biçimi"
+   },
+   {
+    "id": "hifin",
+    "ad": "Hifin (yüksek sırt yüzgeci)",
+    "grup": "Yüzgeç biçimi"
+   },
+   {
+    "id": "pintail",
+    "ad": "Pintail (iğne kuyruk)",
+    "grup": "Yüzgeç biçimi"
+   },
+   {
+    "id": "lyretail",
+    "ad": "Lyretail (lira kuyruk)",
+    "grup": "Yüzgeç biçimi",
+    "dogrulanmali": true
+   },
+   {
+    "id": "balloon",
+    "ad": "Balloon (balon)",
+    "grup": "Gövde biçimi",
+    "dogrulanmali": true
+   }
+  ],
+  "variants": [
+   {
+    "id": "red",
+    "ad": "Red (Kırmızı)",
+    "grup": "Düz renk"
+   },
+   {
+    "id": "gold",
+    "ad": "Gold (Altın / sarı)",
+    "grup": "Düz renk"
+   },
+   {
+    "id": "blue",
+    "ad": "Blue (Mavi)",
+    "grup": "Düz renk"
+   },
+   {
+    "id": "red-wag",
+    "ad": "Red Wag (Kırmızı siyah yüzgeçli)",
+    "grup": "Siyah yüzgeçli ve siyah desenli"
+   },
+   {
+    "id": "tuxedo",
+    "ad": "Tuxedo (Smokin)",
+    "grup": "Siyah yüzgeçli ve siyah desenli"
+   },
+   {
+    "id": "mickey",
+    "ad": "Mickey Mouse",
+    "grup": "Siyah yüzgeçli ve siyah desenli"
+   },
+   {
+    "id": "sunset",
+    "ad": "Sunset (Gün batımı)",
+    "grup": "Alacalı ve geçişli",
+    "dogrulanmali": true
+   },
+   {
+    "id": "salt-pepper",
+    "ad": "Salt & Pepper (Tuz ve biber)",
+    "grup": "Alacalı ve geçişli",
+    "dogrulanmali": true
+   },
+   {
+    "id": "dogal-maculatus",
+    "ad": "Doğal form (X. maculatus)",
+    "grup": "Doğal formlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "variatus",
+    "ad": "Variatus (çok renkli)",
+    "grup": "Doğal formlar",
+    "dogrulanmali": true
+   }
+  ]
+ },
+ {
+  "id": "betta",
+  "ad": "Betta",
+  "latin": "Betta splendens",
+  "kisaAciklama": "Betta: labirent organı, büyük yüzgeçler, 12 form (plakat, halfmoon, crowntail, fil kulak …) ve renk varyeteleri.",
+  "not": "Şematik model: form (yüzgeç/kuyruk şekli) ve renk varyeteleri birbirinden bağımsızdır; delta/super delta/overhalfmoon açıları ve combtail/rosetail tanımları kaynaklarda tutarsızdır. Varyete adları ticarette standart değildir; “kaynakla doğrulanmalı” işaretli kayıtlar belirsizdir.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "plakat",
+    "ad": "Plakat (standart)",
+    "grup": "Kısa yüzgeçli"
+   },
+   {
+    "id": "veiltail",
+    "ad": "Veiltail (perde kuyruk)",
+    "grup": "Uzun kuyruklular (kuyruk açısına göre)"
+   },
+   {
+    "id": "spade",
+    "ad": "Spade tail (maça kuyruk)",
+    "grup": "Uzun kuyruklular (kuyruk açısına göre)",
+    "dogrulanmali": true
+   },
+   {
+    "id": "delta",
+    "ad": "Delta",
+    "grup": "Uzun kuyruklular (kuyruk açısına göre)",
+    "dogrulanmali": true
+   },
+   {
+    "id": "super-delta",
+    "ad": "Super delta",
+    "grup": "Uzun kuyruklular (kuyruk açısına göre)",
+    "dogrulanmali": true
+   },
+   {
+    "id": "halfmoon",
+    "ad": "Halfmoon (yarım ay)",
+    "grup": "Uzun kuyruklular (kuyruk açısına göre)"
+   },
+   {
+    "id": "overhalfmoon",
+    "ad": "Overhalfmoon (OHM)",
+    "grup": "Uzun kuyruklular (kuyruk açısına göre)",
+    "dogrulanmali": true
+   },
+   {
+    "id": "crowntail",
+    "ad": "Crowntail (taç kuyruk)",
+    "grup": "Yüzgeç dokusu"
+   },
+   {
+    "id": "combtail",
+    "ad": "Combtail (tarak kuyruk)",
+    "grup": "Yüzgeç dokusu",
+    "dogrulanmali": true
+   },
+   {
+    "id": "rosetail",
+    "ad": "Rosetail / feathertail",
+    "grup": "Yüzgeç dokusu",
+    "dogrulanmali": true
+   },
+   {
+    "id": "double-tail",
+    "ad": "Double tail (çift kuyruk)",
+    "grup": "Özel yapılar"
+   },
+   {
+    "id": "dumbo",
+    "ad": "Dumbo ear (fil kulak)",
+    "grup": "Özel yapılar"
+   }
+  ],
+  "variants": [
+   {
+    "id": "kirmizi",
+    "ad": "Kırmızı",
+    "grup": "Tek renk"
+   },
+   {
+    "id": "mavi",
+    "ad": "Mavi (kraliyet mavisi)",
+    "grup": "Tek renk"
+   },
+   {
+    "id": "celik-mavi",
+    "ad": "Çelik mavisi (steel blue)",
+    "grup": "Tek renk",
+    "dogrulanmali": true
+   },
+   {
+    "id": "turkuaz",
+    "ad": "Turkuaz (mavi-yeşil)",
+    "grup": "Tek renk",
+    "dogrulanmali": true
+   },
+   {
+    "id": "sari",
+    "ad": "Sarı (kırmızısız sarı)",
+    "grup": "Tek renk",
+    "dogrulanmali": true
+   },
+   {
+    "id": "selofan",
+    "ad": "Selofan (cellophane)",
+    "grup": "Saydam ve soluk",
+    "dogrulanmali": true
+   },
+   {
+    "id": "opak-beyaz",
+    "ad": "Opak beyaz",
+    "grup": "Saydam ve soluk",
+    "dogrulanmali": true
+   },
+   {
+    "id": "koi",
+    "ad": "Koi",
+    "grup": "Desenli ve çok renkli",
+    "dogrulanmali": true
+   },
+   {
+    "id": "mermer",
+    "ad": "Mermer (marble)",
+    "grup": "Desenli ve çok renkli",
+    "dogrulanmali": true
+   },
+   {
+    "id": "kelebek",
+    "ad": "Kelebek (butterfly)",
+    "grup": "Desenli ve çok renkli"
+   },
+   {
+    "id": "siyah-orkide",
+    "ad": "Siyah orkide (black orchid)",
+    "grup": "Desenli ve çok renkli",
+    "dogrulanmali": true
+   },
+   {
+    "id": "ejder",
+    "ad": "Ejder (dragon scale)",
+    "grup": "Desenli ve çok renkli",
+    "dogrulanmali": true
+   },
+   {
+    "id": "hardal-gazi",
+    "ad": "Hardal gazı (mustard gas)",
+    "grup": "Desenli ve çok renkli",
+    "dogrulanmali": true
+   }
+  ]
+ },
+ {
+  "id": "vatoz",
+  "ad": "Tatlı su vatozu",
+  "latin": "Potamotrygon spp.",
+  "kisaAciklama": "Akvaryumda tutulan tatlı su vatozunun (Potamotrygon) üst/alt yüz anatomisi, klasper, kuyruk dikeni ve 6 şematik desen.",
+  "not": "Şematik, genel Potamotrygon benzeri bir disk; belirli bir türün ölçüsü değildir. Tür kimliği kaynakla doğrulanmalı. Kuyruk dikeni zehirlidir; sayfa bakım ya da müdahale rehberi değildir.",
+  "sexes": [
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   },
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   }
+  ],
+  "views": [
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [],
+  "variants": [
+   {
+    "id": "motoro",
+    "ad": "Motoro (P. motoro): turuncu halkalı göz benekleri",
+    "grup": "Akvaryumda sık görülen türlerin desenleri"
+   },
+   {
+    "id": "leopoldi",
+    "ad": "Leopoldi / \"Black Diamond\" (P. leopoldi): siyah zemin, krem-beyaz benekler",
+    "grup": "Akvaryumda sık görülen türlerin desenleri"
+   },
+   {
+    "id": "wallacei",
+    "ad": "Cururu (P. wallacei): açık-koyu kahve zemin, halkalı iri lekeler",
+    "grup": "Akvaryumda sık görülen türlerin desenleri"
+   },
+   {
+    "id": "retikule",
+    "ad": "Retikülasyon tipi (Reticulata / ağ desenli)",
+    "grup": "Akvaryumda sık görülen türlerin desenleri",
+    "dogrulanmali": true
+   },
+   {
+    "id": "marmorlu",
+    "ad": "Marmorlu motoro (ticari form)",
+    "grup": "Ticari desen formları",
+    "dogrulanmali": true
+   },
+   {
+    "id": "albino",
+    "ad": "Albino (açık krem-turuncu, kırmızımsı göz)",
+    "grup": "Pigment varyasyonu",
+    "dogrulanmali": true
+   }
+  ]
+ },
+ {
+  "id": "karides",
+  "ad": "Neocaridina karidesi",
+  "latin": "Neocaridina davidi",
+  "kisaAciklama": "Neocaridina (cherry shrimp) karidesinin karapaks, karın halkaları, gözler, antenler, bacaklar, kuyruk yelpazesi, dişide eyer/yumurta ve 16 şematik renk varyetesi.",
+  "not": "Şematik bir Neocaridina davidi gövdesi; belirli bir bireyin ölçüsü değildir. Renk varyeteleri yalnızca renk/desen farkıdır, ticaret adları satıcıya göre değişir ve “doğrulanmalı” işaretli olanlar belirsizdir. Caridina (ör. Crystal Red) bu listede yoktur. Bu sayfa bakım rehberi değildir.",
+  "sexes": [
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   },
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   }
+  ],
+  "views": [
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [],
+  "variants": [
+   {
+    "id": "dogal",
+    "ad": "Doğal / yabani tip (kahve-yeşil)",
+    "grup": "Doğal tip"
+   },
+   {
+    "id": "red-cherry",
+    "ad": "Red Cherry (düşük/orta sınıf, lekeli)",
+    "grup": "Kırmızı hat"
+   },
+   {
+    "id": "sakura",
+    "ad": "Sakura (daha homojen kırmızı)",
+    "grup": "Kırmızı hat"
+   },
+   {
+    "id": "fire-red",
+    "ad": "Fire Red (koyu, opak kırmızı)",
+    "grup": "Kırmızı hat"
+   },
+   {
+    "id": "painted-fire-red",
+    "ad": "Painted Fire Red (bacaklar da kırmızı)",
+    "grup": "Kırmızı hat"
+   },
+   {
+    "id": "yellow",
+    "ad": "Yellow (sarı)",
+    "grup": "Sarı ve turuncu"
+   },
+   {
+    "id": "yellow-goldenback",
+    "ad": "Yellow Goldenback (sırtta açık çizgi)",
+    "grup": "Sarı ve turuncu",
+    "dogrulanmali": true
+   },
+   {
+    "id": "orange",
+    "ad": "Orange (Sunkist / Orange Pumpkin)",
+    "grup": "Sarı ve turuncu",
+    "dogrulanmali": true
+   },
+   {
+    "id": "blue-dream",
+    "ad": "Blue Dream (parlak mavi)",
+    "grup": "Mavi ve yeşil"
+   },
+   {
+    "id": "blue-velvet",
+    "ad": "Blue Velvet (koyu, mat mavi)",
+    "grup": "Mavi ve yeşil",
+    "dogrulanmali": true
+   },
+   {
+    "id": "green-jade",
+    "ad": "Green Jade (yeşil)",
+    "grup": "Mavi ve yeşil",
+    "dogrulanmali": true
+   },
+   {
+    "id": "chocolate",
+    "ad": "Chocolate (çikolata kahve)",
+    "grup": "Koyu ve beyaz"
+   },
+   {
+    "id": "black-rose",
+    "ad": "Black Rose (koyu bordo-siyah)",
+    "grup": "Koyu ve beyaz",
+    "dogrulanmali": true
+   },
+   {
+    "id": "snowball",
+    "ad": "Snowball (beyaz, opak)",
+    "grup": "Koyu ve beyaz",
+    "dogrulanmali": true
+   },
+   {
+    "id": "rili-kirmizi",
+    "ad": "Red Rili (saydam gövde, kırmızı lekeler)",
+    "grup": "Rili (saydam + renk lekeli)"
+   },
+   {
+    "id": "rili-mavi",
+    "ad": "Blue Rili (saydam gövde, mavi lekeler)",
+    "grup": "Rili (saydam + renk lekeli)"
+   }
+  ]
+ },
+ {
+  "id": "melek",
+  "ad": "Melek balığı",
+  "latin": "Pterophyllum scalare",
+  "kisaAciklama": "Yanlardan basık disk gövde, uzun üçgen sırt ve anal yüzgeç, ince karın iplikleri; renk ve desen varyeteleri.",
+  "not": "Şematik, yorumlanmış bir modeldir; gerçek bir bireyin ölçüsü ya da oranı değildir. Evcil melek balıkları çoğunlukla yüzyıllarca seçmeli üretilmiş melezlerdir (Pterophyllum scalare ile yakın türlerin genleri karışmış olabilir); tür kimliği kaynakla doğrulanmalıdır. Altum (Pterophyllum altum) ayrı bir türdür ve form olarak gösterilmez; gövde şekli farklı seçmeli formlar modellenmemiştir.",
+  "sexes": [
+   {
+    "id": "disi",
+    "ad": "Ayrım yok / belirgin değil"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart (kısa yüzgeç)",
+    "grup": "Doğal biçim"
+   },
+   {
+    "id": "veil",
+    "ad": "Veil / peçe (uzun yüzgeç)",
+    "grup": "Seçmeli uzun yüzgeç formları"
+   },
+   {
+    "id": "halfmoon",
+    "ad": "Halfmoon (yarım ay)",
+    "grup": "Seçmeli uzun yüzgeç formları",
+    "dogrulanmali": true
+   },
+   {
+    "id": "super-veil",
+    "ad": "Süper veil (çok uzun yüzgeç)",
+    "grup": "Seçmeli uzun yüzgeç formları",
+    "dogrulanmali": true
+   }
+  ],
+  "variants": [
+   {
+    "id": "gumus",
+    "ad": "Gümüş (Silver)",
+    "grup": "Bantlı (yabani tipe yakın)"
+   },
+   {
+    "id": "zebra",
+    "ad": "Zebra",
+    "grup": "Bantlı (yabani tipe yakın)"
+   },
+   {
+    "id": "mavi",
+    "ad": "Mavi (Blue)",
+    "grup": "Bantlı (yabani tipe yakın)",
+    "dogrulanmali": true
+   },
+   {
+    "id": "dumanli",
+    "ad": "Dumanlı (Smokey)",
+    "grup": "Bantlı (yabani tipe yakın)"
+   },
+   {
+    "id": "siyah",
+    "ad": "Siyah (Black)",
+    "grup": "Tek renk ve açık tonlar"
+   },
+   {
+    "id": "altin",
+    "ad": "Altın (Gold)",
+    "grup": "Tek renk ve açık tonlar"
+   },
+   {
+    "id": "platin",
+    "ad": "Platin (Platinum)",
+    "grup": "Tek renk ve açık tonlar"
+   },
+   {
+    "id": "albino",
+    "ad": "Albino",
+    "grup": "Tek renk ve açık tonlar"
+   },
+   {
+    "id": "hayalet",
+    "ad": "Hayalet (Ghost)",
+    "grup": "Tek renk ve açık tonlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "pembe-yanak",
+    "ad": "Pembe yanaklı (Blushing)",
+    "grup": "Tek renk ve açık tonlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "koi",
+    "ad": "Koi",
+    "grup": "Benekli ve mermer desenler"
+   },
+   {
+    "id": "mermer",
+    "ad": "Mermer (Marble)",
+    "grup": "Benekli ve mermer desenler"
+   },
+   {
+    "id": "altin-mermer",
+    "ad": "Altın mermer (Gold marble)",
+    "grup": "Benekli ve mermer desenler",
+    "dogrulanmali": true
+   },
+   {
+    "id": "panda",
+    "ad": "Panda",
+    "grup": "Benekli ve mermer desenler",
+    "dogrulanmali": true
+   },
+   {
+    "id": "siyah-dantel",
+    "ad": "Siyah dantel (Black lace)",
+    "grup": "Benekli ve mermer desenler",
+    "dogrulanmali": true
+   },
+   {
+    "id": "inci-pul",
+    "ad": "İnci pullu (Pearlscale)",
+    "grup": "Pul yapısı"
+   }
+  ]
+ },
+ {
+  "id": "diskus",
+  "ad": "Diskus",
+  "latin": "Symphysodon spp.",
+  "kisaAciklama": "Yaklaşık dairesel, yanlardan basık disk gövde, kısa yuvarlak yüzgeçler, iri göz; yabani ve seçmeli renk hatları.",
+  "not": "Şematik, yorumlanmış bir modeldir; gerçek bir bireyin ölçüsü ya da oranı değildir. Diskus sınıflaması (Symphysodon discus, S. aequifasciatus, S. haraldi vb.) tartışmalıdır ve evcil hatların çoğu melezdir; tür kimliği kaynakla doğrulanmalıdır. Ticaret adları standart değildir.",
+  "sexes": [
+   {
+    "id": "disi",
+    "ad": "Ayrım yok / belirgin değil"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart (yuvarlak, yüksek gövde)",
+    "grup": ""
+   }
+  ],
+  "variants": [
+   {
+    "id": "heckel",
+    "ad": "Heckel tipi (yabani, belirgin orta bant)",
+    "grup": "Yabani tipler",
+    "dogrulanmali": true
+   },
+   {
+    "id": "kahverengi",
+    "ad": "Yabani kahverengi",
+    "grup": "Yabani tipler"
+   },
+   {
+    "id": "yabani-yesil",
+    "ad": "Yabani yeşil",
+    "grup": "Yabani tipler",
+    "dogrulanmali": true
+   },
+   {
+    "id": "royal-blue",
+    "ad": "Royal blue",
+    "grup": "Mavi ve turkuaz hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "blue-diamond",
+    "ad": "Blue diamond",
+    "grup": "Mavi ve turkuaz hatlar"
+   },
+   {
+    "id": "kobalt",
+    "ad": "Kobalt (Cobalt)",
+    "grup": "Mavi ve turkuaz hatlar"
+   },
+   {
+    "id": "kirmizi-turkuaz",
+    "ad": "Kırmızı turkuaz (Red turquoise)",
+    "grup": "Kırmızı ve turuncu hatlar"
+   },
+   {
+    "id": "red-melon",
+    "ad": "Red melon",
+    "grup": "Kırmızı ve turuncu hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "pigeon-blood",
+    "ad": "Pigeon blood",
+    "grup": "Kırmızı ve turuncu hatlar"
+   },
+   {
+    "id": "yilan-derisi",
+    "ad": "Yılan derisi (Snakeskin)",
+    "grup": "Desenli hatlar"
+   },
+   {
+    "id": "leopar",
+    "ad": "Leopar (Leopard)",
+    "grup": "Desenli hatlar"
+   },
+   {
+    "id": "panda",
+    "ad": "Panda",
+    "grup": "Desenli hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "albino",
+    "ad": "Albino",
+    "grup": "Açık ve albino hatlar"
+   },
+   {
+    "id": "altin",
+    "ad": "Altın (Golden)",
+    "grup": "Açık ve albino hatlar"
+   },
+   {
+    "id": "beyaz",
+    "ad": "Beyaz (White / ghost)",
+    "grup": "Açık ve albino hatlar",
+    "dogrulanmali": true
+   }
+  ]
+ },
+ {
+  "id": "pleco",
+  "ad": "Pleko / Ancistrus (L144)",
+  "latin": "Ancistrus sp. (bristlenose; “L144” ticari kod)",
+  "kisaAciklama": "Kemikli plakalı, vantuz ağızlı, erkeğinde dallı burun tentakleri olan Ancistrus; L144 limon mavi göz rengi; Normal ve Tül (uzun yüzgeç) şekil formları.",
+  "not": "Şematik model. L144 gibi L-numaraları bilimsel tür adı değil ticari/katalog kodlarıdır; ticarette “L144” diye satılan balığın gerçek L144 ile aynı olduğu belirsizdir (albino Ancistrus sık yanlış etiketlenir). Şekil (form) renkten bağımsızdır: Normal ve Tül (uzun yüzgeç) her renk formuyla birleşir; tül yalnızca yüzgeç boyunu uzatır. “Kaynakla doğrulanmalı” işaretli kayıtlar belirsizdir.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt (ağız)"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "normal",
+    "ad": "Normal (kısa yüzgeç)",
+    "grup": "Yüzgeç uzunluğu"
+   },
+   {
+    "id": "tul",
+    "ad": "Tül (uzun yüzgeç / longfin)",
+    "grup": "Yüzgeç uzunluğu",
+    "dogrulanmali": true
+   }
+  ],
+  "variants": [
+   {
+    "id": "limon-mavi-goz",
+    "ad": "L144 “Limon mavi göz”",
+    "grup": "L144 / limon mavi göz",
+    "dogrulanmali": true
+   },
+   {
+    "id": "ortak",
+    "ad": "Ortak / yabani tip (kahverengi, benekli)",
+    "grup": "Diğer renk formları"
+   },
+   {
+    "id": "albino",
+    "ad": "Albino (pembe gözlü)",
+    "grup": "Diğer renk formları"
+   },
+   {
+    "id": "super-kirmizi",
+    "ad": "Süper kırmızı",
+    "grup": "Diğer renk formları",
+    "dogrulanmali": true
+   },
+   {
+    "id": "calico",
+    "ad": "Calico (alacalı)",
+    "grup": "Diğer renk formları",
+    "dogrulanmali": true
+   },
+   {
+    "id": "kirmizi-calico",
+    "ad": "Süper kırmızı calico (kırmızı mermer)",
+    "grup": "Diğer renk formları",
+    "dogrulanmali": true
+   },
+   {
+    "id": "kar-topu",
+    "ad": "Kar topu / beyaz (snowball)",
+    "grup": "Diğer renk formları",
+    "dogrulanmali": true
+   }
+  ]
+ },
+ {
+  "id": "neon",
+  "ad": "Neon tetra",
+  "latin": "Paracheirodon innesi",
+  "kisaAciklama": "Parlak mavi-yeşil şeritli, alt yarısı kırmızı küçük sürü balığı; normal, diamond ve gold renkleri; standart, uzun yüzgeçli ve balon formları.",
+  "not": "Şematik model: yalnızca kaynaklarda anlatılan renk (normal, diamond, gold) ve form (standart, uzun yüzgeçli, balon) biçimleri gösterilir. “Kaynakla doğrulanmalı” işaretli kayıtlar belirsizdir.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart (doğal form)",
+    "grup": ""
+   },
+   {
+    "id": "uzun-yuzgec",
+    "ad": "Uzun yüzgeçli (longfin)",
+    "grup": "",
+    "dogrulanmali": true
+   },
+   {
+    "id": "balon",
+    "ad": "Balon (ballon)",
+    "grup": "",
+    "dogrulanmali": true
+   }
+  ],
+  "variants": [
+   {
+    "id": "normal",
+    "ad": "Normal (doğal renk)",
+    "grup": "Doğal görünüm"
+   },
+   {
+    "id": "diamond",
+    "ad": "Diamond (pırlanta)",
+    "grup": "Seçilmiş renk biçimleri",
+    "dogrulanmali": true
+   },
+   {
+    "id": "gold",
+    "ad": "Gold (altın; albino tipi)",
+    "grup": "Seçilmiş renk biçimleri",
+    "dogrulanmali": true
+   }
+  ]
+ },
+ {
+  "id": "corydoras",
+  "ad": "Corydoras",
+  "latin": "Corydoras aeneus / C. paleatus tipi",
+  "kisaAciklama": "Zırh plakalı, bıyıklı, dikenli küçük dip kedibalığı; bronz, albino, benekli ve sterbai tipi renkler; standart, uzun yüzgeçli ve balon formları.",
+  "not": "Şematik model: C. aeneus/C. paleatus tipi gövde varsayılmıştır; Corydoras cinsi çok sayıda türden oluşur ve gövde biçimleri ayrışır. Tür kimliği kaynakla doğrulanmalıdır; “kaynakla doğrulanmalı” işaretli kayıtlar belirsizdir.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart (doğal form)",
+    "grup": ""
+   },
+   {
+    "id": "uzun-yuzgec",
+    "ad": "Uzun yüzgeçli (longfin)",
+    "grup": "",
+    "dogrulanmali": true
+   },
+   {
+    "id": "balon",
+    "ad": "Balon (balloon)",
+    "grup": "",
+    "dogrulanmali": true
+   }
+  ],
+  "variants": [
+   {
+    "id": "bronz",
+    "ad": "Bronz (C. aeneus normal)",
+    "grup": "Yaygın doğal/ticari renkler"
+   },
+   {
+    "id": "albino",
+    "ad": "Albino (kırmızı gözlü)",
+    "grup": "Yaygın doğal/ticari renkler"
+   },
+   {
+    "id": "benekli",
+    "ad": "Benekli / “peppered” (C. paleatus tipi)",
+    "grup": "Yaygın doğal/ticari renkler"
+   },
+   {
+    "id": "sterbai",
+    "ad": "Sterbai tipi (koyu zemin, beyaz benekler)",
+    "grup": "Başka türlerin desen tipi",
+    "dogrulanmali": true
+   }
+  ]
+ },
+ {
+  "id": "japon",
+  "ad": "Japon balığı",
+  "latin": "Carassius auratus",
+  "kisaAciklama": "Japon balığı: common, comet, fantail, ryukin, oranda, lionhead, telescope, bubble eye ve pearlscale formları; turuncu, sarasa, shubunkin ve daha fazla renk.",
+  "not": "Şematik model: 14 form (Common (standart), Comet, Bristol shubunkin (büyük yuvarlak kuyruk), Fantail, Veiltail (uzun perde kuyruk), Ryukin, Oranda (wen’li), Lionhead, Ranchu, Pompon (burun tomurcuklu), Telescope (teleskop / moor), Celestial (gökyüzüne bakan gözlü), Bubble eye (balon göz), Pearlscale (inci pullu)) gerçek ırk standartları değil, şematik yorumdur; tosakin, jikin gibi diğer biçimler modellenmemiştir. Renk adları kaynağa göre değişir; “kaynakla doğrulanmalı” işaretli kayıtlar belirsizdir.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek (üreme dönemi)"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi (üreme dönemi)"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Common (standart)",
+    "grup": "Tek kuyruklu (common tipi)"
+   },
+   {
+    "id": "comet",
+    "ad": "Comet",
+    "grup": "Tek kuyruklu (common tipi)"
+   },
+   {
+    "id": "bristol",
+    "ad": "Bristol shubunkin (büyük yuvarlak kuyruk)",
+    "grup": "Tek kuyruklu (common tipi)",
+    "dogrulanmali": true
+   },
+   {
+    "id": "fantail",
+    "ad": "Fantail",
+    "grup": "Çift kuyruklu süs (fancy) biçimleri"
+   },
+   {
+    "id": "veiltail",
+    "ad": "Veiltail (uzun perde kuyruk)",
+    "grup": "Çift kuyruklu süs (fancy) biçimleri"
+   },
+   {
+    "id": "ryukin",
+    "ad": "Ryukin",
+    "grup": "Çift kuyruklu süs (fancy) biçimleri"
+   },
+   {
+    "id": "oranda",
+    "ad": "Oranda (wen’li)",
+    "grup": "Çift kuyruklu süs (fancy) biçimleri",
+    "dogrulanmali": true
+   },
+   {
+    "id": "lionhead",
+    "ad": "Lionhead",
+    "grup": "Çift kuyruklu süs (fancy) biçimleri",
+    "dogrulanmali": true
+   },
+   {
+    "id": "ranchu",
+    "ad": "Ranchu",
+    "grup": "Çift kuyruklu süs (fancy) biçimleri",
+    "dogrulanmali": true
+   },
+   {
+    "id": "pompom",
+    "ad": "Pompon (burun tomurcuklu)",
+    "grup": "Çift kuyruklu süs (fancy) biçimleri",
+    "dogrulanmali": true
+   },
+   {
+    "id": "teleskop",
+    "ad": "Telescope (teleskop / moor)",
+    "grup": "Çift kuyruklu süs (fancy) biçimleri",
+    "dogrulanmali": true
+   },
+   {
+    "id": "celestial",
+    "ad": "Celestial (gökyüzüne bakan gözlü)",
+    "grup": "Çift kuyruklu süs (fancy) biçimleri",
+    "dogrulanmali": true
+   },
+   {
+    "id": "balon-goz",
+    "ad": "Bubble eye (balon göz)",
+    "grup": "Çift kuyruklu süs (fancy) biçimleri",
+    "dogrulanmali": true
+   },
+   {
+    "id": "inci",
+    "ad": "Pearlscale (inci pullu)",
+    "grup": "Çift kuyruklu süs (fancy) biçimleri",
+    "dogrulanmali": true
+   }
+  ],
+  "variants": [
+   {
+    "id": "turuncu",
+    "ad": "Turuncu (ortak “common” renk)",
+    "grup": "Tek renk"
+   },
+   {
+    "id": "kirmizi",
+    "ad": "Kırmızı",
+    "grup": "Tek renk"
+   },
+   {
+    "id": "limon",
+    "ad": "Sarı / limon",
+    "grup": "Tek renk",
+    "dogrulanmali": true
+   },
+   {
+    "id": "beyaz",
+    "ad": "Beyaz",
+    "grup": "Tek renk"
+   },
+   {
+    "id": "siyah",
+    "ad": "Siyah",
+    "grup": "Tek renk"
+   },
+   {
+    "id": "bronz",
+    "ad": "Bronz / kahverengi",
+    "grup": "Tek renk",
+    "dogrulanmali": true
+   },
+   {
+    "id": "sarasa",
+    "ad": "Sarasa (kırmızı-beyaz)",
+    "grup": "Çok renkli (desenli)"
+   },
+   {
+    "id": "shubunkin",
+    "ad": "Shubunkin (calico, alaca)",
+    "grup": "Çok renkli (desenli)"
+   },
+   {
+    "id": "panda",
+    "ad": "Panda (siyah-beyaz)",
+    "grup": "Çok renkli (desenli)",
+    "dogrulanmali": true
+   }
+  ]
+ },
+ {
+  "id": "kilickuyruk",
+  "ad": "Kılıçkuyruk",
+  "latin": "Xiphophorus hellerii",
+  "kisaAciklama": "Uzun, ince kılıçkuyruk: erkekte kuyruk yüzgecinin alt kenarında kılıç, gonopodium; dişide gravid spot; 5 form ve 10 renk/desen varyetesi.",
+  "not": "Şematik, yeşil kılıçkuyruk (Xiphophorus hellerii) yorumu; ticari kılıçkuyrukların çoğu hellerii ağırlıklı melezlerdir ve bu model ayırt etmez. Kılıç yalnızca erkekte bulunur ve her formda vardır. Form varyeteleri (hifin, lyretail, Simpson hifin lyretail, hifin delta) renkten bağımsız seçilir; Simpson ve delta kaynakla doğrulanmalıdır. “Wagtail”, “tuxedo”, “koi”, “pineapple” biçim değil renk desenidir. Renk adları satıcıya göre değişir.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart (normal yüzgeç)",
+    "grup": "Yüzgeç biçimi"
+   },
+   {
+    "id": "hifin",
+    "ad": "Hifin (yüksek sırt yüzgeci)",
+    "grup": "Yüzgeç biçimi"
+   },
+   {
+    "id": "lyretail",
+    "ad": "Lyretail (lira kuyruk)",
+    "grup": "Yüzgeç biçimi"
+   },
+   {
+    "id": "simpson",
+    "ad": "Simpson hifin lyretail",
+    "grup": "Yüzgeç biçimi",
+    "dogrulanmali": true
+   },
+   {
+    "id": "delta",
+    "ad": "Hifin delta",
+    "grup": "Yüzgeç biçimi",
+    "dogrulanmali": true
+   }
+  ],
+  "variants": [
+   {
+    "id": "green",
+    "ad": "Green (Yeşil / doğal tip)",
+    "grup": "Doğal"
+   },
+   {
+    "id": "red",
+    "ad": "Red (Kırmızı)",
+    "grup": "Düz renk"
+   },
+   {
+    "id": "lemon",
+    "ad": "Lemon (Limon sarısı)",
+    "grup": "Düz renk",
+    "dogrulanmali": true
+   },
+   {
+    "id": "albino",
+    "ad": "Albino (kırmızı gözlü)",
+    "grup": "Düz renk"
+   },
+   {
+    "id": "red-wag",
+    "ad": "Red Wagtail (Kırmızı, siyah yüzgeçli)",
+    "grup": "Siyah yüzgeçli ve siyah desenli"
+   },
+   {
+    "id": "tuxedo",
+    "ad": "Tuxedo (Smokin)",
+    "grup": "Siyah yüzgeçli ve siyah desenli"
+   },
+   {
+    "id": "koi",
+    "ad": "Koi (Kırmızı–beyaz–siyah alaca)",
+    "grup": "Alacalı ve özel"
+   },
+   {
+    "id": "pineapple",
+    "ad": "Pineapple (Ananas)",
+    "grup": "Alacalı ve özel",
+    "dogrulanmali": true
+   },
+   {
+    "id": "neon",
+    "ad": "Neon (Neon mavi–kırmızı)",
+    "grup": "Alacalı ve özel",
+    "dogrulanmali": true
+   },
+   {
+    "id": "tricolor",
+    "ad": "Tricolor (Üç renkli)",
+    "grup": "Alacalı ve özel",
+    "dogrulanmali": true
+   }
+  ]
+ },
+ {
+  "id": "gurami",
+  "ad": "Cüce gurami",
+  "latin": "Trichogaster lalius",
+  "kisaAciklama": "Yanlardan basık oval gövde, uzun “dokunma” iplikleri ve kesintisiz anal yüzgeç; erkekte sivri sırt yüzgeci ve çapraz şeritler; 8 şematik renk (neon mavi, toz mavi, kobalt, gün batımı, alev ...).",
+  "not": "Şematik, yorumlanmış bir modeldir; gerçek bir bireyin ölçüsü ya da oranı değildir. Tür adı kaynaklarda değişir (Trichogaster lalius, eski ad Colisa lalia; 2022 revizyonunda T. fasciata önerisi, kabulü doğrulanmalı). Ticarette satılan renkler seçmeli üretilmiş biçimlerdir ve adlar satıcıya göre değişir. Bu türde tanınan ayrı bir şekil (form) varyetesi bulunamadığı için yalnızca standart biçim vardır.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart (tek biçim)",
+    "grup": ""
+   }
+  ],
+  "variants": [
+   {
+    "id": "neon",
+    "ad": "Neon mavi (Neon Blue)",
+    "grup": "Mavi hatlar"
+   },
+   {
+    "id": "yabani",
+    "ad": "Yabani tipe yakın (Rainbow)",
+    "grup": "Mavi hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "powder",
+    "ad": "Toz mavi (Powder Blue)",
+    "grup": "Mavi hatlar"
+   },
+   {
+    "id": "kobalt",
+    "ad": "Kobalt mavi (Cobalt)",
+    "grup": "Mavi hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "sunset",
+    "ad": "Gün batımı (Sunset / Red)",
+    "grup": "Kırmızı hatlar"
+   },
+   {
+    "id": "alev",
+    "ad": "Alev (Flame / Red Fire)",
+    "grup": "Kırmızı hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "altin",
+    "ad": "Altın / sarı (Gold)",
+    "grup": "Açık renkler (adlar tutarsız)",
+    "dogrulanmali": true
+   },
+   {
+    "id": "albino",
+    "ad": "Albino",
+    "grup": "Açık renkler (adlar tutarsız)",
+    "dogrulanmali": true
+   }
+  ]
+ },
+ {
+  "id": "kaplanbarb",
+  "ad": "Kaplan barb",
+  "latin": "Puntigrus tetrazona",
+  "kisaAciklama": "Yüksek sırtlı, yanlardan basık gövde; dört dikey siyah bant, kırmızı–turuncu kenarlı sırt yüzgeci, erkekte kırmızı burun; 6 şematik renk ve 2 form (standart, uzun yüzgeçli).",
+  "not": "Şematik, yorumlanmış bir modeldir; gerçek bir bireyin ölçüsü ya da oranı değildir. Tür adı kaynaklarda değişir (Puntigrus tetrazona, eski ad Barbus tetrazona; Sumatra barb adıyla da bilinir). Bıyık (barbel) yoktur. Karın yüzgeçleri şematik olarak kısa, tek parça gösterilmiştir. GloFish benzeri floresan / genetiği değiştirilmiş ve boyanmış balıklar kapsam dışıdır. Ticari renk ve form adları satıcıya göre değişir; “doğrulanmalı” işaretli kayıtlar tutarsız kaynaklara dayanır.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart (kısa yüzgeç)",
+    "grup": "Doğal biçim"
+   },
+   {
+    "id": "uzun-yuzgec",
+    "ad": "Uzun yüzgeçli (long-fin / veil)",
+    "grup": "Seçmeli hat"
+   }
+  ],
+  "variants": [
+   {
+    "id": "normal",
+    "ad": "Normal (yabani tip, dört bantlı)",
+    "grup": "Doğal ve yeşil"
+   },
+   {
+    "id": "yesil",
+    "ad": "Yeşil (moss green)",
+    "grup": "Doğal ve yeşil"
+   },
+   {
+    "id": "albino",
+    "ad": "Albino",
+    "grup": "Açık renkli (pigmentsiz) hatlar"
+   },
+   {
+    "id": "altin",
+    "ad": "Altın (Gold)",
+    "grup": "Açık renkli (pigmentsiz) hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "platin",
+    "ad": "Platin (Platinum)",
+    "grup": "Açık renkli (pigmentsiz) hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "cam",
+    "ad": "Cam / ksantik (Glass)",
+    "grup": "Açık renkli (pigmentsiz) hatlar",
+    "dogrulanmali": true
+   }
+  ]
+ },
+ {
+  "id": "zebradanio",
+  "ad": "Zebra balığı (zebra danio)",
+  "latin": "Danio rerio",
+  "kisaAciklama": "İnce, mekik biçimli gövde; solungaç kapağından kuyruk yüzgecine uzanan yatay mavi çizgiler, yukarı bakan ağız, iki çift küçük bıyık; 5 şematik renk/desen ve 2 form (standart, uzun yüzgeçli).",
+  "not": "Şematik, yorumlanmış bir modeldir; gerçek bir bireyin ölçüsü ya da oranı değildir. Çizgi sayısı, kalınlığı ve konumu bireye göre değişir. İki çift bıyık (rostral ve maksiller) çok küçüktür ve modelde ince kısa iplikler olarak gösterilmiştir. Karın yüzgeçleri şematik olarak kısa, tek parça gösterilmiştir. GloFish gibi floresan / genetiği değiştirilmiş balıklar kapsam dışıdır. Ticari renk ve form adları satıcıya göre değişir; “doğrulanmalı” işaretli kayıtlar tutarsız kaynaklara dayanır.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart (kısa yüzgeç)",
+    "grup": "Doğal biçim"
+   },
+   {
+    "id": "uzun-yuzgec",
+    "ad": "Uzun yüzgeçli (long-fin / veil)",
+    "grup": "Seçmeli hat"
+   }
+  ],
+  "variants": [
+   {
+    "id": "normal",
+    "ad": "Normal (yabani tip, çizgili)",
+    "grup": "Çizgili ve benekli"
+   },
+   {
+    "id": "leopar",
+    "ad": "Leopar (benekli)",
+    "grup": "Çizgili ve benekli"
+   },
+   {
+    "id": "hibrit",
+    "ad": "Çizgi–benek karışımı (leopar × zebra)",
+    "grup": "Çizgili ve benekli",
+    "dogrulanmali": true
+   },
+   {
+    "id": "altin",
+    "ad": "Altın (Golden)",
+    "grup": "Açık renkli hatlar"
+   },
+   {
+    "id": "albino",
+    "ad": "Albino",
+    "grup": "Açık renkli hatlar",
+    "dogrulanmali": true
+   }
+  ]
+ },
+ {
+  "id": "kardinal",
+  "ad": "Kardinal tetra",
+  "latin": "Paracheirodon axelrodi",
+  "kisaAciklama": "İri gözlü küçük sürü balığı; gözden yağ yüzgecine mavi-yeşil iridofor şerit ve gövdenin TÜM boyunca uzanan kırmızı alt şerit (neondan farkı); 4 şematik renk ve 2 form (standart, uzun yüzgeçli).",
+  "not": "Şematik, yorumlanmış bir modeldir; gerçek bir bireyin ölçüsü ya da oranı değildir. Kırmızı şeridin gövde boyunca uzanması ve mavi şeridin yağ yüzgecine dek sürmesi, benzer görünen neon tetradan ayırmada kullanılır; yaban popülasyonlara göre şerit uzunluğu ve rengi değişebilir. Boyanmış, enjekte edilmiş ya da GloFish gibi floresan balıklar kapsam dışıdır. Ticari renk ve form adları satıcıya göre değişir; “doğrulanmalı” işaretli kayıtlar tutarsız kaynaklara dayanır.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart (kısa yüzgeç)",
+    "grup": "Doğal biçim"
+   },
+   {
+    "id": "uzun-yuzgec",
+    "ad": "Uzun yüzgeçli (long-finned)",
+    "grup": "Seçmeli hat",
+    "dogrulanmali": true
+   }
+  ],
+  "variants": [
+   {
+    "id": "normal",
+    "ad": "Normal (yabani tip)",
+    "grup": "Doğal görünüm"
+   },
+   {
+    "id": "diamond",
+    "ad": "Diamond (pırlanta)",
+    "grup": "Seçilmiş hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "gold",
+    "ad": "Gold (altın)",
+    "grup": "Seçilmiş hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "albino",
+    "ad": "Albino",
+    "grup": "Seçilmiş hatlar",
+    "dogrulanmali": true
+   }
+  ]
+ },
+ {
+  "id": "ram",
+  "ad": "Ram çiklit (kelebek çiklit)",
+  "latin": "Mikrogeophagus ramirezi",
+  "kisaAciklama": "Küçük, derin gövdeli cüce çiklit; gözden geçen siyah çubuk, gövde ortasında siyah leke, parlak mavi benekler, dikenli sırt yüzgeci ve kırmızı göz; 5 şematik renk ve 3 form (standart, uzun yüzgeçli, balon).",
+  "not": "Şematik, yorumlanmış bir modeldir; gerçek bir bireyin ölçüsü ya da oranı değildir. Bolivya ramı (Mikrogeophagus altispinosus) AYRI bir türdür ve burada modellenmemiştir. “German blue” ticari bir hat adıdır; altın, elektrik mavisi, siyah ve albino hatlarının adı ve sınırları kaynaklarda tutarsızdır. Boyanmış ya da enjekte edilmiş balıklar kapsam dışıdır. Uzun yüzgeçli ve balon formlar yaygın satılır ancak ayrıntıları kaynakla doğrulanmalıdır; bazı kaynaklar bu hatlarda sağlık ve üreme sorunlarına dikkat çeker. Model bakım ya da tedavi rehberi değildir.",
+  "sexes": [
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   },
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   }
+  ],
+  "views": [
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart",
+    "grup": "Doğal biçim"
+   },
+   {
+    "id": "uzun-yuzgec",
+    "ad": "Uzun yüzgeçli (long-fin)",
+    "grup": "Seçmeli hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "balon",
+    "ad": "Balon (balloon)",
+    "grup": "Seçmeli hatlar",
+    "dogrulanmali": true
+   }
+  ],
+  "variants": [
+   {
+    "id": "normal",
+    "ad": "Normal (yabani tip / “German blue”)",
+    "grup": "Doğal görünüm"
+   },
+   {
+    "id": "gold",
+    "ad": "Altın (Gold ram)",
+    "grup": "Seçilmiş hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "elektrik",
+    "ad": "Elektrik mavisi (Electric blue)",
+    "grup": "Seçilmiş hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "siyah",
+    "ad": "Siyah (Black ram)",
+    "grup": "Seçilmiş hatlar",
+    "dogrulanmali": true
+   },
+   {
+    "id": "albino",
+    "ad": "Albino",
+    "grup": "Seçilmiş hatlar",
+    "dogrulanmali": true
+   }
+  ]
+ },
+ {
+  "id": "amano",
+  "ad": "Amano karidesi (Yamato karidesi)",
+  "latin": "Caridina multidentata",
+  "kisaAciklama": "Amano (Yamato) karidesinin yarı saydam gri-yeşil gövdesi, yan benek sırası (erkekte nokta, dişide çizgi), sırt çizgisi, çok dişli rostrum, fırça kıskaçlar, antenler, kuyruk yelpazesi ve dişide eyer/yumurta; tanınan ayrı renk hattı ya da şekil varyetesi yok.",
+  "not": "Şematik bir Caridina multidentata gövdesidir (eski adı C. japonica); belirli bir bireyin ölçüsü değildir. Tanınan ayrı bir renk hattı ya da şekil varyetesi yoktur; erkekte nokta / dişide tire ayrımı yaygın bir anlatımdır ve bireyde kesin değildir (doğrulanmalı). Larvalar acı su ister, bu yüzden tatlı suda genellikle üremez. Bu sayfa bakım rehberi değildir.",
+  "sexes": [
+   {
+    "id": "disi",
+    "ad": "Dişi"
+   },
+   {
+    "id": "erkek",
+    "ad": "Erkek"
+   }
+  ],
+  "views": [
+   {
+    "id": "ust",
+    "ad": "Üst"
+   },
+   {
+    "id": "alt",
+    "ad": "Alt"
+   },
+   {
+    "id": "yan",
+    "ad": "Yan"
+   },
+   {
+    "id": "on",
+    "ad": "Ön"
+   },
+   {
+    "id": "arka",
+    "ad": "Arka"
+   },
+   {
+    "id": "capraz",
+    "ad": "Çapraz"
+   }
+  ],
+  "forms": [
+   {
+    "id": "standart",
+    "ad": "Standart (tek biçim)",
+    "grup": "Doğal biçim"
+   }
+  ],
+  "variants": [
+   {
+    "id": "dogal",
+    "ad": "Doğal görünüm (tek renk)",
+    "grup": "Doğal görünüm"
+   }
+  ]
+ }
+]
