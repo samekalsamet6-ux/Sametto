@@ -6,8 +6,10 @@ export interface SearchParams { species?: string; form?: string; variant?: strin
 export const PAGE_SIZE = 12;
 export const SORTS: Record<string, { ad: string; sql: string }> = {
   yeni: { ad: 'En yeni', sql: 'l.created_at DESC, l.id DESC' },
-  ucuz: { ad: 'Fiyat: düşükten yükseğe', sql: 'l.price_kurus ASC, l.id DESC' },
-  pahali: { ad: 'Fiyat: yüksekten düşüğe', sql: 'l.price_kurus DESC, l.id DESC' },
+  ucuz: { ad: 'Fiyat (düşükten yükseğe)', sql: 'l.price_kurus ASC, l.id DESC' },
+  pahali: { ad: 'Fiyat (yüksekten düşüğe)', sql: 'l.price_kurus DESC, l.id DESC' },
+  // Satıcının beyan ettiği toplam fiyat / adet; yalnızca sıralama içindir (saklanan değer toplamdır)
+  adet: { ad: 'Adet başı fiyat', sql: 'CAST(l.price_kurus AS REAL) / l.quantity ASC, l.price_kurus ASC, l.id DESC' },
 };
 
 export interface BuiltSearch { where: string; args: (string | number)[]; orderBy: string; limit: number; offset: number; page: number }

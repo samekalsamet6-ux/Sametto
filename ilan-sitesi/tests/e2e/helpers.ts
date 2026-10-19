@@ -12,13 +12,19 @@ export async function register(page: Page, email = uniqueEmail('kul'), name = 'E
   await page.getByLabel('Görünen ad').fill(name);
   await page.getByLabel('E-posta').fill(email);
   await page.getByLabel('Parola (en az 8 karakter)').fill(PASSWORD);
-  await page.getByLabel('Parola (tekrar)').fill(PASSWORD);
   await page.getByRole('button', { name: 'Hesap oluştur' }).click();
   await expect(page).toHaveURL('/');
   return email;
 }
 
+/** Dar ekranda 3B poster + düğme ile açılır: durum 'poster' ise düğmeye dokunur. */
+export async function tapIfPoster(page: Page, stage: string, button: string) {
+  await expect(page.locator(stage)).toHaveAttribute('data-state', /poster|loading|ready|nowebgl|error/, { timeout: 30_000 });
+  if ((await page.locator(stage).getAttribute('data-state')) === 'poster') await page.getByRole('button', { name: button, exact: true }).click();
+}
 export async function webglReady(page: Page, timeout = 45_000) {
+  // Önizleme sayfalarında (ilan formu) poster yoktur; ilan detayında dar ekranda vardır.
+  if (await page.locator('#poster').count()) await tapIfPoster(page, '#sahne', 'Temsili 3B görünümü aç');
   await expect(page.locator('#sahne')).toHaveAttribute('data-state', 'ready', { timeout });
 }
 

@@ -1,5 +1,6 @@
 import './site.ts';
 import { mountViewer } from './viewer3d.ts';
+import { decide3d, readEnv3d, remember3d } from '../shared/lazy3d.ts';
 
 // Fotoğraf galerisi
 const main = document.querySelector<HTMLImageElement>('#foto-ana');
@@ -8,18 +9,35 @@ document.querySelectorAll<HTMLButtonElement>('.thumb').forEach((b) => b.addEvent
   document.querySelectorAll('.thumb').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
 }));
 
-// 3B: sahne görünür olunca yüklenir
+// 3B: geniş ekranda sahne görünür olunca yüklenir; dar ekranda/veri tasarrufunda poster + "aç" düğmesi (üç.js ve tür kodu dokunuştan önce istenmez).
 const stage = document.querySelector<HTMLElement>('#sahne');
 if (stage) {
   const bar = document.querySelector<HTMLElement>('#gorunum');
+  const poster = document.querySelector<HTMLElement>('#poster');
+  const status = document.querySelector<HTMLElement>('#durum');
   const mount = mountViewer(stage, { onState: (s) => { if (bar) bar.hidden = s !== 'ready'; } });
   const sel = { species: stage.dataset.species!, sex: stage.dataset.sex!, form: stage.dataset.form!, variant: stage.dataset.variant! };
   let started = false;
   const start = () => { if (!started) { started = true; void mount.update(sel); } };
-  if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) { io.disconnect(); start(); } }, { rootMargin: '200px' });
-    io.observe(stage);
-  } else start();
+  const watch = () => {
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) { io.disconnect(); start(); } }, { rootMargin: '200px' });
+      io.observe(stage);
+    } else start();
+  };
+  if (decide3d(readEnv3d()) === 'auto' || !poster) watch();
+  else {
+    const btn = poster.querySelector<HTMLButtonElement>('button')!;
+    const cvs = stage.querySelector<HTMLElement>('canvas');
+    stage.dataset.state = 'poster';
+    poster.hidden = false; if (status) status.hidden = true; if (cvs) cvs.style.display = 'none';
+    btn.addEventListener('click', () => {
+      remember3d(); poster.hidden = true; if (cvs) cvs.style.display = '';
+      if (status) status.hidden = false;
+      started = true;
+      void mount.update(sel).then(() => document.querySelector<HTMLElement>('#cv')?.focus({ preventScroll: true }));
+    });
+  }
 
   bar?.querySelectorAll<HTMLButtonElement>('[data-view]').forEach((b) => b.addEventListener('click', () => mount.viewer()?.setView(b.dataset.view!)));
   const spin = bar?.querySelector<HTMLButtonElement>('#don');

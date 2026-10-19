@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { register, axeViolations, photo } from './helpers.ts';
+import { register, axeViolations, photo, tapIfPoster } from './helpers.ts';
 
 const LABEL = 'Sahne temsilidir; stok ve fiyat, satıcının aktif ilanlarından gelir';
 const DEMO_SELLER = '/satici/1';
@@ -9,7 +9,7 @@ const noWebgl = (page: Page) => page.addInitScript(() => {
   // @ts-expect-error test: WebGL'i kapat
   HTMLCanvasElement.prototype.getContext = function (t: string, ...a: unknown[]) { return /webgl/.test(t) ? null : orig.call(this, t, ...a); };
 });
-const tankReady = (page: Page) => expect(page.locator('#tank')).toHaveAttribute('data-state', 'ready', { timeout: 120_000 });
+const tankReady = async (page: Page) => { await tapIfPoster(page, '#tank', 'Akvaryumu aç'); await expect(page.locator('#tank')).toHaveAttribute('data-state', 'ready', { timeout: 120_000 }); };
 const consoleErrors = (page: Page) => { const errs: string[] = []; page.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); }); page.on('pageerror', (e) => errs.push(e.message)); return errs; };
 
 async function addFish(page: Page, species: string, sex?: string) {

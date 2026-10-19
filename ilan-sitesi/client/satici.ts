@@ -1,5 +1,6 @@
 import './site.ts';
 import type { TankHandle, TankFish } from './akvaryum-sahne.ts';
+import { decide3d, readEnv3d, remember3d } from '../shared/lazy3d.ts';
 import { parseStock, summarizeStock, formatKurus, priceText } from '../shared/stock.ts';
 
 // Satıcı profili: 3B akvaryum görününce yüklenir; ekran dışındayken ya da sekme gizliyken durur; sayfadan çıkınca her şey serbest bırakılır.
@@ -76,9 +77,18 @@ if (stage && canvas && list) {
         sync();
       } catch (e) { console.error('Akvaryum açılamadı', e); giveUp('error'); }
     };
-    if ('IntersectionObserver' in window) {
-      new IntersectionObserver((es) => { visible = es[es.length - 1].isIntersecting; if (visible) void start(); sync(); }, { rootMargin: '150px' }).observe(stage);
-    } else { visible = true; void start(); }
+    const arm = () => {
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver((es) => { visible = es[es.length - 1].isIntersecting; if (visible) void start(); sync(); }, { rootMargin: '150px' }).observe(stage);
+      } else { visible = true; void start(); }
+    };
+    // Geniş ekranda sahne görününce yüklenir; dar ekranda/veri tasarrufunda yalnızca "Akvaryumu aç" dokunuşundan sonra (three.js ve tür kodu o ana kadar istenmez).
+    const poster = document.getElementById('tank-poster'), openBtn = document.getElementById('tank-ac');
+    if (decide3d(readEnv3d()) === 'auto' || !poster || !openBtn) arm();
+    else {
+      stage.dataset.state = 'poster'; poster.hidden = false; canvas.style.display = 'none'; bar.hidden = true; hint.hidden = true;
+      openBtn.addEventListener('click', () => { remember3d(); poster.hidden = true; canvas.style.display = ''; arm(); });
+    }
     document.addEventListener('visibilitychange', sync);
     // bfcache'e giriyorsa (persisted) dondurulur; gerçekten ayrılırken GPU kaynakları bırakılır
     addEventListener('pagehide', (e) => { if (!e.persisted) { handle?.dispose(); } });

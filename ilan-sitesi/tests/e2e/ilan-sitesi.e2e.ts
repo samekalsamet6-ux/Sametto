@@ -27,11 +27,11 @@ test.describe('hesap', () => {
     await expect(page.getByRole('link', { name: 'Giriş' })).toBeVisible();
     await page.goto('/giris');
     await page.getByLabel('E-posta').fill(email);
-    await page.getByLabel('Parola').fill('yanlis-parola-1');
+    await page.getByLabel('Parola', { exact: true }).fill('yanlis-parola-1');
     await page.getByRole('button', { name: 'Giriş yap' }).click();
     await expect(page.getByRole('alert')).toContainText('hatalı');
     await page.getByLabel('E-posta').fill(email);
-    await page.getByLabel('Parola').fill(PASSWORD);
+    await page.getByLabel('Parola', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Giriş yap' }).click();
     await expect(page).toHaveURL('/');
     await expect(page.getByRole('button', { name: 'Çıkış' })).toBeVisible();
@@ -134,25 +134,26 @@ test.describe('arama ve ilan detayı (örnek veriyle)', () => {
     expect(await page.locator('.card .card-photo img').count()).toBeGreaterThan(0);
     await expect(page.locator('.card-photo img').first()).toHaveJSProperty('complete', true);
 
+    // dar ekranda filtre kapalı başlar
+    if (await page.locator('.filter-toggle').isVisible()) await page.locator('.filter-toggle').click();
+    // seçim değişince sonuçlar otomatik yenilenir (Ara düğmesi yedek)
     await page.getByLabel('Tür', { exact: true }).selectOption('betta');
-    await expect(page.getByLabel('Şekil')).toBeEnabled();
-    await page.getByRole('button', { name: 'Ara' }).click();
     await expect(page).toHaveURL(/tur=betta/);
+    await expect(page.getByLabel('Şekil')).toBeEnabled();
     await expect(page.getByTestId('sonuc-sayisi')).toHaveText(/^\d+ ilan bulundu$/);
     expect(Number((await page.getByTestId('sonuc-sayisi').innerText()).match(/\d+/)![0])).toBeGreaterThanOrEqual(2);
     for (const t of await page.locator('.card-meta').allInnerTexts()) expect(t).toMatch(/^Betta/);
 
     await page.getByLabel('Şekil').selectOption({ index: 1 });
-    await page.getByRole('button', { name: 'Ara' }).click();
     await expect(page).toHaveURL(/sekil=/);
     expect(Number((await page.getByTestId('sonuc-sayisi').innerText()).match(/\d+/)![0])).toBeGreaterThanOrEqual(0);
 
     await page.goto('/ilanlar?sehir=Ankara');
     await expect(page.locator('.card')).not.toHaveCount(0);
-    for (const t of await page.locator('.card-row .muted').allInnerTexts()) expect(t).toContain('Ankara');
+    for (const t of await page.locator('.card-loc').allInnerTexts()) expect(t).toContain('Ankara');
 
     await page.goto('/ilanlar?sehir=Ankara&ilce=%C3%A7ANKAYA');
-    for (const t of await page.locator('.card-row .muted').allInnerTexts()) expect(t).toContain('Çankaya, Ankara');
+    for (const t of await page.locator('.card-loc').allInnerTexts()) expect(t).toContain('Çankaya, Ankara');
     await page.goto('/ilanlar?ilce=yokboyleilce');
     await expect(page.getByText('Bu ölçütlere uyan ilan bulunamadı')).toBeVisible();
 
@@ -223,7 +224,7 @@ test.describe('şikayet ve yönetim', () => {
     const ctx = await browser.newContext({ baseURL: page.url().split('/ilan')[0] });
     const admin = await ctx.newPage();
     await register(admin, 'yonetici@example.test').catch(async () => {
-      await admin.goto('/giris'); await admin.getByLabel('E-posta').fill('yonetici@example.test'); await admin.getByLabel('Parola').fill(PASSWORD); await admin.getByRole('button', { name: 'Giriş yap' }).click();
+      await admin.goto('/giris'); await admin.getByLabel('E-posta').fill('yonetici@example.test'); await admin.getByLabel('Parola', { exact: true }).fill(PASSWORD); await admin.getByRole('button', { name: 'Giriş yap' }).click();
     });
     execFileSync('node', ['scripts/make-admin.ts', 'yonetici@example.test'], { env: { ...process.env, DATA_DIR: `./${process.env.E2E_DATA || 'data/e2e'}` } });
     await admin.goto('/admin/raporlar');

@@ -2,11 +2,13 @@ import { html, raw, esc, type SafeHtml } from './html.ts';
 import { layout, csrfField, SITE_NAME, type PageCtx } from './layout.ts';
 import { CATALOG, OTHER_ID, speciesById, speciesLabel, sexOptions, fishSexOptions, noSexSplit, itemLabel, UNKNOWN_SEX, type CatItem } from '../../shared/catalog.ts';
 import { CITIES } from '../../shared/cities.ts';
+import { unitPriceText, UNIT_NOTE, relativeDay, absoluteDate } from '../../shared/listing-format.ts';
+import { filterChips, narrowOptions } from '../../shared/filters.ts';
 import { formatPrice, formatPhone, formatPhoneLocal, REPORT_REASONS, MAX_FISH, MAX_KARIDES, MAX_HEAVY, type Errors } from '../validation.ts';
 import { PAGE_SIZE, SORTS, type SearchParams } from '../search.ts';
 import type { Listing, Photo, ReportRow, AquariumFish } from '../db.ts';
 
-const fmtDate = (ms: number) => new Date(ms).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+const fmtDate = absoluteDate;
 const itemName = (list: CatItem[], id: string | null) => { const x = list.find((y) => y.id === id); return x ? itemLabel(x) : null; };
 
 export function sexLabel(speciesId: string, sex: string): string {
@@ -30,21 +32,32 @@ const err = (errors: Errors, k: string) => (errors[k] ? html`<p class="field-err
 const invalid = (errors: Errors, k: string) => (errors[k] ? raw(` aria-invalid="true" aria-describedby="${k}-err"`) : '');
 
 // ---------- ilan kartı ----------
-export function listingCard(l: Listing): SafeHtml {
-  const f = listingFacts(l);
+/** Kartta kısa adlar; şekil/renk adı kaynaklarda tutarsızsa uzun uyarı yerine küçük rozet (uzun açıklama ilan sayfasında). */
+export function listingShortFacts(l: Listing): { species: string; form: string | null; variant: string | null; unverified: boolean } {
+  const sp = speciesById(l.species_id);
+  const form = sp?.forms.find((y) => y.id === l.form_id), variant = sp?.variants.find((y) => y.id === l.variant_id);
+  return { species: speciesLabel(l.species_id, l.species_other), form: form?.ad ?? null, variant: variant?.ad ?? null, unverified: !!(form?.dogrulanmali || variant?.dogrulanmali) };
+}
+const UNVERIFIED_BADGE = 'Şekil ya da renk adı kaynaklarda tutarsız; satıcıyla doğrulayın. Ayrıntı ilan sayfasındadır.';
+const dateTag = (ms: number, now: number) => html`<time datetime="${new Date(ms).toISOString()}" title="İlan tarihi: ${absoluteDate(ms)}">${relativeDay(ms, now)}</time>`;
+export function listingCard(l: Listing, now: number = Date.now()): SafeHtml {
+  const f = listingShortFacts(l);
   const demo = l.is_demo ? html`<span class="tag tag-demo">Örnek ilan</span>` : '';
+  const unit = unitPriceText(l.price_kurus, l.quantity);
   return html`<li class="card">
   <a class="card-link" href="/ilan/${l.id}">
-    <span class="card-photo">${l.first_photo ? html`<img src="/yuklemeler/${l.first_photo}" alt="${f.species} ilanının satıcı fotoğrafı" loading="lazy" width="400" height="300">` : ''}${demo}</span>
+    <span class="card-photo">${l.first_photo ? html`<img src="/yuklemeler/${l.first_photo}" alt="${f.species} ilanının satıcı fotoğrafı" loading="lazy" decoding="async" width="400" height="300">` : html`<span class="photo-none">Fotoğraf yok</span>`}${demo}</span>
     <span class="card-body">
       <span class="card-title">${l.title}</span>
-      <span class="card-meta">${[f.species, f.form, f.variant].filter(Boolean).join(' · ')}</span>
-      <span class="card-row"><strong class="price">${formatPrice(l.price_kurus)}</strong><span class="muted">${l.quantity} adet · ${locationLabel(l)}</span></span>
+      <span class="card-meta">${[f.species, f.form, f.variant].filter(Boolean).join(' · ')}${f.unverified ? html` <span class="badge-verify" title="${UNVERIFIED_BADGE}">doğrulanmalı<span class="sr-only"> (${UNVERIFIED_BADGE})</span></span>` : ''}</span>
+      <span class="card-price"><strong class="price">${formatPrice(l.price_kurus)}</strong>${unit ? html`<span class="price-total">toplam</span>` : ''}</span>
+      ${unit ? html`<span class="card-unit" title="Tanesi ${unit}: ${UNIT_NOTE}">tanesi ≈ ${unit}<span class="sr-only"> (${UNIT_NOTE})</span></span>` : ''}
+      <span class="card-row"><span class="card-loc muted">${l.quantity} adet · ${locationLabel(l)}</span><span class="card-date muted">${dateTag(l.created_at, now)}</span></span>
     </span>
   </a>
 </li>`;
 }
-const cardGrid = (items: Listing[]) => html`<ul class="grid" role="list">${items.map(listingCard)}</ul>`;
+const cardGrid = (items: Listing[]) => { const now = Date.now(); return html`<ul class="grid" role="list">${items.map((l) => listingCard(l, now))}</ul>`; };
 
 // ---------- ana sayfa ----------
 export function homePage(ctx: PageCtx, latest: Listing[]): string {
@@ -85,10 +98,13 @@ export function listingsPage(ctx: PageCtx, o: { params: SearchParams; result: { 
   };
   const sp = p.species ? speciesById(p.species) : undefined;
   const selectedForm = p.form ?? '', selectedVar = p.variant ?? '';
-  const formOptions = sp ? sp.forms : [];
-  const varOptions = sp ? sp.variants : [];
+  const { forms: formOptions, variants: varOptions } = narrowOptions(p.species ?? '');
+  const chips = filterChips(p);
+  const qsOnly = (drop: string[]) => { const u = new URLSearchParams(qs({})); for (const k of drop) u.delete(k); const t = u.toString(); return t ? '?' + t : ''; };
   const body = html`
 <h1>İlanlar</h1>
+<details class="filter-panel" id="filtre-panel" open>
+<summary class="filter-toggle"><span>Filtrele</span>${chips.length ? html`<span class="count-badge">${chips.length}<span class="sr-only"> filtre seçili</span></span>` : ''}</summary>
 <form class="filters" method="get" action="/ilanlar" id="filtre" aria-label="İlanları filtrele">
   <div class="f">
     <label for="f-tur">Tür</label>
@@ -120,7 +136,9 @@ export function listingsPage(ctx: PageCtx, o: { params: SearchParams; result: { 
   </div>
   <div class="f f-actions"><button class="btn" type="submit">Ara</button> <a class="btn btn-ghost" href="/ilanlar">Temizle</a></div>
 </form>
+</details>
 <p class="result-count" role="status" aria-live="polite" data-testid="sonuc-sayisi">${r.total} ilan bulundu</p>
+${chips.length ? html`<ul class="chips filter-chips" role="list" aria-label="Seçili filtreler">${chips.map((c) => html`<li><a class="chip chip-x" href="/ilanlar${qsOnly(c.drop)}">${c.label} <span aria-hidden="true">×</span><span class="sr-only"> filtresini kaldır</span></a></li>`)}<li><a class="chip chip-quiet" href="/ilanlar">Tümünü temizle</a></li></ul>` : ''}
 <p class="muted small">Liste görünümünde yalnızca satıcının gerçek fotoğrafı gösterilir; 3B model ilan sayfasındadır.</p>
 ${r.items.length ? cardGrid(r.items) : html`<p class="empty">Bu ölçütlere uyan ilan bulunamadı. Filtreleri gevşetmeyi deneyin ya da <a href="/ilanlar">tüm ilanlara bakın</a>.</p>`}
 ${r.pages > 1 ? html`<nav class="pager" aria-label="Sayfalar">
@@ -140,10 +158,11 @@ export function detailPage(ctx: PageCtx, o: { l: Listing; photos: Photo[]; alrea
   const isOwner = ctx.user?.id === l.user_id;
   const wa = l.seller_whatsapp, ph = l.seller_phone;
   const waText = encodeURIComponent(`Merhaba, ${SITE_NAME} üzerindeki "${l.title}" ilanınız hakkında yazıyorum.`);
+  const unit = unitPriceText(l.price_kurus, l.quantity);
   const facts: [string, string][] = [['Tür', f.species]];
   if (f.form) facts.push(['Şekil', f.form]);
   if (f.variant) facts.push(['Renk', f.variant]);
-  facts.push(['Cinsiyet', f.sex], ['Adet', String(l.quantity)], ['Konum', locationLabel(l)], ['İlan tarihi', fmtDate(l.created_at)]);
+  facts.push(['Cinsiyet', f.sex], ['Adet', String(l.quantity)], ['Konum', locationLabel(l)], ['İlan tarihi', `${fmtDate(l.created_at)} (${relativeDay(l.created_at, Date.now())})`]);
   const canReport = !o.alreadyReported && !isOwner;
   const reportInner = html`${o.reported ? html`<p class="flash flash-ok" role="status">Şikayetiniz alındı. İlan incelenmek üzere işaretlendi, teşekkürler.</p>` : ''}${o.alreadyReported && !o.reported ? html`<p class="muted">Bu ilanı daha önce şikayet ettiniz.</p>` : ''}${canReport
       ? ctx.user
@@ -167,6 +186,7 @@ export function detailPage(ctx: PageCtx, o: { l: Listing; photos: Photo[]; alrea
   <header class="detail-head">
     <h1>${l.title}</h1>
     <p class="detail-price"><strong class="price">${formatPrice(l.price_kurus)}</strong> ${l.quantity > 1 ? html`<span class="muted">(toplam, ${l.quantity} adet için satıcının beyanı)</span>` : ''}</p>
+    ${unit ? html`<p class="detail-unit" data-testid="adet-basi"><strong>tanesi ≈ ${unit}</strong> <span class="muted">(${UNIT_NOTE})</span></p>` : ''}
     ${l.is_demo ? html`<p class="tag tag-demo">Örnek ilan — gerçek bir satış değildir</p>` : ''}
   </header>
   <div class="detail-grid">
@@ -185,6 +205,11 @@ export function detailPage(ctx: PageCtx, o: { l: Listing; photos: Photo[]; alrea
         <canvas id="cv" tabindex="0" role="group" aria-label="${f.species} için temsili 3B model; sürükleyerek döndürebilirsiniz" aria-describedby="kb-yardim m3d-secim" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown + - Home"></canvas>
         <div class="hot" id="ov" hidden></div>
         <p class="stage-status" id="durum" role="status">3B model yükleniyor…</p>
+        <div class="stage-poster" id="poster" hidden>
+          <p class="poster-title">Temsili 3B görünüm</p>
+          <p>Veri ve pil tasarrufu için 3B görünüm isteğe bağlıdır. Gerçek fotoğraflar ve bilgiler 3B olmadan da geçerlidir.</p>
+          <button type="button" class="btn btn-light" id="ac3b" aria-controls="sahne">Temsili 3B görünümü aç</button>
+        </div>
         <p class="stage-fallback" id="yedek" hidden>Bu tarayıcıda 3B görünüm açılamadı (WebGL kapalı ya da desteklenmiyor). İlanın fotoğrafları ve bilgileri yine de geçerlidir.</p>
       </div>
       <p class="muted small" id="kb-yardim">${KB_HELP}</p>
@@ -300,26 +325,31 @@ ${Object.keys(e).length ? html`<div class="flash flash-err" role="alert" tabinde
 }
 
 // ---------- giriş / kayıt ----------
+/** Betik yoksa işe yaramaz, bu yüzden gizli doğar; site.ts açar. */
+const showPassword = html`<label class="check" data-show-pw hidden><input type="checkbox" aria-controls="password"> Parolayı göster</label>`;
 export function loginPage(ctx: PageCtx, o: { email?: string; error?: string; next?: string }): string {
   const body = html`<section class="auth"><h1>Giriş yap</h1>
 ${o.error ? html`<p class="flash flash-err" role="alert">${o.error}</p>` : ''}
 <form method="post" action="/giris" class="stack" novalidate>${csrfField(ctx)}<input type="hidden" name="next" value="${o.next ?? ''}">
   <label for="email">E-posta</label><input id="email" name="email" type="email" autocomplete="email" required value="${o.email ?? ''}">
-  <label for="password">Parola</label><input id="password" name="password" type="password" autocomplete="current-password" required>
+  <label for="password">Parola</label><input id="password" name="password" type="password" autocomplete="current-password" required data-pw>
+  ${showPassword}
   <button class="btn" type="submit">Giriş yap</button></form>
 <p>Hesabınız yok mu? <a href="/kayit">Kayıt olun</a>.</p></section>`;
   return layout(ctx, { title: 'Giriş', body, path: '/giris', main: 'wrap narrow' });
 }
 export function registerPage(ctx: PageCtx, o: { values: { email?: string; displayName?: string }; errors: Errors }): string {
   const e = o.errors;
+  // Parola tekrarı alanı kaldırıldı (sunucu yalnızca gönderilmişse karşılaştırır); bunun yerine "Parolayı göster" düğmesi var.
   const body = html`<section class="auth"><h1>Kayıt ol</h1>
-<p class="muted">Yalnızca e-posta, görünen ad ve parola yeterli. Parolanız tek yönlü (scrypt) özetle saklanır.</p>
+<p class="muted">Yalnızca e-posta, görünen ad ve parola yeterli. Parolanız güvenli biçimde saklanır.</p>
+<p class="muted">Kayıt olmadan da <a href="/ilanlar">ilanlara bakabilirsiniz</a>; hesap yalnızca ilan vermek için gerekir.</p>
 <form method="post" action="/kayit" class="stack" novalidate>${csrfField(ctx)}
   <label for="displayName">Görünen ad</label><input id="displayName" name="displayName" autocomplete="nickname" maxlength="40" required value="${o.values.displayName ?? ''}"${invalid(e, 'displayName')}>${err(e, 'displayName')}
   <label for="email">E-posta</label><input id="email" name="email" type="email" autocomplete="email" required value="${o.values.email ?? ''}"${invalid(e, 'email')}>${err(e, 'email')}
-  <label for="password">Parola (en az 8 karakter)</label><input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required${invalid(e, 'password')}>${err(e, 'password')}
-  <label for="password2">Parola (tekrar)</label><input id="password2" name="password2" type="password" autocomplete="new-password" required${invalid(e, 'password2')}>${err(e, 'password2')}
-  ${err(e, 'form')}
+  <label for="password">Parola (en az 8 karakter)</label><input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required data-pw${invalid(e, 'password')}>${err(e, 'password')}
+  ${showPassword}
+  ${err(e, 'password2')}${err(e, 'form')}
   <button class="btn" type="submit">Hesap oluştur</button></form>
 <p>Zaten hesabınız var mı? <a href="/giris">Giriş yapın</a>.</p></section>`;
   return layout(ctx, { title: 'Kayıt', body, path: '/kayit', main: 'wrap narrow' });
@@ -356,6 +386,11 @@ export function sellerPage(ctx: PageCtx, o: { seller: { id: number; display_name
   <div class="stage tank" id="tank" data-count="${o.fish.length}" data-stock="${stockJson(o.items)}">
     <canvas id="tank-cv" tabindex="0" role="group" aria-label="${name} adlı satıcının akvaryumu: ${o.fish.length} balık, ${TANK_ARIA}. Bir balığa dokunun ya da tıklayın: stok ve fiyat" aria-describedby="tank-kb-yardim akv-liste-b" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown + - Home"></canvas>
     <p class="stage-status" id="tank-durum" role="status" hidden></p>
+    <div class="stage-poster" id="tank-poster" hidden>
+      <p class="poster-title">Temsili 3B akvaryum</p>
+      <p>Veri ve pil tasarrufu için 3B sahne isteğe bağlıdır. Balık listesi ve stok/fiyat kartı 3B olmadan da çalışır.</p>
+      <button type="button" class="btn btn-light" id="tank-ac" aria-controls="tank">Akvaryumu aç</button>
+    </div>
     <p class="stage-fallback" id="tank-yedek" hidden>3B akvaryum bu tarayıcıda açılamadı (WebGL kapalı ya da desteklenmiyor). Balıkların listesi ve stok bilgisi aşağıdadır.</p>
   </div>
     <section class="fish-card" id="balik-karti" aria-labelledby="balik-karti-b" tabindex="-1" hidden>

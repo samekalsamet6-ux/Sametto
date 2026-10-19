@@ -45,6 +45,14 @@ Ayarlar `.env.example` içinde (`PORT`, `HOST`, `COOKIE_SECURE`, `TRUST_PROXY`, 
 
 > Not (ilçe): `listings.district` sütunu açılışta otomatik eklenir (mevcut veri silinmez, eski satırlarda NULL). İl→ilçe listesi depoda olmadığından ilçe serbest metindir; sabit il/ilçe seçicisi ileride yapılabilecek bir iyileştirmedir.
 
+## Müşteri turu A (liste, mobil, 3B isteğe bağlı, kayıt)
+- **Adet başı fiyat**: saklanan fiyat satıcının o adet için beyan ettiği TOPLAMdır (değişmedi). Adet > 1 ise kartta ve detayda türetilmiş "tanesi ≈ X ₺" (yaklaşık, toplam fiyatın adede bölünmesi; 100 ₺ üstü tam liraya yuvarlanır) gösterilir, "toplam, N adet için satıcının beyanı" ifadesi durur (`shared/listing-format.ts`). Sıralama: En yeni (varsayılan), Fiyat (düşükten yükseğe / yüksekten düşüğe), Adet başı fiyat (beyaz listeli SQL: toplam / adet).
+- **Kartlar**: ≤ 640 px'te yatay kompakt kart (104 px küçük fotoğraf solda); fotoğraf yoksa ya da yüklenemezse nötr "Fotoğraf yok" kutusu (ana sayfa dahil); `loading=lazy`, `decoding=async`, `width/height`. Küçük resim üretimi yok (kod tabanında yeniden kodlama/yeniden boyutlandırma yok): yalnızca görüntü boyutu sınırlanır. "x gün önce" (bugün, dün, N gün/hafta/ay/yıl önce; Türkiye takvim günü) kartta; mutlak tarih `title` ve detayda. Şekil/renk adı kaynaklarda tutarsızsa kartta kısa "doğrulanmalı" rozeti; uzun açıklama ilan sayfasında kalır.
+- **Filtre**: dar ekranda `<details>` ("Filtrele", seçili filtre sayısı rozetli) kapalı başlar, geniş ekranda açıktır; betiksiz her zaman açık ve "Ara" ile çalışır. Seçili filtreler kaldırılabilir çipler olarak, sonuç sayısı her zaman görünür. Tür değişince şekil/renk o türe daralır; seçim kutuları değişince sonuç otomatik yenilenir. URL'ler paylaşılabilir (`shared/filters.ts`).
+- **3B isteğe bağlı**: ≥ 900 px, `saveData` ve `prefers-reduced-data` yoksa sahne görününce yüklenir (eskisi gibi). Dar ekranda/veri tasarrufunda poster + "Temsili 3B görünümü aç" (profilde "Akvaryumu aç"); three.js ve tür kodu YALNIZCA dokunuştan sonra dinamik içe aktarılır (e2e testle doğrulanır). Seçim oturum boyunca `sessionStorage`'da hatırlanır. Balık listesi ve stok/fiyat kartı 3B olmadan çalışır; "temsili 3B görünüm" etiketleri durur.
+- **Kayıt/giriş**: teknik "scrypt" cümlesi kalktı ("Parolanız güvenli biçimde saklanır"), "Parolayı göster" eklendi, parola tekrarı alanı kaldırıldı (sunucu `password2`'yi yalnızca gönderilmişse karşılaştırır), "Kayıt olmadan da ilanlara bakabilirsiniz" satırı eklendi.
+- **Okunurluk**: gövde 16 px, ikincil metin ≥ 15 px, daha koyu meta rengi, menü/düğme hedefleri ≥ 44 px (mobil menü 48 px), fiyat büyütüldü; axe 0 ihlal.
+
 ## Kapsam (yalnızca bunlar)
 
 1. **Normal ilanlar**: tür (3B kataloğundaki 12 tür ya da "diğer" = 3B yok), şekil, renk, cinsiyet, adet, fiyat (TL), şehir + ilçe (ilçe zorunlu serbest metin, 2-60 karakter; eski ilanlarda ilçe boştur ve yalnızca şehir gösterilir), açıklama; **1–5 gerçek fotoğraf zorunlu**.
